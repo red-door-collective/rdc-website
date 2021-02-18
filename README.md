@@ -37,6 +37,14 @@ You'll get a new prompt that looks like:
 
 Now you're ready to run `python` and `ipython`! You can escape the `nix-shell` at any time by holding ctrl pressing the D key or typing `exit` and pressing enter.
 
+#### Google Spreadsheets
+
+You'll need authentication to make requests to the online spreadsheet with the most current data.
+
+Please install [Keybase](https://keybase.io/), a secure messaging platform. I will send any contributor who requests the authentication secrets the necessary file. When I send the file over Keybase, you'll need to download it, and move it somewhere you won't lose it.
+
+By default, our scripts expect the file to be at the following path: `~/.config/gspread/service_account.json`. In plain english: it should be in your home directory, under a hidden folder named `.config` and finally inside another folder called `gspread`. The file should be named `service_account.json`. If these are all true, you're good to go! If you'd like to save the file elsewhere or rename it, just run the script with your custom path under the optional argument: `--service_account_key=/path/to/your/file.json`.
+
 ### Using a REPL
 
 REPL (Read Eval Print Loop) is a concept implemented in many programming languages. If you've never written python before, we recommend spending an afternoon on [these basics](https://developers.google.com/edu/python). You'll interact with a REPL in those courses. 
