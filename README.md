@@ -19,7 +19,9 @@ We've elected to use Nix instead to ease setup. Nix can be used for installing a
 
 ##### Install Nix
 
-Please follow the instructions to install nix on their website https://nixos.org/download.html#nix-quick-install (Please ignore instructions regarding **NixOS** - that's a whole new operating system).
+Please follow the instructions to install [Nix on their website](https://nixos.org/download.html#nix-quick-install).
+
+(Please ignore instructions regarding **NixOS** - that's a whole new operating system).
 
 ##### Using Nix
 
