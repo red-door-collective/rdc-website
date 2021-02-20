@@ -1,0 +1,5 @@
+elm-stuff
+__pycache__
+*.pyc
+app.db
+app/static
