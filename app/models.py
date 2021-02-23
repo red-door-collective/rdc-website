@@ -126,3 +126,17 @@ class DetainerWarrant(db.Model):
                              )
     def __repr__(self):
         return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self.file_date)
+
+class PhoneNumberVerification(db.Model):
+    __tablename__ = 'phone_number_verifications'
+    id = db.Column(db.Integer, primary_key=True)
+    caller_name = db.Column(db.String(255))
+    caller_type = db.Column(db.Integer) # smaller column than String
+    error_code = db.Column(db.Integer)
+    carrier = db.Column(db.String(255))
+    country_code = db.Column(db.String(10))
+    national_format = db.Column(db.String(20))
+    phone_number = db.Column(db.String(30))
+
+    def __repr__(self):
+        return "<PhoneNumberVerification(caller_name='%s', caller_type='%s', phone_number='%s')>" % (self.caller_name, self.caller_type, self.phone_number)
