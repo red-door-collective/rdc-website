@@ -32,34 +32,42 @@ let
     # "jupyterlab_bokeh"
   ];
   pythonEnv = newpkgs.python37.withPackages (ps: with ps; [
-    ipykernel
+    ipykernel jupyterlab jupyterlab_server
     python-language-server pyls-isort
     matplotlib numpy pandas
     autopep8
     gspread
     sqlalchemy
-    flask
-    flask_sqlalchemy
-    flask_assets
-    flask-restful
-    flask_marshmallow
-    marshmallow-sqlalchemy
   ]);
-
-  frontendEnv = [
-    pkgs.elmPackages.elm
-    pkgs.elmPackages.elm-format
-    pkgs.elmPackages.elm-live
-    pkgs.elmPackages.elm-test
-  ];
 
 in newpkgs.mkShell rec {
   buildInputs = [
     pythonEnv
     pkgs.nodejs
-    frontendEnv
     # newpkgs.tectonic # not good
     # newpkgs.python-language-server
     # newpkgs.pyls-isort
   ] ++ kernels;
+  shellHook = ''
+    export TEMPDIR=$(mktemp -d -p /tmp)
+    mkdir -p $TEMPDIR
+    cp -r ${pkgs.python37Packages.jupyterlab}/share/jupyter/lab/* $TEMPDIR
+    chmod -R 755 $TEMPDIR
+    echo "$TEMPDIR is the app directory"
+
+    # kernels
+    export JUPYTER_PATH="${pkgs.lib.concatMapStringsSep ":" (p: "${p}/share/jupyter/") kernels}"
+
+# labextensions
+${pkgs.stdenv.lib.concatMapStrings
+     (s: "jupyter labextension install --no-build --app-dir=$TEMPDIR ${s}; ")
+     (pkgs.lib.unique
+       ((pkgs.lib.concatMap
+           (d: pkgs.lib.attrByPath ["passthru" "jupyterlabExtensions"] [] d)
+           buildInputs) ++ additionalExtensions))  }
+jupyter lab build --app-dir=$TEMPDIR
+chmod -R +w $TEMPDIR/staging/
+jupyter lab build --app-dir=$TEMPDIR
+jupyter lab --app-dir=$TEMPDIR
+    '';
 }
