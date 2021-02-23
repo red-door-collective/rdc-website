@@ -12,6 +12,8 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
       - run: nix-shell --run "python -m unittest discover tests"
+        env:
+          EVICTION_TRACKER_SECRET_KEY: ${{ secrets.EVICTION_TRACKER_SECRET_KEY }}
   deploy:
     runs-on: ubuntu-latest
     name: Deploy site
