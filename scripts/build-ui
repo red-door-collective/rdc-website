@@ -1,1 +1,1 @@
-cd ui && elm make src/Main.elm --output=../app/static/js/main.js
+cd ui && elm make --optimize --output=../app/static/js/main.js src/Main.elm
