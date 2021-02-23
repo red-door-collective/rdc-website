@@ -35,6 +35,7 @@ let
     ipykernel jupyterlab jupyterlab_server
     python-language-server pyls-isort
     matplotlib numpy pandas
+    autopep8
     gspread
     sqlalchemy
     flask
