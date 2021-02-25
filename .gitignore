@@ -1,5 +1,7 @@
 elm-stuff
 __pycache__
 *.pyc
+*.egg-info*
 app.db
 app/static
+result

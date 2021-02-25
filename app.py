@@ -1,3 +1,6 @@
 from app import app
+import os
 
-app.run(host="0.0.0.0", port=8080, debug=True)
+debug = os.environ['ENVIRONMENT'] == 'development'
+
+app.run(host=os.environ['HOST'], port=os.environ['PORT'], debug=debug)
