@@ -1,11 +1,17 @@
+import operator
 from flask import Blueprint
 from flask_resty import (
+    ColumnFilter,
     GenericModelView,
     CursorPaginationBase,
     RelayCursorPagination,
+    Filtering,
     Sorting,
-    meta
+    meta,
+    model_filter
 )
+
+from sqlalchemy.orm import raiseload
 
 from eviction_tracker.database import db
 from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plantiff, Judge, PhoneNumberVerification
@@ -101,6 +107,10 @@ class JudgeResource(JudgeResourceBase):
     def get(self):
         return self.retrieve(id)
 
+@model_filter(fields.String())
+def filter_defendant_name(model, defendant_name):
+    return model.defendants.any(Defendant.name.ilike(f'%{defendant_name}%'))
+
 class DetainerWarrantResourceBase(GenericModelView):
     model = DetainerWarrant
     schema = detainer_warrant_schema
@@ -108,6 +118,8 @@ class DetainerWarrantResourceBase(GenericModelView):
 
     pagination = CursorPagination()
     sorting = Sorting('docket_id', default='docket_id')
+    filtering = Filtering(docket_id=ColumnFilter(operator.eq), defendant_name=filter_defendant_name)
+
 
 class DetainerWarrantListResource(DetainerWarrantResourceBase):
     def get(self):
