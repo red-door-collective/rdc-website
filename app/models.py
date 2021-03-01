@@ -138,11 +138,13 @@ class PhoneNumberVerification(db.Model):
     national_format = db.Column(db.String(20))
     phone_number = db.Column(db.String(30))
     def from_twilio_response(input):
+        caller_info = input['caller_name'] or { 'caller_name': None, 'caller_type': None , 'error_code': None }
+        carrier_info = input['carrier'] or { 'carrier': None }
         return PhoneNumberVerification(
-            caller_name = input['caller_name']['caller_name'],
-            caller_type = input['caller_name']['caller_type'],
-            error_code = input['caller_name']['error_code'],
-            carrier = input['carrier'],
+            caller_name = caller_info['caller_name'],
+            caller_type = caller_info['caller_type'],
+            error_code = caller_info['error_code'],
+            carrier = carrier_info['type'],
             country_code = input['country_code'],
             national_format = input['national_format'],
             phone_number = input['phone_number'])

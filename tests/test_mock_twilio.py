@@ -1,5 +1,6 @@
 import unittest
 import json
+import os
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -7,28 +8,46 @@ from app.models import db, PhoneNumberVerification
 
 db.create_all()
 
-input = json.loads('''{
-  "caller_name": {
-    "caller_name": "Delicious Cheese Cake",
-    "caller_type": "CONSUMER",
-    "error_code": null
-  },
-  "carrier": null,
-  "country_code": "US",
-  "national_format": "(510) 867-5310",
-  "phone_number": "+15108675310",
-  "add_ons": null,
-  "url": "https://lookups.twilio.com/v1/PhoneNumbers/+15108675310"
-}''')
+#Testing json response with caller_name but null carrier
+
+with open('tests/fixtures/phone_number_with_caller_name.json') as twilio_response:
+  input_with_name = json.load(twilio_response)
   
-output = PhoneNumberVerification.from_twilio_response(input)
+output_with_name = PhoneNumberVerification.from_twilio_response(input_with_name)
+
+db.session.add(output_with_name)
+db.session.commit()
+
+phone_number_entry = db.session.query(PhoneNumberVerification).first()
 
 class TestTwilioResponse(unittest.TestCase):
   def test_equality(self):
-    self.assertEqual(input['caller_name']['caller_name'], output.caller_name)
-    self.assertEqual(input['caller_name']['caller_type'], output.caller_type)
-    self.assertEqual(input['caller_name']['error_code'], output.error_code)
-    self.assertEqual(input['carrier'], output.carrier)
-    self.assertEqual(input['country_code'], output.country_code)
-    self.assertEqual(input['national_format'], output.national_format)
-    self.assertEqual(input['phone_number'], output.phone_number)
+    self.assertEqual(input_with_name['caller_name']['caller_name'], phone_number_entry.caller_name)
+    self.assertEqual(input_with_name['caller_name']['caller_type'], phone_number_entry.caller_type)
+    self.assertEqual(input_with_name['caller_name']['error_code'], phone_number_entry.error_code)
+    self.assertEqual(input_with_name['carrier'], phone_number_entry.carrier)
+    self.assertEqual(input_with_name['country_code'], phone_number_entry.country_code)
+    self.assertEqual(input_with_name['national_format'], phone_number_entry.national_format)
+    self.assertEqual(input_with_name['phone_number'], phone_number_entry.phone_number)
+
+#Testing json response with carrier but null caller_name
+
+with open('tests/fixtures/phone_number_missing_caller_name.json') as twilio_response:
+  input_missing_name = json.load(twilio_response)
+  
+output_missing_name = PhoneNumberVerification.from_twilio_response(input_missing_name)
+
+db.session.add(output_missing_name)
+db.session.commit()
+
+phone_number_entry_noname = db.session.query(PhoneNumberVerification).first()
+
+class TestTwilioResponse(unittest.TestCase):
+  def test_equality(self):
+    self.assertEqual(input_missing_name['caller_name'], phone_number_entry_noname.caller_name)
+    self.assertEqual(input_missing_name['caller_name'], phone_number_entry_noname.caller_type)
+    self.assertEqual(input_missing_name['caller_name'], phone_number_entry_noname.error_code)
+    self.assertEqual(input_missing_name['carrier'], phone_number_entry_noname.carrier)
+    self.assertEqual(input_missing_name['country_code'], phone_number_entry_noname.country_code)
+    self.assertEqual(input_missing_name['national_format'], phone_number_entry_noname.national_format)
+    self.assertEqual(input_missing_name['phone_number'], phone_number_entry_noname.phone_number)
