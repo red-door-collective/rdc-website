@@ -137,6 +137,15 @@ class PhoneNumberVerification(db.Model):
     country_code = db.Column(db.String(10))
     national_format = db.Column(db.String(20))
     phone_number = db.Column(db.String(30))
+    def from_twilio_response(input):
+        return PhoneNumberVerification(
+            caller_name = input['caller_name']['caller_name'],
+            caller_type = input['caller_name']['caller_type'],
+            error_code = input['caller_name']['error_code'],
+            carrier = input['carrier'],
+            country_code = input['country_code'],
+            national_format = input['national_format'],
+            phone_number = input['phone_number'])
 
     def __repr__(self):
         return "<PhoneNumberVerification(caller_name='%s', caller_type='%s', phone_number='%s')>" % (self.caller_name, self.caller_type, self.phone_number)
