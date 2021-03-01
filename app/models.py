@@ -132,22 +132,30 @@ class PhoneNumberVerification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     caller_name = db.Column(db.String(255))
     caller_type = db.Column(db.Integer) # smaller column than String
-    error_code = db.Column(db.Integer)
-    carrier = db.Column(db.String(255))
+    name_error_code = db.Column(db.Integer)
+    carrier_error_code = db.Column(db.Integer)
+    mobile_country_code = db.Column(db.String(10))
+    mobile_network_code = db.Column(db.String(10))
+    carrier_name = db.Column(db.String(30))
+    phone_type = db.Column(db.String(10))
     country_code = db.Column(db.String(10))
     national_format = db.Column(db.String(20))
     phone_number = db.Column(db.String(30))
     def from_twilio_response(input):
-        caller_info = input['caller_name'] or { 'caller_name': None, 'caller_type': None , 'error_code': None }
-        carrier_info = input['carrier'] or { 'carrier': None }
+        caller_info = input['caller_name'] or { 'caller_name': None, 'caller_type': None, 'error_code': None }
+        carrier_info = input['carrier'] or { 'error_code': None, 'mobile_country_code': None, 'mobile_network_code': None, 'name': None, 'type': None }
         return PhoneNumberVerification(
             caller_name = caller_info['caller_name'],
             caller_type = caller_info['caller_type'],
-            error_code = caller_info['error_code'],
-            carrier = carrier_info['type'],
+            name_error_code = caller_info['error_code'],
+            carrier_error_code = carrier_info['error_code'],
+            mobile_country_code = carrier_info['mobile_country_code'],
+            mobile_network_code = carrier_info['mobile_network_code'],
+            carrier_name = carrier_info['name'],
+            phone_type = carrier_info['type'],
             country_code = input['country_code'],
             national_format = input['national_format'],
             phone_number = input['phone_number'])
 
     def __repr__(self):
-        return "<PhoneNumberVerification(caller_name='%s', caller_type='%s', phone_number='%s')>" % (self.caller_name, self.caller_type, self.phone_number)
+        return "<PhoneNumberVerification(caller_name='%s', phone_type='%s', phone_number='%s')>" % (self.caller_name, self.phone_type, self.phone_number)
