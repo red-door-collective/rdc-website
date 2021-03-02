@@ -2,13 +2,10 @@ import unittest
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from app.models import db, DetainerWarrant
+from app.models import DetainerWarrant
 import app.spreadsheets as spreadsheet
 
-from app import app
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-db.drop_all()
-db.create_all()
+from helpers import db
 
 example_warrant = ['20GT2',
                    '2',
