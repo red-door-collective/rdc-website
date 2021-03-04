@@ -1,7 +1,13 @@
 elm-stuff
+
 __pycache__
 *.pyc
-*.egg-info*
-app.db
-app/static
+
+instance/
+
+*.egg-info/
+serve_app
+
+*.db
+eviction_tracker/static
 result

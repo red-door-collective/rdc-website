@@ -2,10 +2,10 @@ import unittest
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from app.models import DetainerWarrant
-import app.spreadsheets as spreadsheet
-
-from helpers import db
+from flask_testing import TestCase
+import eviction_tracker.detainer_warrants as detainer_warrants
+from eviction_tracker.detainer_warrants.models import DetainerWarrant
+from eviction_tracker.app import create_app, db
 
 example_warrant = ['20GT2',
                    '2',
@@ -29,10 +29,24 @@ example_warrant = ['20GT2',
 DOCKET_ID = 0
 FILE_DATE = 2
 
-class TestDataImport(unittest.TestCase):
+class TestDataImport(TestCase):
+
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'
+    TESTING = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    def create_app(self):
+        return create_app(self)
+
+    def setUp(self):
+        db.create_all()
+    
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
 
     def test_detainer_warrant_import(self):
-        spreadsheet.imports.detainer_warrants([example_warrant])
+        detainer_warrants.imports.from_spreadsheet([example_warrant])
         saved_warrant = db.session.query(DetainerWarrant).first()
 
         self.assertEqual(saved_warrant.docket_id, example_warrant[DOCKET_ID])

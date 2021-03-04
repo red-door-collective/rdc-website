@@ -1,4 +1,7 @@
 {
-    "nixEnvSelector.nixFile": "${workspaceRoot}/default.nix",
-    "python.pythonPath": "/nix/store/yd4nslxqldgl2m2h53g3ig78far7vq4y-python3-3.7.9/bin/python"
+    "python.pythonPath": "/nix/store/cglwdqz60msyycyvhq5ly7rrhlqw7cb6-python3-3.7.10-env/bin/python",
+    "code-runner.executorMap": {
+        "python": "/nix/store/cglwdqz60msyycyvhq5ly7rrhlqw7cb6-python3-3.7.10-env/bin/python"
+    },
+    "nixEnvSelector.nixShellConfig": "${workspaceRoot}/shell.nix"
 }

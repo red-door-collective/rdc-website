@@ -1,14 +1,13 @@
-from . import api, ma
-from marshmallow import fields
+from marshmallow import Schema, fields
 
-class DistrictSchema(ma.Schema):
+class DistrictSchema(Schema):
     class Meta:
         fields = ("id", "name")
 
 district_schema = DistrictSchema()
 districts_schema = DistrictSchema(many=True)
 
-class AttorneySchema(ma.Schema):
+class AttorneySchema(Schema):
     district = fields.Nested(DistrictSchema)
 
     class Meta:
@@ -17,7 +16,7 @@ class AttorneySchema(ma.Schema):
 attorney_schema = AttorneySchema()
 attorneys_schema = AttorneySchema(many=True)
 
-class DefendantSchema(ma.Schema):
+class DefendantSchema(Schema):
     district = fields.Nested(DistrictSchema)
 
     class Meta:
@@ -26,7 +25,7 @@ class DefendantSchema(ma.Schema):
 defendant_schema = DefendantSchema()
 defendants_schema = DefendantSchema(many=True)
 
-class CourtroomSchema(ma.Schema):
+class CourtroomSchema(Schema):
     district = fields.Nested(DistrictSchema)
 
     class Meta:
@@ -35,7 +34,7 @@ class CourtroomSchema(ma.Schema):
 courtroom_schema = CourtroomSchema()
 courtrooms_schema = CourtroomSchema(many=True)
 
-class PlantiffSchema(ma.Schema):
+class PlantiffSchema(Schema):
     attorney = fields.Nested(AttorneySchema)
     district = fields.Nested(DistrictSchema)
 
@@ -45,7 +44,7 @@ class PlantiffSchema(ma.Schema):
 plantiff_schema = PlantiffSchema()
 plantiffs_schema = PlantiffSchema(many=True)
 
-class JudgeSchema(ma.Schema):
+class JudgeSchema(Schema):
     district = fields.Nested(DistrictSchema)
 
     class Meta:
@@ -54,7 +53,7 @@ class JudgeSchema(ma.Schema):
 judge_schema = JudgeSchema()
 judges_schema = JudgeSchema(many=True)
 
-class DetainerWarrantSchema(ma.Schema):
+class DetainerWarrantSchema(Schema):
     plantiff = fields.Nested(PlantiffSchema)
     courtroom = fields.Nested(CourtroomSchema)
     presiding_judge = fields.Nested(JudgeSchema)
@@ -66,7 +65,7 @@ class DetainerWarrantSchema(ma.Schema):
 detainer_warrant_schema = DetainerWarrantSchema()
 detainer_warrants_schema = DetainerWarrantSchema(many=True)
 
-class PhoneNumberVerificationSchema(ma.Schema):
+class PhoneNumberVerificationSchema(Schema):
     class Meta:
         fields = ("caller_name", "caller_type", "error_code", "carrier", "country_code", "national_format", "phone_number")
 

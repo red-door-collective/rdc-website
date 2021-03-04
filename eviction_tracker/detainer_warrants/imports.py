@@ -1,5 +1,5 @@
-from ..models import db
-from ..models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plantiff
+from .models import db
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plantiff
 from .util import get_or_create
 
 def _init_status(warrant):
@@ -45,9 +45,9 @@ def _from_spreadsheet_row(warrant, defaults):
         defendants=[defendant]
         )
 
-def detainer_warrants(warrants):
+def from_spreadsheet(warrants):
     district, _ = get_or_create(db.session, District, name="Davidson County")
-
+    
     db.session.add(district)
     db.session.commit()
 
