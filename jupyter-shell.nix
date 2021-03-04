@@ -1,17 +1,13 @@
 let
-  pkgs = import (fetchTarball https://git.io/Jf0cc) {};
-  newpkgs = import pkgs.path { overlays = [ (pkgsself: pkgssuper: {
-    python37 = let
-      packageOverrides = self: super: {
-        # numpy = super.numpy_1_10;
-      };
-    in pkgssuper.python37.override {inherit packageOverrides;};
-  } ) ]; };
+  pkgs = import ./nix/pkgs.nix;
+  python = import ./nix/python.nix;
+
   kernels = [
     # pkgs.python37Packages.ansible-kernel
     # pythonPackages.jupyter-c-kernel
     # pkgs.gophernotes
   ];
+
   additionalExtensions = [
     # "@jupyterlab/toc"
     # "@jupyterlab/fasta-extension"
@@ -31,23 +27,13 @@ let
     "@pyviz/jupyterlab_pyviz"
     # "jupyterlab_bokeh"
   ];
-  pythonEnv = newpkgs.python37.withPackages (ps: with ps; [
-    ipykernel jupyterlab jupyterlab_server
-    python-language-server pyls-isort
-    matplotlib numpy pandas
-    autopep8
-    gspread
-    sqlalchemy
-  ]);
 
-in newpkgs.mkShell rec {
+in pkgs.mkShell rec {
   buildInputs = [
-    pythonEnv
+    python.env
     pkgs.nodejs
-    # newpkgs.tectonic # not good
-    # newpkgs.python-language-server
-    # newpkgs.pyls-isort
   ] ++ kernels;
+ 
   shellHook = ''
     export TEMPDIR=$(mktemp -d -p /tmp)
     mkdir -p $TEMPDIR
