@@ -31,12 +31,12 @@ FILE_DATE = 2
 
 class TestDataImport(TestCase):
 
-    SQLALCHEMY_DATABASE_URI = 'sqlite://'
-    TESTING = True
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-
     def create_app(self):
-        return create_app(self)
+        app = create_app(self)
+        app.config['TESTING'] = True
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        return app
 
     def setUp(self):
         db.create_all()

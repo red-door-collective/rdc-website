@@ -12,6 +12,7 @@ def create_app(testing=False):
     app = Flask(__name__.split('.')[0])
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['SQLALCHEMY_DATABASE_URI']
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ['SQLALCHEMY_TRACK_MODIFICATIONS']
+    app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
     register_extensions(app)
     register_blueprints(app)
