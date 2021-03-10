@@ -101,11 +101,19 @@ in rec {
     python.pkgs.gunicorn
   ];
 
+  frontendTools =
+  [
+    pkgs.elmPackages.elm
+    pkgs.elmPackages.elm-test
+    pkgs.elmPackages.elm-format
+  ];
+
 
   # Needed for a development nix shell
   shellInputs =
     linters ++
-    shellTools ++ [
+    shellTools ++
+    frontendTools ++ [
       pythonTest
     ];
 
