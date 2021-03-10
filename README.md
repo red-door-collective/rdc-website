@@ -59,12 +59,22 @@ ipython
 
 And now, you can write python code with any of our libraries!
 
-### Running scripts
+### Running commands
 
-While in a [Nix Shell](#using-nix), run `python src/prepare-numbers.py` or `python src/name-of-my-own-script.py` to run python code you've written in a `.py` file.
+While in a [Nix Shell](#using-nix), run `flask <name-of-command>`.
 
-### Verifying phone numbers
+#### Sync database
 
-**Note:** this code is changing fast, and the docs might be out-of-date.
+To sync the data from our org's Google Spreadsheet, run `flask sync <spreadsheet-name>`.
 
-While in a [Nix Shell](#using-nix), run `python src/prepare-numbers.py 'detainer-warrants_15-02-2020'`.
+If you want just a bit of data to work with locally, pass the `--limit` argument.
+
+Example: `flask sync --sheet-name 'detainer-warrants_15-02-2020' --limit 10` will populate the database with 10 detainer warrants from the spreadsheet titled `detainer-warrants_15-02-2020`.
+
+#### Run app
+
+To run the website locally, use `flask run --no-reload` within the `nix-shell`.
+
+You'll be able to visit it at http://127.0.0.1:5000/
+
+You can browse api endpoints like detainer warrants at http://127.0.0.1:5000/api/v1/detainer-warrants

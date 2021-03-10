@@ -27,10 +27,12 @@ def test():
 @click.command()
 @click.option('-s', '--sheet-name', default=None,
               help='Google Service Account filepath')
+@click.option('-l', '--limit', default=None,
+              help='Number of rows to insert')
 @click.option('-k', '--service-account-key', default=None,
               help='Google Service Account filepath')
 @with_appcontext
-def sync(sheet_name, service_account_key):
+def sync(sheet_name, limit, service_account_key):
     """Sync data with the Google spreadsheet"""
 
     connect_kwargs = dict()
@@ -43,7 +45,10 @@ def sync(sheet_name, service_account_key):
 
     ws = sh.worksheet("All Detainer Warrants")
 
-    NUM_WARRANTS_TO_INSERT = 5  # insert just a bit of data to play with
+    all_rows = ws.get_all_values()
 
-    detainer_warrants.imports.from_spreadsheet(
-        ws.get_all_values()[1:NUM_WARRANTS_TO_INSERT])
+    stop_index = int(limit) if limit else all_rows
+
+    rows = all_rows[1:stop_index] if limit else all_rows
+
+    detainer_warrants.imports.from_spreadsheet(rows)

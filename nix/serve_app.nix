@@ -24,7 +24,13 @@ let
   runMigrations = pkgs.writeShellScriptBin "migrate" ''
     export PYTHONPATH=${pythonpath}
     cd ${src}
-    ${flask}/bin/flask db migrate
+    ${flask}/bin/flask db upgrade
+  '';
+
+  runSync = pkgs.writeShellScriptBin "sync" ''
+    export PYTHONPATH=${pythonpath}
+    cd ${src}
+    ${flask}/bin/flask sync "$@"
   '';
 
 in pkgs.buildEnv {
@@ -32,5 +38,6 @@ in pkgs.buildEnv {
   paths = [
     runGunicorn
     runMigrations
+    runSync
   ];
 }
