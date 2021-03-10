@@ -1,12 +1,23 @@
+# Build Python package.
+# Can be installed in the current user profile with:
+# nix-env -if .
+{ sources ? null }:
 let
-  pkgs = import ./nix/python.nix;
-  pythonEnv = import ./nix/deps.nix;
-
-in pkgs.python37Packages.buildPythonApplication {
-  pname = "eviction-tracker";
+  deps = import ./nix/deps.nix { inherit sources; };
+  inherit (deps) babel pkgs mkPoetryApplication python pyProject;
+  inherit (deps.pyProject) version;
   src = ./.;
-  version = "0.1";
-  propagatedBuildInputs = [ pythonEnv ];
 
-  EVICTION_TRACKER_SECRET_KEY = "lk;jasdlkfjas;dfja;sldjfl;akjdsflasdfjdjsfajdf";
+in mkPoetryApplication {
+  doCheck = false;
+  projectDir = ./.;
+  inherit python src version;
+
+  passthru = {
+    inherit deps src version;
+  };
+
+  postInstall = ''
+    ${babel}/bin/pybabel compile -d $out/${python.sitePackages}/eviction_tracker/translations
+  '';
 }

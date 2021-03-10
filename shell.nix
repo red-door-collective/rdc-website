@@ -1,22 +1,24 @@
+{ sources ? null }:
 let
-  pkgs = import ./nix/pkgs.nix;
-  python = import ./nix/python.nix;
-  
-  frontendEnv = [
-    pkgs.elmPackages.elm
-    pkgs.elmPackages.elm-format
-    pkgs.elmPackages.elm-live
-    pkgs.elmPackages.elm-test
-  ];
+  deps = import ./nix/deps.nix { inherit sources; };
+  inherit (deps) pkgs;
+  inherit (pkgs) lib stdenv;
+  caBundle = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
 
-in pkgs.mkShell rec {
-  EVICTION_TRACKER_SECRET_KEY = "development";
-  ENVIRONMENT = "development";
-  HOST = "127.0.0.1";
-  PORT = "8080";
-
-  buildInputs = [
-    python.env
-    frontendEnv
-  ];
+in pkgs.mkShell {
+  name = "eviction-tracker";
+  buildInputs = deps.shellInputs;
+  shellHook = ''
+    export PATH=${deps.shellPath}:$PATH
+    # A pure nix shell breaks SSL for git and nix tools which is fixed by setting
+    # the path to the certificate bundle.
+    export SSL_CERT_FILE=${caBundle}
+    export NIX_SSL_CERT_FILE=${caBundle}
+    # Make ZIP happy for wheels, doesn't support timestamps before 1980.
+    export SOURCE_DATE_EPOCH=315532800
+    export $(cat .env | xargs)
+  '' +
+  lib.optionalString (pkgs.stdenv.hostPlatform.libc == "glibc") ''
+    export LOCALE_ARCHIVE=${deps.glibcLocales}/lib/locale/locale-archive
+  '';
 }

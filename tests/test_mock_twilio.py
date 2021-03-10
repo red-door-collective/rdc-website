@@ -4,16 +4,26 @@ import os
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from app.models import PhoneNumberVerification
+from flask_testing import TestCase
+from eviction_tracker.detainer_warrants.models import PhoneNumberVerification
+from eviction_tracker.database import db
+from eviction_tracker.app import create_app
 
-from helpers import db
+class TestTwilioResponse(TestCase):
 
+  def create_app(self):
+        app = create_app(self)
+        app.config['TESTING'] = True
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        return app
 
-class TestTwilioResponse(unittest.TestCase):
   def setUp(self):
-        db.session.close()
-        db.drop_all()
-        db.create_all()
+      db.create_all()
+  
+  def tearDown(self):
+      db.session.remove()
+      db.drop_all()
 
   '''
   Testing json response with caller_name but null carrier

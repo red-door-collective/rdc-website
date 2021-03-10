@@ -6,6 +6,7 @@ in
     python-language-server pyls-isort
     matplotlib numpy
     autopep8
+    click
     gspread
     sqlalchemy
     flask
@@ -13,6 +14,12 @@ in
     flask_assets
     flask-restful
     flask_marshmallow
+    flask_testing
+    flask_migrate
     marshmallow-sqlalchemy
+    psycopg2
+    pytest
+    gunicorn
+    gevent
   ]);
 }

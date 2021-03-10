@@ -1,6 +1,6 @@
-from app import app
-import os
+"""Create an application instance."""
+from flask.helpers import get_debug_flag
 
-debug = os.environ['ENVIRONMENT'] == 'development'
+from eviction_tracker.app import create_app
 
-app.run(host=os.environ['HOST'], port=os.environ['PORT'], debug=debug)
+app = create_app()
