@@ -34,7 +34,7 @@ class TestDataImport(TestCase):
     def create_app(self):
         app = create_app(self)
         app.config['TESTING'] = True
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://eviction_tracker@localhost/eviction_tracker_test'
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://eviction_tracker@127.0.0.1:5432/eviction_tracker_test'
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         return app
 
