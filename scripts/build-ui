@@ -1,1 +1,2 @@
 cd ui && elm make --optimize --output=../eviction_tracker/static/js/main.js src/Main.elm
+cd .. && flask assets build
