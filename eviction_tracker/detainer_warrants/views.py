@@ -1,126 +1,136 @@
 from flask import Blueprint
-from flask_restful import Api, Resource
+from flask_resty import (
+    GenericModelView,
+    CursorPaginationBase,
+    RelayCursorPagination,
+    Sorting,
+    meta
+)
 
 from eviction_tracker.database import db
 from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plantiff, Judge, PhoneNumberVerification
 from .serializers import *
 
-blueprint = Blueprint('api', __name__)
-api = Api(blueprint)
+class CursorPagination(RelayCursorPagination):
+    def get_limit(self):
+        return 100
+
+    def get_page(self, query, view):
+        items = super().get_page(query, view)
+
+        after_cursor = None
+        if len(items) == self.get_limit():
+            after_cursor = super().make_cursor(items[-1], view, super().get_field_orderings(view))
+        
+        meta.update_response_meta({ "after_cursor": after_cursor })
+        return items
 
 
-class AttorneyListResource(Resource):
+class AttorneyResourceBase(GenericModelView):
+    model = Attorney
+    schema = attorney_schema
+
+    pagination = CursorPagination()
+    sorting = Sorting('name', default='name')
+
+class AttorneyListResource(AttorneyResourceBase):
     def get(self):
-        attorneys = Attorney.query.all()
-        return attorneys_schema.dump(attorneys)
+        return self.list()
 
-
-class AttorneyResource(Resource):
-    def get(self, attorney_id):
-        attorney = Attorney.query.get_or_404(attorney_id)
-        return attorney_schema.dump(attorney)
-
-
-api.add_resource(AttorneyListResource, '/attorneys')
-api.add_resource(AttorneyResource, '/attorneys/<int:attorney_id>')
-
-
-class DefendantListResource(Resource):
+class AttorneyResource(AttorneyResourceBase):
     def get(self):
-        defendants = Defendant.query.all()
-        return defendants_schema.dump(defendants)
+        return self.retrieve(id)
 
+class DefendantResourceBase(GenericModelView):
+    model = Defendant
+    schema = defendant_schema
 
-class DefendantResource(Resource):
-    def get(self, defendant_id):
-        defendant = Defendant.query.get_or_404(defendant_id)
-        return defendant_schema.dump(defendant)
+    pagination = CursorPagination()
+    sorting = Sorting('name', default='name')
 
-
-api.add_resource(DefendantListResource, '/defendants')
-api.add_resource(DefendantResource, '/defendants/<int:defendant_id>')
-
-
-class CourtroomListResource(Resource):
+class DefendantListResource(DefendantResourceBase):
     def get(self):
-        courtrooms = Courtroom.query.all()
-        return courtrooms_schema.dump(courtrooms)
+        return self.list()
 
-
-class CourtroomResource(Resource):
-    def get(self, courtroom_id):
-        courtroom = Courtroom.query.get_or_404(courtroom_id)
-        return courtroom_schema.dump(courtroom)
-
-
-api.add_resource(CourtroomListResource, '/courtrooms')
-api.add_resource(CourtroomResource, '/courtrooms/<int:courtroom_id>')
-
-
-class PlantiffListResource(Resource):
+class DefendantResource(DefendantResourceBase):
     def get(self):
-        plantiffs = Plantiff.query.all()
-        return plantiffs_schema.dump(plantiffs)
+        return self.retrieve(id)
 
+class CourtroomResourceBase(GenericModelView):
+    model = Courtroom
+    schema = courtroom_schema
 
-class PlantiffResource(Resource):
-    def get(self, plantiff_id):
-        plantiff = Plantiff.query.get_or_404(plantiff_id)
-        return plantiff_schema.dump(plantiff)
+    pagination = CursorPagination()
+    sorting = Sorting('name', default='name')
 
-
-api.add_resource(PlantiffListResource, '/plantiffs')
-api.add_resource(PlantiffResource, '/plantiffs/<int:plantiff_id>')
-
-
-class JudgeListResource(Resource):
+class CourtroomListResource(CourtroomResourceBase):
     def get(self):
-        judges = Judge.query.all()
-        return judges_schema.dump(judges)
+        return self.list()
 
-
-class JudgeResource(Resource):
-    def get(self, judge_id):
-        judge = Judge.query.get_or_404(judge_id)
-        return judge_schema.dump(judge)
-
-
-api.add_resource(JudgeListResource, '/judges')
-api.add_resource(JudgeResource, '/judges/<int:judge_id>')
-
-
-class DetainerWarrantListResource(Resource):
+class CourtroomResource(CourtroomResourceBase):
     def get(self):
-        detainer_warrants = DetainerWarrant.query.all()
-        return detainer_warrants_schema.dump(detainer_warrants)
+        return self.retrieve(id)
 
+class PlantiffResourceBase(GenericModelView):
+    model = Plantiff
+    schema = plantiff_schema
 
-class DetainerWarrantResource(Resource):
-    def get(self, detainer_warrant_id):
-        detainer_warrant = DetainerWarrant.query.get_or_404(
-            detainer_warrant_id)
-        return detainer_warrant_schema.dump(detainer_warrant)
+    pagination = CursorPagination()
+    sorting = Sorting('name', default='name')
 
-
-api.add_resource(DetainerWarrantListResource, '/detainer-warrants')
-api.add_resource(DetainerWarrantResource,
-                 '/detainer-warrants/<int:detainer_warrant_id>')
-
-
-class PhoneNumberVerificationListResource(Resource):
+class PlantiffListResource(PlantiffResourceBase):
     def get(self):
-        phones = PhoneNumberVerification.query.all()
-        return phone_number_verifications_schema.dump(phones)
+        return self.list()
+
+class PlantiffResource(PlantiffResourceBase):
+    def get(self):
+        return self.retrieve(id)
+
+class JudgeResourceBase(GenericModelView):
+    model = Judge
+    schema = judge_schema
+
+    pagination = CursorPagination()
+    sorting = Sorting('name', default='name')
+
+class JudgeListResource(JudgeResourceBase):
+    def get(self):
+        return self.list()
+
+class JudgeResource(JudgeResourceBase):
+    def get(self):
+        return self.retrieve(id)
+
+class DetainerWarrantResourceBase(GenericModelView):
+    model = DetainerWarrant
+    schema = detainer_warrant_schema
+    id_fields = ('docket_id',)
+
+    pagination = CursorPagination()
+    sorting = Sorting('docket_id', default='docket_id')
+
+class DetainerWarrantListResource(DetainerWarrantResourceBase):
+    def get(self):
+        return self.list()
 
 
-class PhoneNumberVerificationResource(Resource):
-    def get(self, phone_number_verification_id):
-        phone = PhoneNumberVerification.query.get_or_404(
-            phone_number_verification_id)
-        return phone_number_verification_schema.dump(phone)
+class DetainerWarrantResource(DetainerWarrantResourceBase):
+    def get(self):
+        return self.retrieve(id)
+
+class PhoneNumberVerificationResourceBase(GenericModelView):
+    model = PhoneNumberVerification
+    schema = phone_number_verification_schema
+
+    pagination = CursorPagination()
+    sorting = Sorting('phone_number', default='phone_number')
+
+class PhoneNumberVerificationListResource(PhoneNumberVerificationResourceBase):
+    def get(self):
+        return self.list()
 
 
-api.add_resource(PhoneNumberVerificationListResource,
-                 '/phone-number-verifications')
-api.add_resource(PhoneNumberVerificationResource,
-                 '/phone-number-verifications/<int:phone_number_verification_id>')
+class PhoneNumberVerificationResource(PhoneNumberVerificationResourceBase):
+    def get(self):
+        return self.retrieve(id)
+
