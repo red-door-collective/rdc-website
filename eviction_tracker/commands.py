@@ -49,6 +49,6 @@ def sync(sheet_name, limit, service_account_key):
 
     stop_index = int(limit) if limit else all_rows
 
-    rows = all_rows[1:stop_index] if limit else all_rows
+    rows = all_rows[1:stop_index] if limit else all_rows[1:]
 
     detainer_warrants.imports.from_spreadsheet(rows)

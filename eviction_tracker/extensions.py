@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy, Model
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_assets import Environment, Bundle
-
+from flask_resty import Api
 
 class CRUDMixin(Model):
     """Mixin that adds convenience methods for CRUD (create, read, update, delete) operations."""
@@ -40,3 +40,4 @@ assets.register('js_all', js)
 db = SQLAlchemy(model_class=CRUDMixin)
 marshmallow = Marshmallow()
 migrate = Migrate()
+api = Api(prefix='/api/v1')

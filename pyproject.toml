@@ -20,6 +20,7 @@ Flask-SQLAlchemy = "^2.4.4"
 Flask-Migrate = "^2.7.0"
 Flask-Assets = "^2.0"
 PyYAML = "^5.4.1"
+Flask-RESTy = "^1.6.0"
 
 
 [tool.poetry.dev-dependencies]

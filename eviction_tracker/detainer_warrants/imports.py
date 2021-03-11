@@ -1,6 +1,8 @@
 from .models import db
-from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plantiff
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plantiff, detainer_warrant_defendants
 from .util import get_or_create
+from sqlalchemy.exc import IntegrityError, InternalError
+from sqlalchemy.dialects.postgresql import insert
 
 def _init_status(warrant):
     statuses = {
@@ -19,6 +21,10 @@ def _init_amount_claimed_category(warrant):
     }
     return categories[warrant[12].upper()]
 
+def init_phone(warrant):
+    # take first phone number for now
+    return warrant[14].split(',')[0] if warrant[14] else None
+
 def _from_spreadsheet_row(warrant, defaults):
     docket_id = warrant[0]
     file_date = warrant[2]
@@ -32,18 +38,42 @@ def _from_spreadsheet_row(warrant, defaults):
     amount_claimed_category = _init_amount_claimed_category(warrant)
     defendant, _ = get_or_create(db.session, Defendant, address=warrant[15], name=warrant[14], phone=warrant[16], defaults=defaults)
 
-    return DetainerWarrant(
+    insert_stmt = insert(DetainerWarrant).values(
         docket_id=docket_id,
         file_date=file_date,
         status=status,
-        plantiff=plantiff,
+        plantiff_id=plantiff.id,
         court_date=court_date,
-        courtroom=courtroom,
-        presiding_judge=presiding_judge,
+        courtroom_id=courtroom.id,
+        presiding_judge_id=presiding_judge.id,
         amount_claimed=amount_claimed,
         amount_claimed_category=amount_claimed_category,
-        defendants=[defendant]
+    )
+
+    do_update_stmt = insert_stmt.on_conflict_do_update(
+        constraint=DetainerWarrant.__table__.primary_key,
+        set_= dict(
+        file_date=file_date,
+        status=status,
+        plantiff_id=plantiff.id,
+        court_date=court_date,
+        courtroom_id=courtroom.id,
+        presiding_judge_id=presiding_judge.id,
+        amount_claimed=amount_claimed,
+        amount_claimed_category=amount_claimed_category,
         )
+    )
+
+    db.session.execute(do_update_stmt)
+    db.session.commit()
+
+    try:
+        db.session.execute(insert(detainer_warrant_defendants)
+            .values(detainer_warrant_docket_id=docket_id, defendant_id=defendant.id))
+    except IntegrityError:
+        pass
+
+    db.session.commit()
 
 def from_spreadsheet(warrants):
     district, _ = get_or_create(db.session, District, name="Davidson County")
@@ -54,6 +84,5 @@ def from_spreadsheet(warrants):
     defaults = {'district': district}
 
     for warrant in warrants:
-        db.session.add(_from_spreadsheet_row(warrant, defaults))
+        _from_spreadsheet_row(warrant, defaults)
 
-    db.session.commit()
