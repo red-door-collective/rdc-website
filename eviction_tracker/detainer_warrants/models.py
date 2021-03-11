@@ -22,6 +22,7 @@ detainer_warrant_defendants = db.Table(
     Column('defendant_id', db.ForeignKey('defendants.id'), primary_key=True)
 )
 
+
 class Defendant(db.Model):
     __tablename__ = 'defendants'
     id = Column(db.Integer, primary_key=True)
@@ -37,10 +38,11 @@ class Defendant(db.Model):
     detainer_warrants = relationship('DetainerWarrant',
                                      secondary=detainer_warrant_defendants,
                                      back_populates='defendants'
-                                    )
+                                     )
 
     def __repr__(self):
         return "<Defendant(name='%s', phone='%s', address='%s')>" % (self.name, self.phone, self.address)
+
 
 class Attorney(db.Model):
     __tablename__ = 'attorneys'
@@ -56,6 +58,7 @@ class Attorney(db.Model):
     def __repr__(self):
         return "<Attorney(name='%s', district_id='%s')>" % (self.name, self.district_id)
 
+
 class Courtroom(db.Model):
     __tablename__ = 'courtrooms'
     id = Column(db.Integer, primary_key=True)
@@ -70,6 +73,7 @@ class Courtroom(db.Model):
     def __repr__(self):
         return "<Courtroom(name='%s')>" % (self.name)
 
+
 class Plantiff(db.Model):
     __tablename__ = 'plantiffs'
     id = Column(db.Integer, primary_key=True)
@@ -81,10 +85,12 @@ class Plantiff(db.Model):
 
     district = relationship('District', back_populates='plantiffs')
     attorney = relationship('Attorney', back_populates='plantiff_clients')
-    detainer_warrants = relationship('DetainerWarrant', back_populates='plantiff')
+    detainer_warrants = relationship(
+        'DetainerWarrant', back_populates='plantiff')
 
     def __repr__(self):
         return "<Plantiff(name='%s', attorney_id='%s', district_id='%s')>" % (self.name, self.attorney_id, self.district_id)
+
 
 class Judge(db.Model):
     __tablename__ = "judges"
@@ -100,17 +106,30 @@ class Judge(db.Model):
     def __repr__(self):
         return "<Judge(name='%s')>" % (self.name)
 
+
 class DetainerWarrant(db.Model):
+    statuses = {
+        'CLOSED': 0,
+        'PENDING': 1
+    }
+
+    amount_claimed_categories = {
+        'POSS': 0,
+        'FEES': 1,
+        'BOTH': 2,
+        'N/A': 3,
+    }
+
     __tablename__ = 'detainer_warrants'
     docket_id = Column(db.String(255), primary_key=True)
     file_date = Column(db.String(255), nullable=False)
-    status = Column(db.Integer, nullable=False) # union?
+    status_id = Column(db.Integer, nullable=False) # union?
     plantiff_id = Column(db.Integer, db.ForeignKey('plantiffs.id'))
-    court_date = Column(db.String(255), nullable=False) # date
-    courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'), nullable=False)
+    court_date = Column(db.String(255)) # date
+    courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
     amount_claimed = Column(db.String(30)) # USD
-    amount_claimed_category = Column(db.Integer, nullable=False) # enum (POSS | FEES | BOTH | NA)
+    amount_claimed_category_id = Column(db.Integer, nullable=False) # enum (POSS | FEES | BOTH | NA)
     judgement = Column(db.Integer)
     judgement_notes = Column(db.String(255))
 
@@ -121,9 +140,32 @@ class DetainerWarrant(db.Model):
     defendants = relationship('Defendant',
                               secondary=detainer_warrant_defendants,
                               back_populates='detainer_warrants'
-                             )
+                              )
+
     def __repr__(self):
         return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self.file_date)
+
+    @property
+    def status(self):
+        status_by_id = {v: k for k, v in DetainerWarrant.statuses.items()}
+        return status_by_id[self.status_id]
+
+    @status.setter
+    def status(self, status_name):
+        self.status_id = DetainerWarrant.statuses[status_name]
+
+    @property
+    def amount_claimed_category(self):
+        category_by_id = {
+            v: k for k, v in DetainerWarrant.amount_claimed_categories.items()}
+        return category_by_id[self.amount_claimed_category_id]
+
+    @amount_claimed_category.setter
+    def amount_claimed_category(self, amount_claimed_category_name):
+        self.amount_claimed_category_id = DetainerWarrant.amount_claimed_categories[
+            amount_claimed_category_name]
+
+
 
 class PhoneNumberVerification(db.Model):
     __tablename__ = 'phone_number_verifications'
