@@ -10,7 +10,8 @@ jobs:
       postgres:
         image: postgres:11
         env:
-          POSTGRES_USER: eviction_tracker
+          POSTGRES_USER: eviction_tracker_test
+          POSTGRES_PASSWORD: junkdata
           POSTGRES_DB: eviction_tracker_test
         ports:
           - 5432:5432
