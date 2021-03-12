@@ -1,6 +1,9 @@
 module Main exposing (main)
 
 import Browser
+import Color
+import Date
+import DateFormat exposing (format, monthNameAbbreviated)
 import DateTime
 import Element exposing (Element, fill)
 import Element.Background as Background
@@ -8,14 +11,133 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input
 import Html exposing (Html)
+import Html.Attributes exposing (class)
 import Html.Events
 import Http
 import Json.Decode as Decode exposing (Decoder, Value, bool, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
-import LineChart
+import LineChart as LineChart
+import LineChart.Area as Area
 import LineChart.Axis as Axis
+import LineChart.Axis.Intersection as Intersection
+import LineChart.Axis.Line as AxisLine
+import LineChart.Axis.Range as Range
+import LineChart.Axis.Tick as Tick
+import LineChart.Axis.Ticks as Ticks
+import LineChart.Axis.Title as Title
+import LineChart.Container as Container
+import LineChart.Dots as Dots
+import LineChart.Events as Events
+import LineChart.Grid as Grid
+import LineChart.Interpolation as Interpolation
+import LineChart.Junk as Junk exposing (..)
+import LineChart.Legends as Legends
+import LineChart.Line as Line
 import Palette
-import Time
+import Svg exposing (Svg)
+import Time exposing (Month(..))
+import Time.Extra as Time exposing (Parts, partsToPosix)
+
+
+type alias Info =
+    { evictions : Float
+    , date : Float
+    }
+
+
+date : Int -> Month -> Int -> Float
+date year month day =
+    toFloat (Time.posixToMillis (partsToPosix Time.utc (Parts year month day 0 0 0 0)))
+
+
+elmington : List Info
+elmington =
+    [ Info 10 (date 2020 Apr 1)
+    , Info 15 (date 2020 May 1)
+    , Info 25 (date 2020 Jun 1)
+    , Info 43 (date 2020 Jul 1)
+    ]
+
+
+mdha : List Info
+mdha =
+    [ Info 12 (date 2020 Apr 1)
+    , Info 17 (date 2020 May 1)
+    , Info 25 (date 2020 Jun 1)
+    , Info 43 (date 2020 Jul 1)
+    ]
+
+
+hickoryhigh : List Info
+hickoryhigh =
+    [ Info 13 (date 2020 Apr 1)
+    , Info 16 (date 2020 May 1)
+    , Info 40 (date 2020 Jun 1)
+    , Info 5 (date 2020 Jul 1)
+    ]
+
+
+hickorychase : List Info
+hickorychase =
+    [ Info 30 (date 2020 Apr 1)
+    , Info 15 (date 2020 May 1)
+    , Info 20 (date 2020 Jun 1)
+    , Info 50 (date 2020 Jul 1)
+    ]
+
+
+wood : List Info
+wood =
+    [ Info 22 (date 2020 Apr 1)
+    , Info 11 (date 2020 May 1)
+    , Info 33 (date 2020 Jun 1)
+    , Info 11 (date 2020 Jul 1)
+    ]
+
+
+cove : List Info
+cove =
+    [ Info 13 (date 2020 Apr 1)
+    , Info 14 (date 2020 May 1)
+    , Info 15 (date 2020 Jun 1)
+    , Info 16 (date 2020 Jul 1)
+    ]
+
+
+urban : List Info
+urban =
+    [ Info 26 (date 2020 Apr 1)
+    , Info 2 (date 2020 May 1)
+    , Info 19 (date 2020 Jun 1)
+    , Info 21 (date 2020 Jul 1)
+    ]
+
+
+creekstone : List Info
+creekstone =
+    [ Info 30 (date 2020 Apr 1)
+    , Info 25 (date 2020 May 1)
+    , Info 4 (date 2020 Jun 1)
+    , Info 9 (date 2020 Jul 1)
+    ]
+
+
+cambridge : List Info
+cambridge =
+    [ Info 17 (date 2020 Apr 1)
+    , Info 19 (date 2020 May 1)
+    , Info 12 (date 2020 Jun 1)
+    , Info 8 (date 2020 Jul 1)
+    ]
+
+
+nobhill : List Info
+nobhill =
+    [ Info 3 (date 2020 Apr 1)
+    , Info 7 (date 2020 May 1)
+    , Info 29 (date 2020 Jun 1)
+    , Info 3 (date 2020 Jul 1)
+    ]
 
 
 type Status
@@ -170,6 +292,7 @@ type alias Model =
     { warrants : List DetainerWarrant
     , query : String
     , warrantsCursor : Maybe String
+    , hovering : List Info
     }
 
 
@@ -195,6 +318,7 @@ init _ =
         { warrants = []
         , query = ""
         , warrantsCursor = Nothing
+        , hovering = []
         }
     , Cmd.none
     )
@@ -204,6 +328,7 @@ type Msg
     = SearchWarrants
     | InputQuery String
     | GotWarrants (Result Http.Error (ApiPage DetainerWarrant))
+    | Hover (List Info)
 
 
 getWarrants : String -> Cmd Msg
@@ -233,6 +358,9 @@ update msg page =
                         Err errMsg ->
                             ( Welcome model, Cmd.none )
 
+                Hover hovering ->
+                    ( Welcome { model | hovering = hovering }, Cmd.none )
+
 
 
 -- VIEW
@@ -242,7 +370,7 @@ viewPage : Page -> Browser.Document Msg
 viewPage page =
     case page of
         Welcome model ->
-            { title = "Welcome", body = [ viewWarrantsPage model ] }
+            { title = "Detainer Warrant Database", body = [ viewWarrantsPage model ] }
 
 
 viewDefendant : Defendant -> Element Msg
@@ -260,8 +388,8 @@ viewCourtDate : DetainerWarrant -> Element Msg
 viewCourtDate warrant =
     viewTextRow
         (case warrant.courtDate of
-            Just date ->
-                date
+            Just courtDate ->
+                courtDate
 
             Nothing ->
                 "Unknown"
@@ -393,17 +521,112 @@ viewWarrantsPage model =
         }
         [ Element.width fill, Element.padding 20 ]
         (Element.column
-            [ Element.width (fill |> Element.maximum 1200 |> Element.minimum 400)
-            , Element.spacing 10
+            [ Element.spacing 10
             , Element.centerX
             , Element.centerY
             ]
-            [ Element.row [] [ Element.text "Find your Detainer Warrant case" ]
-            , viewSearchBar model
-            , Element.row []
-                [ viewWarrants model ]
+            [ Element.row [ Element.width fill ] [ Element.html (chart model) ]
+            , Element.row [ Element.width (fill |> Element.maximum 1200 |> Element.minimum 400) ]
+                [ Element.column []
+                    [ Element.row [] [ Element.text "Find your Detainer Warrant case" ]
+                    , viewSearchBar model
+                    , Element.row []
+                        [ viewWarrants model ]
+                    ]
+                ]
             ]
         )
+
+
+chart : Model -> Html.Html Msg
+chart model =
+    LineChart.viewCustom
+        { y = Axis.default 450 "Evictions" .evictions
+        , x = xAxisConfig --Axis.time Time.utc 2000 "Date" .date
+        , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
+        , interpolation = Interpolation.default
+        , intersection = Intersection.default
+        , legends = Legends.default
+        , events = Events.hoverMany Hover
+        , junk = Junk.hoverMany model.hovering formatX formatY
+        , grid = Grid.default
+        , area = Area.default
+        , line = Line.default
+        , dots = Dots.hoverMany model.hovering
+        }
+        [ LineChart.line Color.orange Dots.triangle "Elmington Property Management" elmington
+        , LineChart.line Color.yellow Dots.circle "M D H A" mdha
+        , LineChart.line Color.purple Dots.diamond "Hickory Highlands Apartment Homes" hickoryhigh
+        , LineChart.line Color.red Dots.square "Hickory Chase Apartments" hickorychase
+        , LineChart.line Color.darkBlue Dots.triangle "Woodbine Community" wood
+        , LineChart.line Color.lightBlue Dots.circle "Cove at Priest Lake Apartments" cove
+        , LineChart.line Color.darkGreen Dots.triangle "Urban Housing Solutions" urban
+        , LineChart.line Color.darkGrey Dots.circle "Creekstone Apartments" creekstone
+        , LineChart.line Color.lightGreen Dots.diamond "Cambridge at Hickory Hollow" cambridge
+        , LineChart.line Color.brown Dots.square "Nob Hill Villa Apartments" nobhill
+        ]
+
+
+formatX : Info -> String
+formatX info =
+    "Month: " ++ dateFormat (Time.millisToPosix (round info.date))
+
+
+dateFormat : Time.Posix -> String
+dateFormat =
+    DateFormat.format [ DateFormat.dayOfMonthFixed, DateFormat.text " ", DateFormat.monthNameAbbreviated ] Time.utc
+
+
+formatY : Info -> String
+formatY info =
+    String.fromFloat info.evictions
+
+
+formatMonth : Time.Posix -> String
+formatMonth time =
+    format
+        [ monthNameAbbreviated ]
+        Time.utc
+        time
+
+
+tickLabel : String -> Svg.Svg msg
+tickLabel =
+    Junk.label Color.black
+
+
+tickTime : Tick.Time -> Tick.Config msg
+tickTime time =
+    let
+        label =
+            Junk.label Color.black (Tick.format time)
+    in
+    Tick.custom
+        { position = 6
+        , color = Color.black
+        , width = 1
+        , length = 7
+        , grid = True
+        , direction = Tick.positive
+        , label = Just label
+        }
+
+
+xAxisConfig : Axis.Config Info msg
+xAxisConfig =
+    Axis.custom
+        { title = Title.default "Month"
+        , variable = Just << .date
+        , pixels = 700
+        , range = Range.padded 20 20
+        , axisLine = AxisLine.full Color.black
+        , ticks = ticksConfig
+        }
+
+
+ticksConfig : Ticks.Config msg
+ticksConfig =
+    Ticks.timeCustom Time.utc 5 tickTime
 
 
 subscriptions : Page -> Sub Msg
