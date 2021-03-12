@@ -26,6 +26,7 @@ import LineChart.Axis.Tick as Tick
 import LineChart.Axis.Ticks as Ticks
 import LineChart.Axis.Title as Title
 import LineChart.Container as Container
+import LineChart.Coordinate as Coordinate
 import LineChart.Dots as Dots
 import LineChart.Events as Events
 import LineChart.Grid as Grid
@@ -519,14 +520,14 @@ viewWarrantsPage model =
                 }
             ]
         }
-        [ Element.width fill, Element.padding 20 ]
+        [ Element.width fill, Element.padding 20, Font.size 14 ]
         (Element.column
             [ Element.spacing 10
             , Element.centerX
             , Element.centerY
             ]
-            [ Element.row [ Element.width fill ] [ Element.html (chart model) ]
-            , Element.row [ Element.width (fill |> Element.maximum 1200 |> Element.minimum 400) ]
+            [ Element.html (chart model)
+            , Element.row [ Font.size 20, Element.width (fill |> Element.maximum 1200 |> Element.minimum 400) ]
                 [ Element.column []
                     [ Element.row [] [ Element.text "Find your Detainer Warrant case" ]
                     , viewSearchBar model
@@ -538,15 +539,15 @@ viewWarrantsPage model =
         )
 
 
-chart : Model -> Html.Html Msg
+chart : Model -> Svg Msg
 chart model =
     LineChart.viewCustom
-        { y = Axis.default 450 "Evictions" .evictions
+        { y = Axis.default 600 "Evictions" .evictions
         , x = xAxisConfig --Axis.time Time.utc 2000 "Date" .date
         , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
         , interpolation = Interpolation.default
         , intersection = Intersection.default
-        , legends = Legends.default
+        , legends = Legends.groupedCustom 30 viewLegends
         , events = Events.hoverMany Hover
         , junk = Junk.hoverMany model.hovering formatX formatY
         , grid = Grid.default
@@ -565,6 +566,31 @@ chart model =
         , LineChart.line Color.lightGreen Dots.diamond "Cambridge at Hickory Hollow" cambridge
         , LineChart.line Color.brown Dots.square "Nob Hill Villa Apartments" nobhill
         ]
+
+
+viewLegends : Coordinate.System -> List (Legends.Legend msg) -> Svg.Svg msg
+viewLegends system legends =
+    Svg.g
+        [ Junk.transform
+            [ Junk.move system system.x.min system.y.max
+            , Junk.offset 20 20
+            ]
+        ]
+        (List.indexedMap viewLegend legends)
+
+
+viewLegend : Int -> Legends.Legend msg -> Svg.Svg msg
+viewLegend index { sample, label } =
+    Svg.g
+        [ Junk.transform [ Junk.offset 20 (toFloat index * 14) ] ]
+        [ sample, viewLabel label ]
+
+
+viewLabel : String -> Svg.Svg msg
+viewLabel label =
+    Svg.g
+        [ Junk.transform [ Junk.offset 40 4 ] ]
+        [ Junk.label Color.black label ]
 
 
 formatX : Info -> String
@@ -617,7 +643,7 @@ xAxisConfig =
     Axis.custom
         { title = Title.default "Month"
         , variable = Just << .date
-        , pixels = 700
+        , pixels = 1000
         , range = Range.padded 20 20
         , axisLine = AxisLine.full Color.black
         , ticks = ticksConfig
