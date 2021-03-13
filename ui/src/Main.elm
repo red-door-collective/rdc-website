@@ -14,7 +14,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Html.Events
 import Http
-import Json.Decode as Decode exposing (Decoder, Value, bool, int, list, nullable, string)
+import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import LineChart as LineChart
 import LineChart.Area as Area
@@ -26,6 +26,7 @@ import LineChart.Axis.Tick as Tick
 import LineChart.Axis.Ticks as Ticks
 import LineChart.Axis.Title as Title
 import LineChart.Container as Container
+import LineChart.Coordinate as Coordinate
 import LineChart.Dots as Dots
 import LineChart.Events as Events
 import LineChart.Grid as Grid
@@ -37,107 +38,6 @@ import Palette
 import Svg exposing (Svg)
 import Time exposing (Month(..))
 import Time.Extra as Time exposing (Parts, partsToPosix)
-
-
-type alias Info =
-    { evictions : Float
-    , date : Float
-    }
-
-
-date : Int -> Month -> Int -> Float
-date year month day =
-    toFloat (Time.posixToMillis (partsToPosix Time.utc (Parts year month day 0 0 0 0)))
-
-
-elmington : List Info
-elmington =
-    [ Info 10 (date 2020 Apr 1)
-    , Info 15 (date 2020 May 1)
-    , Info 25 (date 2020 Jun 1)
-    , Info 43 (date 2020 Jul 1)
-    ]
-
-
-mdha : List Info
-mdha =
-    [ Info 12 (date 2020 Apr 1)
-    , Info 17 (date 2020 May 1)
-    , Info 25 (date 2020 Jun 1)
-    , Info 43 (date 2020 Jul 1)
-    ]
-
-
-hickoryhigh : List Info
-hickoryhigh =
-    [ Info 13 (date 2020 Apr 1)
-    , Info 16 (date 2020 May 1)
-    , Info 40 (date 2020 Jun 1)
-    , Info 5 (date 2020 Jul 1)
-    ]
-
-
-hickorychase : List Info
-hickorychase =
-    [ Info 30 (date 2020 Apr 1)
-    , Info 15 (date 2020 May 1)
-    , Info 20 (date 2020 Jun 1)
-    , Info 50 (date 2020 Jul 1)
-    ]
-
-
-wood : List Info
-wood =
-    [ Info 22 (date 2020 Apr 1)
-    , Info 11 (date 2020 May 1)
-    , Info 33 (date 2020 Jun 1)
-    , Info 11 (date 2020 Jul 1)
-    ]
-
-
-cove : List Info
-cove =
-    [ Info 13 (date 2020 Apr 1)
-    , Info 14 (date 2020 May 1)
-    , Info 15 (date 2020 Jun 1)
-    , Info 16 (date 2020 Jul 1)
-    ]
-
-
-urban : List Info
-urban =
-    [ Info 26 (date 2020 Apr 1)
-    , Info 2 (date 2020 May 1)
-    , Info 19 (date 2020 Jun 1)
-    , Info 21 (date 2020 Jul 1)
-    ]
-
-
-creekstone : List Info
-creekstone =
-    [ Info 30 (date 2020 Apr 1)
-    , Info 25 (date 2020 May 1)
-    , Info 4 (date 2020 Jun 1)
-    , Info 9 (date 2020 Jul 1)
-    ]
-
-
-cambridge : List Info
-cambridge =
-    [ Info 17 (date 2020 Apr 1)
-    , Info 19 (date 2020 May 1)
-    , Info 12 (date 2020 Jun 1)
-    , Info 8 (date 2020 Jul 1)
-    ]
-
-
-nobhill : List Info
-nobhill =
-    [ Info 3 (date 2020 Apr 1)
-    , Info 7 (date 2020 May 1)
-    , Info 29 (date 2020 Jun 1)
-    , Info 3 (date 2020 Jul 1)
-    ]
 
 
 type Status
@@ -288,11 +188,26 @@ detainerWarrantApiDecoder =
         |> required "meta" apiMetaDecoder
 
 
+evictionHistoryDecoder : Decoder EvictionHistory
+evictionHistoryDecoder =
+    Decode.succeed EvictionHistory
+        |> required "date" float
+        |> required "eviction_count" float
+
+
+topEvictorDecoder : Decoder TopEvictor
+topEvictorDecoder =
+    Decode.succeed TopEvictor
+        |> required "name" string
+        |> required "history" (list evictionHistoryDecoder)
+
+
 type alias Model =
     { warrants : List DetainerWarrant
+    , topEvictors : List TopEvictor
     , query : String
     , warrantsCursor : Maybe String
-    , hovering : List Info
+    , hovering : List EvictionHistory
     }
 
 
@@ -308,6 +223,18 @@ type alias ApiPage data =
     }
 
 
+type alias EvictionHistory =
+    { date : Float
+    , evictionCount : Float
+    }
+
+
+type alias TopEvictor =
+    { name : String
+    , history : List EvictionHistory
+    }
+
+
 type Page
     = Welcome Model
 
@@ -316,19 +243,29 @@ init : Value -> ( Page, Cmd Msg )
 init _ =
     ( Welcome
         { warrants = []
+        , topEvictors = []
         , query = ""
         , warrantsCursor = Nothing
         , hovering = []
         }
-    , Cmd.none
+    , getEvictionData
     )
 
 
 type Msg
     = SearchWarrants
     | InputQuery String
+    | GotEvictionData (Result Http.Error (List TopEvictor))
     | GotWarrants (Result Http.Error (ApiPage DetainerWarrant))
-    | Hover (List Info)
+    | Hover (List EvictionHistory)
+
+
+getEvictionData : Cmd Msg
+getEvictionData =
+    Http.get
+        { url = "/api/v1/rollup/plantiffs"
+        , expect = Http.expectJson GotEvictionData (list topEvictorDecoder)
+        }
 
 
 getWarrants : String -> Cmd Msg
@@ -349,6 +286,14 @@ update msg page =
 
                 SearchWarrants ->
                     ( Welcome model, getWarrants model.query )
+
+                GotEvictionData result ->
+                    case result of
+                        Ok topEvictors ->
+                            ( Welcome { model | topEvictors = topEvictors }, Cmd.none )
+
+                        Err errMsg ->
+                            ( Welcome model, Cmd.none )
 
                 GotWarrants result ->
                     case result of
@@ -519,14 +464,14 @@ viewWarrantsPage model =
                 }
             ]
         }
-        [ Element.width fill, Element.padding 20 ]
+        [ Element.width fill, Element.padding 20, Font.size 14 ]
         (Element.column
             [ Element.spacing 10
             , Element.centerX
             , Element.centerY
             ]
-            [ Element.row [ Element.width fill ] [ Element.html (chart model) ]
-            , Element.row [ Element.width (fill |> Element.maximum 1200 |> Element.minimum 400) ]
+            [ Element.html (chart model)
+            , Element.row [ Font.size 20, Element.width (fill |> Element.maximum 1200 |> Element.minimum 400) ]
                 [ Element.column []
                     [ Element.row [] [ Element.text "Find your Detainer Warrant case" ]
                     , viewSearchBar model
@@ -538,15 +483,38 @@ viewWarrantsPage model =
         )
 
 
-chart : Model -> Html.Html Msg
+viewTopEvictorLine : (String -> List EvictionHistory -> LineChart.Series EvictionHistory) -> TopEvictor -> LineChart.Series EvictionHistory
+viewTopEvictorLine toLine evictor =
+    toLine evictor.name evictor.history
+
+
+lines : List TopEvictor -> List (LineChart.Series EvictionHistory)
+lines topEvictors =
+    let
+        colors =
+            [ Color.orange, Color.yellow, Color.purple, Color.red, Color.darkBlue, Color.lightBlue, Color.darkGreen, Color.darkGrey, Color.lightGreen, Color.brown ]
+
+        shapes =
+            [ Dots.triangle, Dots.circle, Dots.diamond, Dots.square ]
+
+        color =
+            \index -> List.drop index colors |> List.head |> Maybe.withDefault Color.red
+
+        shape =
+            \index -> List.drop index shapes |> List.head |> Maybe.withDefault Dots.triangle
+    in
+    List.indexedMap (\index evictor -> viewTopEvictorLine (LineChart.line (color index) (shape index)) evictor) topEvictors
+
+
+chart : Model -> Svg Msg
 chart model =
     LineChart.viewCustom
-        { y = Axis.default 450 "Evictions" .evictions
+        { y = Axis.default 600 "Evictions" .evictionCount
         , x = xAxisConfig --Axis.time Time.utc 2000 "Date" .date
         , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
         , interpolation = Interpolation.default
         , intersection = Intersection.default
-        , legends = Legends.default
+        , legends = Legends.groupedCustom 30 viewLegends
         , events = Events.hoverMany Hover
         , junk = Junk.hoverMany model.hovering formatX formatY
         , grid = Grid.default
@@ -554,20 +522,35 @@ chart model =
         , line = Line.default
         , dots = Dots.hoverMany model.hovering
         }
-        [ LineChart.line Color.orange Dots.triangle "Elmington Property Management" elmington
-        , LineChart.line Color.yellow Dots.circle "M D H A" mdha
-        , LineChart.line Color.purple Dots.diamond "Hickory Highlands Apartment Homes" hickoryhigh
-        , LineChart.line Color.red Dots.square "Hickory Chase Apartments" hickorychase
-        , LineChart.line Color.darkBlue Dots.triangle "Woodbine Community" wood
-        , LineChart.line Color.lightBlue Dots.circle "Cove at Priest Lake Apartments" cove
-        , LineChart.line Color.darkGreen Dots.triangle "Urban Housing Solutions" urban
-        , LineChart.line Color.darkGrey Dots.circle "Creekstone Apartments" creekstone
-        , LineChart.line Color.lightGreen Dots.diamond "Cambridge at Hickory Hollow" cambridge
-        , LineChart.line Color.brown Dots.square "Nob Hill Villa Apartments" nobhill
+        (lines model.topEvictors)
+
+
+viewLegends : Coordinate.System -> List (Legends.Legend msg) -> Svg.Svg msg
+viewLegends system legends =
+    Svg.g
+        [ Junk.transform
+            [ Junk.move system system.x.max system.y.max
+            , Junk.offset -240 20
+            ]
         ]
+        (List.indexedMap viewLegend legends)
 
 
-formatX : Info -> String
+viewLegend : Int -> Legends.Legend msg -> Svg.Svg msg
+viewLegend index { sample, label } =
+    Svg.g
+        [ Junk.transform [ Junk.offset 20 (toFloat index * 14) ] ]
+        [ sample, viewLabel label ]
+
+
+viewLabel : String -> Svg.Svg msg
+viewLabel label =
+    Svg.g
+        [ Junk.transform [ Junk.offset 40 4 ] ]
+        [ Junk.label Color.black label ]
+
+
+formatX : EvictionHistory -> String
 formatX info =
     "Month: " ++ dateFormat (Time.millisToPosix (round info.date))
 
@@ -577,9 +560,9 @@ dateFormat =
     DateFormat.format [ DateFormat.dayOfMonthFixed, DateFormat.text " ", DateFormat.monthNameAbbreviated ] Time.utc
 
 
-formatY : Info -> String
+formatY : EvictionHistory -> String
 formatY info =
-    String.fromFloat info.evictions
+    String.fromFloat info.evictionCount
 
 
 formatMonth : Time.Posix -> String
@@ -598,26 +581,30 @@ tickLabel =
 tickTime : Tick.Time -> Tick.Config msg
 tickTime time =
     let
+        -- interval =
+        --     time.interval
+        -- month =
+        --     { interval | unit = Tick.Month }
         label =
             Junk.label Color.black (Tick.format time)
     in
     Tick.custom
-        { position = 6
+        { position = toFloat (Time.posixToMillis time.timestamp)
         , color = Color.black
         , width = 1
         , length = 7
         , grid = True
-        , direction = Tick.positive
+        , direction = Tick.negative
         , label = Just label
         }
 
 
-xAxisConfig : Axis.Config Info msg
+xAxisConfig : Axis.Config EvictionHistory msg
 xAxisConfig =
     Axis.custom
         { title = Title.default "Month"
         , variable = Just << .date
-        , pixels = 700
+        , pixels = 1000
         , range = Range.padded 20 20
         , axisLine = AxisLine.full Color.black
         , ticks = ticksConfig
@@ -626,7 +613,7 @@ xAxisConfig =
 
 ticksConfig : Ticks.Config msg
 ticksConfig =
-    Ticks.timeCustom Time.utc 5 tickTime
+    Ticks.timeCustom Time.utc 10 Tick.time
 
 
 subscriptions : Page -> Sub Msg

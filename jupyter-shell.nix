@@ -1,6 +1,7 @@
+{ sources ? null }:
 let
-  pkgs = import ./nix/pkgs.nix;
-  python = import ./nix/python.nix;
+  deps = import ./nix/deps.nix { inherit sources; };
+  inherit (deps) pkgs;
 
   kernels = [
     # pkgs.python37Packages.ansible-kernel
@@ -29,8 +30,7 @@ let
   ];
 
 in pkgs.mkShell rec {
-  buildInputs = [
-    python.env
+  buildInputs = deps.shellInputs ++ [
     pkgs.nodejs
   ] ++ kernels;
  

@@ -6,6 +6,7 @@ from flask_testing import TestCase
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.detainer_warrants.models import DetainerWarrant
 from eviction_tracker.app import create_app, db
+from datetime import datetime
 
 example_warrant = ['20GT2',
                    '2',
@@ -50,7 +51,7 @@ class TestDataImport(TestCase):
         saved_warrant = db.session.query(DetainerWarrant).first()
 
         self.assertEqual(saved_warrant.docket_id, example_warrant[DOCKET_ID])
-        self.assertEqual(saved_warrant.file_date, example_warrant[FILE_DATE])
+        self.assertEqual(saved_warrant.file_date, datetime.strptime(example_warrant[FILE_DATE], '%m/%d/%y').date())
 
 
 if __name__ == '__main__':

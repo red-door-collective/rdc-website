@@ -118,7 +118,11 @@ class DetainerWarrantResourceBase(GenericModelView):
 
     pagination = CursorPagination()
     sorting = Sorting('file_date', default='file_date')
-    filtering = Filtering(docket_id=ColumnFilter(operator.eq), defendant_name=filter_defendant_name)
+    filtering = Filtering(
+        docket_id=ColumnFilter(operator.eq), 
+        defendant_name=filter_defendant_name,
+        judgement=ColumnFilter(operator.eq)
+    )
 
 
 class DetainerWarrantListResource(DetainerWarrantResourceBase):
