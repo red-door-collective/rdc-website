@@ -122,10 +122,10 @@ class DetainerWarrant(db.Model):
 
     __tablename__ = 'detainer_warrants'
     docket_id = Column(db.String(255), primary_key=True)
-    file_date = Column(db.String(255), nullable=False)
+    file_date = Column(db.Date, nullable=False)
     status_id = Column(db.Integer, nullable=False) # union?
     plantiff_id = Column(db.Integer, db.ForeignKey('plantiffs.id'))
-    court_date = Column(db.String(255)) # date
+    court_date = Column(db.Date) # date
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
     amount_claimed = Column(db.String(30)) # USD
