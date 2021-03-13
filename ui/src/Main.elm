@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Axis
 import Browser
 import Color
 import Date
@@ -10,8 +11,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input
+import Element.Region as Region
 import Html exposing (Html)
-import Html.Attributes exposing (class)
 import Html.Events
 import Http
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
@@ -31,13 +32,19 @@ import LineChart.Dots as Dots
 import LineChart.Events as Events
 import LineChart.Grid as Grid
 import LineChart.Interpolation as Interpolation
-import LineChart.Junk as Junk exposing (..)
+import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
 import Palette
+import Scale exposing (BandConfig, BandScale, ContinuousScale, defaultBandConfig)
 import Svg exposing (Svg)
 import Time exposing (Month(..))
 import Time.Extra as Time exposing (Parts, partsToPosix)
+import TypedSvg exposing (g, rect, style, svg, text_)
+import TypedSvg.Attributes exposing (class, textAnchor, transform, viewBox)
+import TypedSvg.Attributes.InPx exposing (height, width, x, y)
+import TypedSvg.Core exposing (Svg, text)
+import TypedSvg.Types exposing (AnchorAlignment(..), Transform(..))
 
 
 type Status
@@ -202,12 +209,20 @@ topEvictorDecoder =
         |> required "history" (list evictionHistoryDecoder)
 
 
+detainerWarrantsPerMonthDecoder : Decoder DetainerWarrantsPerMonth
+detainerWarrantsPerMonthDecoder =
+    Decode.succeed DetainerWarrantsPerMonth
+        |> required "time" (Decode.map Time.millisToPosix int)
+        |> required "totalWarrants" int
+
+
 type alias Model =
     { warrants : List DetainerWarrant
     , topEvictors : List TopEvictor
     , query : String
     , warrantsCursor : Maybe String
     , hovering : List EvictionHistory
+    , warrantsPerMonth : List DetainerWarrantsPerMonth
     }
 
 
@@ -235,6 +250,12 @@ type alias TopEvictor =
     }
 
 
+type alias DetainerWarrantsPerMonth =
+    { time : Time.Posix
+    , totalWarrants : Int
+    }
+
+
 type Page
     = Welcome Model
 
@@ -247,8 +268,9 @@ init _ =
         , query = ""
         , warrantsCursor = Nothing
         , hovering = []
+        , warrantsPerMonth = []
         }
-    , getEvictionData
+    , Cmd.batch [ getEvictionData, getDetainerWarrantsPerMonth ]
     )
 
 
@@ -256,6 +278,7 @@ type Msg
     = SearchWarrants
     | InputQuery String
     | GotEvictionData (Result Http.Error (List TopEvictor))
+    | GotDetainerWarrantData (Result Http.Error (List DetainerWarrantsPerMonth))
     | GotWarrants (Result Http.Error (ApiPage DetainerWarrant))
     | Hover (List EvictionHistory)
 
@@ -273,6 +296,14 @@ getWarrants query =
     Http.get
         { url = "/api/v1/detainer-warrants/?defendant_name=" ++ query
         , expect = Http.expectJson GotWarrants detainerWarrantApiDecoder
+        }
+
+
+getDetainerWarrantsPerMonth : Cmd Msg
+getDetainerWarrantsPerMonth =
+    Http.get
+        { url = "/api/v1/rollup/detainer-warrants"
+        , expect = Http.expectJson GotDetainerWarrantData (list detainerWarrantsPerMonthDecoder)
         }
 
 
@@ -299,6 +330,14 @@ update msg page =
                     case result of
                         Ok detainerWarrantsPage ->
                             ( Welcome { model | warrants = detainerWarrantsPage.data, warrantsCursor = detainerWarrantsPage.meta.afterCursor }, Cmd.none )
+
+                        Err errMsg ->
+                            ( Welcome model, Cmd.none )
+
+                GotDetainerWarrantData result ->
+                    case result of
+                        Ok warrantsPerMonth ->
+                            ( Welcome { model | warrantsPerMonth = warrantsPerMonth }, Cmd.none )
 
                         Err errMsg ->
                             ( Welcome model, Cmd.none )
@@ -356,7 +395,7 @@ viewHeaderCell text =
     Element.row
         [ Element.width fill
         , Element.padding 10
-        , Font.bold
+        , Font.semiBold
         , Border.solid
         , Border.color Palette.grayLight
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
@@ -366,7 +405,7 @@ viewHeaderCell text =
 
 viewWarrants : Model -> Element Msg
 viewWarrants model =
-    Element.table []
+    Element.table [ Font.size 14 ]
         { data = List.filter (\warrant -> List.any (\defendant -> String.contains (String.toUpper model.query) (String.toUpper defendant.name)) warrant.defendants) model.warrants
         , columns =
             [ { header = viewHeaderCell "Docket ID"
@@ -419,8 +458,8 @@ onEnter msg =
 viewSearchBar : Model -> Element Msg
 viewSearchBar model =
     Element.row
-        [ Element.width fill
-        , Element.spacing 10
+        [ --Element.width fill
+          Element.spacing 10
         , Element.padding 10
         , Element.centerY
         , Element.centerX
@@ -466,17 +505,37 @@ viewWarrantsPage model =
         }
         [ Element.width fill, Element.padding 20, Font.size 14 ]
         (Element.column
-            [ Element.spacing 10
+            [ Element.spacing 30
             , Element.centerX
-            , Element.centerY
             ]
-            [ Element.html (chart model)
-            , Element.row [ Font.size 20, Element.width (fill |> Element.maximum 1200 |> Element.minimum 400) ]
-                [ Element.column []
-                    [ Element.row [] [ Element.text "Find your Detainer Warrant case" ]
+            [ Element.row []
+                [ chart model ]
+            , Element.row []
+                [ viewDetainerWarrantsHistory model.warrantsPerMonth
+                ]
+            , Element.row [ Font.size 20, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
+                [ Element.column [ Element.centerX ]
+                    [ Element.row [ Element.centerX, Font.center ] [ Element.text "Find your Detainer Warrant case" ]
                     , viewSearchBar model
-                    , Element.row []
-                        [ viewWarrants model ]
+                    , Element.row [ Element.centerX, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
+                        (if List.isEmpty model.warrants then
+                            []
+
+                         else
+                            [ viewWarrants model ]
+                        )
+                    ]
+                ]
+            , Element.row [ Region.footer, Element.centerX ]
+                [ Element.textColumn [ Font.center, Font.size 20, Element.spacing 10 ]
+                    [ Element.el [ Font.medium ] (Element.text "Data collected and provided for free to the people of Davidson County.")
+                    , Element.paragraph [ Font.color Palette.red ]
+                        [ Element.link []
+                            { url = "https://midtndsa.org/rdc/"
+                            , label = Element.text "Red Door Collective"
+                            }
+                        , Element.text " © 2021"
+                        ]
                     ]
                 ]
             ]
@@ -506,23 +565,30 @@ lines topEvictors =
     List.indexedMap (\index evictor -> viewTopEvictorLine (LineChart.line (color index) (shape index)) evictor) topEvictors
 
 
-chart : Model -> Svg Msg
+chart : Model -> Element Msg
 chart model =
-    LineChart.viewCustom
-        { y = Axis.default 600 "Evictions" .evictionCount
-        , x = xAxisConfig --Axis.time Time.utc 2000 "Date" .date
-        , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
-        , interpolation = Interpolation.default
-        , intersection = Intersection.default
-        , legends = Legends.groupedCustom 30 viewLegends
-        , events = Events.hoverMany Hover
-        , junk = Junk.hoverMany model.hovering formatX formatY
-        , grid = Grid.default
-        , area = Area.default
-        , line = Line.default
-        , dots = Dots.hoverMany model.hovering
-        }
-        (lines model.topEvictors)
+    Element.column [ Element.centerX ]
+        [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Top 10 Evictors in Davidson Co. TN by month" ]
+        , Element.row []
+            [ Element.html
+                (LineChart.viewCustom
+                    { y = Axis.default 600 "Evictions" .evictionCount
+                    , x = xAxisConfig --Axis.time Time.utc 2000 "Date" .date
+                    , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
+                    , interpolation = Interpolation.default
+                    , intersection = Intersection.default
+                    , legends = Legends.groupedCustom 30 viewLegends
+                    , events = Events.hoverMany Hover
+                    , junk = Junk.hoverMany model.hovering formatX formatY
+                    , grid = Grid.default
+                    , area = Area.default
+                    , line = Line.default
+                    , dots = Dots.hoverMany model.hovering
+                    }
+                    (lines model.topEvictors)
+                )
+            ]
+        ]
 
 
 viewLegends : Coordinate.System -> List (Legends.Legend msg) -> Svg.Svg msg
@@ -609,6 +675,97 @@ xAxisConfig =
         , axisLine = AxisLine.full Color.black
         , ticks = ticksConfig
         }
+
+
+
+-- BAR CHART
+
+
+w =
+    1000
+
+
+h =
+    600
+
+
+padding : Float
+padding =
+    30
+
+
+xScale : List DetainerWarrantsPerMonth -> BandScale Time.Posix
+xScale warrants =
+    List.map .time warrants
+        |> Scale.band { defaultBandConfig | paddingInner = 0.1, paddingOuter = 0.2 } ( 0, w - 2 * padding )
+
+
+yScale : ContinuousScale Float
+yScale =
+    Scale.linear ( h - 2 * padding, 0 ) ( 0, 800 )
+
+
+barDateFormat : Time.Posix -> String
+barDateFormat =
+    DateFormat.format [ DateFormat.monthNameAbbreviated, DateFormat.text " ", DateFormat.yearNumberLastTwo ] Time.utc
+
+
+xAxis : List DetainerWarrantsPerMonth -> Svg msg
+xAxis warrants =
+    Axis.bottom [] (Scale.toRenderable barDateFormat (xScale warrants))
+
+
+yAxis : Svg msg
+yAxis =
+    Axis.left [ Axis.tickCount 5 ] yScale
+
+
+column : BandScale Time.Posix -> DetainerWarrantsPerMonth -> Svg msg
+column scale { time, totalWarrants } =
+    g [ class [ "column" ] ]
+        [ rect
+            [ x <| Scale.convert scale time
+            , y <| Scale.convert yScale (toFloat totalWarrants)
+            , width <| Scale.bandwidth scale
+            , height <| h - Scale.convert yScale (toFloat totalWarrants) - 2 * padding
+            ]
+            []
+        , text_
+            [ x <| Scale.convert (Scale.toRenderable barDateFormat scale) time
+            , y <| Scale.convert yScale (toFloat totalWarrants) - 5
+            , textAnchor AnchorMiddle
+            ]
+            [ text <| String.fromInt totalWarrants ]
+        ]
+
+
+viewDetainerWarrantsHistory : List DetainerWarrantsPerMonth -> Element msg
+viewDetainerWarrantsHistory series =
+    Element.column [ Element.width (Element.px w), Element.height (Element.px h), Element.spacing 20, Element.centerX ]
+        [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Number of detainer warrants in Davidson Co. TN by month" ]
+        , Element.row [ Element.paddingXY 55 0 ]
+            [ Element.html
+                (svg [ viewBox 0 0 w h ]
+                    [ style [] [ text """
+            .column rect { fill: rgba(12, 84, 228, 0.8); }
+            .column text { display: none; }
+            .column:hover rect { fill: rgb(129, 169, 248); }
+            .column:hover text { display: inline; }
+          """ ]
+                    , g [ transform [ Translate (padding - 1) (h - padding) ] ]
+                        [ xAxis series ]
+                    , g [ transform [ Translate (padding - 1) padding ] ]
+                        [ yAxis ]
+                    , g [ transform [ Translate padding padding ], class [ "series" ] ] <|
+                        List.map (column (xScale series)) series
+                    ]
+                )
+            ]
+        ]
+
+
+
+--Data
 
 
 ticksConfig : Ticks.Config msg

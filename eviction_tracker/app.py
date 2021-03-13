@@ -86,10 +86,10 @@ def register_extensions(app):
         start_dt = datetime.date(2020, 1, 1)
         end_dt = datetime.date.today()
         dates = [ (dt, next_month(dt)) for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt) ]
-        counts = [ (start.strftime("%Y %b"), count_between_dates(start, end)) for start, end in dates ]
+        counts = [ { 'time': start.timestamp() * 1000, 'totalWarrants': count_between_dates(start, end) } for start, end in dates ]
 
         return app.response_class(
-            response=json.dumps(OrderedDict(counts)),
+            response=json.dumps(counts),
             status=200,
             mimetype='application/json'
         )
