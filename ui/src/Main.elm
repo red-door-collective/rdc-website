@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Array exposing (Array)
 import Axis
 import Browser
 import Color
@@ -36,15 +37,17 @@ import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
 import Palette
+import Path
 import Scale exposing (BandConfig, BandScale, ContinuousScale, defaultBandConfig)
+import Shape exposing (defaultPieConfig)
 import Svg exposing (Svg)
 import Time exposing (Month(..))
 import Time.Extra as Time exposing (Parts, partsToPosix)
 import TypedSvg exposing (g, rect, style, svg, text_)
-import TypedSvg.Attributes exposing (class, textAnchor, transform, viewBox)
+import TypedSvg.Attributes as Attr exposing (class, dy, stroke, textAnchor, transform, viewBox)
 import TypedSvg.Attributes.InPx exposing (height, width, x, y)
 import TypedSvg.Core exposing (Svg, text)
-import TypedSvg.Types exposing (AnchorAlignment(..), Transform(..))
+import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
 
 
 type Status
@@ -209,11 +212,25 @@ topEvictorDecoder =
         |> required "history" (list evictionHistoryDecoder)
 
 
+posix : Decoder Time.Posix
+posix =
+    Decode.map Time.millisToPosix int
+
+
 detainerWarrantsPerMonthDecoder : Decoder DetainerWarrantsPerMonth
 detainerWarrantsPerMonthDecoder =
     Decode.succeed DetainerWarrantsPerMonth
-        |> required "time" (Decode.map Time.millisToPosix int)
+        |> required "time" posix
         |> required "totalWarrants" int
+
+
+plantiffAttorneyWarrantCountDecoder : Decoder PlantiffAttorneyWarrantCount
+plantiffAttorneyWarrantCountDecoder =
+    Decode.succeed PlantiffAttorneyWarrantCount
+        |> required "warrant_count" int
+        |> required "plantiff_attorney_name" string
+        |> required "start_date" posix
+        |> required "end_date" posix
 
 
 type alias Model =
@@ -223,6 +240,7 @@ type alias Model =
     , warrantsCursor : Maybe String
     , hovering : List EvictionHistory
     , warrantsPerMonth : List DetainerWarrantsPerMonth
+    , plantiffAttorneyWarrantCounts : List PlantiffAttorneyWarrantCount
     }
 
 
@@ -256,6 +274,14 @@ type alias DetainerWarrantsPerMonth =
     }
 
 
+type alias PlantiffAttorneyWarrantCount =
+    { warrantCount : Int
+    , plantiffAttorneyName : String
+    , startDate : Time.Posix
+    , endDate : Time.Posix
+    }
+
+
 type Page
     = Welcome Model
 
@@ -269,8 +295,9 @@ init _ =
         , warrantsCursor = Nothing
         , hovering = []
         , warrantsPerMonth = []
+        , plantiffAttorneyWarrantCounts = []
         }
-    , Cmd.batch [ getEvictionData, getDetainerWarrantsPerMonth ]
+    , Cmd.batch [ getEvictionData, getDetainerWarrantsPerMonth, getPlantiffAttorneyWarrantCountPerMonth ]
     )
 
 
@@ -279,6 +306,7 @@ type Msg
     | InputQuery String
     | GotEvictionData (Result Http.Error (List TopEvictor))
     | GotDetainerWarrantData (Result Http.Error (List DetainerWarrantsPerMonth))
+    | GotPlantiffAttorneyWarrantCount (Result Http.Error (List PlantiffAttorneyWarrantCount))
     | GotWarrants (Result Http.Error (ApiPage DetainerWarrant))
     | Hover (List EvictionHistory)
 
@@ -304,6 +332,14 @@ getDetainerWarrantsPerMonth =
     Http.get
         { url = "/api/v1/rollup/detainer-warrants"
         , expect = Http.expectJson GotDetainerWarrantData (list detainerWarrantsPerMonthDecoder)
+        }
+
+
+getPlantiffAttorneyWarrantCountPerMonth : Cmd Msg
+getPlantiffAttorneyWarrantCountPerMonth =
+    Http.get
+        { url = "/api/v1/rollup/plantiff-attorney"
+        , expect = Http.expectJson GotPlantiffAttorneyWarrantCount (list plantiffAttorneyWarrantCountDecoder)
         }
 
 
@@ -338,6 +374,14 @@ update msg page =
                     case result of
                         Ok warrantsPerMonth ->
                             ( Welcome { model | warrantsPerMonth = warrantsPerMonth }, Cmd.none )
+
+                        Err errMsg ->
+                            ( Welcome model, Cmd.none )
+
+                GotPlantiffAttorneyWarrantCount result ->
+                    case result of
+                        Ok counts ->
+                            ( Welcome { model | plantiffAttorneyWarrantCounts = counts }, Cmd.none )
 
                         Err errMsg ->
                             ( Welcome model, Cmd.none )
@@ -513,6 +557,9 @@ viewWarrantsPage model =
             , Element.row []
                 [ viewDetainerWarrantsHistory model.warrantsPerMonth
                 ]
+            , Element.row []
+                [ viewPlantiffAttorneyChart model.plantiffAttorneyWarrantCounts ]
+            , Element.row [ Element.height (Element.px 30) ] []
             , Element.row [ Font.size 20, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
                 [ Element.column [ Element.centerX ]
                     [ Element.row [ Element.centerX, Font.center ] [ Element.text "Find your Detainer Warrant case" ]
@@ -764,13 +811,80 @@ viewDetainerWarrantsHistory series =
         ]
 
 
-
---Data
-
-
 ticksConfig : Ticks.Config msg
 ticksConfig =
     Ticks.timeCustom Time.utc 10 Tick.time
+
+
+pieWidth =
+    990
+
+
+pieHeight =
+    504
+
+
+radius : Float
+radius =
+    min pieWidth pieHeight / 2
+
+
+viewPlantiffAttorneyChart : List PlantiffAttorneyWarrantCount -> Element msg
+viewPlantiffAttorneyChart counts =
+    let
+        total =
+            List.sum <| List.map .warrantCount counts
+
+        shares =
+            List.map (\stats -> ( stats.plantiffAttorneyName, toFloat stats.warrantCount / toFloat total )) counts
+
+        pieData =
+            shares |> List.map Tuple.second |> Shape.pie { defaultPieConfig | outerRadius = radius }
+
+        colors =
+            Array.fromList
+                [ Color.rgb255 176 140 212
+                , Color.rgb255 166 230 235
+                , Color.rgb255 180 212 140
+                , Color.rgb255 247 212 163
+                , Color.rgb255 212 140 149
+                , Color.rgb255 220 174 90
+                ]
+
+        makeSlice index datum =
+            Path.element (Shape.arc datum) [ Attr.fill <| Paint <| Maybe.withDefault Color.black <| Array.get index colors, stroke <| Paint <| Color.white ]
+
+        makeLabel slice ( name, percentage ) =
+            let
+                ( x, y ) =
+                    Shape.centroid { slice | innerRadius = radius - 120, outerRadius = radius - 40 }
+
+                label =
+                    percentage
+                        * 100
+                        |> String.fromFloat
+                        |> String.left 4
+            in
+            text_
+                [ transform [ Translate x y ]
+                , dy (em 0.35)
+                , textAnchor AnchorMiddle
+                ]
+                [ text (label ++ "%") ]
+    in
+    Element.column [ Element.width (Element.px pieWidth), Element.height (Element.px pieHeight), Element.spacing 20, Element.centerX ]
+        [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Plantiff attorney listed on detainer warrants, Davidson Co. TN" ]
+        , Element.row []
+            [ Element.html
+                (svg [ viewBox 0 0 pieWidth pieHeight ]
+                    [ g [ transform [ Translate (pieWidth / 2) (pieHeight / 2) ] ]
+                        [ g [] <| List.indexedMap makeSlice pieData
+                        , g [] <| List.map2 makeLabel pieData shares
+                        ]
+                    ]
+                )
+            ]
+        ]
 
 
 subscriptions : Page -> Sub Msg
