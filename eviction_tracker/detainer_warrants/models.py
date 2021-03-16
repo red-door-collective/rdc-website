@@ -28,9 +28,10 @@ detainer_warrant_defendants = db.Table(
 class Defendant(db.Model):
     __tablename__ = 'defendants'
     id = Column(db.Integer, primary_key=True)
-    name = Column(db.String(255), nullable=False)
+    name = Column(db.String(255))
     phone = Column(db.String(20))
-    address = Column(db.String(255), nullable=False)
+    potential_phones = Column(db.String(255))
+    address = Column(db.String(255))
 
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
@@ -127,18 +128,30 @@ class DetainerWarrant(db.Model):
         'N/A': 3,
     }
 
+    judgements = {
+        'NON-SUIT': 0,
+        'POSS': 1,
+        'POSS + PAYMENT': 2,
+        'DISMISSED': 3,
+        'N/A': 4
+    }
+
     __tablename__ = 'detainer_warrants'
     docket_id = Column(db.String(255), primary_key=True)
     file_date = Column(db.Date, nullable=False)
     status_id = Column(db.Integer, nullable=False)  # union?
     plantiff_id = Column(db.Integer, db.ForeignKey('plantiffs.id'))
     court_date = Column(db.Date)  # date
+    court_date_notes = Column(db.String(50))
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
     amount_claimed = Column(db.String(30))  # USD
     amount_claimed_category_id = Column(
         db.Integer, nullable=False)  # enum (POSS | FEES | BOTH | NA)
-    judgement = Column(db.Integer)
+    is_cares = Column(db.Boolean)
+    is_legacy = Column(db.Boolean)
+    zip_code = Column(db.String(10))
+    judgement_id = Column(db.Integer, nullable=False, default=4)
     judgement_notes = Column(db.String(255))
 
     plantiff = relationship('Plantiff', back_populates='detainer_warrants')
@@ -172,6 +185,15 @@ class DetainerWarrant(db.Model):
     def amount_claimed_category(self, amount_claimed_category_name):
         self.amount_claimed_category_id = DetainerWarrant.amount_claimed_categories[
             amount_claimed_category_name]
+
+    @property
+    def judgement(self):
+        judgement_by_id = {v: k for k, v in DetainerWarrant.judgements.items()}
+        return judgement_by_id[self.judgement_id]
+
+    @judgement.setter
+    def judgement(self, judgement_name):
+        self.judgement_id = DetainerWarrant.judgements[judgement_name]
 
 
 class PhoneNumberVerification(db.Model):

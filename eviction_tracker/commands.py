@@ -45,10 +45,10 @@ def sync(sheet_name, limit, service_account_key):
 
     ws = sh.worksheet("All Detainer Warrants")
 
-    all_rows = ws.get_all_values()
+    all_rows = ws.get_all_records()
 
     stop_index = int(limit) if limit else all_rows
 
-    rows = all_rows[1:stop_index] if limit else all_rows[1:]
+    rows = all_rows[:stop_index] if limit else all_rows
 
     detainer_warrants.imports.from_spreadsheet(rows)

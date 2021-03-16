@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields
 
+
 class DistrictSchema(Schema):
     class Meta:
         fields = ("id", "name")
@@ -24,7 +25,7 @@ class DefendantSchema(Schema):
     district = fields.Nested(DistrictSchema)
 
     class Meta:
-        fields = ("id", "name", "district", "phone", "address")
+        fields = ("id", "name", "district", "address")
 
 
 defendant_schema = DefendantSchema()
@@ -71,10 +72,10 @@ class DetainerWarrantSchema(Schema):
     presiding_judge = fields.Nested(JudgeSchema)
     defendants = fields.Nested(DefendantSchema, many=True)
 
-
     class Meta:
         fields = ("docket_id", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
-                  "judgement", "judgement_notes", "plantiff", "courtroom", "presiding_judge", "defendants")
+                  "judgement", "judgement_notes", "plantiff", "courtroom", "presiding_judge", "defendants",
+                  "zip_code", "is_legacy", "is_cares")
 
 
 detainer_warrant_schema = DetainerWarrantSchema()
