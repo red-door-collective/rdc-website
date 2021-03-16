@@ -1,12 +1,12 @@
 import flask
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from eviction_tracker.extensions import assets, db, marshmallow, migrate, api
 import yaml
 import os
 import logging
 import time
 
-from sqlalchemy import and_, func, desc
+from sqlalchemy import and_, or_, func, desc
 from eviction_tracker import commands, detainer_warrants
 import json
 from datetime import datetime, date
@@ -15,9 +15,26 @@ from collections import OrderedDict
 
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
+Defendant = detainer_warrants.models.Defendant
 Plantiff = detainer_warrants.models.Plantiff
+Organizer = detainer_warrants.models.Organizer
 
 logg = logging.getLogger(__name__)
+
+
+def is_authenticated(form_data):
+    defendant = db.session.query(Defendant)\
+        .filter_by(name=form_data['name'], phone=form_data['phone'])\
+        .first()
+
+    valid_contact = db.session.query(Organizer)\
+        .filter(or_(
+            Organizer.first_name == form_data['rdc_contact'],
+            Organizer.last_name == form_data['rdc_contact']
+        ))\
+        .first()
+
+    return bool(defendant) and bool(valid_contact)
 
 
 def create_app(testing=False):
@@ -136,6 +153,10 @@ def register_extensions(app):
     api.add_resource('/phone-number-verifications/', detainer_warrants.views.PhoneNumberVerificationListResource,
                      detainer_warrants.views.PhoneNumberVerificationResource, app=app)
 
+    @app.route('/api/v1/auth', methods=['POST'])
+    def auth():
+        return flask.jsonify({'is_authenticated': is_authenticated(request.get_json())})
+
     @app.route('/api/v1/rollup/detainer-warrants')
     def detainer_warrant_rollup_by_month():
         start_dt = date(2020, 1, 1)
@@ -206,7 +227,8 @@ def register_shellcontext(app):
             'db': db,
             'DetainerWarrant': detainer_warrants.models.DetainerWarrant,
             'Attorney': detainer_warrants.models.Attorney,
-            'Defendant': detainer_warrants.models.Defendant
+            'Defendant': detainer_warrants.models.Defendant,
+            'Organizer': Organizer
         }
 
     app.shell_context_processor(shell_context)
