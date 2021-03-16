@@ -547,41 +547,50 @@ viewWarrantsPage model =
                 }
             ]
         }
-        [ Element.width fill, Element.padding 20, Font.size 14 ]
-        (Element.column
-            [ Element.spacing 30
-            , Element.centerX
+        [ Element.padding 20
+        , Font.size 14
+        , Element.centerX
+        ]
+        (Element.row
+            [ Element.centerX
+            , Element.width (fill |> Element.maximum 1000)
             ]
-            [ Element.row []
-                [ chart model ]
-            , Element.row []
-                [ viewDetainerWarrantsHistory model.warrantsPerMonth
+            [ Element.column
+                [ Element.spacing 30
+                , Element.centerX
+                , Element.width fill
                 ]
-            , Element.row []
-                [ viewPlantiffAttorneyChart model.plantiffAttorneyWarrantCounts ]
-            , Element.row [ Element.height (Element.px 30) ] []
-            , Element.row [ Font.size 20, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
-                [ Element.column [ Element.centerX ]
-                    [ Element.row [ Element.centerX, Font.center ] [ Element.text "Find your Detainer Warrant case" ]
-                    , viewSearchBar model
-                    , Element.row [ Element.centerX, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
-                        (if List.isEmpty model.warrants then
-                            []
-
-                         else
-                            [ viewWarrants model ]
-                        )
+                [ Element.row []
+                    [ chart model ]
+                , Element.row []
+                    [ viewDetainerWarrantsHistory model.warrantsPerMonth
                     ]
-                ]
-            , Element.row [ Region.footer, Element.centerX ]
-                [ Element.textColumn [ Font.center, Font.size 20, Element.spacing 10 ]
-                    [ Element.el [ Font.medium ] (Element.text "Data collected and provided for free to the people of Davidson County.")
-                    , Element.paragraph [ Font.color Palette.red ]
-                        [ Element.link []
-                            { url = "https://midtndsa.org/rdc/"
-                            , label = Element.text "Red Door Collective"
-                            }
-                        , Element.text " © 2021"
+                , Element.row [ Element.width fill ]
+                    [ viewPlantiffAttorneyChart model.plantiffAttorneyWarrantCounts ]
+                , Element.row [ Element.height (Element.px 30) ] []
+                , Element.row [ Font.size 20, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
+                    [ Element.column [ Element.centerX ]
+                        [ Element.row [ Element.centerX, Font.center ] [ Element.text "Find your Detainer Warrant case" ]
+                        , viewSearchBar model
+                        , Element.row [ Element.centerX, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
+                            (if List.isEmpty model.warrants then
+                                []
+
+                             else
+                                [ viewWarrants model ]
+                            )
+                        ]
+                    ]
+                , Element.row [ Region.footer, Element.centerX ]
+                    [ Element.textColumn [ Font.center, Font.size 20, Element.spacing 10 ]
+                        [ Element.el [ Font.medium ] (Element.text "Data collected and provided for free to the people of Davidson County.")
+                        , Element.paragraph [ Font.color Palette.red ]
+                            [ Element.link []
+                                { url = "https://midtndsa.org/rdc/"
+                                , label = Element.text "Red Door Collective"
+                                }
+                            , Element.text " © 2021"
+                            ]
                         ]
                     ]
                 ]
@@ -817,7 +826,7 @@ ticksConfig =
 
 
 pieWidth =
-    990
+    504
 
 
 pieHeight =
@@ -829,7 +838,51 @@ radius =
     min pieWidth pieHeight / 2
 
 
-viewPlantiffAttorneyChart : List PlantiffAttorneyWarrantCount -> Element msg
+viewPieColor : Element.Color -> Element Msg
+viewPieColor color =
+    Element.el
+        [ Background.color color
+        , Border.rounded 5
+        , Element.width (Element.px 20)
+        , Element.height (Element.px 20)
+        , Element.alignRight
+        ]
+        Element.none
+
+
+pieLegendName : ( String, Element.Color ) -> Element Msg
+pieLegendName ( name, color ) =
+    Element.row [ Element.spacing 10, Element.width fill ] [ Element.column [ Element.alignLeft ] [ Element.text name ], viewPieColor color ]
+
+
+pieLegend : List String -> Element Msg
+pieLegend names =
+    let
+        legendData =
+            List.map2 Tuple.pair names pieColorsAsElements
+    in
+    Element.column [ Element.width Element.shrink, Font.size 18, Element.spacing 10 ] (List.map pieLegendName legendData)
+
+
+pieColorsHelp toColor =
+    [ toColor 176 140 212
+    , toColor 166 230 235
+    , toColor 180 212 140
+    , toColor 247 212 163
+    , toColor 212 140 149
+    , toColor 220 174 90
+    ]
+
+
+pieColors =
+    pieColorsHelp Color.rgb255
+
+
+pieColorsAsElements =
+    pieColorsHelp Element.rgb255
+
+
+viewPlantiffAttorneyChart : List PlantiffAttorneyWarrantCount -> Element Msg
 viewPlantiffAttorneyChart counts =
     let
         total =
@@ -842,14 +895,7 @@ viewPlantiffAttorneyChart counts =
             shares |> List.map Tuple.second |> Shape.pie { defaultPieConfig | outerRadius = radius }
 
         colors =
-            Array.fromList
-                [ Color.rgb255 176 140 212
-                , Color.rgb255 166 230 235
-                , Color.rgb255 180 212 140
-                , Color.rgb255 247 212 163
-                , Color.rgb255 212 140 149
-                , Color.rgb255 220 174 90
-                ]
+            Array.fromList pieColors
 
         makeSlice index datum =
             Path.element (Shape.arc datum) [ Attr.fill <| Paint <| Maybe.withDefault Color.black <| Array.get index colors, stroke <| Paint <| Color.white ]
@@ -872,17 +918,20 @@ viewPlantiffAttorneyChart counts =
                 ]
                 [ text (label ++ "%") ]
     in
-    Element.column [ Element.width (Element.px pieWidth), Element.height (Element.px pieHeight), Element.spacing 20, Element.centerX ]
+    Element.column [ Element.padding 20, Element.spacing 20, Element.centerX, Element.width fill ]
         [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Plantiff attorney listed on detainer warrants, Davidson Co. TN" ]
-        , Element.row []
-            [ Element.html
-                (svg [ viewBox 0 0 pieWidth pieHeight ]
-                    [ g [ transform [ Translate (pieWidth / 2) (pieHeight / 2) ] ]
-                        [ g [] <| List.indexedMap makeSlice pieData
-                        , g [] <| List.map2 makeLabel pieData shares
+        , Element.row [ Element.padding 10, Element.spacing 40 ]
+            [ pieLegend (List.map Tuple.first shares)
+            , Element.column [ Element.width (Element.shrink |> Element.minimum pieWidth), Element.height (Element.px pieHeight) ]
+                [ Element.html
+                    (svg [ viewBox 0 0 pieWidth pieHeight ]
+                        [ g [ transform [ Translate (pieWidth / 2) (pieHeight / 2) ] ]
+                            [ g [] <| List.indexedMap makeSlice pieData
+                            , g [] <| List.map2 makeLabel pieData shares
+                            ]
                         ]
-                    ]
-                )
+                    )
+                ]
             ]
         ]
 
