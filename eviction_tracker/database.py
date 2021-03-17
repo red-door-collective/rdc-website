@@ -1,12 +1,13 @@
 """Database module, including the SQLAlchemy database object and DB-related utilities."""
+from sqlalchemy import text
 from sqlalchemy.orm import relationship
-
 from .extensions import db
 
 # Alias common SQLAlchemy names
 Column = db.Column
 relationship = relationship
 Model = db.Model
+
 
 def reference_col(tablename, nullable=False, pk_name='id', **kwargs):
     """Column that adds primary key foreign key reference.

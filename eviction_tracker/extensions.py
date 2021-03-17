@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_assets import Environment, Bundle
 from flask_resty import Api
 
+
 class CRUDMixin(Model):
     """Mixin that adds convenience methods for CRUD (create, read, update, delete) operations."""
 

@@ -1,6 +1,15 @@
 from eviction_tracker.database import db, Column, Model, relationship
+from datetime import datetime
+from sqlalchemy import func
 
-class District(db.Model):
+
+class Timestamped():
+    created_at = Column(db.DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(
+        db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+class District(db.Model, Timestamped):
     __tablename__ = 'districts'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
@@ -18,19 +27,22 @@ class District(db.Model):
 detainer_warrant_defendants = db.Table(
     'detainer_warrant_defendants',
     db.metadata,
-    Column('detainer_warrant_docket_id', db.ForeignKey('detainer_warrants.docket_id'), primary_key=True),
+    Column('detainer_warrant_docket_id', db.ForeignKey(
+        'detainer_warrants.docket_id'), primary_key=True),
     Column('defendant_id', db.ForeignKey('defendants.id'), primary_key=True)
 )
 
 
-class Defendant(db.Model):
+class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
     id = Column(db.Integer, primary_key=True)
-    name = Column(db.String(255), nullable=False)
+    name = Column(db.String(255))
     phone = Column(db.String(20))
-    address = Column(db.String(255), nullable=False)
+    potential_phones = Column(db.String(255))
+    address = Column(db.String(255))
 
-    district_id = Column(db.Integer, db.ForeignKey('districts.id'), nullable=False)
+    district_id = Column(db.Integer, db.ForeignKey(
+        'districts.id'), nullable=False)
 
     db.UniqueConstraint('name', 'district_id')
 
@@ -44,11 +56,12 @@ class Defendant(db.Model):
         return "<Defendant(name='%s', phone='%s', address='%s')>" % (self.name, self.phone, self.address)
 
 
-class Attorney(db.Model):
+class Attorney(db.Model, Timestamped):
     __tablename__ = 'attorneys'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
-    district_id = Column(db.Integer, db.ForeignKey('districts.id'), nullable=False)
+    district_id = Column(db.Integer, db.ForeignKey(
+        'districts.id'), nullable=False)
 
     db.UniqueConstraint('name', 'district_id')
 
@@ -59,11 +72,12 @@ class Attorney(db.Model):
         return "<Attorney(name='%s', district_id='%s')>" % (self.name, self.district_id)
 
 
-class Courtroom(db.Model):
+class Courtroom(db.Model, Timestamped):
     __tablename__ = 'courtrooms'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
-    district_id = Column(db.Integer, db.ForeignKey('districts.id'), nullable=False)
+    district_id = Column(db.Integer, db.ForeignKey(
+        'districts.id'), nullable=False)
 
     db.UniqueConstraint('name', 'district_id')
 
@@ -74,12 +88,13 @@ class Courtroom(db.Model):
         return "<Courtroom(name='%s')>" % (self.name)
 
 
-class Plantiff(db.Model):
+class Plantiff(db.Model, Timestamped):
     __tablename__ = 'plantiffs'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
     attorney_id = Column(db.Integer, db.ForeignKey('attorneys.id'))
-    district_id = Column(db.Integer, db.ForeignKey('districts.id'), nullable=False)
+    district_id = Column(db.Integer, db.ForeignKey(
+        'districts.id'), nullable=False)
 
     db.UniqueConstraint('name', 'district_id')
 
@@ -92,11 +107,12 @@ class Plantiff(db.Model):
         return "<Plantiff(name='%s', attorney_id='%s', district_id='%s')>" % (self.name, self.attorney_id, self.district_id)
 
 
-class Judge(db.Model):
+class Judge(db.Model, Timestamped):
     __tablename__ = "judges"
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
-    district_id = Column(db.Integer, db.ForeignKey('districts.id'), nullable=False)
+    district_id = Column(db.Integer, db.ForeignKey(
+        'districts.id'), nullable=False)
 
     db.UniqueConstraint('name', 'district_id')
 
@@ -107,7 +123,7 @@ class Judge(db.Model):
         return "<Judge(name='%s')>" % (self.name)
 
 
-class DetainerWarrant(db.Model):
+class DetainerWarrant(db.Model, Timestamped):
     statuses = {
         'CLOSED': 0,
         'PENDING': 1
@@ -120,17 +136,30 @@ class DetainerWarrant(db.Model):
         'N/A': 3,
     }
 
+    judgements = {
+        'NON-SUIT': 0,
+        'POSS': 1,
+        'POSS + PAYMENT': 2,
+        'DISMISSED': 3,
+        'N/A': 4
+    }
+
     __tablename__ = 'detainer_warrants'
     docket_id = Column(db.String(255), primary_key=True)
     file_date = Column(db.Date, nullable=False)
-    status_id = Column(db.Integer, nullable=False) # union?
+    status_id = Column(db.Integer, nullable=False)  # union?
     plantiff_id = Column(db.Integer, db.ForeignKey('plantiffs.id'))
-    court_date = Column(db.Date) # date
+    court_date = Column(db.Date)  # date
+    court_date_notes = Column(db.String(50))
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
-    amount_claimed = Column(db.String(30)) # USD
-    amount_claimed_category_id = Column(db.Integer, nullable=False) # enum (POSS | FEES | BOTH | NA)
-    judgement = Column(db.Integer)
+    amount_claimed = Column(db.String(30))  # USD
+    amount_claimed_category_id = Column(
+        db.Integer, nullable=False)  # enum (POSS | FEES | BOTH | NA)
+    is_cares = Column(db.Boolean)
+    is_legacy = Column(db.Boolean)
+    zip_code = Column(db.String(10))
+    judgement_id = Column(db.Integer, nullable=False, default=4)
     judgement_notes = Column(db.String(255))
 
     plantiff = relationship('Plantiff', back_populates='detainer_warrants')
@@ -165,13 +194,26 @@ class DetainerWarrant(db.Model):
         self.amount_claimed_category_id = DetainerWarrant.amount_claimed_categories[
             amount_claimed_category_name]
 
+    @property
+    def judgement(self):
+        judgement_by_id = {v: k for k, v in DetainerWarrant.judgements.items()}
+        return judgement_by_id[self.judgement_id]
+
+    @judgement.setter
+    def judgement(self, judgement_name):
+        self.judgement_id = DetainerWarrant.judgements[judgement_name]
 
 
-class PhoneNumberVerification(db.Model):
+class PhoneNumberVerification(db.Model, Timestamped):
+    caller_types = {
+        'CONSUMER': 1,
+        'BUSINESS': 2,
+    }
+
     __tablename__ = 'phone_number_verifications'
     id = Column(db.Integer, primary_key=True)
     caller_name = Column(db.String(255))
-    caller_type = Column(db.Integer) # smaller column than String
+    caller_type_id = Column(db.Integer)  # smaller column than String
     name_error_code = Column(db.Integer)
     carrier_error_code = Column(db.Integer)
     mobile_country_code = Column(db.String(10))
@@ -181,21 +223,48 @@ class PhoneNumberVerification(db.Model):
     country_code = Column(db.String(10))
     national_format = Column(db.String(20))
     phone_number = Column(db.String(30))
+
     def from_twilio_response(input):
-        caller_info = input['caller_name'] or { 'caller_name': None, 'caller_type': None, 'error_code': None }
-        carrier_info = input['carrier'] or { 'error_code': None, 'mobile_country_code': None, 'mobile_network_code': None, 'name': None, 'type': None }
+        caller_info = input['caller_name'] or {
+            'caller_name': None, 'caller_type': None, 'error_code': None}
+        carrier_info = input['carrier'] or {
+            'error_code': None, 'mobile_country_code': None, 'mobile_network_code': None, 'name': None, 'type': None}
         return PhoneNumberVerification(
-            caller_name = caller_info['caller_name'],
-            caller_type = caller_info['caller_type'],
-            name_error_code = caller_info['error_code'],
-            carrier_error_code = carrier_info['error_code'],
-            mobile_country_code = carrier_info['mobile_country_code'],
-            mobile_network_code = carrier_info['mobile_network_code'],
-            carrier_name = carrier_info['name'],
-            phone_type = carrier_info['type'],
-            country_code = input['country_code'],
-            national_format = input['national_format'],
-            phone_number = input['phone_number'])
+            caller_name=caller_info['caller_name'],
+            caller_type=caller_info['caller_type'],
+            name_error_code=caller_info['error_code'],
+            carrier_error_code=carrier_info['error_code'],
+            mobile_country_code=carrier_info['mobile_country_code'],
+            mobile_network_code=carrier_info['mobile_network_code'],
+            carrier_name=carrier_info['name'],
+            phone_type=carrier_info['type'],
+            country_code=input['country_code'],
+            national_format=input['national_format'],
+            phone_number=input['phone_number'])
+
+    @property
+    def caller_type(self):
+        caller_type_by_id = {v: k for k,
+                             v in PhoneNumberVerification.caller_types.items()}
+        return caller_type_by_id.get(self.caller_type_id)
+
+    @caller_type.setter
+    def caller_type(self, caller_type):
+        self.caller_type_id = PhoneNumberVerification.caller_types.get(
+            caller_type)
 
     def __repr__(self):
         return "<PhoneNumberVerification(caller_name='%s', phone_type='%s', phone_number='%s')>" % (self.caller_name, self.phone_type, self.phone_number)
+
+
+class Organizer(db.Model, Timestamped):
+    id = Column(db.Integer, primary_key=True)
+    first_name = Column(db.String(255), nullable=False)
+    last_name = Column(db.String(255), nullable=False)
+    email = Column(db.String(255), nullable=False)
+
+    def name(self):
+        return self.first_name + ' ' + self.last_name
+
+    def __repr__(self):
+        return "<Organizer(name='%s', email='%s'>" % (self.name, self.email)
