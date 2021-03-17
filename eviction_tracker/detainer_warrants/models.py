@@ -5,7 +5,8 @@ from sqlalchemy import func
 
 class Timestamped():
     created_at = Column(db.DateTime, nullable=False, server_default=func.now())
-    updated_at = Column(db.DateTime, nullable=False, onupdate=func.now())
+    updated_at = Column(
+        db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
 
 class District(db.Model, Timestamped):
@@ -204,10 +205,15 @@ class DetainerWarrant(db.Model, Timestamped):
 
 
 class PhoneNumberVerification(db.Model, Timestamped):
+    caller_types = {
+        'CONSUMER': 1,
+        'BUSINESS': 2,
+    }
+
     __tablename__ = 'phone_number_verifications'
     id = Column(db.Integer, primary_key=True)
     caller_name = Column(db.String(255))
-    caller_type = Column(db.Integer)  # smaller column than String
+    caller_type_id = Column(db.Integer)  # smaller column than String
     name_error_code = Column(db.Integer)
     carrier_error_code = Column(db.Integer)
     mobile_country_code = Column(db.String(10))
@@ -235,6 +241,17 @@ class PhoneNumberVerification(db.Model, Timestamped):
             country_code=input['country_code'],
             national_format=input['national_format'],
             phone_number=input['phone_number'])
+
+    @property
+    def caller_type(self):
+        caller_type_by_id = {v: k for k,
+                             v in PhoneNumberVerification.caller_types.items()}
+        return caller_type_by_id.get(self.caller_type_id)
+
+    @caller_type.setter
+    def caller_type(self, caller_type):
+        self.caller_type_id = PhoneNumberVerification.caller_types.get(
+            caller_type)
 
     def __repr__(self):
         return "<PhoneNumberVerification(caller_name='%s', phone_type='%s', phone_number='%s')>" % (self.caller_name, self.phone_type, self.phone_number)
