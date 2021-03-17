@@ -43,9 +43,9 @@ import Shape exposing (defaultPieConfig)
 import Svg exposing (Svg)
 import Time exposing (Month(..))
 import Time.Extra as Time exposing (Parts, partsToPosix)
-import TypedSvg exposing (g, rect, style, svg, text_)
+import TypedSvg exposing (circle, g, rect, style, svg, text_)
 import TypedSvg.Attributes as Attr exposing (class, dy, stroke, textAnchor, transform, viewBox)
-import TypedSvg.Attributes.InPx exposing (height, width, x, y)
+import TypedSvg.Attributes.InPx exposing (cx, cy, height, r, width, x, y)
 import TypedSvg.Core exposing (Svg, text)
 import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
 
@@ -394,6 +394,45 @@ update msg page =
 -- VIEW
 
 
+redDoorWidth =
+    50
+
+
+redDoorHeight =
+    75
+
+
+redDoorFrame =
+    10
+
+
+redDoor : Element Msg
+redDoor =
+    Element.column [ Element.width fill ]
+        [ Element.row [ Element.inFront logo, Element.centerX, Element.width (Element.px (redDoorWidth + 34)), Element.height (Element.px (30 + redDoorHeight)) ]
+            [ Element.el [ Element.alignRight, Element.width (Element.px redDoorWidth), Element.height (Element.px redDoorHeight) ]
+                (Element.html
+                    (svg [ viewBox 0 0 redDoorWidth redDoorHeight ]
+                        [ rect [ x 0, y 0, width redDoorWidth, height redDoorHeight, Attr.fill <| Paint Color.red ] []
+                        , g []
+                            [ rect [ x 13, y 17, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
+                                []
+                            , rect [ x 27, y 17, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
+                                []
+                            , rect [ x 13, y 32, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
+                                []
+                            , rect [ x 27, y 32, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
+                                []
+                            ]
+                        , g []
+                            [ circle [ cx 42, cy 50, Attr.fill <| Paint Color.black, r 3 ] [] ]
+                        ]
+                    )
+                )
+            ]
+        ]
+
+
 viewPage : Page -> Browser.Document Msg
 viewPage page =
     case page of
@@ -530,6 +569,15 @@ viewSearchBar model =
         ]
 
 
+logo : Element Msg
+logo =
+    Element.textColumn [ Element.width Element.shrink, Element.alignBottom ]
+        [ Element.paragraph [ Font.color Palette.red ] [ Element.text "Red" ]
+        , Element.paragraph [] [ Element.text "Door" ]
+        , Element.paragraph [] [ Element.text "Collective" ]
+        ]
+
+
 viewWarrantsPage : Model -> Html Msg
 viewWarrantsPage model =
     Element.layoutWith
@@ -560,7 +608,9 @@ viewWarrantsPage model =
                 , Element.centerX
                 , Element.width fill
                 ]
-                [ Element.row []
+                [ Element.row [ Element.alignLeft ]
+                    [ redDoor ]
+                , Element.row []
                     [ chart model ]
                 , Element.row []
                     [ viewDetainerWarrantsHistory model.warrantsPerMonth
@@ -861,7 +911,7 @@ pieLegend names =
         legendData =
             List.map2 Tuple.pair names pieColorsAsElements
     in
-    Element.column [ Element.width Element.shrink, Font.size 18, Element.spacing 10 ] (List.map pieLegendName legendData)
+    Element.column [ Font.size 18, Element.spacing 10 ] (List.map pieLegendName legendData)
 
 
 pieColorsHelp toColor =
