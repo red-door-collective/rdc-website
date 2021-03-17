@@ -1,7 +1,14 @@
 from eviction_tracker.database import db, Column, Model, relationship
+from datetime import datetime
+from sqlalchemy import func
 
 
-class District(db.Model):
+class Timestamped():
+    created_at = Column(db.DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(db.DateTime, nullable=False, onupdate=func.now())
+
+
+class District(db.Model, Timestamped):
     __tablename__ = 'districts'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
@@ -25,7 +32,7 @@ detainer_warrant_defendants = db.Table(
 )
 
 
-class Defendant(db.Model):
+class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255))
@@ -48,7 +55,7 @@ class Defendant(db.Model):
         return "<Defendant(name='%s', phone='%s', address='%s')>" % (self.name, self.phone, self.address)
 
 
-class Attorney(db.Model):
+class Attorney(db.Model, Timestamped):
     __tablename__ = 'attorneys'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
@@ -64,7 +71,7 @@ class Attorney(db.Model):
         return "<Attorney(name='%s', district_id='%s')>" % (self.name, self.district_id)
 
 
-class Courtroom(db.Model):
+class Courtroom(db.Model, Timestamped):
     __tablename__ = 'courtrooms'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
@@ -80,7 +87,7 @@ class Courtroom(db.Model):
         return "<Courtroom(name='%s')>" % (self.name)
 
 
-class Plantiff(db.Model):
+class Plantiff(db.Model, Timestamped):
     __tablename__ = 'plantiffs'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
@@ -99,7 +106,7 @@ class Plantiff(db.Model):
         return "<Plantiff(name='%s', attorney_id='%s', district_id='%s')>" % (self.name, self.attorney_id, self.district_id)
 
 
-class Judge(db.Model):
+class Judge(db.Model, Timestamped):
     __tablename__ = "judges"
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
@@ -115,7 +122,7 @@ class Judge(db.Model):
         return "<Judge(name='%s')>" % (self.name)
 
 
-class DetainerWarrant(db.Model):
+class DetainerWarrant(db.Model, Timestamped):
     statuses = {
         'CLOSED': 0,
         'PENDING': 1
@@ -196,7 +203,7 @@ class DetainerWarrant(db.Model):
         self.judgement_id = DetainerWarrant.judgements[judgement_name]
 
 
-class PhoneNumberVerification(db.Model):
+class PhoneNumberVerification(db.Model, Timestamped):
     __tablename__ = 'phone_number_verifications'
     id = Column(db.Integer, primary_key=True)
     caller_name = Column(db.String(255))
@@ -233,7 +240,7 @@ class PhoneNumberVerification(db.Model):
         return "<PhoneNumberVerification(caller_name='%s', phone_type='%s', phone_number='%s')>" % (self.caller_name, self.phone_type, self.phone_number)
 
 
-class Organizer(db.Model):
+class Organizer(db.Model, Timestamped):
     id = Column(db.Integer, primary_key=True)
     first_name = Column(db.String(255), nullable=False)
     last_name = Column(db.String(255), nullable=False)
