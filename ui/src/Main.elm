@@ -394,6 +394,52 @@ update msg page =
 -- VIEW
 
 
+navBarLink { url, text } =
+    Element.link
+        [ Element.height fill
+        , Font.center
+        , Element.width (Element.px 200)
+        , Element.mouseOver [ Background.color Palette.redLight ]
+        , Element.centerY
+        , Element.centerX
+        , Font.center
+        , Font.size 20
+        , Font.semiBold
+        ]
+        { url = url
+        , label = Element.row [ Element.centerX ] [ Element.text text ]
+        }
+
+
+navBar : Element Msg
+navBar =
+    Element.wrappedRow
+        [ Border.color Palette.black
+        , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
+        , Element.padding 5
+        , Element.width (Element.fill |> Element.maximum 1200 |> Element.minimum 400)
+        , Element.centerX
+        , Element.centerY
+        , Element.spacing 50
+        ]
+        [ redDoor
+        , Element.column [ Element.width fill, Element.height fill, Element.centerY ]
+            [ Element.row [ Element.centerY, Element.height fill, Element.spaceEvenly, Element.width (fill |> Element.maximum 500 |> Element.minimum 400) ]
+                [ navBarLink
+                    { url = "/about"
+                    , text = "About"
+                    }
+                , navBarLink
+                    { url = "/warrant-lookup"
+                    , text = "Warrant Lookup"
+                    }
+                , navBarLink { url = "/trends", text = "Trends" }
+                , navBarLink { url = "/actions", text = "Actions" }
+                ]
+            ]
+        ]
+
+
 redDoorWidth =
     50
 
@@ -408,7 +454,7 @@ redDoorFrame =
 
 redDoor : Element Msg
 redDoor =
-    Element.column [ Element.width fill ]
+    Element.column [ Element.width Element.shrink ]
         [ Element.row [ Element.inFront logo, Element.centerX, Element.width (Element.px (redDoorWidth + 34)), Element.height (Element.px (30 + redDoorHeight)) ]
             [ Element.el [ Element.alignRight, Element.width (Element.px redDoorWidth), Element.height (Element.px redDoorHeight) ]
                 (Element.html
@@ -597,49 +643,52 @@ viewWarrantsPage model =
         }
         [ Element.padding 20
         , Font.size 14
-        , Element.centerX
         ]
-        (Element.row
-            [ Element.centerX
-            , Element.width (fill |> Element.maximum 1000)
+        (Element.column
+            [ Element.width fill
+            , Element.spacing 20
             ]
-            [ Element.column
-                [ Element.spacing 30
-                , Element.centerX
-                , Element.width fill
+            [ navBar
+            , Element.row
+                [ Element.centerX
+                , Element.width (fill |> Element.maximum 1000)
                 ]
-                [ Element.row [ Element.alignLeft ]
-                    [ redDoor ]
-                , Element.row []
-                    [ chart model ]
-                , Element.row []
-                    [ viewDetainerWarrantsHistory model.warrantsPerMonth
+                [ Element.column
+                    [ Element.spacing 30
+                    , Element.centerX
+                    , Element.width fill
                     ]
-                , Element.row [ Element.width fill ]
-                    [ viewPlantiffAttorneyChart model.plantiffAttorneyWarrantCounts ]
-                , Element.row [ Element.height (Element.px 30) ] []
-                , Element.row [ Font.size 20, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
-                    [ Element.column [ Element.centerX ]
-                        [ Element.row [ Element.centerX, Font.center ] [ Element.text "Find your Detainer Warrant case" ]
-                        , viewSearchBar model
-                        , Element.row [ Element.centerX, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
-                            (if List.isEmpty model.warrants then
-                                []
-
-                             else
-                                [ viewWarrants model ]
-                            )
+                    [ Element.row []
+                        [ chart model ]
+                    , Element.row []
+                        [ viewDetainerWarrantsHistory model.warrantsPerMonth
                         ]
-                    ]
-                , Element.row [ Region.footer, Element.centerX ]
-                    [ Element.textColumn [ Font.center, Font.size 20, Element.spacing 10 ]
-                        [ Element.el [ Font.medium ] (Element.text "Data collected and provided for free to the people of Davidson County.")
-                        , Element.paragraph [ Font.color Palette.red ]
-                            [ Element.link []
-                                { url = "https://midtndsa.org/rdc/"
-                                , label = Element.text "Red Door Collective"
-                                }
-                            , Element.text " © 2021"
+                    , Element.row [ Element.width fill ]
+                        [ viewPlantiffAttorneyChart model.plantiffAttorneyWarrantCounts ]
+                    , Element.row [ Element.height (Element.px 30) ] []
+                    , Element.row [ Font.size 20, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
+                        [ Element.column [ Element.centerX ]
+                            [ Element.row [ Element.centerX, Font.center ] [ Element.text "Find your Detainer Warrant case" ]
+                            , viewSearchBar model
+                            , Element.row [ Element.centerX, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
+                                (if List.isEmpty model.warrants then
+                                    []
+
+                                 else
+                                    [ viewWarrants model ]
+                                )
+                            ]
+                        ]
+                    , Element.row [ Region.footer, Element.centerX ]
+                        [ Element.textColumn [ Font.center, Font.size 20, Element.spacing 10 ]
+                            [ Element.el [ Font.medium ] (Element.text "Data collected and provided for free to the people of Davidson County.")
+                            , Element.paragraph [ Font.color Palette.red ]
+                                [ Element.link []
+                                    { url = "https://midtndsa.org/rdc/"
+                                    , label = Element.text "Red Door Collective"
+                                    }
+                                , Element.text " © 2021"
+                                ]
                             ]
                         ]
                     ]
