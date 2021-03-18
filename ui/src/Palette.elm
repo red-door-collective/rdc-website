@@ -3,6 +3,7 @@ module Palette exposing
     , pinkLight, blueLight, goldLight, redLight, greenLight, cyanLight, tealLight, purpleLight
     , black, gray, grayLight, grayLightest
     , transparent
+    , blackLight, sred, white
     )
 
 {-|
@@ -27,6 +28,11 @@ module Palette exposing
 -}
 
 import Element
+
+
+white : Element.Color
+white =
+    Element.rgb255 255 255 255
 
 
 {-| -}
@@ -89,6 +95,11 @@ redLight =
     Element.rgb255 239 154 154
 
 
+sred : Element.Color
+sred =
+    Element.rgb255 236 31 39
+
+
 {-| -}
 rust : Element.Color
 rust =
@@ -145,6 +156,11 @@ strongBlue =
 black : Element.Color
 black =
     Element.rgb255 0 0 0
+
+
+blackLight : Element.Color
+blackLight =
+    Element.rgb255 68 67 64
 
 
 {-| -}

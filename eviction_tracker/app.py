@@ -50,8 +50,9 @@ def create_app(testing=False):
     # logg.info("encoding: " + locale.getpreferredencoding())
     # logg.info("locale: "+ locale.getdefaultlocale())
 
-    @app.route('/')
-    def index():
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def index(path):
         return render_template('index.html')
 
     return app
