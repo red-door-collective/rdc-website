@@ -54,8 +54,11 @@ def _from_spreadsheet_row(raw_warrant, defaults):
     docket_id = warrant[DOCKET_ID]
     file_date = warrant[FILE_DATE]
     status = warrant[STATUS]
-    attorney, _ = get_or_create(
-        db.session, Attorney, name=warrant[PLTF_ATTORNEY], defaults=defaults)
+
+    attorney = None
+    if warrant[PLTF_ATTORNEY]:
+        attorney, _ = get_or_create(
+            db.session, Attorney, name=warrant[PLTF_ATTORNEY], defaults=defaults)
 
     plantiff = None
     if warrant[PLANTIFF]:
