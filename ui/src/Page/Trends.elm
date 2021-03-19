@@ -356,25 +356,27 @@ column scale { time, totalWarrants } =
 
 viewDetainerWarrantsHistory : List DetainerWarrantsPerMonth -> Element msg
 viewDetainerWarrantsHistory series =
-    Element.column [ Element.width (Element.px w), Element.height (Element.px h), Element.spacing 20, Element.centerX ]
+    Element.column [ Element.padding 20, Element.spacing 20, Element.centerX, Element.width fill ]
         [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Number of detainer warrants in Davidson Co. TN by month" ]
-        , Element.row [ Element.paddingXY 55 0 ]
-            [ Element.html
-                (svg [ viewBox 0 0 w h ]
-                    [ style [] [ text """
+        , Element.row [ Element.paddingXY 35 0 ]
+            [ Element.column [ Element.width (Element.shrink |> Element.minimum w), Element.height (Element.px h) ]
+                [ Element.html
+                    (svg [ viewBox 0 0 w h ]
+                        [ style [] [ text """
             .column rect { fill: rgba(12, 84, 228, 0.8); }
             .column text { display: none; }
             .column:hover rect { fill: rgb(129, 169, 248); }
             .column:hover text { display: inline; }
           """ ]
-                    , g [ transform [ Translate (padding - 1) (h - padding) ] ]
-                        [ xAxis series ]
-                    , g [ transform [ Translate (padding - 1) padding ] ]
-                        [ yAxis ]
-                    , g [ transform [ Translate padding padding ], class [ "series" ] ] <|
-                        List.map (column (xScale series)) series
-                    ]
-                )
+                        , g [ transform [ Translate (padding - 1) (h - padding) ] ]
+                            [ xAxis series ]
+                        , g [ transform [ Translate (padding - 1) padding ] ]
+                            [ yAxis ]
+                        , g [ transform [ Translate padding padding ], class [ "series" ] ] <|
+                            List.map (column (xScale series)) series
+                        ]
+                    )
+                ]
             ]
         ]
 
