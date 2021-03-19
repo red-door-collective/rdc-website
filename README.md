@@ -39,6 +39,37 @@ You'll get a new prompt that looks like:
 
 Now you're ready to run `python` and `ipython`! You can escape the `nix-shell` at any time by holding ctrl pressing the D key or typing `exit` and pressing enter.
 
+#### Database
+
+We use [PostgreSQL](https://www.postgresql.org/) for both development and production so that we can be assured working with the data locally will work exactly the same in production. Unfortunately, this requires a bit more manual setup for developers who don't already use Postgres.
+
+##### First-time postgres
+
+Install postgres with the [most convenient installer for your OS](https://www.postgresql.org/download/).
+
+The app doesn't care how you set up your postgres connection, so feel free to set up your postgres service in whatever method is convenient for you. By default, the `SQLALCHEMY_DATABASE_URL` is set to `postgresql+psycopg2://eviction_tracker@localhost/eviction_tracker`, which assumes that you've created a database called `eviction_tracker`, a user called `eviction_tracker` (without a password), and that you are using the default host and port of a postgres service running on the same host as the app.
+
+Feel free to override this environment variable like `SQLALCHEMY_DATABASE_URL="..." flask shell` or create the same setup locally. If you're running your database on another host like a Docker container, you'll need to change `localhost` and possibly add a `:port` to your override.
+
+Some postgres instructions on setting up for the default flow:
+
+```bash
+psql -U postgres # or, the superuser you've set up. -U postgres is default for modern installs
+```
+
+The above command will place you in this postgres shell:
+```
+postgres=# CREATE DATABASE eviction_tracker;
+postgres=# CREATE USER eviction_tracker;
+postgres=# GRANT ALL ON eviction_tracker to eviction_tracker;
+```
+
+These commands create the database, user, and assign all privileges for the user to the development database;
+
+#### Migrations
+
+Make sure to run `flask db upgrade` after setting up your database, or whenever a new migration is added to the `migrations/` folder.
+
 #### Google Spreadsheets
 
 You'll need authentication to make requests to the online spreadsheet with the most current data.
