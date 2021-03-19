@@ -9,6 +9,6 @@ instance/
 serve_app
 
 *.db
-!eviction_tracker/static/images
 eviction_tracker/static
+!eviction_tracker/static/images/*.png
 result
