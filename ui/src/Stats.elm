@@ -9,6 +9,7 @@ module Stats exposing
     , topEvictorDecoder
     )
 
+import Api exposing (posix)
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import Time
@@ -52,11 +53,6 @@ topEvictorDecoder =
     Decode.succeed TopEvictor
         |> required "name" string
         |> required "history" (list evictionHistoryDecoder)
-
-
-posix : Decoder Time.Posix
-posix =
-    Decode.map Time.millisToPosix int
 
 
 detainerWarrantsPerMonthDecoder : Decoder DetainerWarrantsPerMonth

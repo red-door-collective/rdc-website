@@ -1,4 +1,4 @@
-port module Api exposing (ApiMeta, ApiPage, Cred, addServerError, apiMetaDecoder, application, decodeErrors, delete, detainerWarrantApiDecoder, get, onStoreChange, post, put, storeCache, storeCredWith, viewerChanges)
+port module Api exposing (ApiMeta, ApiPage, Cred, RollupMetadata, addServerError, apiMetaDecoder, application, decodeErrors, delete, detainerWarrantApiDecoder, get, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCredWith, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -11,9 +11,10 @@ import Browser
 import Browser.Navigation as Nav
 import DetainerWarrant exposing (DetainerWarrant)
 import Http exposing (Body, Error, Expect)
-import Json.Decode as Decode exposing (Decoder, Value, bool, decodeString, field, list, nullable, string)
+import Json.Decode as Decode exposing (Decoder, Value, bool, decodeString, field, int, list, nullable, string)
 import Json.Decode.Pipeline as Pipeline exposing (optional, required)
 import Json.Encode as Encode
+import Time
 import Url exposing (Url)
 
 
@@ -259,6 +260,21 @@ type alias ApiPage data =
     { data : List data
     , meta : ApiMeta
     }
+
+
+type alias RollupMetadata =
+    { lastWarrantUpdatedAt : Time.Posix }
+
+
+posix : Decoder Time.Posix
+posix =
+    Decode.map Time.millisToPosix int
+
+
+rollupMetadataDecoder : Decoder RollupMetadata
+rollupMetadataDecoder =
+    Decode.succeed RollupMetadata
+        |> required "last_detainer_warrant_update" posix
 
 
 apiMetaDecoder : Decoder ApiMeta

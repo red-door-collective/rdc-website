@@ -124,7 +124,7 @@ def top_plantiff_attorneys_bet(start, end):
 
 
 def millisTimestamp(dt):
-    return dt.timestamp() * 1000
+    return round(dt.timestamp() * 1000)
 
 
 def millis(d):
@@ -220,6 +220,14 @@ def register_extensions(app):
             status=200,
             mimetype='application/json'
         )
+
+    @app.route('/api/v1/rollup/meta')
+    def data_meta():
+        last_warrant = db.session.query(DetainerWarrant).order_by(
+            desc(DetainerWarrant.updated_at)).first()
+        return flask.jsonify({
+            'last_detainer_warrant_update': millisTimestamp(last_warrant.updated_at) if last_warrant else None
+        })
 
 
 def register_shellcontext(app):

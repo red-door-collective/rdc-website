@@ -1,5 +1,6 @@
 module Page.Trends exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
+import Api
 import Array exposing (Array)
 import Axis
 import Color
@@ -52,6 +53,7 @@ type alias Model =
     , hovering : List EvictionHistory
     , warrantsPerMonth : List DetainerWarrantsPerMonth
     , plantiffAttorneyWarrantCounts : List PlantiffAttorneyWarrantCount
+    , rollupMeta : Maybe Api.RollupMetadata
     }
 
 
@@ -79,6 +81,14 @@ getPlantiffAttorneyWarrantCountPerMonth =
         }
 
 
+getApiMetadata : Cmd Msg
+getApiMetadata =
+    Http.get
+        { url = "/api/v1/rollup/meta"
+        , expect = Http.expectJson GotApiMeta Api.rollupMetadataDecoder
+        }
+
+
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
@@ -86,8 +96,14 @@ init session =
       , hovering = []
       , warrantsPerMonth = []
       , plantiffAttorneyWarrantCounts = []
+      , rollupMeta = Nothing
       }
-    , Cmd.batch [ getEvictionData, getDetainerWarrantsPerMonth, getPlantiffAttorneyWarrantCountPerMonth ]
+    , Cmd.batch
+        [ getEvictionData
+        , getDetainerWarrantsPerMonth
+        , getPlantiffAttorneyWarrantCountPerMonth
+        , getApiMetadata
+        ]
     )
 
 
@@ -95,6 +111,7 @@ type Msg
     = GotEvictionData (Result Http.Error (List TopEvictor))
     | GotDetainerWarrantData (Result Http.Error (List DetainerWarrantsPerMonth))
     | GotPlantiffAttorneyWarrantCount (Result Http.Error (List PlantiffAttorneyWarrantCount))
+    | GotApiMeta (Result Http.Error Api.RollupMetadata)
     | Hover (List EvictionHistory)
 
 
@@ -121,6 +138,14 @@ update msg model =
             case result of
                 Ok counts ->
                     ( { model | plantiffAttorneyWarrantCounts = counts }, Cmd.none )
+
+                Err errMsg ->
+                    ( model, Cmd.none )
+
+        GotApiMeta result ->
+            case result of
+                Ok rollupMeta ->
+                    ( { model | rollupMeta = Just rollupMeta }, Cmd.none )
 
                 Err errMsg ->
                     ( model, Cmd.none )
@@ -152,6 +177,13 @@ view model =
                 , Element.row [ Element.width fill ]
                     [ viewPlantiffAttorneyChart model.plantiffAttorneyWarrantCounts ]
                 , Element.row [ Element.height (Element.px 30) ] []
+                , case model.rollupMeta of
+                    Just rollupMeta ->
+                        Element.row [ Element.centerX ]
+                            [ Element.text ("Detainer Warrants updated via Red Door Collective members as of: " ++ dateFormatLong rollupMeta.lastWarrantUpdatedAt) ]
+
+                    Nothing ->
+                        Element.none
                 ]
             ]
     }
@@ -239,6 +271,11 @@ formatX info =
 dateFormat : Time.Posix -> String
 dateFormat =
     DateFormat.format [ DateFormat.dayOfMonthFixed, DateFormat.text " ", DateFormat.monthNameAbbreviated ] Time.utc
+
+
+dateFormatLong : Time.Posix -> String
+dateFormatLong =
+    DateFormat.format [ DateFormat.monthNameFull, DateFormat.text " ", DateFormat.dayOfMonthNumber, DateFormat.text ", ", DateFormat.yearNumber ] Time.utc
 
 
 formatY : EvictionHistory -> String
