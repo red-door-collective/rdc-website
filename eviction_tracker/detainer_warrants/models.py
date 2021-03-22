@@ -153,7 +153,7 @@ class DetainerWarrant(db.Model, Timestamped):
     court_date_notes = Column(db.String(50))
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
-    amount_claimed = Column(db.String(30))  # USD
+    amount_claimed = Column(db.Numeric(scale=2))  # USD
     amount_claimed_category_id = Column(
         db.Integer, nullable=False)  # enum (POSS | FEES | BOTH | NA)
     is_cares = Column(db.Boolean)
@@ -161,6 +161,7 @@ class DetainerWarrant(db.Model, Timestamped):
     zip_code = Column(db.String(10))
     judgement_id = Column(db.Integer, nullable=False, default=4)
     judgement_notes = Column(db.String(255))
+    notes = Column(db.String(255))
 
     plantiff = relationship('Plantiff', back_populates='detainer_warrants')
     courtroom = relationship('Courtroom', back_populates='cases')

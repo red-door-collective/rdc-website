@@ -40,5 +40,5 @@ assets.register('js_all', js)
 
 db = SQLAlchemy(model_class=CRUDMixin)
 marshmallow = Marshmallow()
-migrate = Migrate()
+migrate = Migrate(compare_type=True)
 api = Api(prefix='/api/v1')

@@ -3,6 +3,7 @@ from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, J
 from .util import get_or_create
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
+from decimal import Decimal
 
 DOCKET_ID = 'Docket #'
 FILE_DATE = 'File Date'
@@ -19,13 +20,15 @@ IS_LEGACY = 'LEGACY Case'
 ADDRESS = 'Defendant Address'
 ZIP_CODE = 'Zip code'
 JUDGEMENT = 'Judgement'
+NOTES = 'Notes'
 
 
 def normalize(value):
     if type(value) is int:
         return value
     elif type(value) is str:
-        return value.strip() if value.strip() else None
+        no_trailing = value.strip()
+        return no_trailing if no_trailing not in ['', 'NA'] else None
     else:
         return None
 
@@ -48,6 +51,15 @@ def link_defendant(docket_id, defendant):
                        .values(detainer_warrant_docket_id=docket_id, defendant_id=defendant.id))
 
 
+def extract_raw_court_data(court_date):
+    exceptions = [None, 'Any Tuesday', 'Any Tues', 'Any Weds', 'Soonest Tuesday', 'Soonest Friday', 'NA - Continuance - Positive for Covid',
+                  'NA - "any Tuesday"', 'Non-suit retracted', 'TBD / Not Serviced', 'TBD', 'not stated', '(1/7/21) needs update', 'TBD / 12/4/20', 'Earliest Thurs']
+    if court_date in exceptions:
+        return None, court_date
+    else:
+        return court_date.replace('Continuance: ', '').replace('Continuance ', ''), None
+
+
 def _from_spreadsheet_row(raw_warrant, defaults):
     warrant = {k: normalize(v) for k, v in raw_warrant.items()}
 
@@ -65,7 +77,7 @@ def _from_spreadsheet_row(raw_warrant, defaults):
         plantiff, _ = get_or_create(
             db.session, Plantiff, name=warrant[PLANTIFF], attorney=attorney, defaults=defaults)
 
-    court_date = warrant[COURT_DATE]
+    court_date, court_date_notes = extract_raw_court_data(warrant[COURT_DATE])
 
     courtroom = None
     if warrant[COURTROOM]:
@@ -77,7 +89,8 @@ def _from_spreadsheet_row(raw_warrant, defaults):
         presiding_judge, _ = get_or_create(
             db.session, Judge, name=warrant[JUDGE], defaults=defaults)
 
-    amount_claimed = warrant[AMT_CLAIMED]
+    amount_claimed = Decimal(str(warrant[AMT_CLAIMED]).replace(
+        '$', '').replace(',', '')) if warrant[AMT_CLAIMED] else None
     amount_claimed_category = warrant[AMT_CLAIMED_CAT] or 'N/A'
     is_cares = warrant[IS_CARES] == 'Yes' if warrant[IS_CARES] else None
     is_legacy = warrant[IS_LEGACY] == 'Yes' if warrant[IS_LEGACY] else None
@@ -89,11 +102,16 @@ def _from_spreadsheet_row(raw_warrant, defaults):
 
     judgement = warrant[JUDGEMENT] or 'N/A'
 
+    notes = warrant[NOTES]
+    if court_date_notes:
+        court_date_notes_full = 'Court date notes: ' + court_date_notes
+        notes = notes + ' ' + court_date_notes_full if notes else court_date_notes_full
+
     dw_values = dict(docket_id=docket_id,
                      file_date=file_date,
                      status_id=DetainerWarrant.statuses[status],
                      plantiff_id=plantiff.id if plantiff else None,
-                     court_date=court_date,
+                     court_date='11/3/2020' if court_date == '11/3' else court_date,
                      courtroom_id=courtroom.id if courtroom else None,
                      presiding_judge_id=presiding_judge.id if presiding_judge else None,
                      amount_claimed=amount_claimed,
@@ -102,7 +120,9 @@ def _from_spreadsheet_row(raw_warrant, defaults):
                      is_cares=is_cares,
                      is_legacy=is_legacy,
                      zip_code=zip_code,
-                     judgement_id=DetainerWarrant.judgements[judgement.upper()]
+                     judgement_id=DetainerWarrant.judgements[judgement.upper(
+                     )],
+                     notes=notes
                      )
 
     insert_stmt = insert(DetainerWarrant).values(

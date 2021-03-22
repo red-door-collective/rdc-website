@@ -9,7 +9,7 @@ import time
 from sqlalchemy import and_, or_, func, desc
 from eviction_tracker import commands, detainer_warrants
 import json
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from dateutil.rrule import rrule, MONTHLY
 from collections import OrderedDict
 
@@ -122,6 +122,7 @@ def top_plantiff_attorneys_bet(start, end):
     limit 6;
     """)
 
+
 def top_judges_bet(start, end):
     # TODO: perhaps figure this out in python
     return db.session.execute("""
@@ -144,6 +145,57 @@ def top_judges_bet(start, end):
     order by warrantCount desc
     limit 6;
     """)
+
+
+def top_plantiff_ranges_bet(start, end):
+    # TODO: perhaps figure this out in python
+    return db.session.execute("""
+    with top as 
+        (select p.name, 
+         count(dw.docket_id) as warrant_count,
+         sum(CASE WHEN dw.amount_claimed > 2000 THEN 1 ELSE 0 END) as high,
+         sum(case when dw.amount_claimed > 1500 and dw.amount_claimed <= 2000 then 1 else 0 end) as medium_high,
+         sum(case when dw.amount_claimed > 1000 and dw.amount_claimed <= 1500 then 1 else 0 end) as medium,
+         sum(case when dw.amount_claimed > 500 and dw.amount_claimed <= 1000 then 1 else 0 end) as medium_low,
+         sum(CASE WHEN dw.amount_claimed < 500 THEN 1 ELSE 0 END) as low
+    from plantiffs p
+    inner join detainer_warrants dw on dw.plantiff_id = p.id
+    group by p.id, p.name
+    order by warrant_count desc)
+    select *
+    from top
+    union 
+    (select 'ALL OTHER' as name,
+        sum(top.warrant_count) as warrant_count,
+        sum(top.high),
+        sum(top.medium_high),
+        sum(top.medium),
+        sum(top.medium_low),
+        sum(top.low)
+    from top
+    where top.name not in 
+        (select top.name
+        from top
+        limit 5))
+    order by warrant_count desc
+    limit 6;
+    """)
+
+
+def pending_scheduled_case_count(start, end):
+    return db.session.query(DetainerWarrant)\
+        .filter(
+            and_(
+                func.date(DetainerWarrant.court_date) >= start,
+                func.date(DetainerWarrant.court_date) < end,
+                DetainerWarrant.status_id == DetainerWarrant.statuses['PENDING']
+            )
+    )\
+        .count()
+
+
+def round_dec(dec):
+    return int(round(dec))
 
 
 def millisTimestamp(dt):
@@ -216,6 +268,27 @@ def register_extensions(app):
 
         return flask.jsonify(top_evictors)
 
+    @app.route('/api/v1/rollup/plantiffs/amount_claimed_bands')
+    def plantiffs_by_amount_claimed():
+        start_dt = date(2020, 1, 1)
+        dates, end_dt = months_since(start_dt)
+
+        top_six = top_plantiff_ranges_bet(start_dt, end_dt)
+
+        top_plantiffs = [{
+            'plantiff_name': result[0],
+            'warrant_count': round_dec(result[1]),
+            'greater_than_2k': round_dec(result[2]),
+            'between_1.5k_and_2k': round_dec(result[3]),
+            'between_1k_and_1.5k': round_dec(result[4]),
+            'between_500_and_1k': round_dec(result[5]),
+            'less_than_500': round_dec(result[6]),
+            'start_date': millis(start_dt),
+            'end_date': millis(end_dt)
+        } for result in top_six]
+
+        return flask.jsonify(top_plantiffs)
+
     @app.route('/api/v1/rollup/plantiff-attorney')
     def plantiff_attorney_warrant_share():
         start_dt = date(2020, 1, 1)
@@ -248,6 +321,13 @@ def register_extensions(app):
 
         return flask.jsonify(top_judges)
 
+    @app.route('/api/v1/rollup/detainer-warrants/pending')
+    def pending_detainer_warrants():
+        start_of_month = date.today().replace(day=1)
+        end_of_month = (date.today().replace(day=1) +
+                        timedelta(days=32)).replace(day=1)
+
+        return flask.jsonify({'pending_scheduled_case_count': pending_scheduled_case_count(start_of_month, end_of_month)})
 
     @app.route('/api/v1/rollup/meta')
     def data_meta():
