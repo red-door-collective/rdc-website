@@ -122,6 +122,29 @@ def top_plantiff_attorneys_bet(start, end):
     limit 6;
     """)
 
+def top_judges_bet(start, end):
+    # TODO: perhaps figure this out in python
+    return db.session.execute("""
+    with top as 
+        (select j.name, count(dw.docket_id) as warrantCount
+    from judges j
+    inner join detainer_warrants dw on dw.presiding_judge_id = j.id
+    group by j.id, j.name
+    order by count(dw.docket_id) desc)
+    select *
+    from top
+    union 
+    (select 'ALL OTHER' as name,
+        sum(top.warrantCount) as warrantCount
+    from top
+    where top.name not in 
+        (select top.name
+        from top
+        limit 5))
+    order by warrantCount desc
+    limit 6;
+    """)
+
 
 def millisTimestamp(dt):
     return round(dt.timestamp() * 1000)
@@ -167,11 +190,7 @@ def register_extensions(app):
         counts = [{'time': millisTimestamp(start), 'totalWarrants': count_between_dates(
             start, end)} for start, end in dates]
 
-        return app.response_class(
-            response=json.dumps(counts),
-            status=200,
-            mimetype='application/json'
-        )
+        return flask.jsonify(counts)
 
     @app.route('/api/v1/rollup/plantiffs')
     def plantiff_rollup_by_month():
@@ -195,11 +214,7 @@ def register_extensions(app):
         top_evictors = [{'name': plantiff, 'history': history}
                         for plantiff, history in counts.items()]
 
-        return app.response_class(
-            response=json.dumps(top_evictors),
-            status=200,
-            mimetype='application/json'
-        )
+        return flask.jsonify(top_evictors)
 
     @app.route('/api/v1/rollup/plantiff-attorney')
     def plantiff_attorney_warrant_share():
@@ -215,11 +230,24 @@ def register_extensions(app):
             'end_date': millis(end_dt)
         } for attorney_name, warrant_count in top_six]
 
-        return app.response_class(
-            response=json.dumps(top_plantiffs),
-            status=200,
-            mimetype='application/json'
-        )
+        return flask.jsonify(top_plantiffs)
+
+    @app.route('/api/v1/rollup/judges')
+    def judge_warrant_share():
+        start_dt = date(2020, 1, 1)
+        dates, end_dt = months_since(start_dt)
+
+        top_six = top_judges_bet(start_dt, end_dt)
+
+        top_judges = [{
+            'warrant_count': int(round(warrant_count)),
+            'presiding_judge_name': judge_name,
+            'start_date': millis(start_dt),
+            'end_date': millis(end_dt)
+        } for judge_name, warrant_count in top_six]
+
+        return flask.jsonify(top_judges)
+
 
     @app.route('/api/v1/rollup/meta')
     def data_meta():

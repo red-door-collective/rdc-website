@@ -258,6 +258,8 @@ class PhoneNumberVerification(db.Model, Timestamped):
 
 
 class Organizer(db.Model, Timestamped):
+    __tablename__ = 'organizers'
+
     id = Column(db.Integer, primary_key=True)
     first_name = Column(db.String(255), nullable=False)
     last_name = Column(db.String(255), nullable=False)
