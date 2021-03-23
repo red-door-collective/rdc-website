@@ -5,6 +5,7 @@ import yaml
 import os
 import logging
 import time
+import base64
 
 from sqlalchemy import and_, or_, func, desc
 from eviction_tracker import commands, detainer_warrants
@@ -50,9 +51,19 @@ def create_app(testing=False):
     # logg.info("encoding: " + locale.getpreferredencoding())
     # logg.info("locale: "+ locale.getdefaultlocale())
 
-    @app.route('/', defaults={'path': ''})
+    @app.route('/<user_hash>', defaults={'path': ''})
     @app.route('/<path:path>')
     def index(path):
+        base64_params = user_hash
+        base64_bytes = base64_params.encode('ascii')
+        user_bytes = base64.b64decode(base64_bytes)
+        user_decoded = user_bytes.decode('ascii')
+        if decoded == authorized_user:
+            auth = True
+            return auth
+        else:
+            auth = False
+            return auth
         return render_template('index.html')
 
     return app
