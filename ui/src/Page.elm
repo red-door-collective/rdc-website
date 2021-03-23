@@ -89,29 +89,33 @@ redDoorFrame =
 
 redDoor : Element msg
 redDoor =
-    Element.column [ Element.width Element.shrink ]
-        [ Element.row [ Element.inFront logo, Element.centerX, Element.width (Element.px (redDoorWidth + 55)), Element.height (Element.px (45 + redDoorHeight)) ]
-            [ Element.el [ Element.alignRight, Element.width (Element.px redDoorWidth), Element.height (Element.px redDoorHeight) ]
-                (Element.html
-                    (svg [ viewBox 0 0 redDoorWidth redDoorHeight ]
-                        [ rect [ x 0, y 0, width redDoorWidth, height redDoorHeight, Attr.fill <| Paint Color.red ] []
-                        , g []
-                            [ rect [ x 13, y 17, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
-                                []
-                            , rect [ x 27, y 17, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
-                                []
-                            , rect [ x 13, y 32, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
-                                []
-                            , rect [ x 27, y 32, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
-                                []
-                            ]
-                        , g []
-                            [ circle [ cx 42, cy 50, Attr.fill <| Paint Color.black, r 3 ] [] ]
-                        ]
-                    )
-                )
-            ]
-        ]
+    Element.link []
+        { url = "/"
+        , label =
+            Element.column [ Element.width Element.shrink ]
+                [ Element.row [ Element.inFront logo, Element.centerX, Element.width (Element.px (redDoorWidth + 55)), Element.height (Element.px (45 + redDoorHeight)) ]
+                    [ Element.el [ Element.alignRight, Element.width (Element.px redDoorWidth), Element.height (Element.px redDoorHeight) ]
+                        (Element.html
+                            (svg [ viewBox 0 0 redDoorWidth redDoorHeight ]
+                                [ rect [ x 0, y 0, width redDoorWidth, height redDoorHeight, Attr.fill <| Paint Color.red ] []
+                                , g []
+                                    [ rect [ x 13, y 17, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
+                                        []
+                                    , rect [ x 27, y 17, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
+                                        []
+                                    , rect [ x 13, y 32, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
+                                        []
+                                    , rect [ x 27, y 32, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
+                                        []
+                                    ]
+                                , g []
+                                    [ circle [ cx 42, cy 50, Attr.fill <| Paint Color.black, r 3 ] [] ]
+                                ]
+                            )
+                        )
+                    ]
+                ]
+        }
 
 
 logo : Element msg
