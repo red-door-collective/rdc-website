@@ -30,6 +30,7 @@ type Page
     | Trends
     | About
     | WarrantHelp
+    | Actions
 
 
 {-| Take a page's Html and frames it with a header and footer.
@@ -184,7 +185,7 @@ navBar page =
                     , isActive = page == WarrantHelp
                     }
                 , navBarLink { url = Route.href Route.Trends, text = "Trends", isActive = page == Trends }
-                , navBarLink { url = Route.href Route.Trends, text = "Actions", isActive = False }
+                , navBarLink { url = Route.href Route.Actions, text = "Actions", isActive = page == Actions }
                 ]
             ]
         ]

@@ -14,6 +14,7 @@ type Route
     | Trends
     | About
     | WarrantHelp
+    | Actions
 
 
 parser : Parser (Route -> a) a
@@ -23,6 +24,7 @@ parser =
         , Parser.map Trends (s "trends")
         , Parser.map About (s "about")
         , Parser.map WarrantHelp (s "warrant-help")
+        , Parser.map Actions (s "actions")
         ]
 
 
@@ -68,3 +70,6 @@ routeToPieces page =
 
         WarrantHelp ->
             [ "warrant-help" ]
+
+        Actions ->
+            [ "actions" ]

@@ -7,6 +7,7 @@ import Html
 import Json.Decode exposing (Value)
 import Page
 import Page.About as About
+import Page.Actions as Actions
 import Page.Blank as Blank
 import Page.NotFound as NotFound
 import Page.Trends as Trends
@@ -23,6 +24,7 @@ type Model
     | Trends Trends.Model
     | WarrantHelp WarrantHelp.Model
     | About About.Model
+    | Actions Actions.Model
 
 
 init : Maybe Viewer -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -37,6 +39,7 @@ type Msg
     | GotTrendsMsg Trends.Msg
     | GotAboutMsg About.Msg
     | GotWarrantHelpMsg WarrantHelp.Msg
+    | GotActionsMsg Actions.Msg
     | GotSession Session
 
 
@@ -57,6 +60,9 @@ toSession model =
 
         WarrantHelp warrantHelp ->
             WarrantHelp.toSession warrantHelp
+
+        Actions actions ->
+            Actions.toSession actions
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -83,6 +89,10 @@ changeRouteTo maybeRoute model =
         Just Route.WarrantHelp ->
             WarrantHelp.init session
                 |> updateWith WarrantHelp GotWarrantHelpMsg model
+
+        Just Route.Actions ->
+            Actions.init session
+                |> updateWith Actions GotActionsMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -119,6 +129,10 @@ update msg model =
         ( GotWarrantHelpMsg subMsg, WarrantHelp warrantHelp ) ->
             WarrantHelp.update subMsg warrantHelp
                 |> updateWith WarrantHelp GotWarrantHelpMsg model
+
+        ( GotActionsMsg subMsg, Actions actions ) ->
+            Actions.update subMsg actions
+                |> updateWith Actions GotActionsMsg model
 
         ( GotSession session, Redirect _ ) ->
             ( Redirect session
@@ -171,6 +185,9 @@ view model =
         WarrantHelp warrantHelp ->
             viewPage Page.WarrantHelp GotWarrantHelpMsg (WarrantHelp.view warrantHelp)
 
+        Actions actions ->
+            viewPage Page.Actions GotActionsMsg (Actions.view actions)
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -189,6 +206,9 @@ subscriptions model =
 
         WarrantHelp warrantHelp ->
             Sub.map GotWarrantHelpMsg (WarrantHelp.subscriptions warrantHelp)
+
+        Actions actions ->
+            Sub.map GotActionsMsg (Actions.subscriptions actions)
 
 
 main : Program Value Model Msg
