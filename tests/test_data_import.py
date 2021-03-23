@@ -7,6 +7,7 @@ import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.detainer_warrants.models import DetainerWarrant
 from eviction_tracker.app import create_app, db
 from datetime import datetime
+from decimal import Decimal
 
 example = {
     'Docket #': '20GT5633',
@@ -34,7 +35,8 @@ example = {
     'Def #2 Phone': '',
     'Def #3 Name': '',
     'Def #3 Phone': '',
-    'Judgement': 'POSS'
+    'Judgement': 'POSS',
+    'Notes': ''
 }
 
 
@@ -74,7 +76,7 @@ class TestDataImport(TestCase):
         self.assertEqual(warrant.courtroom.name, example['Courtroom'])
         self.assertEqual(warrant.presiding_judge.name,
                          example['Presiding Judge'])
-        self.assertEqual(warrant.amount_claimed, example['Amt Claimed ($)'])
+        self.assertEqual(warrant.amount_claimed, Decimal('2239'))
         self.assertEqual(warrant.amount_claimed_category,
                          example['Amount Claimed (CATEGORY)'])
         self.assertEqual(warrant.is_cares,
