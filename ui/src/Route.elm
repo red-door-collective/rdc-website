@@ -11,6 +11,8 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 
 type Route
     = Root
+    | Login
+    | Logout
     | Trends
     | About
     | WarrantHelp
@@ -21,6 +23,8 @@ parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Trends Parser.top
+        , Parser.map Login (s "login")
+        , Parser.map Logout (s "logout")
         , Parser.map Trends (s "trends")
         , Parser.map About (s "about")
         , Parser.map WarrantHelp (s "warrant-help")
@@ -61,6 +65,12 @@ routeToPieces page =
     case page of
         Root ->
             []
+
+        Login ->
+            [ "login" ]
+
+        Logout ->
+            [ "logout" ]
 
         Trends ->
             [ "trends" ]

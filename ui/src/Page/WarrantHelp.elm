@@ -1,6 +1,7 @@
 module Page.WarrantHelp exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
-import Api
+import Api exposing (Cred)
+import Api.Endpoint as Endpoint
 import DetainerWarrant exposing (Defendant, DetainerWarrant)
 import Element exposing (Element, fill)
 import Element.Background as Background
@@ -23,12 +24,9 @@ type alias Model =
     }
 
 
-getWarrants : String -> Cmd Msg
-getWarrants query =
-    Http.get
-        { url = "/api/v1/detainer-warrants/?defendant_name=" ++ query
-        , expect = Http.expectJson GotWarrants Api.detainerWarrantApiDecoder
-        }
+getWarrants : Maybe Cred -> Cmd Msg
+getWarrants viewer =
+    Api.get Endpoint.detainerWarrants viewer GotWarrants Api.detainerWarrantApiDecoder
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -55,7 +53,11 @@ update msg model =
             ( { model | query = query }, Cmd.none )
 
         SearchWarrants ->
-            ( model, getWarrants model.query )
+            let
+                maybeCred =
+                    Session.cred model.session
+            in
+            ( model, getWarrants maybeCred )
 
         GotWarrants result ->
             case result of

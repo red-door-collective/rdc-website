@@ -5,7 +5,7 @@ import Array exposing (Array)
 import Axis
 import Color
 import DateFormat exposing (format, monthNameAbbreviated)
-import Element exposing (Element, fill)
+import Element exposing (Device, Element, fill)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -154,8 +154,8 @@ update msg model =
             ( { model | hovering = hovering }, Cmd.none )
 
 
-view : Model -> { title : String, content : Element Msg }
-view model =
+view : Device -> Model -> { title : String, content : Element Msg }
+view device model =
     { title = "Trends"
     , content =
         Element.column

@@ -1,6 +1,6 @@
 [[package]]
 name = "alembic"
-version = "1.5.7"
+version = "1.5.8"
 description = "A database migration tool for SQLAlchemy."
 category = "main"
 optional = false
@@ -74,6 +74,22 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "bcrypt"
+version = "3.2.0"
+description = "Modern password hashing for your software and your servers"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+cffi = ">=1.1"
+six = ">=1.4.1"
+
+[package.extras]
+tests = ["pytest (>=3.2.1,<3.3.0 || >3.3.0)"]
+typecheck = ["mypy"]
+
+[[package]]
 name = "beautifulsoup4"
 version = "4.9.3"
 description = "Screen-scraping library"
@@ -89,6 +105,14 @@ html5lib = ["html5lib"]
 lxml = ["lxml"]
 
 [[package]]
+name = "blinker"
+version = "1.4"
+description = "Fast, simple object-to-object and broadcast signaling"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "cachetools"
 version = "4.2.1"
 description = "Extensible memoizing collections and decorators"
@@ -97,31 +121,15 @@ optional = false
 python-versions = "~=3.5"
 
 [[package]]
-name = "certifi"
-version = "2020.12.5"
-description = "Python package for providing Mozilla's CA Bundle."
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "cffi"
 version = "1.14.5"
 description = "Foreign Function Interface for Python calling C code."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
 pycparser = "*"
-
-[[package]]
-name = "chardet"
-version = "4.0.0"
-description = "Universal encoding detector for Python 2 and 3"
-category = "main"
-optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "click"
@@ -160,6 +168,33 @@ description = "Decorators for Humans"
 category = "dev"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*"
+
+[[package]]
+name = "dnspython"
+version = "2.1.0"
+description = "DNS toolkit"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.extras]
+dnssec = ["cryptography (>=2.6)"]
+doh = ["requests", "requests-toolbelt"]
+idna = ["idna (>=2.1)"]
+curio = ["curio (>=1.2)", "sniffio (>=1.1)"]
+trio = ["trio (>=0.14.0)", "sniffio (>=1.1)"]
+
+[[package]]
+name = "email-validator"
+version = "1.1.2"
+description = "A robust email syntax and deliverability validation library for Python 2.x/3.x."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+dnspython = ">=1.15.0"
+idna = ">=2.0.0"
 
 [[package]]
 name = "factory-boy"
@@ -276,6 +311,18 @@ Flask = ">=0.9"
 Flask-SQLAlchemy = ">=1.0"
 
 [[package]]
+name = "flask-principal"
+version = "0.4.0"
+description = "Identity management for flask"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+blinker = "*"
+Flask = "*"
+
+[[package]]
 name = "flask-resty"
 version = "1.6.0"
 description = "Building blocks for REST APIs for Flask"
@@ -296,6 +343,23 @@ dev = ["sphinx", "pallets-sphinx-themes", "coverage", "psycopg2-binary", "pytest
 docs = ["sphinx", "pallets-sphinx-themes"]
 jwt = ["PyJWT (>=1.4.0,<2.0.0)", "cryptography (>=2.0.0)"]
 tests = ["coverage", "psycopg2-binary", "pytest"]
+
+[[package]]
+name = "flask-security-too"
+version = "4.0.0"
+description = "Simple security for Flask apps."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+email-validator = ">=1.1.1"
+Flask = ">=1.1.1"
+Flask-Login = ">=0.4.1"
+Flask-Principal = ">=0.4.0"
+Flask-WTF = ">=0.14.3"
+itsdangerous = ">=1.1.0"
+passlib = ">=1.7.2"
 
 [[package]]
 name = "flask-sqlalchemy"
@@ -319,6 +383,19 @@ python-versions = "*"
 
 [package.dependencies]
 Flask = "*"
+
+[[package]]
+name = "flask-wtf"
+version = "0.14.3"
+description = "Simple integration of Flask and WTForms."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+Flask = "*"
+itsdangerous = "*"
+WTForms = "*"
 
 [[package]]
 name = "google-auth"
@@ -367,11 +444,11 @@ google-auth-oauthlib = ">=0.4.1"
 
 [[package]]
 name = "idna"
-version = "2.10"
+version = "3.1"
 description = "Internationalized Domain Names in Applications (IDNA)"
 category = "main"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=3.4"
 
 [[package]]
 name = "iniconfig"
@@ -440,7 +517,7 @@ python-versions = "*"
 
 [[package]]
 name = "isort"
-version = "5.7.0"
+version = "5.8.0"
 description = "A Python utility / library to sort Python imports."
 category = "dev"
 optional = false
@@ -651,6 +728,20 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 testing = ["docopt", "pytest (>=3.0.7)"]
 
 [[package]]
+name = "passlib"
+version = "1.7.4"
+description = "comprehensive password hashing framework supporting over 30 schemes"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+argon2 = ["argon2-cffi (>=18.2.0)"]
+bcrypt = ["bcrypt (>=3.1.0)"]
+build_docs = ["sphinx (>=1.6)", "sphinxcontrib-fulltoc (>=1.2.0)", "cloud-sptheme (>=1.10.1)"]
+totp = ["cryptography"]
+
+[[package]]
 name = "pdbpp"
 version = "0.10.2"
 description = "pdb++, a drop-in replacement for pdb"
@@ -699,7 +790,7 @@ dev = ["pre-commit", "tox"]
 
 [[package]]
 name = "prompt-toolkit"
-version = "3.0.17"
+version = "3.0.18"
 description = "Library for building powerful interactive command lines in Python"
 category = "dev"
 optional = false
@@ -763,7 +854,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 name = "pycparser"
 version = "2.20"
 description = "C parser in Python"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
@@ -992,20 +1083,14 @@ py = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
 name = "requests"
-version = "2.25.1"
+version = "2.15.1"
 description = "Python HTTP for Humans."
 category = "main"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
-
-[package.dependencies]
-certifi = ">=2017.4.17"
-chardet = ">=3.0.2,<5"
-idna = ">=2.5,<3"
-urllib3 = ">=1.21.1,<1.27"
+python-versions = "*"
 
 [package.extras]
-security = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)"]
+security = ["cryptography (>=1.3.4)", "idna (>=2.0.0)", "pyOpenSSL (>=0.14)"]
 socks = ["PySocks (>=1.5.6,<1.5.7 || >1.5.7)", "win-inet-pton"]
 
 [[package]]
@@ -1136,7 +1221,7 @@ python-versions = ">=3.6"
 name = "urllib3"
 version = "1.26.4"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
 
@@ -1223,15 +1308,31 @@ category = "main"
 optional = false
 python-versions = "*"
 
+[[package]]
+name = "wtforms"
+version = "2.3.3"
+description = "A flexible forms validation and rendering library for Python web development."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+MarkupSafe = "*"
+
+[package.extras]
+email = ["email-validator"]
+ipaddress = ["ipaddress"]
+locale = ["Babel (>=1.3)"]
+
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "ce10a85b238f4c45bf5d6f7501da37630171ec6f0f82710886aeec834e8df579"
+content-hash = "7400f34375a176940493e3aa982fd5a46b0d9a4940285749aba5223de96df2ca"
 
 [metadata.files]
 alembic = [
-    {file = "alembic-1.5.7-py2.py3-none-any.whl", hash = "sha256:f33d561f3ce2ca390f1c87ff3849cd7d97bb93bae9c91357727263498e10028f"},
-    {file = "alembic-1.5.7.tar.gz", hash = "sha256:66bbb0e7d6277b007dfe7e27237093c79b76cf4f94e6fbd0f7af6f9409546fe6"},
+    {file = "alembic-1.5.8-py2.py3-none-any.whl", hash = "sha256:8a259f0a4c8b350b03579d77ce9e810b19c65bf0af05f84efb69af13ad50801e"},
+    {file = "alembic-1.5.8.tar.gz", hash = "sha256:e27fd67732c97a1c370c33169ef4578cf96436fa0e7dcfaeeef4a917d0737d56"},
 ]
 appnope = [
     {file = "appnope-0.1.2-py2.py3-none-any.whl", hash = "sha256:93aa393e9d6c54c5cd570ccadd8edad61ea0c4b9ea7a01409020c9aa019eb442"},
@@ -1257,18 +1358,26 @@ backcall = [
     {file = "backcall-0.2.0-py2.py3-none-any.whl", hash = "sha256:fbbce6a29f263178a1f7915c1940bde0ec2b2a967566fe1c65c1dfb7422bd255"},
     {file = "backcall-0.2.0.tar.gz", hash = "sha256:5cbdbf27be5e7cfadb448baf0aa95508f91f2bbc6c6437cd9cd06e2a4c215e1e"},
 ]
+bcrypt = [
+    {file = "bcrypt-3.2.0-cp36-abi3-macosx_10_9_x86_64.whl", hash = "sha256:c95d4cbebffafcdd28bd28bb4e25b31c50f6da605c81ffd9ad8a3d1b2ab7b1b6"},
+    {file = "bcrypt-3.2.0-cp36-abi3-manylinux1_x86_64.whl", hash = "sha256:63d4e3ff96188e5898779b6057878fecf3f11cfe6ec3b313ea09955d587ec7a7"},
+    {file = "bcrypt-3.2.0-cp36-abi3-manylinux2010_x86_64.whl", hash = "sha256:cd1ea2ff3038509ea95f687256c46b79f5fc382ad0aa3664d200047546d511d1"},
+    {file = "bcrypt-3.2.0-cp36-abi3-manylinux2014_aarch64.whl", hash = "sha256:cdcdcb3972027f83fe24a48b1e90ea4b584d35f1cc279d76de6fc4b13376239d"},
+    {file = "bcrypt-3.2.0-cp36-abi3-win32.whl", hash = "sha256:a67fb841b35c28a59cebed05fbd3e80eea26e6d75851f0574a9273c80f3e9b55"},
+    {file = "bcrypt-3.2.0-cp36-abi3-win_amd64.whl", hash = "sha256:81fec756feff5b6818ea7ab031205e1d323d8943d237303baca2c5f9c7846f34"},
+    {file = "bcrypt-3.2.0.tar.gz", hash = "sha256:5b93c1726e50a93a033c36e5ca7fdcd29a5c7395af50a6892f5d9e7c6cfbfb29"},
+]
 beautifulsoup4 = [
     {file = "beautifulsoup4-4.9.3-py2-none-any.whl", hash = "sha256:4c98143716ef1cb40bf7f39a8e3eec8f8b009509e74904ba3a7b315431577e35"},
     {file = "beautifulsoup4-4.9.3-py3-none-any.whl", hash = "sha256:fff47e031e34ec82bf17e00da8f592fe7de69aeea38be00523c04623c04fb666"},
     {file = "beautifulsoup4-4.9.3.tar.gz", hash = "sha256:84729e322ad1d5b4d25f805bfa05b902dd96450f43842c4e99067d5e1369eb25"},
 ]
+blinker = [
+    {file = "blinker-1.4.tar.gz", hash = "sha256:471aee25f3992bd325afa3772f1063dbdbbca947a041b8b89466dc00d606f8b6"},
+]
 cachetools = [
     {file = "cachetools-4.2.1-py3-none-any.whl", hash = "sha256:1d9d5f567be80f7c07d765e21b814326d78c61eb0c3a637dffc0e5d1796cb2e2"},
     {file = "cachetools-4.2.1.tar.gz", hash = "sha256:f469e29e7aa4cff64d8de4aad95ce76de8ea1125a16c68e0d93f65c3c3dc92e9"},
-]
-certifi = [
-    {file = "certifi-2020.12.5-py2.py3-none-any.whl", hash = "sha256:719a74fb9e33b9bd44cc7f3a8d94bc35e4049deebe19ba7d8e108280cfd59830"},
-    {file = "certifi-2020.12.5.tar.gz", hash = "sha256:1a4995114262bffbc2413b159f2a1a480c969de6e6eb13ee966d470af86af59c"},
 ]
 cffi = [
     {file = "cffi-1.14.5-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:bb89f306e5da99f4d922728ddcd6f7fcebb3241fc40edebcb7284d7514741991"},
@@ -1308,10 +1417,6 @@ cffi = [
     {file = "cffi-1.14.5-cp39-cp39-win32.whl", hash = "sha256:afb29c1ba2e5a3736f1c301d9d0abe3ec8b86957d04ddfa9d7a6a42b9367e396"},
     {file = "cffi-1.14.5-cp39-cp39-win_amd64.whl", hash = "sha256:f2d45f97ab6bb54753eab54fffe75aaf3de4ff2341c9daee1987ee1837636f1d"},
     {file = "cffi-1.14.5.tar.gz", hash = "sha256:fd78e5fee591709f32ef6edb9a015b4aa1a5022598e36227500c8f4e02328d9c"},
-]
-chardet = [
-    {file = "chardet-4.0.0-py2.py3-none-any.whl", hash = "sha256:f864054d66fd9118f2e67044ac8981a54775ec5b67aed0441892edb553d21da5"},
-    {file = "chardet-4.0.0.tar.gz", hash = "sha256:0d6f53a15db4120f2b08c94f11e7d93d2c911ee118b6b30a04ec3ee8310179fa"},
 ]
 click = [
     {file = "click-7.1.2-py2.py3-none-any.whl", hash = "sha256:dacca89f4bfadd5de3d7489b7c8a566eee0d3676333fbb50030263894c38c0dc"},
@@ -1379,6 +1484,14 @@ decorator = [
     {file = "decorator-4.4.2-py2.py3-none-any.whl", hash = "sha256:41fa54c2a0cc4ba648be4fd43cff00aedf5b9465c9bf18d64325bc225f08f760"},
     {file = "decorator-4.4.2.tar.gz", hash = "sha256:e3a62f0520172440ca0dcc823749319382e377f37f140a0b99ef45fecb84bfe7"},
 ]
+dnspython = [
+    {file = "dnspython-2.1.0-py3-none-any.whl", hash = "sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216"},
+    {file = "dnspython-2.1.0.zip", hash = "sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4"},
+]
+email-validator = [
+    {file = "email-validator-1.1.2.tar.gz", hash = "sha256:1a13bd6050d1db4475f13e444e169b6fe872434922d38968c67cea9568cce2f0"},
+    {file = "email_validator-1.1.2-py2.py3-none-any.whl", hash = "sha256:094b1d1c60d790649989d38d34f69e1ef07792366277a2cf88684d03495d018f"},
+]
 factory-boy = [
     {file = "factory_boy-3.2.0-py2.py3-none-any.whl", hash = "sha256:1d3db4b44b8c8c54cdd8b83ae4bdb9aeb121e464400035f1f03ae0e1eade56a4"},
     {file = "factory_boy-3.2.0.tar.gz", hash = "sha256:401cc00ff339a022f84d64a4339503d1689e8263a4478d876e58a3295b155c5b"},
@@ -1411,9 +1524,16 @@ flask-migrate = [
     {file = "Flask-Migrate-2.7.0.tar.gz", hash = "sha256:ae2f05671588762dd83a21d8b18c51fe355e86783e24594995ff8d7380dffe38"},
     {file = "Flask_Migrate-2.7.0-py2.py3-none-any.whl", hash = "sha256:26871836a4e46d2d590cf8e558c6d60039e1c003079b240689d845726b6b57c0"},
 ]
+flask-principal = [
+    {file = "Flask-Principal-0.4.0.tar.gz", hash = "sha256:f5d6134b5caebfdbb86f32d56d18ee44b080876a27269560a96ea35f75c99453"},
+]
 flask-resty = [
     {file = "Flask-RESTy-1.6.0.tar.gz", hash = "sha256:ecf8ad3a2d407f82b9cb6583784aab62ebbc9fb4ae656cee072d2affa768fd13"},
     {file = "Flask_RESTy-1.6.0-py3-none-any.whl", hash = "sha256:443896c8ff5b9a68ca209089f7c97d221436e9c23920656b9fb9344046528e94"},
+]
+flask-security-too = [
+    {file = "Flask-Security-Too-4.0.0.tar.gz", hash = "sha256:4aa0a076fe0faabf01017d727e81fce0800170ce1cbf01534d16549fa6464d87"},
+    {file = "Flask_Security_Too-4.0.0-py2.py3-none-any.whl", hash = "sha256:1d8388e05e46eb74f33d779d2aa6bcf55622437b650656850dcb777200c2bee6"},
 ]
 flask-sqlalchemy = [
     {file = "Flask-SQLAlchemy-2.5.1.tar.gz", hash = "sha256:2bda44b43e7cacb15d4e05ff3cc1f8bc97936cc464623424102bfc2c35e95912"},
@@ -1421,6 +1541,10 @@ flask-sqlalchemy = [
 ]
 flask-testing = [
     {file = "Flask-Testing-0.8.1.tar.gz", hash = "sha256:0a734d7b68e63a9410b413cd7b1f96456f9a858bd09a6222d465650cc782eb01"},
+]
+flask-wtf = [
+    {file = "Flask-WTF-0.14.3.tar.gz", hash = "sha256:d417e3a0008b5ba583da1763e4db0f55a1269d9dd91dcc3eb3c026d3c5dbd720"},
+    {file = "Flask_WTF-0.14.3-py2.py3-none-any.whl", hash = "sha256:57b3faf6fe5d6168bda0c36b0df1d05770f8e205e18332d0376ddb954d17aef2"},
 ]
 google-auth = [
     {file = "google-auth-1.28.0.tar.gz", hash = "sha256:9bd436d19ab047001a1340720d2b629eb96dd503258c524921ec2af3ee88a80e"},
@@ -1435,8 +1559,8 @@ gspread = [
     {file = "gspread-3.7.0.tar.gz", hash = "sha256:4bda4ab8c5edb9e41cf4ae40d4d5fb30447522b4e43608e05c01351ab1b96912"},
 ]
 idna = [
-    {file = "idna-2.10-py2.py3-none-any.whl", hash = "sha256:b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0"},
-    {file = "idna-2.10.tar.gz", hash = "sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6"},
+    {file = "idna-3.1-py3-none-any.whl", hash = "sha256:5205d03e7bcbb919cc9c19885f9920d622ca52448306f2377daede5cf3faac16"},
+    {file = "idna-3.1.tar.gz", hash = "sha256:c5b02147e01ea9920e6b0a3f1f7bb833612d507592c837a6c49552768f4054e1"},
 ]
 iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
@@ -1455,8 +1579,8 @@ ipython-genutils = [
     {file = "ipython_genutils-0.2.0.tar.gz", hash = "sha256:eb2e116e75ecef9d4d228fdc66af54269afa26ab4463042e33785b887c628ba8"},
 ]
 isort = [
-    {file = "isort-5.7.0-py3-none-any.whl", hash = "sha256:fff4f0c04e1825522ce6949973e83110a6e907750cd92d128b0d14aaaadbffdc"},
-    {file = "isort-5.7.0.tar.gz", hash = "sha256:c729845434366216d320e936b8ad6f9d681aab72dc7cbc2d51bedc3582f3ad1e"},
+    {file = "isort-5.8.0-py3-none-any.whl", hash = "sha256:2bb1680aad211e3c9944dbce1d4ba09a989f04e238296c87fe2139faa26d655d"},
+    {file = "isort-5.8.0.tar.gz", hash = "sha256:0a943902919f65c5684ac4e0154b1ad4fac6dcaa5d9f3426b732f1c8b5419be6"},
 ]
 itsdangerous = [
     {file = "itsdangerous-1.1.0-py2.py3-none-any.whl", hash = "sha256:b12271b2047cb23eeb98c8b5622e2e5c5e9abd9784a153e9d8ef9cb4dd09d749"},
@@ -1593,6 +1717,10 @@ parso = [
     {file = "parso-0.7.1-py2.py3-none-any.whl", hash = "sha256:97218d9159b2520ff45eb78028ba8b50d2bc61dcc062a9682666f2dc4bd331ea"},
     {file = "parso-0.7.1.tar.gz", hash = "sha256:caba44724b994a8a5e086460bb212abc5a8bc46951bf4a9a1210745953622eb9"},
 ]
+passlib = [
+    {file = "passlib-1.7.4-py2.py3-none-any.whl", hash = "sha256:aa6bca462b8d8bda89c70b382f0c298a20b5560af6cbfa2dce410c0a2fb669f1"},
+    {file = "passlib-1.7.4.tar.gz", hash = "sha256:defd50f72b65c5402ab2c573830a6978e5f202ad0d984793c8dde2c4152ebe04"},
+]
 pdbpp = [
     {file = "pdbpp-0.10.2.tar.gz", hash = "sha256:73ff220d5006e0ecdc3e2705d8328d8aa5ac27fef95cc06f6e42cd7d22d55eb8"},
 ]
@@ -1609,8 +1737,8 @@ pluggy = [
     {file = "pluggy-0.13.1.tar.gz", hash = "sha256:15b2acde666561e1298d71b523007ed7364de07029219b604cf808bfa1c765b0"},
 ]
 prompt-toolkit = [
-    {file = "prompt_toolkit-3.0.17-py3-none-any.whl", hash = "sha256:4cea7d09e46723885cb8bc54678175453e5071e9449821dce6f017b1d1fbfc1a"},
-    {file = "prompt_toolkit-3.0.17.tar.gz", hash = "sha256:9397a7162cf45449147ad6042fa37983a081b8a73363a5253dd4072666333137"},
+    {file = "prompt_toolkit-3.0.18-py3-none-any.whl", hash = "sha256:bf00f22079f5fadc949f42ae8ff7f05702826a97059ffcc6281036ad40ac6f04"},
+    {file = "prompt_toolkit-3.0.18.tar.gz", hash = "sha256:e1b4f11b9336a28fa11810bc623c357420f69dfdb6d2dac41ca2c21a55c033bc"},
 ]
 psycopg2 = [
     {file = "psycopg2-2.8.6-cp27-cp27m-win32.whl", hash = "sha256:068115e13c70dc5982dfc00c5d70437fe37c014c808acce119b5448361c03725"},
@@ -1818,8 +1946,8 @@ pyzmq = [
     {file = "pyzmq-22.0.3.tar.gz", hash = "sha256:f7f63ce127980d40f3e6a5fdb87abf17ce1a7c2bd8bf2c7560e1bbce8ab1f92d"},
 ]
 requests = [
-    {file = "requests-2.25.1-py2.py3-none-any.whl", hash = "sha256:c210084e36a42ae6b9219e00e48287def368a26d03a048ddad7bfee44f75871e"},
-    {file = "requests-2.25.1.tar.gz", hash = "sha256:27973dd4a904a4f13b263a19c866c13b92a39ed1c964655f025f3f8d3d75b804"},
+    {file = "requests-2.15.1-py2.py3-none-any.whl", hash = "sha256:ff753b2196cd18b1bbeddc9dcd5c864056599f7a7d9a4fb5677e723efa2b7fb9"},
+    {file = "requests-2.15.1.tar.gz", hash = "sha256:e5659b9315a0610505e050bb7190bf6fa2ccee1ac295f2b760ef9d8a03ebbb2e"},
 ]
 requests-oauthlib = [
     {file = "requests-oauthlib-1.3.0.tar.gz", hash = "sha256:b4261601a71fd721a8bd6d7aa1cc1d6a8a93b4a9f5e96626f8e4d91e8beeaa6a"},
@@ -1990,4 +2118,8 @@ werkzeug = [
 ]
 wmctrl = [
     {file = "wmctrl-0.3.tar.gz", hash = "sha256:d806f65ac1554366b6e31d29d7be2e8893996c0acbb2824bbf2b1f49cf628a13"},
+]
+wtforms = [
+    {file = "WTForms-2.3.3-py2.py3-none-any.whl", hash = "sha256:7b504fc724d0d1d4d5d5c114e778ec88c37ea53144683e084215eed5155ada4c"},
+    {file = "WTForms-2.3.3.tar.gz", hash = "sha256:81195de0ac94fbc8368abbaf9197b88c4f3ffd6c2719b5bf5fc9da744f3d829c"},
 ]

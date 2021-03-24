@@ -44,7 +44,7 @@ type alias DetainerWarrant =
     , courtDate : Maybe String
     , courtroom : Maybe Courtroom
     , presidingJudge : Maybe Judge
-    , amountClaimed : Maybe String
+    , amountClaimed : Maybe Float
     , amountClaimedCategory : AmountClaimedCategory
     , defendants : List Defendant
     }
@@ -137,6 +137,6 @@ decoder =
         |> required "court_date" (nullable string)
         |> required "courtroom" (nullable courtroomDecoder)
         |> required "presiding_judge" (nullable judgeDecoder)
-        |> required "amount_claimed" (nullable string)
+        |> required "amount_claimed" (nullable float)
         |> required "amount_claimed_category" amountClaimedCategoryDecoder
         |> required "defendants" (list defendantDecoder)

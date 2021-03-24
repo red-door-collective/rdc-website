@@ -72,6 +72,8 @@ class DetainerWarrantSchema(Schema):
     presiding_judge = fields.Nested(JudgeSchema)
     defendants = fields.Nested(DefendantSchema, many=True)
 
+    amount_claimed = fields.Float()
+
     class Meta:
         fields = ("docket_id", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
                   "judgement", "judgement_notes", "plantiff", "courtroom", "presiding_judge", "defendants",
