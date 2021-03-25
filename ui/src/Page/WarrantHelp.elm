@@ -14,6 +14,7 @@ import Http
 import Json.Decode as Decode
 import Palette
 import Session exposing (Session)
+import User exposing (User)
 
 
 type alias Model =
@@ -31,12 +32,16 @@ getWarrants viewer =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
+    let
+        maybeCred =
+            Session.cred session
+    in
     ( { session = session
       , warrants = []
       , query = ""
       , warrantsCursor = Nothing
       }
-    , Cmd.none
+    , getWarrants maybeCred
     )
 
 
@@ -68,22 +73,30 @@ update msg model =
                     ( model, Cmd.none )
 
 
-view : Model -> { title : String, content : Element Msg }
-view model =
+view : Maybe User -> Model -> { title : String, content : Element Msg }
+view profile model =
     { title = "Warrant Help"
     , content =
         Element.row [ Element.centerX, Element.padding 10, Font.size 20, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
-            [ Element.column [ Element.centerX ]
-                [ Element.row [ Element.centerX, Font.center ] [ Element.text "Find your Detainer Warrant case" ]
-                , viewSearchBar model
-                , Element.row [ Element.centerX, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
-                    (if List.isEmpty model.warrants then
-                        []
+            [ Element.column [ Element.centerX, Element.spacing 10 ]
+                ((case profile of
+                    Just user ->
+                        [ Element.row [ Element.centerX, Font.center ] [ Element.text ("Hello " ++ user.firstName ++ ",") ] ]
 
-                     else
-                        [ viewWarrants model ]
-                    )
-                ]
+                    Nothing ->
+                        []
+                 )
+                    ++ [ Element.row [ Element.centerX, Font.center ] [ Element.text "Find your Detainer Warrant case" ]
+                       , viewSearchBar model
+                       , Element.row [ Element.centerX, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
+                            (if List.isEmpty model.warrants then
+                                []
+
+                             else
+                                [ viewWarrants model ]
+                            )
+                       ]
+                )
             ]
     }
 

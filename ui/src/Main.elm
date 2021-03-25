@@ -50,7 +50,7 @@ init { window, viewer } url navKey =
         maybeCred =
             Session.cred session
     in
-    Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.users maybeCred GotProfiles (list User.userDecoder) ])
+    Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.users maybeCred GotProfiles Api.userApiDecoder ])
         (changeRouteTo (Route.fromUrl url)
             { window = window, page = Redirect session, profile = Nothing }
         )
@@ -66,7 +66,7 @@ type Msg
     | GotWarrantHelpMsg WarrantHelp.Msg
     | GotActionsMsg Actions.Msg
     | GotSession Session
-    | GotProfiles (Result Http.Error (List User))
+    | GotProfiles (Result Http.Error (Api.ApiPage User))
     | OnResize Int Int
 
 
@@ -177,8 +177,8 @@ update msg model =
 
         ( GotProfiles result, _ ) ->
             case result of
-                Ok users ->
-                    ( { model | profile = List.head users }, Cmd.none )
+                Ok usersPage ->
+                    ( { model | profile = List.head usersPage.data }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -241,7 +241,7 @@ view model =
             viewPage Page.About GotAboutMsg (About.view about)
 
         WarrantHelp warrantHelp ->
-            viewPage Page.WarrantHelp GotWarrantHelpMsg (WarrantHelp.view warrantHelp)
+            viewPage Page.WarrantHelp GotWarrantHelpMsg (WarrantHelp.view model.profile warrantHelp)
 
         Actions actions ->
             viewPage Page.Actions GotActionsMsg (Actions.view actions)

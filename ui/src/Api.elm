@@ -1,4 +1,4 @@
-port module Api exposing (ApiMeta, ApiPage, Cred, Flags, RollupMetadata, Window, addServerError, apiMetaDecoder, application, decodeErrors, delete, detainerWarrantApiDecoder, get, login, logout, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, users, viewerChanges)
+port module Api exposing (ApiMeta, ApiPage, Cred, Flags, RollupMetadata, Window, addServerError, apiMetaDecoder, application, decodeErrors, delete, detainerWarrantApiDecoder, get, login, logout, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, userApiDecoder, users, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -17,6 +17,7 @@ import Json.Decode.Pipeline as Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Time
 import Url exposing (Url)
+import User exposing (User)
 
 
 
@@ -355,4 +356,11 @@ detainerWarrantApiDecoder : Decoder (ApiPage DetainerWarrant)
 detainerWarrantApiDecoder =
     Decode.succeed ApiPage
         |> required "data" (list DetainerWarrant.decoder)
+        |> required "meta" apiMetaDecoder
+
+
+userApiDecoder : Decoder (ApiPage User)
+userApiDecoder =
+    Decode.succeed ApiPage
+        |> required "data" (list User.userDecoder)
         |> required "meta" apiMetaDecoder
