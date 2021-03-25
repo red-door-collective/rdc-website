@@ -55,6 +55,9 @@ class Role(db.Model, RoleMixin):
     description = Column(db.String(255))
     users = relationship('User', secondary=roles_users, back_populates='roles')
 
+    def __repr__(self):
+        return f"<Role(name='{self.name}')>"
+
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
@@ -76,11 +79,12 @@ class User(db.Model, UserMixin):
                          back_populates='users'
                          )
 
-    # def name(self):
-    # return self.first_name + ' ' + self.last_name
+    @property
+    def name(self):
+        return self.first_name + ' ' + self.last_name
 
     def __repr__(self):
-        return "<User(name='%s', email='%s'>" % (self.first_name, self.email)
+        return f"<User(name='{self.name}', email='{self.email}')>"
 
 
 # fsqla.FsModels.set_db_info(db)

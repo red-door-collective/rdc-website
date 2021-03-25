@@ -7,7 +7,7 @@ import Browser.Navigation as Nav
 import Element
 import Html
 import Http
-import Json.Decode as Decode exposing (Decoder, Value)
+import Json.Decode as Decode exposing (Decoder, Value, list)
 import Json.Decode.Pipeline exposing (optional, required)
 import Page
 import Page.About as About
@@ -20,6 +20,7 @@ import Page.WarrantHelp as WarrantHelp
 import Route exposing (Route)
 import Session exposing (Session)
 import Url exposing (Url)
+import User exposing (User)
 import Viewer exposing (Viewer)
 
 
@@ -35,14 +36,24 @@ type CurrentPage
 
 type alias Model =
     { window : Api.Window
+    , profile : Maybe User
     , page : CurrentPage
     }
 
 
 init : Api.Flags Viewer -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init { window, viewer } url navKey =
-    changeRouteTo (Route.fromUrl url)
-        { window = window, page = Redirect (Session.fromViewer navKey viewer) }
+    let
+        session =
+            Session.fromViewer navKey viewer
+
+        maybeCred =
+            Session.cred session
+    in
+    Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.users maybeCred GotProfiles (list User.userDecoder) ])
+        (changeRouteTo (Route.fromUrl url)
+            { window = window, page = Redirect session, profile = Nothing }
+        )
 
 
 type Msg
@@ -55,6 +66,7 @@ type Msg
     | GotWarrantHelpMsg WarrantHelp.Msg
     | GotActionsMsg Actions.Msg
     | GotSession Session
+    | GotProfiles (Result Http.Error (List User))
     | OnResize Int Int
 
 
@@ -162,6 +174,14 @@ update msg model =
         ( GotActionsMsg subMsg, Actions actions ) ->
             Actions.update subMsg actions
                 |> updateWith Actions GotActionsMsg model
+
+        ( GotProfiles result, _ ) ->
+            case result of
+                Ok users ->
+                    ( { model | profile = List.head users }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
 
         ( GotSession session, _ ) ->
             ( { model | page = Redirect session }

@@ -1,4 +1,4 @@
-port module Api exposing (ApiMeta, ApiPage, Cred, Flags, RollupMetadata, Window, addServerError, apiMetaDecoder, application, decodeErrors, delete, detainerWarrantApiDecoder, get, login, logout, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCredWith, viewerChanges)
+port module Api exposing (ApiMeta, ApiPage, Cred, Flags, RollupMetadata, Window, addServerError, apiMetaDecoder, application, decodeErrors, delete, detainerWarrantApiDecoder, get, login, logout, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, users, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -87,8 +87,8 @@ decodeFromChange viewerDecoder val =
         |> Result.toMaybe
 
 
-storeCredWith : Cred -> Cmd msg
-storeCredWith (Cred token) =
+storeCred : Cred -> Cmd msg
+storeCred (Cred token) =
     let
         json =
             Encode.object
@@ -264,6 +264,11 @@ decoderFromCred decoder =
     Decode.map2 (\fromCred cred -> fromCred cred)
         decoder
         credDecoder
+
+
+users : Maybe Cred -> (Result Error a -> msg) -> Decoder a -> Cmd msg
+users maybeCred toMsg decoder =
+    get Endpoint.users maybeCred toMsg decoder
 
 
 
