@@ -1,7 +1,7 @@
-module Api.Endpoint exposing (Endpoint, detainerWarrantStats, detainerWarrants, evictionStats, plantiffAttorneyStats, request)
+module Api.Endpoint exposing (Endpoint, detainerWarrantStats, detainerWarrants, evictionStats, login, logout, plantiffAttorneyStats, request)
 
 import Http
-import Url.Builder exposing (QueryParameter)
+import Url.Builder exposing (QueryParameter, string)
 
 
 {-| Http.request, except it takes an Endpoint instead of a Url.
@@ -51,13 +51,23 @@ url paths queryParams =
     -- NOTE: Url.Builder takes care of percent-encoding special URL characters.
     -- See https://package.elm-lang.org/packages/elm/url/latest/Url#percentEncode
     Url.Builder.absolute
-        ("api" :: paths)
+        ("api" :: "v1" :: paths)
         queryParams
         |> Endpoint
 
 
 
 -- ENDPOINTS
+
+
+login : Endpoint
+login =
+    url [ "accounts", "login" ] [ string "include_auth_token" "true" ]
+
+
+logout : Endpoint
+logout =
+    url [ "accounts", "logout" ] []
 
 
 detainerWarrants : Endpoint
@@ -76,9 +86,9 @@ detainerWarrantStats =
 
 plantiffAttorneyStats : Endpoint
 plantiffAttorneyStats =
-    url [ "rollup", "plantiff-attorneys" ] []
+    url [ "plantiff-attorneys" ] []
 
 
 evictionStats : Endpoint
 evictionStats =
-    url [ "rollup", "plantiffs" ] []
+    url [ "plantiffs" ] []

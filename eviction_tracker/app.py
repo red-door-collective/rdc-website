@@ -1,9 +1,9 @@
 import flask
-from flask import Flask, render_template, request
-from eviction_tracker.extensions import assets, db, marshmallow, migrate, api
+from flask import Flask, render_template, request, redirect
+from flask_security import hash_password, auth_token_required
+from eviction_tracker.extensions import assets, db, marshmallow, migrate, api, login_manager, user_datastore, security, User
 import yaml
 import os
-import logging
 import time
 
 from sqlalchemy import and_, or_, func, desc
@@ -12,29 +12,37 @@ import json
 from datetime import datetime, date, timedelta
 from dateutil.rrule import rrule, MONTHLY
 from collections import OrderedDict
+import flask_wtf
 
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
 Defendant = detainer_warrants.models.Defendant
 Plantiff = detainer_warrants.models.Plantiff
-Organizer = detainer_warrants.models.Organizer
 
-logg = logging.getLogger(__name__)
+security_config = dict(
+    SECURITY_PASSWORD_SALT=os.environ['SECURITY_PASSWORD_SALT'],
+    SECURITY_FLASH_MESSAGES=False,
+    # Need to be able to route backend flask API calls. Use 'accounts'
+    # to be the Flask-Security endpoints.
+    SECURITY_URL_PREFIX='/api/v1/accounts',
 
+    # These need to be defined to handle redirects
+    # As defined in the API documentation - they will receive the relevant context
+    SECURITY_POST_CONFIRM_VIEW="/confirmed",
+    SECURITY_CONFIRM_ERROR_VIEW="/confirm-error",
+    SECURITY_RESET_VIEW="/reset-password",
+    SECURITY_RESET_ERROR_VIEW="/reset-password",
+    SECURITY_REDIRECT_BEHAVIOR="spa",
 
-def is_authenticated(form_data):
-    defendant = db.session.query(Defendant)\
-        .filter_by(name=form_data['name'], phone=form_data['phone'])\
-        .first()
-
-    valid_contact = db.session.query(Organizer)\
-        .filter(or_(
-            Organizer.first_name == form_data['rdc_contact'],
-            Organizer.last_name == form_data['rdc_contact']
-        ))\
-        .first()
-
-    return bool(defendant) and bool(valid_contact)
+    # CSRF protection is critical for all session-based browser UIs
+    # enforce CSRF protection for session / browser - but allow token-based
+    # API calls to go through
+    SECURITY_CSRF_PROTECT_MECHANISMS=["session", "basic"],
+    SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS=True,
+    SECURITY_CSRF_COOKIE={"key": "XSRF-TOKEN"},
+    WTF_CSRF_CHECK_DEFAULT=False,
+    WTF_CSRF_TIME_LIMIT=None
+)
 
 
 def create_app(testing=False):
@@ -42,13 +50,11 @@ def create_app(testing=False):
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['SQLALCHEMY_DATABASE_URI']
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ['SQLALCHEMY_TRACK_MODIFICATIONS']
     app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
+    app.config.update(**security_config)
 
     register_extensions(app)
     register_shellcontext(app)
     register_commands(app)
-
-    # logg.info("encoding: " + locale.getpreferredencoding())
-    # logg.info("locale: "+ locale.getdefaultlocale())
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
@@ -213,6 +219,10 @@ def register_extensions(app):
     marshmallow.init_app(app)
     assets.init_app(app)
     api.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = None
+    security.init_app(app, user_datastore)
+    flask_wtf.CSRFProtect(app)
 
     api.add_resource('/attorneys/', detainer_warrants.views.AttorneyListResource,
                      detainer_warrants.views.AttorneyResource, app=app)
@@ -228,10 +238,6 @@ def register_extensions(app):
                      detainer_warrants.views.DetainerWarrantResource, app=app)
     api.add_resource('/phone-number-verifications/', detainer_warrants.views.PhoneNumberVerificationListResource,
                      detainer_warrants.views.PhoneNumberVerificationResource, app=app)
-
-    @app.route('/api/v1/auth', methods=['POST'])
-    def auth():
-        return flask.jsonify({'is_authenticated': is_authenticated(request.get_json())})
 
     @app.route('/api/v1/rollup/detainer-warrants')
     def detainer_warrant_rollup_by_month():
@@ -342,10 +348,10 @@ def register_shellcontext(app):
     def shell_context():
         return {
             'db': db,
-            'DetainerWarrant': detainer_warrants.models.DetainerWarrant,
-            'Attorney': detainer_warrants.models.Attorney,
-            'Defendant': detainer_warrants.models.Defendant,
-            'Organizer': Organizer
+            'DetainerWarrant': DetainerWarrant,
+            'Attorney': Attorney,
+            'Defendant': Defendant,
+            'User': User
         }
 
     app.shell_context_processor(shell_context)

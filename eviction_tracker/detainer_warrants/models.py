@@ -1,6 +1,7 @@
 from eviction_tracker.database import db, Column, Model, relationship
 from datetime import datetime
 from sqlalchemy import func
+from flask_security import UserMixin, RoleMixin
 
 
 class Timestamped():
@@ -256,18 +257,3 @@ class PhoneNumberVerification(db.Model, Timestamped):
 
     def __repr__(self):
         return "<PhoneNumberVerification(caller_name='%s', phone_type='%s', phone_number='%s')>" % (self.caller_name, self.phone_type, self.phone_number)
-
-
-class Organizer(db.Model, Timestamped):
-    __tablename__ = 'organizers'
-
-    id = Column(db.Integer, primary_key=True)
-    first_name = Column(db.String(255), nullable=False)
-    last_name = Column(db.String(255), nullable=False)
-    email = Column(db.String(255), nullable=False)
-
-    def name(self):
-        return self.first_name + ' ' + self.last_name
-
-    def __repr__(self):
-        return "<Organizer(name='%s', email='%s'>" % (self.name, self.email)

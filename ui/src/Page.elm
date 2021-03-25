@@ -1,21 +1,17 @@
 module Page exposing (Page(..), view)
 
 import Browser exposing (Document)
-import Color
-import Element exposing (Element, fill)
+import Element exposing (Device, DeviceClass(..), Element, Orientation(..), alignLeft, alignRight, centerX, centerY, column, el, fill, height, maximum, minimum, px, row, spacing, width)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
+import Element.Font as Font exposing (center)
 import Element.Region as Region
 import Html exposing (Html)
+import List
+import Logo
 import Palette
 import Route
-import TypedSvg exposing (circle, g, rect, style, svg, text_)
-import TypedSvg.Attributes as Attr exposing (class, dy, stroke, textAnchor, transform, viewBox)
-import TypedSvg.Attributes.InPx exposing (cx, cy, height, r, width, x, y)
-import TypedSvg.Core exposing (text)
-import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
-import Viewer exposing (Viewer)
+import Viewer exposing (Viewer(..))
 
 
 {-| Determines which navbar link (if any) will be rendered as active.
@@ -31,6 +27,7 @@ type Page
     | About
     | WarrantHelp
     | Actions
+    | Login
 
 
 {-| Take a page's Html and frames it with a header and footer.
@@ -42,8 +39,8 @@ isLoading is for determining whether we should show a loading spinner
 in the header. (This comes up during slow page transitions.)
 
 -}
-view : Maybe Viewer -> Page -> { title : String, content : Element msg } -> Document msg
-view maybeViewer page { title, content } =
+view : Device -> Maybe Viewer -> Page -> { title : String, content : Element msg } -> Document msg
+view device maybeViewer page { title, content } =
     { title = title ++ " - RDC"
     , body =
         [ Element.layoutWith
@@ -66,8 +63,8 @@ view maybeViewer page { title, content } =
                 , Font.sansSerif
                 ]
             ]
-            (Element.column [ Element.centerX, Element.width fill ]
-                [ navBar page
+            (column [ centerX, width fill, Element.spacing 10 ]
+                [ navBar device maybeViewer page
                 , content
                 , viewFooter
                 ]
@@ -76,124 +73,166 @@ view maybeViewer page { title, content } =
     }
 
 
-redDoorWidth =
-    50
+barColor =
+    Element.rgb255 33 37 41
 
 
-redDoorHeight =
-    75
+rose =
+    "🌹"
 
 
-redDoorFrame =
-    10
-
-
-redDoor : Element msg
-redDoor =
-    Element.link []
-        { url = "/"
-        , label =
-            Element.column [ Element.width Element.shrink ]
-                [ Element.row [ Element.inFront logo, Element.centerX, Element.width (Element.px (redDoorWidth + 55)), Element.height (Element.px (45 + redDoorHeight)) ]
-                    [ Element.el [ Element.alignRight, Element.width (Element.px redDoorWidth), Element.height (Element.px redDoorHeight) ]
-                        (Element.html
-                            (svg [ viewBox 0 0 redDoorWidth redDoorHeight ]
-                                [ rect [ x 0, y 0, width redDoorWidth, height redDoorHeight, Attr.fill <| Paint Color.red ] []
-                                , g []
-                                    [ rect [ x 13, y 17, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
-                                        []
-                                    , rect [ x 27, y 17, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
-                                        []
-                                    , rect [ x 13, y 32, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
-                                        []
-                                    , rect [ x 27, y 32, Attr.fill <| Paint Color.black, width redDoorFrame, height redDoorFrame ]
-                                        []
-                                    ]
-                                , g []
-                                    [ circle [ cx 42, cy 50, Attr.fill <| Paint Color.black, r 3 ] [] ]
-                                ]
-                            )
-                        )
-                    ]
-                ]
-        }
-
-
-logo : Element msg
-logo =
-    Element.textColumn [ Element.width Element.shrink, Element.alignBottom ]
-        [ Element.paragraph [ Font.color Palette.red ] [ Element.text "Red" ]
-        , Element.paragraph [] [ Element.text "Door" ]
-        , Element.paragraph [] [ Element.text "Collective" ]
-        ]
+roseSeparator =
+    Element.el [ Background.color Palette.sred, Element.padding 10 ] (Element.text rose)
 
 
 navBarLink { url, text, isActive } =
     Element.link
-        ([ Element.height fill
+        ([ height (px 40)
          , Font.center
-         , Element.width (Element.px 200)
+         , width (fill |> Element.minimum 150 |> Element.maximum 300)
          , Element.mouseOver [ Background.color Palette.redLight ]
-         , Element.centerY
-         , Element.centerX
-         , Font.center
+         , Background.color Palette.sred
+         , centerY
          , Font.size 20
          , Font.regular
          ]
             ++ (if isActive then
-                    [ Border.widthEach { top = 0, bottom = 0, left = 1, right = 1 }, Border.color Palette.white ]
+                    [ Border.widthEach { top = 0, bottom = 3, right = 0, left = 0 }
+                    , Border.color Palette.grayLight
+                    , Font.color Palette.grayLight
+                    ]
 
                 else
                     []
                )
         )
         { url = url
-        , label = Element.row [ Element.centerX ] [ Element.text text ]
+        , label = row [ centerX ] [ Element.text text ]
         }
 
 
-navBar : Page -> Element msg
-navBar page =
-    Element.wrappedRow
-        [ Border.color Palette.black
+navBar : Device -> Maybe Viewer -> Page -> Element msg
+navBar device maybeViewer page =
+    case device.class of
+        Phone ->
+            phoneBar device.orientation maybeViewer page
 
-        -- , Border.widthEach { bottom = 2, top = 0, left = 0, right = 0 }
-        , Element.padding 5
-        , Element.width (Element.fill |> Element.maximum 1200 |> Element.minimum 400)
-        , Element.centerX
-        , Element.centerY
-        , Element.spacing 50
+        Tablet ->
+            tabletBar maybeViewer page
+
+        Desktop ->
+            desktopBar maybeViewer page
+
+        BigDesktop ->
+            desktopBar maybeViewer page
+
+
+links maybeViewer page =
+    [ { url = Route.href Route.Trends, text = "Trends", isActive = page == Trends }
+    , { url = Route.href Route.About
+      , text = "About"
+      , isActive = page == About
+      }
+    , { url = Route.href Route.Actions, text = "Actions", isActive = page == Actions }
+    ]
+        ++ (case maybeViewer of
+                Just _ ->
+                    [ { url = Route.href Route.WarrantHelp
+                      , text = "Warrant Help"
+                      , isActive = page == WarrantHelp
+                      }
+                    , { url = Route.href Route.Logout, text = "Logout", isActive = False }
+                    ]
+
+                Nothing ->
+                    [ { url = Route.href Route.Login, text = "Login", isActive = page == Login } ]
+           )
+
+
+horizontalBar maybeViewer page =
+    Element.row
+        [ centerY
+        , height fill
+        , width (fill |> Element.minimum 600)
+        , Font.color Palette.white
         ]
-        [ redDoor
-        , Element.column [ Element.width fill, Element.height (Element.px 40), Element.centerY ]
-            [ Element.row
-                [ Element.centerY
-                , Element.height fill
-                , Element.spaceEvenly
-                , Element.width (fill |> Element.maximum 800 |> Element.minimum 400)
-                , Background.color Palette.sred
-                , Font.color Palette.white
+        (List.intersperse roseSeparator (List.map navBarLink (links maybeViewer page)))
+
+
+verticalTab { url, text, isActive } =
+    Element.link
+        ([ height (px 40)
+         , Font.center
+         , width (fill |> Element.minimum 200 |> Element.maximum 300)
+         , Element.mouseOver [ Background.color Palette.redLight ]
+         , Background.color Palette.sred
+         , centerY
+         , Font.size 20
+         , Font.regular
+         ]
+            ++ (if isActive then
+                    [ Border.width 1
+                    , Border.color Palette.grayLight
+                    , Font.color Palette.grayLight
+                    ]
+
+                else
+                    []
+               )
+        )
+        { url = url
+        , label =
+            if isActive then
+                row [ Element.padding 10, width fill ] [ el [ alignLeft ] (Element.text rose), el [ centerX ] (Element.text text), el [ alignRight ] (Element.text rose) ]
+
+            else
+                row [ Element.padding 10, width fill ] [ el [ centerX ] (Element.text text) ]
+        }
+
+
+verticalBar maybeViewer page =
+    column
+        [ Font.color Palette.white, centerX, width (fill |> minimum 200 |> maximum 300) ]
+        (List.map verticalTab (links maybeViewer page))
+
+
+phoneBar orientation maybeViewer page =
+    case orientation of
+        Portrait ->
+            Element.column [ width fill, spacing 10 ]
+                [ row [ centerX ] [ Logo.link ]
+                , row [ width fill, centerX ] [ verticalBar maybeViewer page ]
                 ]
-                [ navBarLink
-                    { url = Route.href Route.About
-                    , text = "About"
-                    , isActive = page == About
-                    }
-                , navBarLink
-                    { url = Route.href Route.WarrantHelp
-                    , text = "Warrant Help"
-                    , isActive = page == WarrantHelp
-                    }
-                , navBarLink { url = Route.href Route.Trends, text = "Trends", isActive = page == Trends }
-                , navBarLink { url = Route.href Route.Actions, text = "Actions", isActive = page == Actions }
-                ]
-            ]
+
+        Landscape ->
+            tabletBar maybeViewer page
+
+
+tabletBar maybeViewer page =
+    column [ centerX, Element.spacing 10 ]
+        [ row [ centerX ] [ Logo.link ]
+        , horizontalBar maybeViewer page
+        ]
+
+
+desktopBar maybeViewer page =
+    Element.row
+        [ Border.color Palette.black
+        , Element.padding 5
+        , width (Element.fill |> Element.maximum 1400 |> Element.minimum 200)
+        , centerX
+        , centerY
+        , height fill
+        , Element.spacingXY 20 0
+        ]
+        [ Logo.link
+        , horizontalBar maybeViewer page
         ]
 
 
 viewFooter : Element msg
 viewFooter =
-    Element.row [ Region.footer, Element.centerX, Border.widthEach { top = 1, bottom = 0, left = 0, right = 0 }, Element.padding 10 ]
+    row [ Region.footer, centerX, Border.widthEach { top = 1, bottom = 0, left = 0, right = 0 }, Element.padding 10 ]
         [ Element.textColumn [ Font.center, Font.size 20, Element.spacing 10 ]
             [ Element.el [ Font.medium ] (Element.text "Data collected and provided for free to the people of Davidson County.")
             , Element.paragraph [ Font.color Palette.red ]

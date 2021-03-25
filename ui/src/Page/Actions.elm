@@ -119,31 +119,40 @@ tile =
 
 viewAbout : Element Msg
 viewAbout =
-    Element.textColumn [ centerX, width (fill |> maximum ((videoWidth * 2) + 120) |> minimum videoWidth), spacing 20, Font.size 18, padding 20, Font.center ]
-        ([ Element.wrappedRow [ spacing 10 ]
-            [ tile
-                [ paragraph header [ text "Data - How we know who to help" ]
-                , videoEmbed dataExplanation
-                ]
-            , tile
-                [ paragraph header [ text "Policy & Legal - How we inform and agitate" ]
-                , videoEmbed tanfFunds
-                ]
+    Element.column [ centerX, width fill ]
+        [ Element.textColumn
+            [ centerX
+            , width (fill |> maximum ((videoWidth * 2) + 120))
+            , spacing 20
+            , Font.size 18
+            , padding 20
+            , Font.center
             ]
-         , Element.wrappedRow [ spacing 10 ]
-            [ tile
-                [ paragraph header [ text "Comms - How we get out the word" ]
-                , videoEmbed cdcStatement
+            ([ Element.wrappedRow [ spacing 10 ]
+                [ tile
+                    [ paragraph header [ text "Data - How we know who to help" ]
+                    , videoEmbed dataExplanation
+                    ]
+                , tile
+                    [ paragraph header [ text "Policy & Legal - How we inform and agitate" ]
+                    , videoEmbed tanfFunds
+                    ]
                 ]
-            , tile
-                [ paragraph header [ text "Organizing - How we steer the conversation" ]
-                , videoEmbed phonebank
+             , Element.wrappedRow [ spacing 10 ]
+                [ tile
+                    [ paragraph header [ text "Comms - How we get out the word" ]
+                    , videoEmbed cdcStatement
+                    ]
+                , tile
+                    [ paragraph header [ text "Organizing - How we steer the conversation" ]
+                    , videoEmbed phonebank
+                    ]
                 ]
-            ]
-         , joinRdc
-         ]
-            ++ weeklyMeetings
-        )
+             , joinRdc
+             ]
+                ++ weeklyMeetings
+            )
+        ]
 
 
 subscriptions : Model -> Sub Msg
