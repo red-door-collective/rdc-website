@@ -11,7 +11,7 @@ import List
 import Logo
 import Palette
 import Route
-import Viewer exposing (Viewer)
+import Viewer exposing (Viewer(..))
 
 
 {-| Determines which navbar link (if any) will be rendered as active.
@@ -64,7 +64,7 @@ view device maybeViewer page { title, content } =
                 ]
             ]
             (column [ centerX, width fill, Element.spacing 10 ]
-                [ navBar device page
+                [ navBar device maybeViewer page
                 , content
                 , viewFooter
                 ]
@@ -111,45 +111,52 @@ navBarLink { url, text, isActive } =
         }
 
 
-navBar : Device -> Page -> Element msg
-navBar device page =
+navBar : Device -> Maybe Viewer -> Page -> Element msg
+navBar device maybeViewer page =
     case device.class of
         Phone ->
-            phoneBar device.orientation page
+            phoneBar device.orientation maybeViewer page
 
         Tablet ->
-            tabletBar page
+            tabletBar maybeViewer page
 
         Desktop ->
-            desktopBar page
+            desktopBar maybeViewer page
 
         BigDesktop ->
-            desktopBar page
+            desktopBar maybeViewer page
 
 
-links page =
-    [ { url = Route.href Route.About
+links maybeViewer page =
+    [ { url = Route.href Route.Trends, text = "Trends", isActive = page == Trends }
+    , { url = Route.href Route.About
       , text = "About"
       , isActive = page == About
       }
-    , { url = Route.href Route.WarrantHelp
-      , text = "Warrant Help"
-      , isActive = page == WarrantHelp
-      }
-    , { url = Route.href Route.Trends, text = "Trends", isActive = page == Trends }
     , { url = Route.href Route.Actions, text = "Actions", isActive = page == Actions }
-    , { url = Route.href Route.Login, text = "Login", isActive = page == Login }
     ]
+        ++ (case maybeViewer of
+                Just _ ->
+                    [ { url = Route.href Route.WarrantHelp
+                      , text = "Warrant Help"
+                      , isActive = page == WarrantHelp
+                      }
+                    , { url = Route.href Route.Logout, text = "Logout", isActive = False }
+                    ]
+
+                Nothing ->
+                    [ { url = Route.href Route.Login, text = "Login", isActive = page == Login } ]
+           )
 
 
-horizontalBar page =
+horizontalBar maybeViewer page =
     Element.row
         [ centerY
         , height fill
         , width (fill |> Element.minimum 600)
         , Font.color Palette.white
         ]
-        (List.intersperse roseSeparator (List.map navBarLink (links page)))
+        (List.intersperse roseSeparator (List.map navBarLink (links maybeViewer page)))
 
 
 verticalTab { url, text, isActive } =
@@ -183,32 +190,32 @@ verticalTab { url, text, isActive } =
         }
 
 
-verticalBar page =
+verticalBar maybeViewer page =
     column
         [ Font.color Palette.white, centerX, width (fill |> minimum 200 |> maximum 300) ]
-        (List.map verticalTab (links page))
+        (List.map verticalTab (links maybeViewer page))
 
 
-phoneBar orientation page =
+phoneBar orientation maybeViewer page =
     case orientation of
         Portrait ->
             Element.column [ width fill, spacing 10 ]
                 [ row [ centerX ] [ Logo.link ]
-                , row [ width fill, centerX ] [ verticalBar page ]
+                , row [ width fill, centerX ] [ verticalBar maybeViewer page ]
                 ]
 
         Landscape ->
-            tabletBar page
+            tabletBar maybeViewer page
 
 
-tabletBar page =
+tabletBar maybeViewer page =
     column [ centerX, Element.spacing 10 ]
         [ row [ centerX ] [ Logo.link ]
-        , horizontalBar page
+        , horizontalBar maybeViewer page
         ]
 
 
-desktopBar page =
+desktopBar maybeViewer page =
     Element.row
         [ Border.color Palette.black
         , Element.padding 5
@@ -217,11 +224,9 @@ desktopBar page =
         , centerY
         , height fill
         , Element.spacingXY 20 0
-
-        -- , Element.alignLeft
         ]
         [ Logo.link
-        , horizontalBar page
+        , horizontalBar maybeViewer page
         ]
 
 

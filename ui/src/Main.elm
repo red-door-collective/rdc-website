@@ -6,6 +6,7 @@ import Browser.Events
 import Browser.Navigation as Nav
 import Element
 import Html
+import Http
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Decode.Pipeline exposing (optional, required)
 import Page
@@ -48,6 +49,7 @@ type Msg
     = ChangedUrl Url
     | ClickedLink Browser.UrlRequest
     | GotLoginMsg Login.Msg
+    | GotLogoutMsg (Result Http.Error ())
     | GotTrendsMsg Trends.Msg
     | GotAboutMsg About.Msg
     | GotWarrantHelpMsg WarrantHelp.Msg
@@ -99,7 +101,7 @@ changeRouteTo maybeRoute model =
                 |> updateWith Login GotLoginMsg model
 
         Just Route.Logout ->
-            ( model, Api.logout )
+            ( model, Api.logout (Session.cred session) GotLogoutMsg )
 
         Just Route.Trends ->
             Trends.init session
@@ -161,7 +163,7 @@ update msg model =
             Actions.update subMsg actions
                 |> updateWith Actions GotActionsMsg model
 
-        ( GotSession session, Redirect _ ) ->
+        ( GotSession session, _ ) ->
             ( { model | page = Redirect session }
             , Route.replaceUrl (Session.navKey session) Route.Trends
             )
@@ -250,8 +252,12 @@ subscriptions model =
             Actions actions ->
                 Sub.map GotActionsMsg (Actions.subscriptions actions)
          )
-            :: [ Browser.Events.onResize OnResize ]
+            :: [ Browser.Events.onResize OnResize, Session.changes GotSession (Session.navKey (toSession model)) ]
         )
+
+
+
+-- SUBSCRIPTIONS
 
 
 main : Program Value Model Msg

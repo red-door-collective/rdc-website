@@ -102,9 +102,9 @@ storeCredWith (Cred token) =
     storeCache (Just json)
 
 
-logout : Cmd msg
-logout =
-    storeCache Nothing
+logout : Maybe Cred -> (Result Http.Error () -> msg) -> Cmd msg
+logout cred toMsg =
+    Cmd.batch [ throwaway Endpoint.logout cred toMsg, storeCache Nothing ]
 
 
 port storeCache : Maybe Value -> Cmd msg
@@ -177,6 +177,25 @@ get url maybeCred toMsg decoder =
         { method = "GET"
         , url = url
         , expect = Http.expectJson toMsg decoder
+        , headers =
+            case maybeCred of
+                Just cred ->
+                    credHeaders cred
+
+                Nothing ->
+                    []
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+throwaway : Endpoint -> Maybe Cred -> (Result Error () -> msg) -> Cmd msg
+throwaway url maybeCred toMsg =
+    Endpoint.request
+        { method = "GET"
+        , url = url
+        , expect = Http.expectWhatever toMsg
         , headers =
             case maybeCred of
                 Just cred ->

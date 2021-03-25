@@ -10,6 +10,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Html.Events
 import Http
 import Json.Decode as Decode exposing (Decoder, decodeString, field, string)
 import Json.Decode.Pipeline exposing (optional)
@@ -62,6 +63,23 @@ init session =
 -- VIEW
 
 
+onEnter : msg -> Element.Attribute msg
+onEnter msg =
+    Element.htmlAttribute
+        (Html.Events.on "keyup"
+            (Decode.field "key" Decode.string
+                |> Decode.andThen
+                    (\key ->
+                        if key == "Enter" then
+                            Decode.succeed msg
+
+                        else
+                            Decode.fail "Not the enter key"
+                    )
+            )
+        )
+
+
 view : Model -> { title : String, content : Element Msg }
 view model =
     { title = "Login"
@@ -111,7 +129,7 @@ viewForm form =
             ]
         , row []
             [ Input.currentPassword
-                []
+                [ onEnter SubmittedForm ]
                 { onChange = EnteredPassword
                 , text = form.password
                 , placeholder = Just <| Input.placeholder [] (text "Password")

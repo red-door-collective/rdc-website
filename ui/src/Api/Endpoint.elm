@@ -1,4 +1,4 @@
-module Api.Endpoint exposing (Endpoint, detainerWarrantStats, detainerWarrants, evictionStats, login, plantiffAttorneyStats, request)
+module Api.Endpoint exposing (Endpoint, detainerWarrantStats, detainerWarrants, evictionStats, login, logout, plantiffAttorneyStats, request)
 
 import Http
 import Url.Builder exposing (QueryParameter, string)
@@ -63,6 +63,11 @@ url paths queryParams =
 login : Endpoint
 login =
     url [ "accounts", "login" ] [ string "include_auth_token" "true" ]
+
+
+logout : Endpoint
+logout =
+    url [ "accounts", "logout" ] []
 
 
 detainerWarrants : Endpoint
