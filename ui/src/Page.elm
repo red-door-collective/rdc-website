@@ -1,12 +1,13 @@
 module Page exposing (Page(..), view)
 
 import Browser exposing (Document)
-import Element exposing (Device, DeviceClass(..), Element, Orientation(..), centerX, centerY, column, fill, height, maximum, minimum, px, row, spacing, width)
+import Element exposing (Device, DeviceClass(..), Element, Orientation(..), alignLeft, alignRight, centerX, centerY, column, el, fill, height, maximum, minimum, px, row, spacing, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font exposing (center)
 import Element.Region as Region
 import Html exposing (Html)
+import List
 import Logo
 import Palette
 import Route
@@ -81,7 +82,7 @@ rose =
 
 
 roseSeparator =
-    Element.el [ Element.padding 10 ] (Element.text rose)
+    Element.el [ Background.color Palette.sred, Element.padding 10 ] (Element.text rose)
 
 
 navBarLink { url, text, isActive } =
@@ -148,7 +149,7 @@ horizontalBar page =
         , width (fill |> Element.minimum 600)
         , Font.color Palette.white
         ]
-        (List.map navBarLink (links page))
+        (List.intersperse roseSeparator (List.map navBarLink (links page)))
 
 
 verticalTab { url, text, isActive } =
@@ -173,7 +174,12 @@ verticalTab { url, text, isActive } =
                )
         )
         { url = url
-        , label = row [ centerX ] [ Element.text text ]
+        , label =
+            if isActive then
+                row [ Element.padding 10, width fill ] [ el [ alignLeft ] (Element.text rose), el [ centerX ] (Element.text text), el [ alignRight ] (Element.text rose) ]
+
+            else
+                row [ Element.padding 10, width fill ] [ el [ centerX ] (Element.text text) ]
         }
 
 
