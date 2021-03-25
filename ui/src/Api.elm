@@ -1,4 +1,4 @@
-port module Api exposing (ApiMeta, ApiPage, Cred, Flags, RollupMetadata, Window, addServerError, apiMetaDecoder, application, decodeErrors, delete, detainerWarrantApiDecoder, get, login, logout, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCredWith, viewerChanges)
+port module Api exposing (ApiMeta, ApiPage, Cred, Flags, RollupMetadata, Window, addServerError, apiMetaDecoder, application, decodeErrors, delete, detainerWarrantApiDecoder, get, login, logout, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, userApiDecoder, users, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -17,6 +17,7 @@ import Json.Decode.Pipeline as Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import Time
 import Url exposing (Url)
+import User exposing (User)
 
 
 
@@ -87,8 +88,8 @@ decodeFromChange viewerDecoder val =
         |> Result.toMaybe
 
 
-storeCredWith : Cred -> Cmd msg
-storeCredWith (Cred token) =
+storeCred : Cred -> Cmd msg
+storeCred (Cred token) =
     let
         json =
             Encode.object
@@ -266,6 +267,11 @@ decoderFromCred decoder =
         credDecoder
 
 
+users : Maybe Cred -> (Result Error a -> msg) -> Decoder a -> Cmd msg
+users maybeCred toMsg decoder =
+    get Endpoint.users maybeCred toMsg decoder
+
+
 
 -- ERRORS
 
@@ -350,4 +356,11 @@ detainerWarrantApiDecoder : Decoder (ApiPage DetainerWarrant)
 detainerWarrantApiDecoder =
     Decode.succeed ApiPage
         |> required "data" (list DetainerWarrant.decoder)
+        |> required "meta" apiMetaDecoder
+
+
+userApiDecoder : Decoder (ApiPage User)
+userApiDecoder =
+    Decode.succeed ApiPage
+        |> required "data" (list User.userDecoder)
         |> required "meta" apiMetaDecoder

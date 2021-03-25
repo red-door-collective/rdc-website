@@ -22,7 +22,7 @@ from sqlalchemy.orm import raiseload
 
 from eviction_tracker.database import db
 from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plantiff, Judge, PhoneNumberVerification
-from eviction_tracker.extensions import User, user_datastore
+from eviction_tracker.extensions import User, Role, user_datastore
 from .serializers import *
 
 
@@ -81,8 +81,6 @@ class AllowDefendant(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
     def authorize_modify_item(self, item, action):
         if not self.request_user_id:
             raise ApiError(403, {"code": "invalid_user"})
-
-# WyJhNzJhYzYxZGZjNGY0ZDcyYjIyZTAxZDVlYWVhZmVmNiJd.YFrBBg.JPjHjLxdPYIWOHF7mKNy2a5bKJo
 
 
 class AttorneyResourceBase(GenericModelView):
@@ -239,5 +237,60 @@ class PhoneNumberVerificationListResource(PhoneNumberVerificationResourceBase):
 
 
 class PhoneNumberVerificationResource(PhoneNumberVerificationResourceBase):
+    def get(self, id):
+        return self.retrieve(id)
+
+
+class OnlyMe():
+    @property
+    def request_user_id(self):
+        return self.get_request_credentials()["user_id"]
+
+    def filter_query(self, query, view):
+        return query.filter_by(id=self.request_user_id)
+
+    def authorize_modify_item(self, item, action):
+        if not self.request_user_id:
+            raise ApiError(403, {"code": "invalid_user"})
+
+
+class UserResourceBase(GenericModelView):
+    model = User
+    schema = user_schema
+
+    authentication = HeaderUserAuthentication()
+    authorization = Protected()
+
+    pagination = CursorPagination()
+    sorting = Sorting('id', default='-id')
+
+
+class UserListResource(UserResourceBase):
+    def get(self):
+        return self.list()
+
+
+class UserResource(UserResourceBase):
+    def get(self, id):
+        return self.retrieve(id)
+
+
+class RoleResourceBase(GenericModelView):
+    model = Role
+    schema = role_schema
+
+    authentication = HeaderUserAuthentication()
+    authorization = Protected()
+
+    pagination = CursorPagination()
+    sorting = Sorting('id', default='-id')
+
+
+class RoleListResource(RoleResourceBase):
+    def get(self):
+        return self.list()
+
+
+class RoleResource(RoleResourceBase):
     def get(self, id):
         return self.retrieve(id)

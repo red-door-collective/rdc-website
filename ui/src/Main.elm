@@ -7,7 +7,7 @@ import Browser.Navigation as Nav
 import Element
 import Html
 import Http
-import Json.Decode as Decode exposing (Decoder, Value)
+import Json.Decode as Decode exposing (Decoder, Value, list)
 import Json.Decode.Pipeline exposing (optional, required)
 import Page
 import Page.About as About
@@ -20,6 +20,7 @@ import Page.WarrantHelp as WarrantHelp
 import Route exposing (Route)
 import Session exposing (Session)
 import Url exposing (Url)
+import User exposing (User)
 import Viewer exposing (Viewer)
 
 
@@ -35,14 +36,24 @@ type CurrentPage
 
 type alias Model =
     { window : Api.Window
+    , profile : Maybe User
     , page : CurrentPage
     }
 
 
 init : Api.Flags Viewer -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init { window, viewer } url navKey =
-    changeRouteTo (Route.fromUrl url)
-        { window = window, page = Redirect (Session.fromViewer navKey viewer) }
+    let
+        session =
+            Session.fromViewer navKey viewer
+
+        maybeCred =
+            Session.cred session
+    in
+    Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.users maybeCred GotProfiles Api.userApiDecoder ])
+        (changeRouteTo (Route.fromUrl url)
+            { window = window, page = Redirect session, profile = Nothing }
+        )
 
 
 type Msg
@@ -55,6 +66,7 @@ type Msg
     | GotWarrantHelpMsg WarrantHelp.Msg
     | GotActionsMsg Actions.Msg
     | GotSession Session
+    | GotProfiles (Result Http.Error (Api.ApiPage User))
     | OnResize Int Int
 
 
@@ -163,6 +175,14 @@ update msg model =
             Actions.update subMsg actions
                 |> updateWith Actions GotActionsMsg model
 
+        ( GotProfiles result, _ ) ->
+            case result of
+                Ok usersPage ->
+                    ( { model | profile = List.head usersPage.data }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
         ( GotSession session, _ ) ->
             ( { model | page = Redirect session }
             , Route.replaceUrl (Session.navKey session) Route.Trends
@@ -221,7 +241,7 @@ view model =
             viewPage Page.About GotAboutMsg (About.view about)
 
         WarrantHelp warrantHelp ->
-            viewPage Page.WarrantHelp GotWarrantHelpMsg (WarrantHelp.view warrantHelp)
+            viewPage Page.WarrantHelp GotWarrantHelpMsg (WarrantHelp.view model.profile warrantHelp)
 
         Actions actions ->
             viewPage Page.Actions GotActionsMsg (Actions.view actions)

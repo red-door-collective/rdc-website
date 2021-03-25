@@ -36,5 +36,4 @@ decoder =
 
 store : Viewer -> Cmd msg
 store (Viewer credVal) =
-    Api.storeCredWith
-        credVal
+    Api.storeCred credVal

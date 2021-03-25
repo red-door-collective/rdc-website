@@ -13,6 +13,7 @@ from datetime import datetime, date, timedelta
 from dateutil.rrule import rrule, MONTHLY
 from collections import OrderedDict
 import flask_wtf
+from flask_security import current_user
 
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
@@ -238,6 +239,10 @@ def register_extensions(app):
                      detainer_warrants.views.DetainerWarrantResource, app=app)
     api.add_resource('/phone-number-verifications/', detainer_warrants.views.PhoneNumberVerificationListResource,
                      detainer_warrants.views.PhoneNumberVerificationResource, app=app)
+    api.add_resource('/users/', detainer_warrants.views.UserListResource,
+                     detainer_warrants.views.UserResource, app=app)
+    api.add_resource('/roles/', detainer_warrants.views.RoleListResource,
+                     detainer_warrants.views.RoleResource, app=app)
 
     @app.route('/api/v1/rollup/detainer-warrants')
     def detainer_warrant_rollup_by_month():

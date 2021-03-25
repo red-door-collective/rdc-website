@@ -1,4 +1,4 @@
-module Api.Endpoint exposing (Endpoint, detainerWarrantStats, detainerWarrants, evictionStats, login, logout, plantiffAttorneyStats, request)
+module Api.Endpoint exposing (Endpoint, detainerWarrantStats, detainerWarrants, evictionStats, login, logout, plantiffAttorneyStats, request, users)
 
 import Http
 import Url.Builder exposing (QueryParameter, string)
@@ -73,6 +73,11 @@ logout =
 detainerWarrants : Endpoint
 detainerWarrants =
     url [ "detainer-warrants" ] []
+
+
+users : Endpoint
+users =
+    url [ "users" ] []
 
 
 

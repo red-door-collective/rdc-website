@@ -92,3 +92,23 @@ class PhoneNumberVerificationSchema(Schema):
 
 phone_number_verification_schema = PhoneNumberVerificationSchema()
 phone_number_verifications_schema = PhoneNumberVerificationSchema(many=True)
+
+
+class RoleSchema(Schema):
+    class Meta:
+        fields = ("id", "name", "description")
+
+
+role_schema = RoleSchema()
+roles_schemas = RoleSchema(many=True)
+
+
+class UserSchema(Schema):
+    roles = fields.Nested(RoleSchema, many=True)
+
+    class Meta:
+        fields = ("id", "name", "first_name", "last_name", "roles", "active")
+
+
+user_schema = UserSchema()
+user_schemas = UserSchema(many=True)
