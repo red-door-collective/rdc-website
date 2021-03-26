@@ -33,12 +33,19 @@ detainer_warrant_defendants = db.Table(
     Column('defendant_id', db.ForeignKey('defendants.id'), primary_key=True)
 )
 
+defendant_phone_verifications = db.Table(
+    'defendant_phone_verifications',
+    db.metadata,
+    Column('defendant_id', db.ForeignKey('defendants.id'), primary_key=True),
+    Column('phone_number_verification_id', db.ForeignKey(
+        'phone_number_verifications.id'), primary_key=True)
+)
+
 
 class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255))
-    phone = Column(db.String(20))
     potential_phones = Column(db.String(255))
     address = Column(db.String(255))
 
@@ -52,9 +59,12 @@ class Defendant(db.Model, Timestamped):
                                      secondary=detainer_warrant_defendants,
                                      back_populates='defendants'
                                      )
+    phone_number_verifications = relationship('PhoneNumberVerification',
+                                              secondary=defendant_phone_verifications,
+                                              back_populates='defendants')
 
     def __repr__(self):
-        return "<Defendant(name='%s', phone='%s', address='%s')>" % (self.name, self.phone, self.address)
+        return f"<Defendant(name='{name}', , address='%s')>" % (self.name, self.phone, self.address)
 
 
 class Attorney(db.Model, Timestamped):
@@ -224,12 +234,15 @@ class PhoneNumberVerification(db.Model, Timestamped):
     phone_type = Column(db.String(10))
     country_code = Column(db.String(10))
     national_format = Column(db.String(20))
-    phone_number = Column(db.String(30))
+    phone_number = Column(db.String(30), unique=True)
 
-    def from_twilio_response(input):
-        caller_info = input['caller_name'] or {
+    defendants = relationship('Defendant', secondary=defendant_phone_verifications,
+                              back_populates='phone_number_verifications')
+
+    def from_twilio_response(lookup):
+        caller_info = lookup.caller_name or {
             'caller_name': None, 'caller_type': None, 'error_code': None}
-        carrier_info = input['carrier'] or {
+        carrier_info = lookup.carrier or {
             'error_code': None, 'mobile_country_code': None, 'mobile_network_code': None, 'name': None, 'type': None}
         return PhoneNumberVerification(
             caller_name=caller_info['caller_name'],
@@ -240,9 +253,9 @@ class PhoneNumberVerification(db.Model, Timestamped):
             mobile_network_code=carrier_info['mobile_network_code'],
             carrier_name=carrier_info['name'],
             phone_type=carrier_info['type'],
-            country_code=input['country_code'],
-            national_format=input['national_format'],
-            phone_number=input['phone_number'])
+            country_code=lookup.country_code,
+            national_format=lookup.national_format,
+            phone_number=lookup.phone_number)
 
     @property
     def caller_type(self):

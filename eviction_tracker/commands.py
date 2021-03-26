@@ -2,7 +2,7 @@
 import os
 from glob import glob
 from subprocess import call
-
+import phonenumbers
 import click
 from flask import current_app
 from flask.cli import with_appcontext
@@ -10,6 +10,10 @@ from werkzeug.exceptions import MethodNotAllowed, NotFound
 import gspread
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.database import db
+from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
+
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
@@ -52,3 +56,71 @@ def sync(sheet_name, limit, service_account_key):
     rows = all_rows[:stop_index] if limit else all_rows
 
     detainer_warrants.imports.from_spreadsheet(rows)
+
+
+def validate_phone_number(client, app, phone_number):
+    """Asks Twilio for additional phone number information. Saves result to the database."""
+    proper_phone_number = None
+    try:
+        proper_phone_number = phonenumbers.parse(phone_number, region='US')
+        proper_phone_number = phonenumbers.format_number(
+            proper_phone_number, phonenumbers.PhoneNumberFormat.E164)
+    except phonenumbers.NumberParseException as e:
+        app.logger.info(f'Failed to parse {phone_number}: {e}')
+        return
+
+    existing_number = db.session.query(PhoneNumberVerification).filter_by(
+        phone_number=proper_phone_number).first()
+
+    if existing_number is not None:
+        app.logger.info(f'number already validated: {existing_number}')
+        return
+
+    try:
+        verified_number = client.lookups \
+            .v1 \
+            .phone_numbers(proper_phone_number) \
+            .fetch(type=['carrier', 'caller-name'])
+    except TwilioRestException as e:
+        app.logger.info(f'Failed to fetch {proper_phone_number}: {e}')
+        entry = PhoneNumberVerification.create(
+            phone_number=proper_phone_number)
+        return entry
+
+    entry = PhoneNumberVerification.from_twilio_response(verified_number)
+    db.session.add(entry)
+    db.session.commit()
+
+    return entry
+
+
+def twilio_client(app):
+    account_sid = app.config['TWILIO_ACCOUNT_SID']
+    auth_token = app.config['TWILIO_AUTH_TOKEN']
+    return Client(account_sid, auth_token)
+
+
+@click.command()
+@click.option('-l', '--limit', default=None, help='Number of phone numbers to validate')
+@with_appcontext
+def verify_phones(limit):
+    """Verify phone numbers listed on Detainer Warrants"""
+    client = twilio_client(current_app)
+    numbers_to_validate = db.session.query(
+        Defendant).filter(Defendant.potential_phones != None)
+
+    if limit:
+        numbers_to_validate = numbers_to_validate.limit(limit)
+
+    for defendant in numbers_to_validate.all():
+        for potential_phone in defendant.potential_phones.split(','):
+            validate_phone_number(client, current_app, potential_phone)
+
+
+@click.command()
+@click.argument('phone_number')
+@with_appcontext
+def verify_phone(phone_number):
+    """Verify an individual phone number"""
+    client = twilio_client(current_app)
+    validate_phone_number(client, current_app, phone_number)
