@@ -230,10 +230,10 @@ class PhoneNumberVerification(db.Model, Timestamped):
     carrier_error_code = Column(db.Integer)
     mobile_country_code = Column(db.String(10))
     mobile_network_code = Column(db.String(10))
-    carrier_name = Column(db.String(30))
+    carrier_name = Column(db.String(255))
     phone_type = Column(db.String(10))
     country_code = Column(db.String(10))
-    national_format = Column(db.String(20))
+    national_format = Column(db.String(30))
     phone_number = Column(db.String(30), unique=True)
 
     defendants = relationship('Defendant', secondary=defendant_phone_verifications,
