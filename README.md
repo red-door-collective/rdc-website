@@ -12,6 +12,19 @@ Currently helping verify detainer warrant data for middle Tennessee - via Middle
 
 ### Setup
 
+You'll need to set a few secret environment variables before booting the app.
+
+You can copy-paste the following lines into your terminal if you're using bash.
+
+```bash
+echo 'export TWILIO_ACCOUNT_SID=fake' >>~/.bash_profile
+echo 'export TWILIO_AUTH_TOKEN=fake' >>~/.bash_profile
+```
+
+Then, you can either run `source ~/.bash_profile` or open a new terminal tab and proceed to the next step.
+
+> If you're wondering what the above code does: it defines two environment variables with the value "fake" and ensures they are available in all future (bash) shell sessions. TODO: make this process less painful.
+
 #### Nix
 
 Nix is a tool we use to ensure reproducable builds and deployments. Python's default build and deployment system is notoriously tricky.

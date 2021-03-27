@@ -8,6 +8,18 @@ from flask_testing import TestCase
 from eviction_tracker.detainer_warrants.models import PhoneNumberVerification
 from eviction_tracker.database import db
 from eviction_tracker.app import create_app
+from eviction_tracker.commands import validate_phone_number, twilio_client
+
+
+class MockTwilioLookup:
+    def __init__(self, dictionary):
+        for k, v in dictionary.items():
+            setattr(self, k, v)
+
+    def from_fixture(file_name):
+        with open(file_name) as twilio_response:
+            phone_dict = json.load(twilio_response)
+        return MockTwilioLookup(phone_dict)
 
 
 class TestTwilioResponse(TestCase):
@@ -30,105 +42,110 @@ class TestTwilioResponse(TestCase):
         '''
         Testing json response with caller_name but null carrier
         '''
-        with open('tests/fixtures/phone_number_with_caller_name.json') as twilio_response:
-            phone_dict = json.load(twilio_response)
-        phone_number = PhoneNumberVerification.from_twilio_response(phone_dict)
+        twilio_response = MockTwilioLookup.from_fixture(
+            'tests/fixtures/phone_number_with_caller_name.json')
+        phone_number = PhoneNumberVerification.from_twilio_response(
+            twilio_response)
 
         db.session.add(phone_number)
         db.session.commit()
         phone_number_entry = db.session.query(PhoneNumberVerification).first()
 
         self.assertEqual(
-            phone_dict['caller_name']['caller_name'], phone_number_entry.caller_name)
+            twilio_response.caller_name['caller_name'], phone_number_entry.caller_name)
         self.assertEqual(
-            phone_dict['caller_name']['caller_type'], phone_number_entry.caller_type)
+            twilio_response.caller_name['caller_type'], phone_number_entry.caller_type)
         self.assertEqual(
-            phone_dict['caller_name']['error_code'], phone_number_entry.name_error_code)
-        self.assertEqual(phone_dict['carrier'],
+            twilio_response.caller_name['error_code'], phone_number_entry.name_error_code)
+        self.assertEqual(twilio_response.carrier,
                          phone_number_entry.carrier_error_code)
-        self.assertEqual(phone_dict['carrier'],
+        self.assertEqual(twilio_response.carrier,
                          phone_number_entry.mobile_country_code)
-        self.assertEqual(phone_dict['carrier'],
+        self.assertEqual(twilio_response.carrier,
                          phone_number_entry.mobile_network_code)
-        self.assertEqual(phone_dict['carrier'],
+        self.assertEqual(twilio_response.carrier,
                          phone_number_entry.carrier_name)
-        self.assertEqual(phone_dict['carrier'], phone_number_entry.phone_type)
-        self.assertEqual(phone_dict['country_code'],
+        self.assertEqual(twilio_response.carrier,
+                         phone_number_entry.phone_type)
+        self.assertEqual(twilio_response.country_code,
                          phone_number_entry.country_code)
-        self.assertEqual(phone_dict['national_format'],
+        self.assertEqual(twilio_response.national_format,
                          phone_number_entry.national_format)
-        self.assertEqual(phone_dict['phone_number'],
+        self.assertEqual(twilio_response.phone_number,
                          phone_number_entry.phone_number)
 
     def test_insert_phone_missing_caller_name(self):
         '''
         Testing json response with carrier but null caller_name
         '''
-        with open('tests/fixtures/phone_number_missing_caller_name.json') as twilio_response:
-            phone_dict = json.load(twilio_response)
+        twilio_response = MockTwilioLookup.from_fixture(
+            'tests/fixtures/phone_number_missing_caller_name.json')
+        phone_number = PhoneNumberVerification.from_twilio_response(
+            twilio_response)
 
-            output_missing_name = PhoneNumberVerification.from_twilio_response(
-                phone_dict)
+        output_missing_name = PhoneNumberVerification.from_twilio_response(
+            twilio_response)
 
         db.session.add(output_missing_name)
         db.session.commit()
 
         phone_number_entry = db.session.query(PhoneNumberVerification).first()
 
-        self.assertEqual(phone_dict['caller_name'],
+        self.assertEqual(twilio_response.caller_name,
                          phone_number_entry.caller_name)
-        self.assertEqual(phone_dict['caller_name'],
+        self.assertEqual(twilio_response.caller_name,
                          phone_number_entry.caller_type)
-        self.assertEqual(phone_dict['caller_name'],
+        self.assertEqual(twilio_response.caller_name,
                          phone_number_entry.name_error_code)
         self.assertEqual(
-            phone_dict['carrier']['error_code'], phone_number_entry.carrier_error_code)
+            twilio_response.carrier['error_code'], phone_number_entry.carrier_error_code)
         self.assertEqual(
-            phone_dict['carrier']['mobile_country_code'], phone_number_entry.mobile_country_code)
+            twilio_response.carrier['mobile_country_code'], phone_number_entry.mobile_country_code)
         self.assertEqual(
-            phone_dict['carrier']['mobile_network_code'], phone_number_entry.mobile_network_code)
-        self.assertEqual(phone_dict['carrier']['name'],
+            twilio_response.carrier['mobile_network_code'], phone_number_entry.mobile_network_code)
+        self.assertEqual(twilio_response.carrier['name'],
                          phone_number_entry.carrier_name)
-        self.assertEqual(phone_dict['carrier']['type'],
+        self.assertEqual(twilio_response.carrier['type'],
                          phone_number_entry.phone_type)
-        self.assertEqual(phone_dict['country_code'],
+        self.assertEqual(twilio_response.country_code,
                          phone_number_entry.country_code)
-        self.assertEqual(phone_dict['national_format'],
+        self.assertEqual(twilio_response.national_format,
                          phone_number_entry.national_format)
-        self.assertEqual(phone_dict['phone_number'],
+        self.assertEqual(twilio_response.phone_number,
                          phone_number_entry.phone_number)
 
     def test_insert_phone_with_all_data(self):
         '''
         Testing json response with caller_name but null carrier
         '''
-        with open('tests/fixtures/phone_number_with_all_data.json') as twilio_response:
-            phone_dict = json.load(twilio_response)
-        phone_number = PhoneNumberVerification.from_twilio_response(phone_dict)
+        twilio_response = MockTwilioLookup.from_fixture(
+            'tests/fixtures/phone_number_with_all_data.json')
+        phone_number = PhoneNumberVerification.from_twilio_response(
+            twilio_response)
 
         db.session.add(phone_number)
         db.session.commit()
         phone_number_entry = db.session.query(PhoneNumberVerification).first()
 
         self.assertEqual(
-            phone_dict['caller_name']['caller_name'], phone_number_entry.caller_name)
+            twilio_response.caller_name['caller_name'], phone_number_entry.caller_name)
         self.assertEqual(
-            phone_dict['caller_name']['caller_type'], phone_number_entry.caller_type)
+            twilio_response.caller_name['caller_type'], phone_number_entry.caller_type)
         self.assertEqual(
-            phone_dict['caller_name']['error_code'], phone_number_entry.name_error_code)
+            twilio_response.caller_name['error_code'], phone_number_entry.name_error_code)
         self.assertEqual(
-            phone_dict['carrier']['error_code'], phone_number_entry.carrier_error_code)
+            twilio_response.carrier['error_code'], phone_number_entry.carrier_error_code)
         self.assertEqual(
-            phone_dict['carrier']['mobile_country_code'], phone_number_entry.mobile_country_code)
+            twilio_response.carrier['mobile_country_code'], phone_number_entry.mobile_country_code)
         self.assertEqual(
-            phone_dict['carrier']['mobile_network_code'], phone_number_entry.mobile_network_code)
-        self.assertEqual(phone_dict['carrier']['name'],
+            twilio_response.carrier['mobile_network_code'], phone_number_entry.mobile_network_code)
+        self.assertEqual(twilio_response.carrier['name'],
                          phone_number_entry.carrier_name)
-        self.assertEqual(phone_dict['carrier']['type'],
+        self.assertEqual(twilio_response.carrier['type'],
                          phone_number_entry.phone_type)
-        self.assertEqual(phone_dict['country_code'],
+        self.assertEqual(twilio_response.country_code,
                          phone_number_entry.country_code)
-        self.assertEqual(phone_dict['national_format'],
+        self.assertEqual(twilio_response.national_format,
                          phone_number_entry.national_format)
-        self.assertEqual(phone_dict['phone_number'],
+        self.assertEqual(twilio_response.phone_number,
                          phone_number_entry.phone_number)

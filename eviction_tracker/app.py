@@ -51,6 +51,8 @@ def create_app(testing=False):
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['SQLALCHEMY_DATABASE_URI']
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ['SQLALCHEMY_TRACK_MODIFICATIONS']
     app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
+    app.config['TWILIO_ACCOUNT_SID'] = os.environ['TWILIO_ACCOUNT_SID']
+    app.config['TWILIO_AUTH_TOKEN'] = os.environ['TWILIO_AUTH_TOKEN']
     app.config.update(**security_config)
 
     register_extensions(app)
@@ -366,3 +368,5 @@ def register_commands(app):
     """Register Click commands."""
     app.cli.add_command(commands.test)
     app.cli.add_command(commands.sync)
+    app.cli.add_command(commands.verify_phone)
+    app.cli.add_command(commands.verify_phones)
