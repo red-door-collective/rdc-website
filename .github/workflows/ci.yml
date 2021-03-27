@@ -50,6 +50,9 @@ jobs:
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - run: nix-shell --run './scripts/build-ui'
         name: Build application
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
       - run: |
           set -ex -o pipefail
           git config user.name "Release Bot"
