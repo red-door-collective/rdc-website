@@ -33,11 +33,18 @@ let
     ${flask}/bin/flask sync "$@"
   '';
 
+  verifyPhones = pkgs.writeShellScriptBin "verifyPhones" ''
+    export PYTHONPATH=${pythonpath}
+    cd ${src}
+    ${flask}/bin/flask verify-phones "$@"
+  ''
+
 in pkgs.buildEnv {
   name = "eviction-tracker-serve-app";
   paths = [
     runGunicorn
     runMigrations
     runSync
+    verifyPhones
   ];
 }
