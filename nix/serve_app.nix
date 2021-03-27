@@ -37,7 +37,7 @@ let
     export PYTHONPATH=${pythonpath}
     cd ${src}
     ${flask}/bin/flask verify-phones "$@"
-  ''
+  '';
 
 in pkgs.buildEnv {
   name = "eviction-tracker-serve-app";
