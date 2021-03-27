@@ -29,8 +29,6 @@ class TestTwilioResponse(TestCase):
         app.config['TESTING'] = True
         app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://eviction_tracker_test:junkdata@localhost:5432/eviction_tracker_test'
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        app.config['TWILIO_ACCOUNT_SID'] = os.environ['TEST_TWILIO_ACCOUNT_SID']
-        app.config['TWILIO_AUTH_TOKEN'] = os.environ['TEST_TWILIO_AUTH_TOKEN']
         return app
 
     def setUp(self):
@@ -39,13 +37,6 @@ class TestTwilioResponse(TestCase):
     def tearDown(self):
         db.session.remove()
         db.drop_all()
-
-    # def test_validate_phone_number(self):
-    #     client = twilio_client(self.app)
-    #     phone_number = '123-456-7890'
-    #     validate_phone_number(client, self.app, phone_number)
-    #     verification = db.session.query(PhoneNumberVerification).first()
-    #     self.assertEqual(phone_number, verification.phone_number)
 
     def test_insert_phone_with_caller_name(self):
         '''
