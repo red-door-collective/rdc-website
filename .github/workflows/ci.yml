@@ -29,6 +29,10 @@ jobs:
           signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - run: nix-shell --run "pytest"
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+
   deploy:
     runs-on: ubuntu-latest
     name: Deploy site
