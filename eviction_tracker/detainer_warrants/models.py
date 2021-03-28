@@ -64,7 +64,7 @@ class Defendant(db.Model, Timestamped):
                                               back_populates='defendants')
 
     def __repr__(self):
-        return f"<Defendant(name='{name}', , address='%s')>" % (self.name, self.phone, self.address)
+        return f"<Defendant(name='{self.name}', phones='{self.potential_phones}', address='{self.address}')>"
 
 
 class Attorney(db.Model, Timestamped):

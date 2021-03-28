@@ -1,17 +1,18 @@
 module Main exposing (main)
 
 import Api
-import Browser
+import Browser exposing (Document)
 import Browser.Events
 import Browser.Navigation as Nav
-import Element
+import Element exposing (Element)
 import Html
 import Http
 import Json.Decode as Decode exposing (Decoder, Value, list)
 import Json.Decode.Pipeline exposing (optional, required)
-import Page
+import Page exposing (Page)
 import Page.About as About
 import Page.Actions as Actions
+import Page.Admin.DetainerWarrants as ManageDetainerWarrants
 import Page.Blank as Blank
 import Page.Login as Login
 import Page.NotFound as NotFound
@@ -32,11 +33,13 @@ type CurrentPage
     | WarrantHelp WarrantHelp.Model
     | About About.Model
     | Actions Actions.Model
+    | ManageDetainerWarrants ManageDetainerWarrants.Model
 
 
 type alias Model =
     { window : Api.Window
     , profile : Maybe User
+    , hamburgerMenuOpen : Bool
     , page : CurrentPage
     }
 
@@ -52,7 +55,7 @@ init { window, viewer } url navKey =
     in
     Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.users maybeCred GotProfiles Api.userApiDecoder ])
         (changeRouteTo (Route.fromUrl url)
-            { window = window, page = Redirect session, profile = Nothing }
+            { window = window, page = Redirect session, profile = Nothing, hamburgerMenuOpen = False }
         )
 
 
@@ -65,7 +68,9 @@ type Msg
     | GotAboutMsg About.Msg
     | GotWarrantHelpMsg WarrantHelp.Msg
     | GotActionsMsg Actions.Msg
+    | GotManageDetainerWarrantsMsg ManageDetainerWarrants.Msg
     | GotSession Session
+    | GotHamburgerMenuPress
     | GotProfiles (Result Http.Error (Api.ApiPage User))
     | OnResize Int Int
 
@@ -93,6 +98,9 @@ toSession model =
 
         Actions actions ->
             Actions.toSession actions
+
+        ManageDetainerWarrants dw ->
+            ManageDetainerWarrants.toSession dw
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -130,6 +138,10 @@ changeRouteTo maybeRoute model =
         Just Route.Actions ->
             Actions.init session
                 |> updateWith Actions GotActionsMsg model
+
+        Just Route.ManageDetainerWarrants ->
+            ManageDetainerWarrants.init session
+                |> updateWith ManageDetainerWarrants GotManageDetainerWarrantsMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -175,6 +187,13 @@ update msg model =
             Actions.update subMsg actions
                 |> updateWith Actions GotActionsMsg model
 
+        ( GotManageDetainerWarrantsMsg subMsg, ManageDetainerWarrants dw ) ->
+            ManageDetainerWarrants.update subMsg dw
+                |> updateWith ManageDetainerWarrants GotManageDetainerWarrantsMsg model
+
+        ( GotHamburgerMenuPress, _ ) ->
+            ( { model | hamburgerMenuOpen = not model.hamburgerMenuOpen }, Cmd.none )
+
         ( GotProfiles result, _ ) ->
             case result of
                 Ok usersPage ->
@@ -184,8 +203,12 @@ update msg model =
                     ( model, Cmd.none )
 
         ( GotSession session, _ ) ->
+            let
+                maybeCred =
+                    Session.cred session
+            in
             ( { model | page = Redirect session }
-            , Route.replaceUrl (Session.navKey session) Route.Trends
+            , Cmd.batch [ Route.replaceUrl (Session.navKey session) Route.Trends, Api.users maybeCred GotProfiles Api.userApiDecoder ]
             )
 
         ( OnResize width height, _ ) ->
@@ -215,21 +238,39 @@ view model =
         device =
             Element.classifyDevice model.window
 
-        viewPage page toMsg config =
+        settings =
+            { device = device
+            , user = model.profile
+            , viewer = viewer
+            }
+
+        navBar =
+            { hamburgerMenuOpen = model.hamburgerMenuOpen
+            , onHamburgerMenuOpen = GotHamburgerMenuPress
+            }
+
+        viewPage : Page -> (msg -> Msg) -> { title : String, content : Element msg } -> { title : String, body : List (Html.Html Msg) }
+        viewPage page toMsg { title, content } =
             let
-                { title, body } =
-                    Page.view device viewer page config
+                header =
+                    Page.viewHeader
+                        navBar
+                        settings
+                        page
+
+                document =
+                    Page.view header { title = title, content = Element.map toMsg content }
             in
-            { title = title
-            , body = List.map (Html.map toMsg) body
+            { title = document.title
+            , body = document.body
             }
     in
     case model.page of
         Redirect _ ->
-            Page.view device viewer Page.Other Blank.view
+            Page.view (Page.viewHeader navBar settings Page.Other) Blank.view
 
         NotFound _ ->
-            Page.view device viewer Page.Other NotFound.view
+            Page.view (Page.viewHeader navBar settings Page.Other) NotFound.view
 
         Login login ->
             viewPage Page.Other GotLoginMsg (Login.view login)
@@ -245,6 +286,9 @@ view model =
 
         Actions actions ->
             viewPage Page.Actions GotActionsMsg (Actions.view actions)
+
+        ManageDetainerWarrants dw ->
+            viewPage Page.ManageDetainerWarrants GotManageDetainerWarrantsMsg (ManageDetainerWarrants.view settings dw)
 
 
 subscriptions : Model -> Sub Msg
@@ -271,6 +315,9 @@ subscriptions model =
 
             Actions actions ->
                 Sub.map GotActionsMsg (Actions.subscriptions actions)
+
+            ManageDetainerWarrants dw ->
+                Sub.map GotManageDetainerWarrantsMsg (ManageDetainerWarrants.subscriptions dw)
          )
             :: [ Browser.Events.onResize OnResize, Session.changes GotSession (Session.navKey (toSession model)) ]
         )

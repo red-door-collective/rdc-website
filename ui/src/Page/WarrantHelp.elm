@@ -81,14 +81,12 @@ view profile model =
             [ Element.column [ Element.centerX, Element.spacing 10 ]
                 ((case profile of
                     Just user ->
-                        [ Element.row [ Element.centerX, Font.center ] [ Element.text ("Hello " ++ user.firstName ++ ",") ] ]
+                        [ Element.row [ Element.centerX, Font.center ] [ Element.text ("Hello " ++ user.firstName ++ ", one of these may be your detainer warrant: ") ] ]
 
                     Nothing ->
                         []
                  )
-                    ++ [ Element.row [ Element.centerX, Font.center ] [ Element.text "Find your Detainer Warrant case" ]
-                       , viewSearchBar model
-                       , Element.row [ Element.centerX, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
+                    ++ [ Element.row [ Element.centerX, Element.width (fill |> Element.maximum 1000 |> Element.minimum 400) ]
                             (if List.isEmpty model.warrants then
                                 []
 
@@ -180,54 +178,6 @@ viewWarrants model =
               }
             ]
         }
-
-
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
-        )
-
-
-viewSearchBar : Model -> Element Msg
-viewSearchBar model =
-    Element.row
-        [ --Element.width fill
-          Element.spacing 10
-        , Element.padding 10
-        , Element.centerY
-        , Element.centerX
-        ]
-        [ Element.Input.search
-            [ Element.width (fill |> Element.maximum 600)
-            , onEnter SearchWarrants
-            ]
-            { onChange = InputQuery
-            , text = model.query
-            , placeholder = Just (Element.Input.placeholder [] (Element.text "Search for a defendant"))
-            , label = Element.Input.labelHidden "Search for a defendant"
-            }
-        , Element.Input.button
-            [ Element.centerY
-            , Background.color Palette.redLight
-            , Element.focused [ Background.color Palette.red ]
-            , Element.height fill
-            , Font.color (Element.rgb 255 255 255)
-            , Element.padding 10
-            , Border.rounded 5
-            ]
-            { onPress = Just SearchWarrants, label = Element.text "Search" }
-        ]
 
 
 subscriptions : Model -> Sub Msg

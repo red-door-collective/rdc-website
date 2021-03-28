@@ -1,17 +1,24 @@
-module Page exposing (Page(..), view)
+module Page exposing (Page(..), view, viewHeader)
 
 import Browser exposing (Document)
-import Element exposing (Device, DeviceClass(..), Element, Orientation(..), alignLeft, alignRight, centerX, centerY, column, el, fill, height, maximum, minimum, px, row, spacing, width)
+import Color
+import Element exposing (Device, DeviceClass(..), Element, Orientation(..), alignLeft, alignRight, centerX, centerY, column, el, fill, height, link, maximum, minimum, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font exposing (center)
+import Element.Input as Input
 import Element.Region as Region
+import FeatherIcons
 import Html exposing (Html)
 import List
 import Logo
 import Palette
 import Route
+import Settings exposing (Settings)
+import User exposing (Permissions(..))
 import Viewer exposing (Viewer(..))
+import Widget
+import Widget.Icon exposing (Icon)
 
 
 {-| Determines which navbar link (if any) will be rendered as active.
@@ -28,6 +35,11 @@ type Page
     | WarrantHelp
     | Actions
     | Login
+    | ManageDetainerWarrants
+
+
+type alias NavBar msg =
+    { hamburgerMenuOpen : Bool, onHamburgerMenuOpen : msg }
 
 
 {-| Take a page's Html and frames it with a header and footer.
@@ -39,8 +51,13 @@ isLoading is for determining whether we should show a loading spinner
 in the header. (This comes up during slow page transitions.)
 
 -}
-view : Device -> Maybe Viewer -> Page -> { title : String, content : Element msg } -> Document msg
-view device maybeViewer page { title, content } =
+viewHeader : NavBar msg -> Settings -> Page -> Element msg
+viewHeader config settings page =
+    navBar config settings page
+
+
+view : Element msg -> { title : String, content : Element msg } -> Document msg
+view header { title, content } =
     { title = title ++ " - RDC"
     , body =
         [ Element.layoutWith
@@ -63,11 +80,8 @@ view device maybeViewer page { title, content } =
                 , Font.sansSerif
                 ]
             ]
-            (column [ centerX, width fill, Element.spacing 10 ]
-                [ navBar device maybeViewer page
-                , content
-                , viewFooter
-                ]
+            (column [ centerX, width fill, spacing 10 ]
+                [ header, content, viewFooter ]
             )
         ]
     }
@@ -86,7 +100,7 @@ roseSeparator =
 
 
 navBarLink { url, text, isActive } =
-    Element.link
+    link
         ([ height (px 40)
          , Font.center
          , width (fill |> Element.minimum 150 |> Element.maximum 300)
@@ -111,23 +125,23 @@ navBarLink { url, text, isActive } =
         }
 
 
-navBar : Device -> Maybe Viewer -> Page -> Element msg
-navBar device maybeViewer page =
-    case device.class of
+navBar : NavBar msg -> Settings -> Page -> Element msg
+navBar config settings page =
+    case settings.device.class of
         Phone ->
-            phoneBar device.orientation maybeViewer page
+            phoneBar config settings page
 
         Tablet ->
-            tabletBar maybeViewer page
+            tabletBar config settings page
 
         Desktop ->
-            desktopBar maybeViewer page
+            desktopBar config settings page
 
         BigDesktop ->
-            desktopBar maybeViewer page
+            desktopBar config settings page
 
 
-links maybeViewer page =
+links settings page =
     [ { url = Route.href Route.Trends, text = "Trends", isActive = page == Trends }
     , { url = Route.href Route.About
       , text = "About"
@@ -135,13 +149,12 @@ links maybeViewer page =
       }
     , { url = Route.href Route.Actions, text = "Actions", isActive = page == Actions }
     ]
-        ++ (case maybeViewer of
+        ++ (case settings.viewer of
                 Just _ ->
                     [ { url = Route.href Route.WarrantHelp
                       , text = "Warrant Help"
                       , isActive = page == WarrantHelp
                       }
-                    , { url = Route.href Route.Logout, text = "Logout", isActive = False }
                     ]
 
                 Nothing ->
@@ -149,14 +162,128 @@ links maybeViewer page =
            )
 
 
-horizontalBar maybeViewer page =
-    Element.row
+viewHamburgerMenu config settings page =
+    case settings.viewer of
+        Just viewer ->
+            [ hamburgerMenu config settings page ]
+
+        Nothing ->
+            []
+
+
+horizontalBar config settings page =
+    row
         [ centerY
         , height fill
         , width (fill |> Element.minimum 600)
         , Font.color Palette.white
         ]
-        (List.intersperse roseSeparator (List.map navBarLink (links maybeViewer page)))
+        (List.intersperse roseSeparator (List.map navBarLink (links settings page) ++ viewHamburgerMenu config settings page))
+
+
+menuLink { label, url, isActive } =
+    link
+        ([ height (px 40)
+         , Font.center
+         , width fill
+         , Element.mouseOver [ Background.color Palette.redLight ]
+         , Background.color Palette.sred
+         , centerY
+         , Font.size 18
+         ]
+            ++ (if isActive then
+                    [ Border.width 1
+                    , Border.color Palette.grayLight
+                    , Font.color Palette.grayLight
+                    ]
+
+                else
+                    []
+               )
+        )
+        { label = row [] [ text label ]
+        , url = url
+        }
+
+
+logoutLink =
+    { url = Route.href Route.Logout, label = "Logout", isActive = False }
+
+
+adminOptions settings page =
+    [ { url = Route.href Route.ManageDetainerWarrants, label = "Detainer Warrants", isActive = page == ManageDetainerWarrants } ]
+
+
+organizerOptions settings page =
+    [ { url = Route.href Route.ManageDetainerWarrants, label = "Detainer Warrants", isActive = page == ManageDetainerWarrants } ]
+
+
+defendantOptions settings page =
+    []
+
+
+accountOptions settings page =
+    column []
+        (List.map menuLink
+            ((case settings.user of
+                Just user ->
+                    case User.permissions user of
+                        Superuser ->
+                            adminOptions settings page
+
+                        Admin ->
+                            adminOptions settings page
+
+                        Organizer ->
+                            organizerOptions settings page
+
+                        Defendant ->
+                            defendantOptions settings page
+
+                Nothing ->
+                    []
+             )
+                ++ [ logoutLink ]
+            )
+        )
+
+
+menuIcon =
+    FeatherIcons.menu
+        |> Widget.Icon.elmFeather FeatherIcons.toHtml
+
+
+menuIconStyle =
+    { size = 20
+    , color = Color.white
+    }
+
+
+hamburgerMenu config settings page =
+    Widget.iconButton
+        { elementButton =
+            [ width (px 40), height (px 40), Background.color Palette.sred, centerX, Font.center ]
+                ++ (if config.hamburgerMenuOpen then
+                        [ Element.below (accountOptions settings page) ]
+
+                    else
+                        []
+                   )
+        , ifDisabled = []
+        , ifActive = []
+        , otherwise = []
+        , content =
+            { elementRow = [ centerX, Font.center ]
+            , content =
+                { text = { contentText = [] }
+                , icon = { ifDisabled = menuIconStyle, ifActive = menuIconStyle, otherwise = menuIconStyle }
+                }
+            }
+        }
+        { text = "Toggle menu"
+        , icon = menuIcon
+        , onPress = Just config.onHamburgerMenuOpen
+        }
 
 
 verticalTab { url, text, isActive } =
@@ -190,32 +317,32 @@ verticalTab { url, text, isActive } =
         }
 
 
-verticalBar maybeViewer page =
+verticalBar config settings page =
     column
         [ Font.color Palette.white, centerX, width (fill |> minimum 200 |> maximum 300) ]
-        (List.map verticalTab (links maybeViewer page))
+        (List.map verticalTab (links settings page) ++ viewHamburgerMenu config settings page)
 
 
-phoneBar orientation maybeViewer page =
-    case orientation of
+phoneBar config settings page =
+    case settings.device.orientation of
         Portrait ->
             Element.column [ width fill, spacing 10 ]
                 [ row [ centerX ] [ Logo.link ]
-                , row [ width fill, centerX ] [ verticalBar maybeViewer page ]
+                , row [ width fill, centerX ] [ verticalBar config settings page ]
                 ]
 
         Landscape ->
-            tabletBar maybeViewer page
+            tabletBar config settings page
 
 
-tabletBar maybeViewer page =
+tabletBar config settings page =
     column [ centerX, Element.spacing 10 ]
         [ row [ centerX ] [ Logo.link ]
-        , horizontalBar maybeViewer page
+        , horizontalBar config settings page
         ]
 
 
-desktopBar maybeViewer page =
+desktopBar config settings page =
     Element.row
         [ Border.color Palette.black
         , Element.padding 5
@@ -226,7 +353,7 @@ desktopBar maybeViewer page =
         , Element.spacingXY 20 0
         ]
         [ Logo.link
-        , horizontalBar maybeViewer page
+        , horizontalBar config settings page
         ]
 
 

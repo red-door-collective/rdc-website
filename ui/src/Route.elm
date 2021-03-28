@@ -17,6 +17,7 @@ type Route
     | About
     | WarrantHelp
     | Actions
+    | ManageDetainerWarrants
 
 
 parser : Parser (Route -> a) a
@@ -29,6 +30,7 @@ parser =
         , Parser.map About (s "about")
         , Parser.map WarrantHelp (s "warrant-help")
         , Parser.map Actions (s "actions")
+        , Parser.map ManageDetainerWarrants (s "admin" </> s "detainer-warrants")
         ]
 
 
@@ -83,3 +85,6 @@ routeToPieces page =
 
         Actions ->
             [ "actions" ]
+
+        ManageDetainerWarrants ->
+            [ "admin", "detainer-warrants" ]
