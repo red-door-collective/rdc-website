@@ -350,15 +350,17 @@ def register_extensions(app):
             'last_detainer_warrant_update': millisTimestamp(last_warrant.updated_at) if last_warrant else None
         })
 
+    @app.route('/api/v1/current_user')
+    @auth_token_required
+    def me():
+        return detainer_warrants.serializers.user_schema.dump(current_user)
+
 
 def register_shellcontext(app):
     def shell_context():
         return {
-            'db': db,
-            'DetainerWarrant': DetainerWarrant,
-            'Attorney': Attorney,
-            'Defendant': Defendant,
-            'User': User
+            'user_datastore': user_datastore,
+            'hash_password': hash_password
         }
 
     app.shell_context_processor(shell_context)

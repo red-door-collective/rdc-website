@@ -1,4 +1,4 @@
-port module Api exposing (ApiMeta, ApiPage, Cred, Flags, RollupMetadata, Window, addServerError, apiMetaDecoder, application, decodeErrors, delete, detainerWarrantApiDecoder, get, login, logout, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, userApiDecoder, users, viewerChanges)
+port module Api exposing (ApiMeta, ApiPage, Cred, Flags, RollupMetadata, Window, addServerError, apiMetaDecoder, application, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, login, logout, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, userApiDecoder, users, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -270,6 +270,11 @@ decoderFromCred decoder =
 users : Maybe Cred -> (Result Error a -> msg) -> Decoder a -> Cmd msg
 users maybeCred toMsg decoder =
     get Endpoint.users maybeCred toMsg decoder
+
+
+currentUser : Maybe Cred -> (Result Error a -> msg) -> Decoder a -> Cmd msg
+currentUser maybeCred toMsg decoder =
+    get Endpoint.currentUser maybeCred toMsg decoder
 
 
 

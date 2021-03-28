@@ -17,7 +17,7 @@ type AmountClaimedCategory
 
 
 type alias Defendant =
-    { name : String, phone : String, address : String }
+    { name : String, phone : String, address : Maybe String }
 
 
 type alias Judge =
@@ -124,7 +124,7 @@ defendantDecoder =
     Decode.succeed Defendant
         |> required "name" string
         |> optional "phone" string "not provided"
-        |> required "address" string
+        |> required "address" (nullable string)
 
 
 decoder : Decoder DetainerWarrant

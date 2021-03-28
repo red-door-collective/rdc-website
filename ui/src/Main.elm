@@ -53,7 +53,7 @@ init { window, viewer } url navKey =
         maybeCred =
             Session.cred session
     in
-    Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.users maybeCred GotProfiles Api.userApiDecoder ])
+    Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.currentUser maybeCred GotProfile User.userDecoder ])
         (changeRouteTo (Route.fromUrl url)
             { window = window, page = Redirect session, profile = Nothing, hamburgerMenuOpen = False }
         )
@@ -71,7 +71,7 @@ type Msg
     | GotManageDetainerWarrantsMsg ManageDetainerWarrants.Msg
     | GotSession Session
     | GotHamburgerMenuPress
-    | GotProfiles (Result Http.Error (Api.ApiPage User))
+    | GotProfile (Result Http.Error User)
     | OnResize Int Int
 
 
@@ -194,10 +194,10 @@ update msg model =
         ( GotHamburgerMenuPress, _ ) ->
             ( { model | hamburgerMenuOpen = not model.hamburgerMenuOpen }, Cmd.none )
 
-        ( GotProfiles result, _ ) ->
+        ( GotProfile result, _ ) ->
             case result of
-                Ok usersPage ->
-                    ( { model | profile = List.head usersPage.data }, Cmd.none )
+                Ok me ->
+                    ( { model | profile = Just me }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -208,7 +208,10 @@ update msg model =
                     Session.cred session
             in
             ( { model | page = Redirect session }
-            , Cmd.batch [ Route.replaceUrl (Session.navKey session) Route.Trends, Api.users maybeCred GotProfiles Api.userApiDecoder ]
+            , Cmd.batch
+                [ Route.replaceUrl (Session.navKey session) Route.Trends
+                , Api.currentUser maybeCred GotProfile User.userDecoder
+                ]
             )
 
         ( OnResize width height, _ ) ->
