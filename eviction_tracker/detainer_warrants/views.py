@@ -22,7 +22,6 @@ from sqlalchemy.orm import raiseload
 
 from eviction_tracker.database import db
 from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plantiff, Judge, PhoneNumberVerification
-from eviction_tracker.admin.models import User, Role, user_datastore
 from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
 

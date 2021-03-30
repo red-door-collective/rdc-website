@@ -21,11 +21,24 @@ attorney_schema = AttorneySchema()
 attorneys_schema = AttorneySchema(many=True)
 
 
+class PhoneNumberVerificationSchema(Schema):
+    class Meta:
+        fields = ("caller_name", "caller_type", "error_code", "carrier",
+                  "country_code", "national_format", "phone_number")
+
+
+phone_number_verification_schema = PhoneNumberVerificationSchema()
+phone_number_verifications_schema = PhoneNumberVerificationSchema(many=True)
+
+
 class DefendantSchema(Schema):
     district = fields.Nested(DistrictSchema)
+    verified_phone = fields.Nested(
+        PhoneNumberVerificationSchema)
 
     class Meta:
-        fields = ("id", "name", "district", "address")
+        fields = ("id", "name", "district", "address",
+                  "verified_phone")
 
 
 defendant_schema = DefendantSchema()
@@ -82,13 +95,3 @@ class DetainerWarrantSchema(Schema):
 
 detainer_warrant_schema = DetainerWarrantSchema()
 detainer_warrants_schema = DetainerWarrantSchema(many=True)
-
-
-class PhoneNumberVerificationSchema(Schema):
-    class Meta:
-        fields = ("caller_name", "caller_type", "error_code", "carrier",
-                  "country_code", "national_format", "phone_number")
-
-
-phone_number_verification_schema = PhoneNumberVerificationSchema()
-phone_number_verifications_schema = PhoneNumberVerificationSchema(many=True)

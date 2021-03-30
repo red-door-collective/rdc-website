@@ -28,14 +28,6 @@ detainer_warrant_defendants = db.Table(
     Column('defendant_id', db.ForeignKey('defendants.id'), primary_key=True)
 )
 
-defendant_phone_verifications = db.Table(
-    'defendant_phone_verifications',
-    db.metadata,
-    Column('defendant_id', db.ForeignKey('defendants.id'), primary_key=True),
-    Column('phone_number_verification_id', db.ForeignKey(
-        'phone_number_verifications.id'), primary_key=True)
-)
-
 
 class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
@@ -46,6 +38,8 @@ class Defendant(db.Model, Timestamped):
 
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
+    verified_phone_id = Column(db.Integer, db.ForeignKey(
+        'phone_number_verifications.id'))
 
     db.UniqueConstraint('name', 'district_id')
 
@@ -54,9 +48,8 @@ class Defendant(db.Model, Timestamped):
                                      secondary=detainer_warrant_defendants,
                                      back_populates='defendants'
                                      )
-    phone_number_verifications = relationship('PhoneNumberVerification',
-                                              secondary=defendant_phone_verifications,
-                                              back_populates='defendants')
+    verified_phone = relationship(
+        'PhoneNumberVerification', back_populates='defendants')
     phone_bank_attempts = relationship(
         'PhoneBankEvent', secondary=phone_bank_tenants, back_populates='tenants')
 
@@ -233,8 +226,7 @@ class PhoneNumberVerification(db.Model, Timestamped):
     national_format = Column(db.String(30))
     phone_number = Column(db.String(30), unique=True)
 
-    defendants = relationship('Defendant', secondary=defendant_phone_verifications,
-                              back_populates='phone_number_verifications')
+    defendants = relationship('Defendant', back_populates='verified_phone')
 
     def from_twilio_response(lookup):
         caller_info = lookup.caller_name or {

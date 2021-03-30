@@ -246,6 +246,10 @@ def register_extensions(app):
                      admin.views.UserResource, app=app)
     api.add_resource('/roles/', admin.views.RoleListResource,
                      admin.views.RoleResource, app=app)
+    api.add_resource('/campaigns/', direct_action.views.CampaignListResource,
+                     direct_action.views.CampaignResource, app=app)
+    api.add_resource('/phone_bank_events/', direct_action.views.PhoneBankEventListResource,
+                     direct_action.views.PhoneBankEventResource, app=app)
 
     @app.route('/api/v1/rollup/detainer-warrants')
     def detainer_warrant_rollup_by_month():
@@ -354,7 +358,7 @@ def register_extensions(app):
     @app.route('/api/v1/current_user')
     @auth_token_required
     def me():
-        return detainer_warrants.serializers.user_schema.dump(current_user)
+        return admin.serializers.user_schema.dump(current_user)
 
 
 def register_shellcontext(app):

@@ -41,7 +41,7 @@ class User(db.Model, UserMixin):
                          secondary=roles_users,
                          back_populates='users'
                          )
-    attendees = relationship(
+    attended_events = relationship(
         'Event', secondary=events_users, back_populates='attendees')
 
     @property
