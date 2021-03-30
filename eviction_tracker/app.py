@@ -1,13 +1,14 @@
 import flask
 from flask import Flask, render_template, request, redirect
 from flask_security import hash_password, auth_token_required
-from eviction_tracker.extensions import assets, db, marshmallow, migrate, api, login_manager, user_datastore, security, User
+from eviction_tracker.extensions import assets, db, marshmallow, migrate, api, login_manager, security
+from eviction_tracker.admin.models import User, user_datastore
 import yaml
 import os
 import time
 
 from sqlalchemy import and_, or_, func, desc
-from eviction_tracker import commands, detainer_warrants
+from eviction_tracker import commands, detainer_warrants, admin, direct_action
 import json
 from datetime import datetime, date, timedelta
 from dateutil.rrule import rrule, MONTHLY
@@ -241,10 +242,14 @@ def register_extensions(app):
                      detainer_warrants.views.DetainerWarrantResource, app=app)
     api.add_resource('/phone-number-verifications/', detainer_warrants.views.PhoneNumberVerificationListResource,
                      detainer_warrants.views.PhoneNumberVerificationResource, app=app)
-    api.add_resource('/users/', detainer_warrants.views.UserListResource,
-                     detainer_warrants.views.UserResource, app=app)
-    api.add_resource('/roles/', detainer_warrants.views.RoleListResource,
-                     detainer_warrants.views.RoleResource, app=app)
+    api.add_resource('/users/', admin.views.UserListResource,
+                     admin.views.UserResource, app=app)
+    api.add_resource('/roles/', admin.views.RoleListResource,
+                     admin.views.RoleResource, app=app)
+    api.add_resource('/campaigns/', direct_action.views.CampaignListResource,
+                     direct_action.views.CampaignResource, app=app)
+    api.add_resource('/phone_bank_events/', direct_action.views.PhoneBankEventListResource,
+                     direct_action.views.PhoneBankEventResource, app=app)
 
     @app.route('/api/v1/rollup/detainer-warrants')
     def detainer_warrant_rollup_by_month():
@@ -353,7 +358,7 @@ def register_extensions(app):
     @app.route('/api/v1/current_user')
     @auth_token_required
     def me():
-        return detainer_warrants.serializers.user_schema.dump(current_user)
+        return admin.serializers.user_schema.dump(current_user)
 
 
 def register_shellcontext(app):
