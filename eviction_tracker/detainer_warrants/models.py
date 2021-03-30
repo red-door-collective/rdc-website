@@ -1,13 +1,8 @@
-from eviction_tracker.database import db, Column, Model, relationship
+from eviction_tracker.database import db, Timestamped, Column, Model, relationship
 from datetime import datetime
 from sqlalchemy import func
 from flask_security import UserMixin, RoleMixin
-
-
-class Timestamped():
-    created_at = Column(db.DateTime, nullable=False, server_default=func.now())
-    updated_at = Column(
-        db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+from eviction_tracker.direct_action.models import phone_bank_tenants
 
 
 class District(db.Model, Timestamped):
@@ -62,6 +57,8 @@ class Defendant(db.Model, Timestamped):
     phone_number_verifications = relationship('PhoneNumberVerification',
                                               secondary=defendant_phone_verifications,
                                               back_populates='defendants')
+    phone_bank_attempts = relationship(
+        'PhoneBankEvent', secondary=phone_bank_tenants, back_populates='tenants')
 
     def __repr__(self):
         return f"<Defendant(name='{self.name}', phones='{self.potential_phones}', address='{self.address}')>"
