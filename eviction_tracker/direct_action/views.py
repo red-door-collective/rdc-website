@@ -24,6 +24,7 @@ from eviction_tracker.database import db
 from .models import Campaign, Event, PhoneBankEvent
 from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
+from flask import current_app
 
 
 class CampaignResourceBase(GenericModelView):
@@ -43,6 +44,27 @@ class CampaignListResource(CampaignResourceBase):
 
 
 class CampaignResource(CampaignResourceBase):
+    def get(self, id):
+        return self.retrieve(id)
+
+
+class EventResourceBase(GenericModelView):
+    model = Event
+    schema = event_schema
+
+    authentication = HeaderUserAuthentication()
+    authorization = Protected()
+
+    pagination = CursorPagination()
+    sorting = Sorting('name', default='name')
+
+
+class EventListResource(EventResourceBase):
+    def get(self):
+        return self.list()
+
+
+class EventResource(EventResourceBase):
     def get(self, id):
         return self.retrieve(id)
 

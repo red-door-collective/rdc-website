@@ -2,7 +2,8 @@ module Page.WarrantHelp exposing (Model, Msg, init, subscriptions, toSession, up
 
 import Api exposing (Cred)
 import Api.Endpoint as Endpoint
-import DetainerWarrant exposing (Defendant, DetainerWarrant)
+import Defendant exposing (Defendant)
+import DetainerWarrant exposing (DetainerWarrant)
 import Element exposing (Element, fill)
 import Element.Background as Background
 import Element.Border as Border
@@ -48,7 +49,7 @@ init session =
 type Msg
     = InputQuery String
     | SearchWarrants
-    | GotWarrants (Result Http.Error (Api.ApiPage DetainerWarrant))
+    | GotWarrants (Result Http.Error (Api.Collection DetainerWarrant))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

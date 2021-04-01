@@ -1,5 +1,6 @@
-module DetainerWarrant exposing (AmountClaimedCategory, Attorney, Courtroom, Defendant, DetainerWarrant, Judge, Plantiff, Status, decoder)
+module DetainerWarrant exposing (AmountClaimedCategory, Attorney, Courtroom, DetainerWarrant, Judge, Plantiff, Status, decoder)
 
+import Defendant exposing (Defendant)
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
 
@@ -14,10 +15,6 @@ type AmountClaimedCategory
     | Fees
     | Both
     | NotApplicable
-
-
-type alias Defendant =
-    { name : String, phone : String, address : Maybe String }
 
 
 type alias Judge =
@@ -119,14 +116,6 @@ plantiffDecoder =
         |> required "attorney" attorneyDecoder
 
 
-defendantDecoder : Decoder Defendant
-defendantDecoder =
-    Decode.succeed Defendant
-        |> required "name" string
-        |> optional "phone" string "not provided"
-        |> required "address" (nullable string)
-
-
 decoder : Decoder DetainerWarrant
 decoder =
     Decode.succeed DetainerWarrant
@@ -139,4 +128,4 @@ decoder =
         |> required "presiding_judge" (nullable judgeDecoder)
         |> required "amount_claimed" (nullable float)
         |> required "amount_claimed_category" amountClaimedCategoryDecoder
-        |> required "defendants" (list defendantDecoder)
+        |> required "defendants" (list Defendant.decoder)

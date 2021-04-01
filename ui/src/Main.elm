@@ -12,10 +12,13 @@ import Json.Decode.Pipeline exposing (optional, required)
 import Page exposing (Page)
 import Page.About as About
 import Page.Actions as Actions
-import Page.Admin.DetainerWarrants as ManageDetainerWarrants
 import Page.Blank as Blank
 import Page.Login as Login
 import Page.NotFound as NotFound
+import Page.Organize.CampaignOverview as CampaignOverview
+import Page.Organize.Dashboard as OrganizerDashboard
+import Page.Organize.DetainerWarrants as ManageDetainerWarrants
+import Page.Organize.Event as Event
 import Page.Trends as Trends
 import Page.WarrantHelp as WarrantHelp
 import Route exposing (Route)
@@ -33,6 +36,9 @@ type CurrentPage
     | WarrantHelp WarrantHelp.Model
     | About About.Model
     | Actions Actions.Model
+    | OrganizerDashboard OrganizerDashboard.Model
+    | CampaignOverview CampaignOverview.Model
+    | Event Event.Model
     | ManageDetainerWarrants ManageDetainerWarrants.Model
 
 
@@ -68,6 +74,9 @@ type Msg
     | GotAboutMsg About.Msg
     | GotWarrantHelpMsg WarrantHelp.Msg
     | GotActionsMsg Actions.Msg
+    | GotOrganizerDashboardMsg OrganizerDashboard.Msg
+    | GotCampaignOverviewMsg CampaignOverview.Msg
+    | GotEventMsg Event.Msg
     | GotManageDetainerWarrantsMsg ManageDetainerWarrants.Msg
     | GotSession Session
     | GotHamburgerMenuPress
@@ -98,6 +107,15 @@ toSession model =
 
         Actions actions ->
             Actions.toSession actions
+
+        OrganizerDashboard dashboard ->
+            OrganizerDashboard.toSession dashboard
+
+        Event event ->
+            Event.toSession event
+
+        CampaignOverview campaign ->
+            CampaignOverview.toSession campaign
 
         ManageDetainerWarrants dw ->
             ManageDetainerWarrants.toSession dw
@@ -138,6 +156,18 @@ changeRouteTo maybeRoute model =
         Just Route.Actions ->
             Actions.init session
                 |> updateWith Actions GotActionsMsg model
+
+        Just (Route.CampaignOverview id) ->
+            CampaignOverview.init id session
+                |> updateWith CampaignOverview GotCampaignOverviewMsg model
+
+        Just (Route.Event campaignId eventId) ->
+            Event.init campaignId eventId session
+                |> updateWith Event GotEventMsg model
+
+        Just Route.OrganizerDashboard ->
+            OrganizerDashboard.init session
+                |> updateWith OrganizerDashboard GotOrganizerDashboardMsg model
 
         Just Route.ManageDetainerWarrants ->
             ManageDetainerWarrants.init session
@@ -186,6 +216,18 @@ update msg model =
         ( GotActionsMsg subMsg, Actions actions ) ->
             Actions.update subMsg actions
                 |> updateWith Actions GotActionsMsg model
+
+        ( GotOrganizerDashboardMsg subMsg, OrganizerDashboard dashboard ) ->
+            OrganizerDashboard.update subMsg dashboard
+                |> updateWith OrganizerDashboard GotOrganizerDashboardMsg model
+
+        ( GotEventMsg subMsg, Event event ) ->
+            Event.update subMsg event
+                |> updateWith Event GotEventMsg model
+
+        ( GotCampaignOverviewMsg subMsg, CampaignOverview campaign ) ->
+            CampaignOverview.update subMsg campaign
+                |> updateWith CampaignOverview GotCampaignOverviewMsg model
 
         ( GotManageDetainerWarrantsMsg subMsg, ManageDetainerWarrants dw ) ->
             ManageDetainerWarrants.update subMsg dw
@@ -290,6 +332,15 @@ view model =
         Actions actions ->
             viewPage Page.Actions GotActionsMsg (Actions.view actions)
 
+        OrganizerDashboard dashboard ->
+            viewPage Page.OrganizerDashboard GotOrganizerDashboardMsg (OrganizerDashboard.view settings dashboard)
+
+        Event event ->
+            viewPage Page.Event GotEventMsg (Event.view settings event)
+
+        CampaignOverview campaign ->
+            viewPage Page.CampaignOverview GotCampaignOverviewMsg (CampaignOverview.view settings campaign)
+
         ManageDetainerWarrants dw ->
             viewPage Page.ManageDetainerWarrants GotManageDetainerWarrantsMsg (ManageDetainerWarrants.view settings dw)
 
@@ -318,6 +369,15 @@ subscriptions model =
 
             Actions actions ->
                 Sub.map GotActionsMsg (Actions.subscriptions actions)
+
+            OrganizerDashboard dashboard ->
+                Sub.map GotOrganizerDashboardMsg (OrganizerDashboard.subscriptions dashboard)
+
+            CampaignOverview campaign ->
+                Sub.map GotCampaignOverviewMsg (CampaignOverview.subscriptions campaign)
+
+            Event event ->
+                Sub.map GotEventMsg (Event.subscriptions event)
 
             ManageDetainerWarrants dw ->
                 Sub.map GotManageDetainerWarrantsMsg (ManageDetainerWarrants.subscriptions dw)

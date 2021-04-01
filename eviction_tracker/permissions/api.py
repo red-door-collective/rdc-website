@@ -14,6 +14,8 @@ from flask_resty import (
     meta,
     model_filter
 )
+from eviction_tracker.detainer_warrants.models import DetainerWarrant, Defendant
+from sqlalchemy import or_
 
 
 class AllowDefendant(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):

@@ -1,4 +1,4 @@
-port module Api exposing (ApiMeta, ApiPage, Cred, Flags, RollupMetadata, Window, addServerError, apiMetaDecoder, application, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, login, logout, onStoreChange, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, userApiDecoder, users, viewerChanges)
+port module Api exposing (Collection, Cred, Flags, Item, PageMeta, RollupMetadata, Window, addServerError, application, campaignApiDecoder, collectionDecoder, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, onStoreChange, pageMetaDecoder, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, userApiDecoder, users, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -9,6 +9,7 @@ It exposes an opaque Endpoint type which is guaranteed to point to the correct U
 import Api.Endpoint as Endpoint exposing (Endpoint)
 import Browser
 import Browser.Navigation as Nav
+import Campaign exposing (Campaign)
 import DetainerWarrant exposing (DetainerWarrant)
 import Html exposing (a)
 import Http exposing (Body, Error, Expect)
@@ -323,15 +324,25 @@ credStorageKey =
     "cred"
 
 
-type alias ApiMeta =
+type alias PageMeta =
     { afterCursor : Maybe String
     , hasNextPage : Bool
     }
 
 
-type alias ApiPage data =
+type alias Collection data =
     { data : List data
-    , meta : ApiMeta
+    , meta : PageMeta
+    }
+
+
+type alias ItemMeta =
+    { cursor : String }
+
+
+type alias Item data =
+    { data : data
+    , meta : ItemMeta
     }
 
 
@@ -350,22 +361,48 @@ rollupMetadataDecoder =
         |> required "last_detainer_warrant_update" posix
 
 
-apiMetaDecoder : Decoder ApiMeta
-apiMetaDecoder =
-    Decode.succeed ApiMeta
+pageMetaDecoder : Decoder PageMeta
+pageMetaDecoder =
+    Decode.succeed PageMeta
         |> required "after_cursor" (nullable string)
         |> required "has_next_page" bool
 
 
-detainerWarrantApiDecoder : Decoder (ApiPage DetainerWarrant)
+detainerWarrantApiDecoder : Decoder (Collection DetainerWarrant)
 detainerWarrantApiDecoder =
-    Decode.succeed ApiPage
+    Decode.succeed Collection
         |> required "data" (list DetainerWarrant.decoder)
-        |> required "meta" apiMetaDecoder
+        |> required "meta" pageMetaDecoder
 
 
-userApiDecoder : Decoder (ApiPage User)
+campaignApiDecoder : Decoder (Collection Campaign)
+campaignApiDecoder =
+    Decode.succeed Collection
+        |> required "data" (list Campaign.decoder)
+        |> required "meta" pageMetaDecoder
+
+
+userApiDecoder : Decoder (Collection User)
 userApiDecoder =
-    Decode.succeed ApiPage
+    Decode.succeed Collection
         |> required "data" (list User.userDecoder)
-        |> required "meta" apiMetaDecoder
+        |> required "meta" pageMetaDecoder
+
+
+collectionDecoder : Decoder a -> Decoder (Collection a)
+collectionDecoder dataDecoder =
+    Decode.succeed Collection
+        |> required "data" (list dataDecoder)
+        |> required "meta" pageMetaDecoder
+
+
+itemMetaDecoder : Decoder ItemMeta
+itemMetaDecoder =
+    Decode.map ItemMeta (Decode.field "cursor" string)
+
+
+itemDecoder : Decoder a -> Decoder (Item a)
+itemDecoder dataDecoder =
+    Decode.succeed Item
+        |> required "data" dataDecoder
+        |> required "meta" itemMetaDecoder

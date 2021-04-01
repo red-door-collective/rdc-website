@@ -2,7 +2,7 @@ module Route exposing (Route(..), fromUrl, href, replaceUrl)
 
 import Browser.Navigation as Nav
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
+import Url.Parser as Parser exposing ((</>), Parser, int, oneOf, s)
 
 
 
@@ -17,6 +17,9 @@ type Route
     | About
     | WarrantHelp
     | Actions
+    | OrganizerDashboard
+    | CampaignOverview Int
+    | Event Int Int
     | ManageDetainerWarrants
 
 
@@ -30,7 +33,10 @@ parser =
         , Parser.map About (s "about")
         , Parser.map WarrantHelp (s "warrant-help")
         , Parser.map Actions (s "actions")
-        , Parser.map ManageDetainerWarrants (s "admin" </> s "detainer-warrants")
+        , Parser.map OrganizerDashboard (s "organize" </> s "dashboard")
+        , Parser.map CampaignOverview (s "organize" </> s "campaigns" </> int)
+        , Parser.map Event (s "organize" </> s "campaigns" </> int </> s "events" </> int)
+        , Parser.map ManageDetainerWarrants (s "organize" </> s "detainer-warrants")
         ]
 
 
@@ -86,5 +92,14 @@ routeToPieces page =
         Actions ->
             [ "actions" ]
 
+        OrganizerDashboard ->
+            [ "organize", "dashboard" ]
+
+        CampaignOverview id ->
+            [ "organize", "campaigns", String.fromInt id ]
+
+        Event campaignId eventId ->
+            [ "organize", "campaigns", String.fromInt campaignId, "events", String.fromInt eventId ]
+
         ManageDetainerWarrants ->
-            [ "admin", "detainer-warrants" ]
+            [ "organize", "detainer-warrants" ]

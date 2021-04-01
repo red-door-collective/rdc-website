@@ -1,4 +1,4 @@
-module Page.Admin.DetainerWarrants exposing (Model, Msg, init, subscriptions, toSession, update, view)
+module Page.Organize.DetainerWarrants exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
 import Api exposing (Cred)
 import Api.Endpoint as Endpoint
@@ -48,7 +48,7 @@ getWarrants viewer =
 type Msg
     = InputQuery String
     | SearchWarrants
-    | GotWarrants (Result Http.Error (Api.ApiPage DetainerWarrant))
+    | GotWarrants (Result Http.Error (Api.Collection DetainerWarrant))
     | ChangedSorting String
 
 

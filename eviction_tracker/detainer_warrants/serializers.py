@@ -23,7 +23,7 @@ attorneys_schema = AttorneySchema(many=True)
 
 class PhoneNumberVerificationSchema(Schema):
     class Meta:
-        fields = ("caller_name", "caller_type", "error_code", "carrier",
+        fields = ("caller_name", "caller_type", "phone_type",  "error_code", "carrier",
                   "country_code", "national_format", "phone_number")
 
 
@@ -38,7 +38,7 @@ class DefendantSchema(Schema):
 
     class Meta:
         fields = ("id", "name", "district", "address",
-                  "verified_phone")
+                  "verified_phone", "potential_phones")
 
 
 defendant_schema = DefendantSchema()

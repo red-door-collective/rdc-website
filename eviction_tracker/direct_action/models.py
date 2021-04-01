@@ -58,6 +58,30 @@ class PhoneBankEvent(Event):
         return f"<PhoneBankEvent name='{self.name}'>"
 
 
+canvass_warrants = db.Table(
+    'canvass_warrants',
+    db.metadata,
+    Column('canvass_event.id', db.ForeignKey(
+        'canvass_events.id'), primary_key=True),
+    Column('detainer_warrant_docket_id', db.ForeignKey(
+        'detainer_warrants.docket_id'), primary_key=True)
+)
+
+
+class CanvassEvent(Event):
+    __tablename__ = 'canvass_events'
+
+    id = Column(db.ForeignKey('events.id'), primary_key=True)
+
+    warrants = relationship(
+        'DetainerWarrant', secondary=canvass_warrants, back_populates='canvass_attempts')
+
+    __mapper_args__ = {"polymorphic_identity": "canvass_event"}
+
+    def __repr__(self):
+        return f"<CanvassEvent name='{self.name}'>"
+
+
 class Campaign(db.Model, Timestamped):
     __tablename__ = 'campaigns'
 

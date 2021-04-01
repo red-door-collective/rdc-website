@@ -10,6 +10,7 @@ import Element.Input as Input
 import Element.Region as Region
 import FeatherIcons
 import Html exposing (Html)
+import LineChart exposing (dash)
 import List
 import Logo
 import Palette
@@ -36,6 +37,9 @@ type Page
     | Actions
     | Login
     | ManageDetainerWarrants
+    | OrganizerDashboard
+    | CampaignOverview
+    | Event
 
 
 type alias NavBar msg =
@@ -210,12 +214,24 @@ logoutLink =
     { url = Route.href Route.Logout, label = "Logout", isActive = False }
 
 
+dashboard page =
+    { url = Route.href Route.OrganizerDashboard, label = "Dashboard", isActive = page == OrganizerDashboard }
+
+
+detainerWarrants page =
+    { url = Route.href Route.ManageDetainerWarrants, label = "Detainer Warrants", isActive = page == ManageDetainerWarrants }
+
+
 adminOptions settings page =
-    [ { url = Route.href Route.ManageDetainerWarrants, label = "Detainer Warrants", isActive = page == ManageDetainerWarrants } ]
+    [ dashboard page
+    , detainerWarrants page
+    ]
 
 
 organizerOptions settings page =
-    [ { url = Route.href Route.ManageDetainerWarrants, label = "Detainer Warrants", isActive = page == ManageDetainerWarrants } ]
+    [ dashboard page
+    , detainerWarrants page
+    ]
 
 
 defendantOptions settings page =

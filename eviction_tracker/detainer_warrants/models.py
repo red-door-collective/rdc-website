@@ -2,7 +2,7 @@ from eviction_tracker.database import db, Timestamped, Column, Model, relationsh
 from datetime import datetime
 from sqlalchemy import func
 from flask_security import UserMixin, RoleMixin
-from eviction_tracker.direct_action.models import phone_bank_tenants
+from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 
 
 class District(db.Model, Timestamped):
@@ -172,6 +172,9 @@ class DetainerWarrant(db.Model, Timestamped):
                               secondary=detainer_warrant_defendants,
                               back_populates='detainer_warrants'
                               )
+
+    canvass_attempts = relationship(
+        'CanvassEvent', secondary=canvass_warrants, back_populates='warrants')
 
     def __repr__(self):
         return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self.file_date)

@@ -248,6 +248,8 @@ def register_extensions(app):
                      admin.views.RoleResource, app=app)
     api.add_resource('/campaigns/', direct_action.views.CampaignListResource,
                      direct_action.views.CampaignResource, app=app)
+    api.add_resource('/events/', direct_action.views.EventListResource,
+                     direct_action.views.EventResource, app=app)
     api.add_resource('/phone_bank_events/', direct_action.views.PhoneBankEventListResource,
                      direct_action.views.PhoneBankEventResource, app=app)
 
