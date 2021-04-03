@@ -3,9 +3,8 @@ import unittest
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_testing import TestCase
+from eviction_tracker.app import create_app, db, DetainerWarrant
 import eviction_tracker.detainer_warrants as detainer_warrants
-from eviction_tracker.detainer_warrants.models import DetainerWarrant
-from eviction_tracker.app import create_app, db
 from datetime import datetime
 from decimal import Decimal
 
