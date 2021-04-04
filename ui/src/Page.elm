@@ -38,8 +38,8 @@ type Page
     | Login
     | ManageDetainerWarrants
     | OrganizerDashboard
-    | CampaignOverview
-    | Event
+    | CampaignOverview Int
+    | Event Int Int
 
 
 type alias NavBar msg =
@@ -131,18 +131,21 @@ navBarLink { url, text, isActive } =
 
 navBar : NavBar msg -> Settings -> Page -> Element msg
 navBar config settings page =
-    case settings.device.class of
-        Phone ->
-            phoneBar config settings page
+    column [ width fill ]
+        [ case settings.device.class of
+            Phone ->
+                phoneBar config settings page
 
-        Tablet ->
-            tabletBar config settings page
+            Tablet ->
+                tabletBar config settings page
 
-        Desktop ->
-            desktopBar config settings page
+            Desktop ->
+                desktopBar config settings page
 
-        BigDesktop ->
-            desktopBar config settings page
+            BigDesktop ->
+                desktopBar config settings page
+        , viewBreadcrumbs page
+        ]
 
 
 links settings page =
@@ -370,6 +373,64 @@ desktopBar config settings page =
         ]
         [ Logo.link
         , horizontalBar config settings page
+        ]
+
+
+
+-- chevronRight : Icon msg
+
+
+chevronRight =
+    (FeatherIcons.chevronRight
+        |> Widget.Icon.elmFeather FeatherIcons.toHtml
+    )
+        { size = 20, color = Color.red }
+
+
+breadCrumbLink route name enabled =
+    link
+        (if enabled then
+            [ Font.color Palette.sred ]
+
+         else
+            []
+        )
+        { url = Route.href route, label = text name }
+
+
+dashboardLink =
+    breadCrumbLink Route.OrganizerDashboard "Organizer Dashboard"
+
+
+campaignLink id =
+    breadCrumbLink (Route.CampaignOverview id) "Campaign"
+
+
+eventLink campaignId id =
+    breadCrumbLink (Route.Event campaignId id) "Event"
+
+
+viewBreadcrumbsHelp breadcrumbs =
+    row [ spacing 10 ]
+        (List.intersperse chevronRight breadcrumbs)
+
+
+viewBreadcrumbs : Page -> Element msg
+viewBreadcrumbs page =
+    row [ width fill ]
+        [ column [ centerX ]
+            [ viewBreadcrumbsHelp
+                (case page of
+                    CampaignOverview campaignId ->
+                        [ dashboardLink True, campaignLink campaignId False ]
+
+                    Event campaignId eventId ->
+                        [ dashboardLink True, campaignLink campaignId True, eventLink campaignId eventId False ]
+
+                    _ ->
+                        []
+                )
+            ]
         ]
 
 

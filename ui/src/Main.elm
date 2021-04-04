@@ -37,8 +37,8 @@ type CurrentPage
     | About About.Model
     | Actions Actions.Model
     | OrganizerDashboard OrganizerDashboard.Model
-    | CampaignOverview CampaignOverview.Model
-    | Event Event.Model
+    | CampaignOverview Int CampaignOverview.Model
+    | Event Int Int Event.Model
     | ManageDetainerWarrants ManageDetainerWarrants.Model
 
 
@@ -111,10 +111,10 @@ toSession model =
         OrganizerDashboard dashboard ->
             OrganizerDashboard.toSession dashboard
 
-        Event event ->
+        Event _ _ event ->
             Event.toSession event
 
-        CampaignOverview campaign ->
+        CampaignOverview _ campaign ->
             CampaignOverview.toSession campaign
 
         ManageDetainerWarrants dw ->
@@ -159,11 +159,11 @@ changeRouteTo maybeRoute model =
 
         Just (Route.CampaignOverview id) ->
             CampaignOverview.init id session
-                |> updateWith CampaignOverview GotCampaignOverviewMsg model
+                |> updateWith (CampaignOverview id) GotCampaignOverviewMsg model
 
         Just (Route.Event campaignId eventId) ->
             Event.init campaignId eventId session
-                |> updateWith Event GotEventMsg model
+                |> updateWith (Event campaignId eventId) GotEventMsg model
 
         Just Route.OrganizerDashboard ->
             OrganizerDashboard.init session
@@ -221,13 +221,13 @@ update msg model =
             OrganizerDashboard.update subMsg dashboard
                 |> updateWith OrganizerDashboard GotOrganizerDashboardMsg model
 
-        ( GotEventMsg subMsg, Event event ) ->
+        ( GotEventMsg subMsg, Event campaignId id event ) ->
             Event.update subMsg event
-                |> updateWith Event GotEventMsg model
+                |> updateWith (Event campaignId id) GotEventMsg model
 
-        ( GotCampaignOverviewMsg subMsg, CampaignOverview campaign ) ->
+        ( GotCampaignOverviewMsg subMsg, CampaignOverview id campaign ) ->
             CampaignOverview.update subMsg campaign
-                |> updateWith CampaignOverview GotCampaignOverviewMsg model
+                |> updateWith (CampaignOverview id) GotCampaignOverviewMsg model
 
         ( GotManageDetainerWarrantsMsg subMsg, ManageDetainerWarrants dw ) ->
             ManageDetainerWarrants.update subMsg dw
@@ -335,11 +335,11 @@ view model =
         OrganizerDashboard dashboard ->
             viewPage Page.OrganizerDashboard GotOrganizerDashboardMsg (OrganizerDashboard.view settings dashboard)
 
-        Event event ->
-            viewPage Page.Event GotEventMsg (Event.view settings event)
+        Event campaignId eventId event ->
+            viewPage (Page.Event campaignId eventId) GotEventMsg (Event.view settings event)
 
-        CampaignOverview campaign ->
-            viewPage Page.CampaignOverview GotCampaignOverviewMsg (CampaignOverview.view settings campaign)
+        CampaignOverview id campaign ->
+            viewPage (Page.CampaignOverview id) GotCampaignOverviewMsg (CampaignOverview.view settings campaign)
 
         ManageDetainerWarrants dw ->
             viewPage Page.ManageDetainerWarrants GotManageDetainerWarrantsMsg (ManageDetainerWarrants.view settings dw)
@@ -373,10 +373,10 @@ subscriptions model =
             OrganizerDashboard dashboard ->
                 Sub.map GotOrganizerDashboardMsg (OrganizerDashboard.subscriptions dashboard)
 
-            CampaignOverview campaign ->
+            CampaignOverview _ campaign ->
                 Sub.map GotCampaignOverviewMsg (CampaignOverview.subscriptions campaign)
 
-            Event event ->
+            Event _ _ event ->
                 Sub.map GotEventMsg (Event.subscriptions event)
 
             ManageDetainerWarrants dw ->
