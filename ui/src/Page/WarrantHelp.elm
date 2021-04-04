@@ -171,11 +171,11 @@ viewWarrants model =
               , width = fill
               , view = viewDefendants
               }
-            , { header = viewHeaderCell "Plantiff"
+            , { header = viewHeaderCell "Plaintiff"
               , width = fill
               , view =
                     \warrant ->
-                        viewTextRow warrant.plantiff.name
+                        viewTextRow warrant.plaintiff.name
               }
             ]
         }

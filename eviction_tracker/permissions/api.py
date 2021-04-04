@@ -28,8 +28,8 @@ class AllowDefendant(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
 
         try:
             return query.join(DetainerWarrant.defendants).filter(or_(
-                Defendant.name.ilike(f'%{current_user.first_name}%'),
-                Defendant.name.ilike(f'%{current_user.last_name}%')
+                Defendant.first_name.ilike(f'%{current_user.first_name}%'),
+                Defendant.last_name.ilike(f'%{current_user.last_name}%')
             ))
         except AttributeError:
             raise ApiError(403, {"code": "not a defendant"})

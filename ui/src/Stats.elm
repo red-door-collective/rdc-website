@@ -1,11 +1,11 @@
 module Stats exposing
     ( DetainerWarrantsPerMonth
     , EvictionHistory
-    , PlantiffAttorneyWarrantCount
+    , PlaintiffAttorneyWarrantCount
     , TopEvictor
     , detainerWarrantsPerMonthDecoder
     , evictionHistoryDecoder
-    , plantiffAttorneyWarrantCountDecoder
+    , plaintiffAttorneyWarrantCountDecoder
     , topEvictorDecoder
     )
 
@@ -33,9 +33,9 @@ type alias DetainerWarrantsPerMonth =
     }
 
 
-type alias PlantiffAttorneyWarrantCount =
+type alias PlaintiffAttorneyWarrantCount =
     { warrantCount : Int
-    , plantiffAttorneyName : String
+    , plaintiffAttorneyName : String
     , startDate : Time.Posix
     , endDate : Time.Posix
     }
@@ -62,10 +62,10 @@ detainerWarrantsPerMonthDecoder =
         |> required "totalWarrants" int
 
 
-plantiffAttorneyWarrantCountDecoder : Decoder PlantiffAttorneyWarrantCount
-plantiffAttorneyWarrantCountDecoder =
-    Decode.succeed PlantiffAttorneyWarrantCount
+plaintiffAttorneyWarrantCountDecoder : Decoder PlaintiffAttorneyWarrantCount
+plaintiffAttorneyWarrantCountDecoder =
+    Decode.succeed PlaintiffAttorneyWarrantCount
         |> required "warrant_count" int
-        |> required "plantiff_attorney_name" string
+        |> required "plaintiff_attorney_name" string
         |> required "start_date" posix
         |> required "end_date" posix

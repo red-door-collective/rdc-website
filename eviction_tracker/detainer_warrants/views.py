@@ -133,7 +133,7 @@ class JudgeResource(JudgeResourceBase):
 
 @model_filter(fields.String())
 def filter_defendant_name(model, defendant_name):
-    return model.defendants.any(Defendant.name.ilike(f'%{defendant_name}%'))
+    return model.defendants.any(Defendant.first_name.ilike(f'%{defendant_name}%'))
 
 
 class DetainerWarrantResourceBase(GenericModelView):

@@ -36,7 +36,7 @@ import Path
 import Scale exposing (BandConfig, BandScale, ContinuousScale, defaultBandConfig)
 import Session exposing (Session)
 import Shape exposing (defaultPieConfig)
-import Stats exposing (DetainerWarrantsPerMonth, EvictionHistory, PlantiffAttorneyWarrantCount, TopEvictor)
+import Stats exposing (DetainerWarrantsPerMonth, EvictionHistory, PlaintiffAttorneyWarrantCount, TopEvictor)
 import Svg exposing (Svg)
 import Time exposing (Month(..))
 import Time.Extra as Time exposing (Parts, partsToPosix)
@@ -52,7 +52,7 @@ type alias Model =
     , topEvictors : List TopEvictor
     , hovering : List EvictionHistory
     , warrantsPerMonth : List DetainerWarrantsPerMonth
-    , plantiffAttorneyWarrantCounts : List PlantiffAttorneyWarrantCount
+    , plaintiffAttorneyWarrantCounts : List PlaintiffAttorneyWarrantCount
     , rollupMeta : Maybe Api.RollupMetadata
     }
 
@@ -60,7 +60,7 @@ type alias Model =
 getEvictionData : Cmd Msg
 getEvictionData =
     Http.get
-        { url = "/api/v1/rollup/plantiffs"
+        { url = "/api/v1/rollup/plaintiffs"
         , expect = Http.expectJson GotEvictionData (list Stats.topEvictorDecoder)
         }
 
@@ -73,11 +73,11 @@ getDetainerWarrantsPerMonth =
         }
 
 
-getPlantiffAttorneyWarrantCountPerMonth : Cmd Msg
-getPlantiffAttorneyWarrantCountPerMonth =
+getPlaintiffAttorneyWarrantCountPerMonth : Cmd Msg
+getPlaintiffAttorneyWarrantCountPerMonth =
     Http.get
-        { url = "/api/v1/rollup/plantiff-attorney"
-        , expect = Http.expectJson GotPlantiffAttorneyWarrantCount (list Stats.plantiffAttorneyWarrantCountDecoder)
+        { url = "/api/v1/rollup/plaintiff-attorney"
+        , expect = Http.expectJson GotPlaintiffAttorneyWarrantCount (list Stats.plaintiffAttorneyWarrantCountDecoder)
         }
 
 
@@ -95,13 +95,13 @@ init session =
       , topEvictors = []
       , hovering = []
       , warrantsPerMonth = []
-      , plantiffAttorneyWarrantCounts = []
+      , plaintiffAttorneyWarrantCounts = []
       , rollupMeta = Nothing
       }
     , Cmd.batch
         [ getEvictionData
         , getDetainerWarrantsPerMonth
-        , getPlantiffAttorneyWarrantCountPerMonth
+        , getPlaintiffAttorneyWarrantCountPerMonth
         , getApiMetadata
         ]
     )
@@ -110,7 +110,7 @@ init session =
 type Msg
     = GotEvictionData (Result Http.Error (List TopEvictor))
     | GotDetainerWarrantData (Result Http.Error (List DetainerWarrantsPerMonth))
-    | GotPlantiffAttorneyWarrantCount (Result Http.Error (List PlantiffAttorneyWarrantCount))
+    | GotPlaintiffAttorneyWarrantCount (Result Http.Error (List PlaintiffAttorneyWarrantCount))
     | GotApiMeta (Result Http.Error Api.RollupMetadata)
     | Hover (List EvictionHistory)
 
@@ -134,10 +134,10 @@ update msg model =
                 Err errMsg ->
                     ( model, Cmd.none )
 
-        GotPlantiffAttorneyWarrantCount result ->
+        GotPlaintiffAttorneyWarrantCount result ->
             case result of
                 Ok counts ->
-                    ( { model | plantiffAttorneyWarrantCounts = counts }, Cmd.none )
+                    ( { model | plaintiffAttorneyWarrantCounts = counts }, Cmd.none )
 
                 Err errMsg ->
                     ( model, Cmd.none )
@@ -175,7 +175,7 @@ view device model =
                     [ viewDetainerWarrantsHistory model.warrantsPerMonth
                     ]
                 , Element.row [ Element.width fill ]
-                    [ viewPlantiffAttorneyChart model.plantiffAttorneyWarrantCounts ]
+                    [ viewPlaintiffAttorneyChart model.plaintiffAttorneyWarrantCounts ]
                 , Element.row [ Element.height (Element.px 30) ] []
                 , case model.rollupMeta of
                     Just rollupMeta ->
@@ -480,14 +480,14 @@ pieColorsAsElements =
     pieColorsHelp Element.rgb255
 
 
-viewPlantiffAttorneyChart : List PlantiffAttorneyWarrantCount -> Element Msg
-viewPlantiffAttorneyChart counts =
+viewPlaintiffAttorneyChart : List PlaintiffAttorneyWarrantCount -> Element Msg
+viewPlaintiffAttorneyChart counts =
     let
         total =
             List.sum <| List.map .warrantCount counts
 
         shares =
-            List.map (\stats -> ( stats.plantiffAttorneyName, toFloat stats.warrantCount / toFloat total )) counts
+            List.map (\stats -> ( stats.plaintiffAttorneyName, toFloat stats.warrantCount / toFloat total )) counts
 
         pieData =
             shares |> List.map Tuple.second |> Shape.pie { defaultPieConfig | outerRadius = radius }
@@ -517,7 +517,7 @@ viewPlantiffAttorneyChart counts =
                 [ text (label ++ "%") ]
     in
     Element.column [ Element.padding 20, Element.spacing 20, Element.centerX, Element.width fill ]
-        [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Plantiff attorney listed on detainer warrants, Davidson Co. TN" ]
+        [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Plaintiff attorney listed on detainer warrants, Davidson Co. TN" ]
         , Element.row [ Element.padding 10, Element.spacing 40 ]
             [ pieLegend (List.map Tuple.first shares)
             , Element.column [ Element.width (Element.shrink |> Element.minimum pieWidth), Element.height (Element.px pieHeight) ]

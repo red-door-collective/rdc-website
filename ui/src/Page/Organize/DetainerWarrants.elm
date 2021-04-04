@@ -218,8 +218,8 @@ viewWarrants warrants =
                 , width = Element.fill
                 }
             , Widget.stringColumn
-                { title = "Plantiff"
-                , value = .plantiff >> .name
+                { title = "Plaintiff"
+                , value = .plaintiff >> .name
                 , toString = identity
                 , width = Element.fill
                 }
