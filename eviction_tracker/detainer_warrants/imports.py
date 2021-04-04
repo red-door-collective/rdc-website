@@ -5,20 +5,21 @@ from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
 
-DOCKET_ID = 'Docket #'
-FILE_DATE = 'File Date'
+DOCKET_ID = 'Docket_number'
+FILE_DATE = 'File_date'
 STATUS = 'Status'
 PLANTIFF = 'Plantiff'
-PLTF_ATTORNEY = 'Pltf. Attorney'
-COURT_DATE = 'Court Date'
+PLTF_ATTORNEY = 'Plaintiff_atty'
+COURT_DATE = 'Court_date'
+RECURRING_COURT_DATE = 'Any_day'
 COURTROOM = 'Courtroom'
-JUDGE = 'Presiding Judge'
-AMT_CLAIMED = 'Amt Claimed ($)'
-AMT_CLAIMED_CAT = 'Amount Claimed (CATEGORY)'
-IS_CARES = 'CARES covered property?'
-IS_LEGACY = 'LEGACY Case'
-ADDRESS = 'Defendant Address'
-ZIP_CODE = 'Zip code'
+JUDGE = 'Presiding_judge'
+AMT_CLAIMED = 'Amount_claimed_num'
+AMT_CLAIMED_CAT = 'Amount_claimed_cat'
+IS_CARES = 'CARES'
+IS_LEGACY = 'LEGACY'
+NONPAYMENT = 'Nonpayment'
+ADDRESS = 'Address'
 JUDGEMENT = 'Judgement'
 NOTES = 'Notes'
 
@@ -34,14 +35,23 @@ def normalize(value):
 
 
 def create_defendant(defaults, number, warrant):
-    name = warrant[f'Def #{number} Name']
-    phones = warrant[f'Def #{number} Phone']
+    prefix = f'Def_{number}_'
+    first_name = warrant[prefix + 'first']
+    middle_name = warrant[prefix + 'middle']
+    last_name = warrant[prefix + 'last']
+    suffix = warrant[prefix + 'suffix']
+    phones = warrant[prefix + 'phone']
     address = warrant[ADDRESS]
 
     defendant = None
-    if bool(name) or bool(phones):
+    if bool(first_name) or bool(phones):
         defendant, _ = get_or_create(
-            db.session, Defendant, name=name, potential_phones=phones, address=address, defaults=defaults
+            db.session, Defendant,
+            first_name=first_name,
+            middle_name=middle_name,
+            last_name=last_name,
+            suffix=suffix,
+            potential_phones=phones, address=address, defaults=defaults
         )
     return defendant
 
@@ -52,12 +62,12 @@ def link_defendant(docket_id, defendant):
 
 
 def extract_raw_court_data(court_date):
-    exceptions = [None, 'Any Tuesday', 'Any Tues', 'Any Weds', 'Soonest Tuesday', 'Soonest Friday', 'NA - Continuance - Positive for Covid',
-                  'NA - "any Tuesday"', 'Non-suit retracted', 'TBD / Not Serviced', 'TBD', 'not stated', '(1/7/21) needs update', 'TBD / 12/4/20', 'Earliest Thurs']
+    exceptions = []  # [None, 'Any Tuesday', 'Any Tues', 'Any Weds', 'Soonest Tuesday', 'Soonest Friday', 'NA - Continuance - Positive for Covid',
+    # 'NA - "any Tuesday"', 'Non-suit retracted', 'TBD / Not Serviced', 'TBD', 'not stated', '(1/7/21) needs update', 'TBD / 12/4/20', 'Earliest Thurs']
     if court_date in exceptions:
-        return None, court_date
+        return None
     else:
-        return court_date.replace('Continuance: ', '').replace('Continuance ', ''), None
+        return court_date
 
 
 def _from_spreadsheet_row(raw_warrant, defaults):
@@ -77,7 +87,8 @@ def _from_spreadsheet_row(raw_warrant, defaults):
         plantiff, _ = get_or_create(
             db.session, Plantiff, name=warrant[PLANTIFF], attorney=attorney, defaults=defaults)
 
-    court_date, court_date_notes = extract_raw_court_data(warrant[COURT_DATE])
+    court_date = extract_raw_court_data(warrant[COURT_DATE])
+    recurring_court_date = warrant[RECURRING_COURT_DATE]
 
     courtroom = None
     if warrant[COURTROOM]:
@@ -94,7 +105,7 @@ def _from_spreadsheet_row(raw_warrant, defaults):
     amount_claimed_category = warrant[AMT_CLAIMED_CAT] or 'N/A'
     is_cares = warrant[IS_CARES] == 'Yes' if warrant[IS_CARES] else None
     is_legacy = warrant[IS_LEGACY] == 'Yes' if warrant[IS_LEGACY] else None
-    zip_code = warrant[ZIP_CODE]
+    nonpayment = warrant[NONPAYMENT] == 'Yes' if warrant[NONPAYMENT] else None
 
     defendant = create_defendant(defaults, 1, warrant)
     defendant2 = create_defendant(defaults, 2, warrant)
@@ -103,15 +114,14 @@ def _from_spreadsheet_row(raw_warrant, defaults):
     judgement = warrant[JUDGEMENT] or 'N/A'
 
     notes = warrant[NOTES]
-    if court_date_notes:
-        court_date_notes_full = 'Court date notes: ' + court_date_notes
-        notes = notes + ' ' + court_date_notes_full if notes else court_date_notes_full
 
     dw_values = dict(docket_id=docket_id,
                      file_date=file_date,
                      status_id=DetainerWarrant.statuses[status],
                      plantiff_id=plantiff.id if plantiff else None,
                      court_date='11/3/2020' if court_date == '11/3' else court_date,
+                     court_date_recurring_id=DetainerWarrant.recurring_court_dates[
+                         recurring_court_date] if recurring_court_date else None,
                      courtroom_id=courtroom.id if courtroom else None,
                      presiding_judge_id=presiding_judge.id if presiding_judge else None,
                      amount_claimed=amount_claimed,
@@ -119,7 +129,7 @@ def _from_spreadsheet_row(raw_warrant, defaults):
                          amount_claimed_category.upper()],
                      is_cares=is_cares,
                      is_legacy=is_legacy,
-                     zip_code=zip_code,
+                     nonpayment=nonpayment,
                      judgement_id=DetainerWarrant.judgements[judgement.upper(
                      )],
                      notes=notes

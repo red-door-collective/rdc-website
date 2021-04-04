@@ -24,15 +24,19 @@ detainer_warrant_defendants = db.Table(
     'detainer_warrant_defendants',
     db.metadata,
     Column('detainer_warrant_docket_id', db.ForeignKey(
-        'detainer_warrants.docket_id'), primary_key=True),
-    Column('defendant_id', db.ForeignKey('defendants.id'), primary_key=True)
+        'detainer_warrants.docket_id', ondelete="CASCADE"), primary_key=True),
+    Column('defendant_id', db.ForeignKey(
+        'defendants.id', ondelete="CASCADE"), primary_key=True)
 )
 
 
 class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
     id = Column(db.Integer, primary_key=True)
-    name = Column(db.String(255))
+    first_name = Column(db.String(255))
+    middle_name = Column(db.String(50))
+    last_name = Column(db.String(50))
+    suffix = Column(db.String(20))
     potential_phones = Column(db.String(255))
     address = Column(db.String(255))
 
@@ -46,12 +50,17 @@ class Defendant(db.Model, Timestamped):
     district = relationship('District', back_populates='defendants')
     detainer_warrants = relationship('DetainerWarrant',
                                      secondary=detainer_warrant_defendants,
-                                     back_populates='defendants'
+                                     back_populates='defendants',
+                                     passive_deletes=True
                                      )
     verified_phone = relationship(
         'PhoneNumberVerification', back_populates='defendants')
     phone_bank_attempts = relationship(
         'PhoneBankEvent', secondary=phone_bank_tenants, back_populates='tenants')
+
+    @ property
+    def name(self):
+        return ' '.join(filter(lambda s: s != None, [self.first_name, self.middle_name, self.last_name, self.suffix]))
 
     def __repr__(self):
         return f"<Defendant(name='{self.name}', phones='{self.potential_phones}', address='{self.address}')>"
@@ -130,6 +139,16 @@ class DetainerWarrant(db.Model, Timestamped):
         'PENDING': 1
     }
 
+    recurring_court_dates = {
+        'SUNDAY': 0,
+        'MONDAY': 1,
+        'TUESDAY': 2,
+        'WEDNESDAY': 3,
+        'THURSDAY': 4,
+        'FRIDAY': 5,
+        'SATURDAY': 6
+    }
+
     amount_claimed_categories = {
         'POSS': 0,
         'FEES': 1,
@@ -148,10 +167,10 @@ class DetainerWarrant(db.Model, Timestamped):
     __tablename__ = 'detainer_warrants'
     docket_id = Column(db.String(255), primary_key=True)
     file_date = Column(db.Date, nullable=False)
-    status_id = Column(db.Integer, nullable=False)  # union?
+    status_id = Column(db.Integer, nullable=False)
     plantiff_id = Column(db.Integer, db.ForeignKey('plantiffs.id'))
-    court_date = Column(db.Date)  # date
-    court_date_notes = Column(db.String(50))
+    court_date = Column(db.Date)
+    court_date_recurring_id = Column(db.Integer)
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
     amount_claimed = Column(db.Numeric(scale=2))  # USD
@@ -160,6 +179,7 @@ class DetainerWarrant(db.Model, Timestamped):
     is_cares = Column(db.Boolean)
     is_legacy = Column(db.Boolean)
     zip_code = Column(db.String(10))
+    nonpayment = Column(db.Boolean)
     judgement_id = Column(db.Integer, nullable=False, default=4)
     judgement_notes = Column(db.String(255))
     notes = Column(db.String(255))
@@ -170,11 +190,12 @@ class DetainerWarrant(db.Model, Timestamped):
 
     defendants = relationship('Defendant',
                               secondary=detainer_warrant_defendants,
-                              back_populates='detainer_warrants'
+                              back_populates='detainer_warrants',
+                              cascade="all, delete",
                               )
 
     canvass_attempts = relationship(
-        'CanvassEvent', secondary=canvass_warrants, back_populates='warrants')
+        'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")
 
     def __repr__(self):
         return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self.file_date)
@@ -187,6 +208,16 @@ class DetainerWarrant(db.Model, Timestamped):
     @status.setter
     def status(self, status_name):
         self.status_id = DetainerWarrant.statuses[status_name]
+
+    @property
+    def recurring_court_date(self):
+        date_by_id = {v: k for k,
+                      v in DetainerWarrant.recurring_court_dates.items()}
+        return date_by_id[self.court_date_recurring_id]
+
+    @recurring_court_date.setter
+    def recurring_court_date(self, day_of_week):
+        self.court_date_recurring_id = DetainerWarrant.recurring_court_dates[day_of_week]
 
     @property
     def amount_claimed_category(self):
@@ -249,13 +280,13 @@ class PhoneNumberVerification(db.Model, Timestamped):
             national_format=lookup.national_format,
             phone_number=lookup.phone_number)
 
-    @property
+    @ property
     def caller_type(self):
         caller_type_by_id = {v: k for k,
                              v in PhoneNumberVerification.caller_types.items()}
         return caller_type_by_id.get(self.caller_type_id)
 
-    @caller_type.setter
+    @ caller_type.setter
     def caller_type(self, caller_type):
         self.caller_type_id = PhoneNumberVerification.caller_types.get(
             caller_type)

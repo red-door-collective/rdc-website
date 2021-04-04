@@ -38,9 +38,9 @@ phone_bank_tenants = db.Table(
     'phone_bank_tenants',
     db.metadata,
     Column('phone_bank_event_id', db.ForeignKey(
-        'phone_bank_events.id'), primary_key=True),
+        'phone_bank_events.id', ondelete='CASCADE'), primary_key=True),
     Column('defendant_id', db.ForeignKey(
-        'defendants.id'), primary_key=True)
+        'defendants.id', ondelete='CASCADE'), primary_key=True)
 )
 
 
@@ -62,9 +62,9 @@ canvass_warrants = db.Table(
     'canvass_warrants',
     db.metadata,
     Column('canvass_event.id', db.ForeignKey(
-        'canvass_events.id'), primary_key=True),
+        'canvass_events.id', ondelete="CASCADE"), primary_key=True),
     Column('detainer_warrant_docket_id', db.ForeignKey(
-        'detainer_warrants.docket_id'), primary_key=True)
+        'detainer_warrants.docket_id', ondelete="CASCADE"), primary_key=True)
 )
 
 
