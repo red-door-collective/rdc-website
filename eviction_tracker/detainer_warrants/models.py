@@ -168,7 +168,8 @@ class DetainerWarrant(db.Model, Timestamped):
     docket_id = Column(db.String(255), primary_key=True)
     file_date = Column(db.Date, nullable=False)
     status_id = Column(db.Integer, nullable=False)
-    plantiff_id = Column(db.Integer, db.ForeignKey('plantiffs.id'))
+    plantiff_id = Column(db.Integer, db.ForeignKey(
+        'plantiffs.id', ondelete='CASCADE'))
     court_date = Column(db.Date)
     court_date_recurring_id = Column(db.Integer)
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
