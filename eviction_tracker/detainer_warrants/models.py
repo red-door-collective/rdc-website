@@ -11,7 +11,7 @@ class District(db.Model, Timestamped):
     name = Column(db.String(255), nullable=False)
 
     attorneys = relationship('Attorney', back_populates='district')
-    plantiffs = relationship('Plantiff', back_populates='district')
+    plaintiffs = relationship('Plaintiff', back_populates='district')
     defendants = relationship('Defendant', back_populates='district')
     judges = relationship('Judge', back_populates='district')
     courtrooms = relationship('Courtroom', back_populates='district')
@@ -76,7 +76,7 @@ class Attorney(db.Model, Timestamped):
     db.UniqueConstraint('name', 'district_id')
 
     district = relationship('District', back_populates='attorneys')
-    plantiff_clients = relationship('Plantiff', back_populates='attorney')
+    plaintiff_clients = relationship('Plaintiff', back_populates='attorney')
 
     def __repr__(self):
         return "<Attorney(name='%s', district_id='%s')>" % (self.name, self.district_id)
@@ -98,8 +98,8 @@ class Courtroom(db.Model, Timestamped):
         return "<Courtroom(name='%s')>" % (self.name)
 
 
-class Plantiff(db.Model, Timestamped):
-    __tablename__ = 'plantiffs'
+class Plaintiff(db.Model, Timestamped):
+    __tablename__ = 'plaintiffs'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
     attorney_id = Column(db.Integer, db.ForeignKey('attorneys.id'))
@@ -108,13 +108,13 @@ class Plantiff(db.Model, Timestamped):
 
     db.UniqueConstraint('name', 'district_id')
 
-    district = relationship('District', back_populates='plantiffs')
-    attorney = relationship('Attorney', back_populates='plantiff_clients')
+    district = relationship('District', back_populates='plaintiffs')
+    attorney = relationship('Attorney', back_populates='plaintiff_clients')
     detainer_warrants = relationship(
-        'DetainerWarrant', back_populates='plantiff')
+        'DetainerWarrant', back_populates='plaintiff')
 
     def __repr__(self):
-        return "<Plantiff(name='%s', attorney_id='%s', district_id='%s')>" % (self.name, self.attorney_id, self.district_id)
+        return "<Plaintiff(name='%s', attorney_id='%s', district_id='%s')>" % (self.name, self.attorney_id, self.district_id)
 
 
 class Judge(db.Model, Timestamped):
@@ -168,8 +168,8 @@ class DetainerWarrant(db.Model, Timestamped):
     docket_id = Column(db.String(255), primary_key=True)
     file_date = Column(db.Date, nullable=False)
     status_id = Column(db.Integer, nullable=False)
-    plantiff_id = Column(db.Integer, db.ForeignKey(
-        'plantiffs.id', ondelete='CASCADE'))
+    plaintiff_id = Column(db.Integer, db.ForeignKey(
+        'plaintiffs.id', ondelete='CASCADE'))
     court_date = Column(db.Date)
     court_date_recurring_id = Column(db.Integer)
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
@@ -185,7 +185,7 @@ class DetainerWarrant(db.Model, Timestamped):
     judgement_notes = Column(db.String(255))
     notes = Column(db.String(255))
 
-    plantiff = relationship('Plantiff', back_populates='detainer_warrants')
+    plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
     courtroom = relationship('Courtroom', back_populates='cases')
     presiding_judge = relationship('Judge', back_populates='cases')
 

@@ -19,7 +19,7 @@ from flask_security import current_user
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
 Defendant = detainer_warrants.models.Defendant
-Plantiff = detainer_warrants.models.Plantiff
+Plaintiff = detainer_warrants.models.Plaintiff
 
 security_config = dict(
     SECURITY_PASSWORD_SALT=os.environ['SECURITY_PASSWORD_SALT'],
@@ -93,29 +93,29 @@ def next_month(dt):
 
 
 def top_evictions_between_dates(start, end):
-    return between_dates(start, end, db.session.query(Plantiff, func.count(DetainerWarrant.plantiff_id)))\
-        .join(Plantiff)\
-        .group_by(DetainerWarrant.plantiff_id, Plantiff.id)\
+    return between_dates(start, end, db.session.query(Plaintiff, func.count(DetainerWarrant.plaintiff_id)))\
+        .join(Plaintiff)\
+        .group_by(DetainerWarrant.plaintiff_id, Plaintiff.id)\
         .order_by(desc(func.count('*')))\
         .limit(10)\
         .all()
 
 
-def evictions_between_dates(start, end, plantiff_id):
-    return between_dates(start, end, db.session.query(Plantiff))\
-        .filter_by(id=plantiff_id)\
+def evictions_between_dates(start, end, plaintiff_id):
+    return between_dates(start, end, db.session.query(Plaintiff))\
+        .filter_by(id=plaintiff_id)\
         .join(DetainerWarrant)\
         .count()
 
 
-def top_plantiff_attorneys_bet(start, end):
+def top_plaintiff_attorneys_bet(start, end):
     # TODO: perhaps figure this out in python
     return db.session.execute("""
     with top as 
         (select a.name, count(dw.docket_id) as warrantCount
     from attorneys a
-    inner join plantiffs p on p.attorney_id = a.id
-    inner join detainer_warrants dw on dw.plantiff_id = p.id
+    inner join plaintiffs p on p.attorney_id = a.id
+    inner join detainer_warrants dw on dw.plaintiff_id = p.id
     group by a.id, a.name
     order by count(dw.docket_id) desc)
     select *
@@ -157,7 +157,7 @@ def top_judges_bet(start, end):
     """)
 
 
-def top_plantiff_ranges_bet(start, end):
+def top_plaintiff_ranges_bet(start, end):
     # TODO: perhaps figure this out in python
     return db.session.execute("""
     with top as 
@@ -168,8 +168,8 @@ def top_plantiff_ranges_bet(start, end):
          sum(case when dw.amount_claimed > 1000 and dw.amount_claimed <= 1500 then 1 else 0 end) as medium,
          sum(case when dw.amount_claimed > 500 and dw.amount_claimed <= 1000 then 1 else 0 end) as medium_low,
          sum(CASE WHEN dw.amount_claimed < 500 THEN 1 ELSE 0 END) as low
-    from plantiffs p
-    inner join detainer_warrants dw on dw.plantiff_id = p.id
+    from plaintiffs p
+    inner join detainer_warrants dw on dw.plaintiff_id = p.id
     group by p.id, p.name
     order by warrant_count desc)
     select *
@@ -234,8 +234,8 @@ def register_extensions(app):
                      detainer_warrants.views.DefendantResource, app=app)
     api.add_resource('/courtrooms/', detainer_warrants.views.CourtroomListResource,
                      detainer_warrants.views.CourtroomResource, app=app)
-    api.add_resource('/plantiffs/', detainer_warrants.views.PlantiffListResource,
-                     detainer_warrants.views.PlantiffResource, app=app)
+    api.add_resource('/plaintiffs/', detainer_warrants.views.PlaintiffListResource,
+                     detainer_warrants.views.PlaintiffResource, app=app)
     api.add_resource('/judges/', detainer_warrants.views.JudgeListResource,
                      detainer_warrants.views.JudgeResource, app=app)
     api.add_resource('/detainer-warrants/', detainer_warrants.views.DetainerWarrantListResource,
@@ -264,8 +264,8 @@ def register_extensions(app):
 
         return flask.jsonify(counts)
 
-    @app.route('/api/v1/rollup/plantiffs')
-    def plantiff_rollup_by_month():
+    @app.route('/api/v1/rollup/plaintiffs')
+    def plaintiff_rollup_by_month():
         start_dt = date(2020, 1, 1)
         end_dt = date.today()
         dates = [(dt, next_month(dt))
@@ -273,30 +273,30 @@ def register_extensions(app):
 
         top_ten = top_evictions_between_dates(start_dt, end_dt)
 
-        counts = {plantiff.name: [] for plantiff, eviction_court in top_ten}
+        counts = {plaintiff.name: [] for plaintiff, eviction_court in top_ten}
         for (start, end) in dates:
-            for plantiff, plantiff_total_evictions in top_ten:
+            for plaintiff, plaintiff_total_evictions in top_ten:
                 eviction_count = evictions_between_dates(
-                    start, end, plantiff.id)
-                plantiff_evictions = counts[plantiff.name]
+                    start, end, plaintiff.id)
+                plaintiff_evictions = counts[plaintiff.name]
                 stats = {'date': millisTimestamp(
                     start), 'eviction_count': eviction_count}
-                counts[plantiff.name] = plantiff_evictions + [stats]
+                counts[plaintiff.name] = plaintiff_evictions + [stats]
 
-        top_evictors = [{'name': plantiff, 'history': history}
-                        for plantiff, history in counts.items()]
+        top_evictors = [{'name': plaintiff, 'history': history}
+                        for plaintiff, history in counts.items()]
 
         return flask.jsonify(top_evictors)
 
-    @app.route('/api/v1/rollup/plantiffs/amount_claimed_bands')
-    def plantiffs_by_amount_claimed():
+    @app.route('/api/v1/rollup/plaintiffs/amount_claimed_bands')
+    def plaintiffs_by_amount_claimed():
         start_dt = date(2020, 1, 1)
         dates, end_dt = months_since(start_dt)
 
-        top_six = top_plantiff_ranges_bet(start_dt, end_dt)
+        top_six = top_plaintiff_ranges_bet(start_dt, end_dt)
 
-        top_plantiffs = [{
-            'plantiff_name': result[0],
+        top_plaintiffs = [{
+            'plaintiff_name': result[0],
             'warrant_count': round_dec(result[1]),
             'greater_than_2k': round_dec(result[2]),
             'between_1.5k_and_2k': round_dec(result[3]),
@@ -307,23 +307,23 @@ def register_extensions(app):
             'end_date': millis(end_dt)
         } for result in top_six]
 
-        return flask.jsonify(top_plantiffs)
+        return flask.jsonify(top_plaintiffs)
 
-    @app.route('/api/v1/rollup/plantiff-attorney')
-    def plantiff_attorney_warrant_share():
+    @app.route('/api/v1/rollup/plaintiff-attorney')
+    def plaintiff_attorney_warrant_share():
         start_dt = date(2020, 1, 1)
         dates, end_dt = months_since(start_dt)
 
-        top_six = top_plantiff_attorneys_bet(start_dt, end_dt)
+        top_six = top_plaintiff_attorneys_bet(start_dt, end_dt)
 
-        top_plantiffs = [{
+        top_plaintiffs = [{
             'warrant_count': int(round(warrant_count)),
-            'plantiff_attorney_name': attorney_name,
+            'plaintiff_attorney_name': attorney_name,
             'start_date': millis(start_dt),
             'end_date': millis(end_dt)
         } for attorney_name, warrant_count in top_six]
 
-        return flask.jsonify(top_plantiffs)
+        return flask.jsonify(top_plaintiffs)
 
     @app.route('/api/v1/rollup/judges')
     def judge_warrant_share():

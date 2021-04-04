@@ -9,31 +9,39 @@ from datetime import datetime
 from decimal import Decimal
 
 example = {
-    'Docket #': '20GT5633',
+    'Docket_number': '20GT5633',
     'Order #': 5633,
-    'File Date': '12/3/20',
+    'File_date': '12/3/20',
     'Status': 'PENDING',
     'Month': '12 Dec',
     'Year': 2020,
-    'Plantiff': 'Che',
-    'Pltf. Attorney': 'Thomas',
-    'Court Date': '2/1/2021',
+    'Plaintiff': 'Che',
+    'Plaintiff_atty': 'Thomas',
+    'Court_date': '2/1/2021',
+    'Any_day': 'TUESDAY',
     'Courtroom': '1B',
-    'Presiding Judge': 'Kim',
-    'Amt Claimed ($)': '$2,239',
-    'Amount Claimed (CATEGORY)': 'FEES',
-    'Amount Claimed (NON-$)': '',
-    'Defendant(s)': '',
-    'CARES covered property?': '',
-    'LEGACY Case': 'Yes',
-    'Defendant Address': '123 Best Rd #1234, 37210',
-    'Zip code': 37210,
-    'Def #1 Name': 'Wenzel',
-    'Def #1 Phone': '123-456-7890',
-    'Def #2 Name': '',
-    'Def #2 Phone': '',
-    'Def #3 Name': '',
-    'Def #3 Phone': '',
+    'Presiding_judge': 'Kim',
+    'Amount_claimed_num': '$2,239',
+    'Amount_claimed_cat': 'FEES',
+    'CARES': '',
+    'LEGACY': 'Yes',
+    'Nonpayment': 'Yes',
+    'Address': '123 Best Rd #1234, 37210',
+    'Def_1_first': 'Wenzel',
+    'Def_1_middle': 'McKenzie',
+    'Def_1_last': 'Stuwart',
+    'Def_1_suffix': 'Jr.',
+    'Def_1_phone': '123-456-7890',
+    'Def_2_first': '',
+    'Def_2_middle': '',
+    'Def_2_last': '',
+    'Def_2_suffix': '',
+    'Def_2_phone': '',
+    'Def_3_first': '',
+    'Def_3_middle': '',
+    'Def_3_last': '',
+    'Def_3_suffix': '',
+    'Def_3_phone': '',
     'Judgement': 'POSS',
     'Notes': ''
 }
@@ -63,31 +71,30 @@ class TestDataImport(TestCase):
         detainer_warrants.imports.from_spreadsheet([example])
         warrant = db.session.query(DetainerWarrant).first()
 
-        self.assertEqual(warrant.docket_id, example['Docket #'])
+        self.assertEqual(warrant.docket_id, example['Docket_number'])
         self.assertEqual(warrant.file_date, date_as_str(
-            example['File Date'], '%m/%d/%y'))
+            example['File_date'], '%m/%d/%y'))
         self.assertEqual(warrant.status, example['Status'])
-        self.assertEqual(warrant.plantiff.name, example['Plantiff'])
-        self.assertEqual(warrant.plantiff.attorney.name,
-                         example['Pltf. Attorney'])
+        self.assertEqual(warrant.plaintiff.name, example['Plaintiff'])
+        self.assertEqual(warrant.plaintiff.attorney.name,
+                         example['Plaintiff_atty'])
         self.assertEqual(warrant.court_date,
-                         date_as_str(example['Court Date'], '%m/%d/%Y'))
+                         date_as_str(example['Court_date'], '%m/%d/%Y'))
         self.assertEqual(warrant.courtroom.name, example['Courtroom'])
         self.assertEqual(warrant.presiding_judge.name,
-                         example['Presiding Judge'])
+                         example['Presiding_judge'])
         self.assertEqual(warrant.amount_claimed, Decimal('2239'))
         self.assertEqual(warrant.amount_claimed_category,
-                         example['Amount Claimed (CATEGORY)'])
+                         example['Amount_claimed_cat'])
         self.assertEqual(warrant.is_cares,
                          None)
         self.assertEqual(warrant.is_legacy, True)
         self.assertEqual(
-            warrant.defendants[0].address, example['Defendant Address'])
-        self.assertEqual(warrant.zip_code, str(example['Zip code']))
+            warrant.defendants[0].address, example['Address'])
         self.assertEqual(
-            warrant.defendants[0].name, example['Def #1 Name'])
+            warrant.defendants[0].name, 'Wenzel McKenzie Stuwart Jr.')
         self.assertEqual(
-            warrant.defendants[0].potential_phones, example['Def #1 Phone'])
+            warrant.defendants[0].potential_phones, example['Def_1_phone'])
         self.assertEqual(warrant.judgement, example['Judgement'])
 
 

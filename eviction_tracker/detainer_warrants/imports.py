@@ -1,5 +1,5 @@
 from .models import db
-from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plantiff, detainer_warrant_defendants
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plaintiff, detainer_warrant_defendants
 from .util import get_or_create
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
@@ -8,7 +8,7 @@ from decimal import Decimal
 DOCKET_ID = 'Docket_number'
 FILE_DATE = 'File_date'
 STATUS = 'Status'
-PLANTIFF = 'Plantiff'
+PLAINTIFF = 'Plaintiff'
 PLTF_ATTORNEY = 'Plaintiff_atty'
 COURT_DATE = 'Court_date'
 RECURRING_COURT_DATE = 'Any_day'
@@ -82,10 +82,10 @@ def _from_spreadsheet_row(raw_warrant, defaults):
         attorney, _ = get_or_create(
             db.session, Attorney, name=warrant[PLTF_ATTORNEY], defaults=defaults)
 
-    plantiff = None
-    if warrant[PLANTIFF]:
-        plantiff, _ = get_or_create(
-            db.session, Plantiff, name=warrant[PLANTIFF], attorney=attorney, defaults=defaults)
+    plaintiff = None
+    if warrant[PLAINTIFF]:
+        plaintiff, _ = get_or_create(
+            db.session, Plaintiff, name=warrant[PLAINTIFF], attorney=attorney, defaults=defaults)
 
     court_date = extract_raw_court_data(warrant[COURT_DATE])
     recurring_court_date = warrant[RECURRING_COURT_DATE]
@@ -118,7 +118,7 @@ def _from_spreadsheet_row(raw_warrant, defaults):
     dw_values = dict(docket_id=docket_id,
                      file_date=file_date,
                      status_id=DetainerWarrant.statuses[status],
-                     plantiff_id=plantiff.id if plantiff else None,
+                     plaintiff_id=plaintiff.id if plaintiff else None,
                      court_date='11/3/2020' if court_date == '11/3' else court_date,
                      court_date_recurring_id=DetainerWarrant.recurring_court_dates[
                          recurring_court_date] if recurring_court_date else None,

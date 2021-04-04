@@ -56,7 +56,7 @@ courtroom_schema = CourtroomSchema()
 courtrooms_schema = CourtroomSchema(many=True)
 
 
-class PlantiffSchema(Schema):
+class PlaintiffSchema(Schema):
     attorney = fields.Nested(AttorneySchema)
     district = fields.Nested(DistrictSchema)
 
@@ -64,8 +64,8 @@ class PlantiffSchema(Schema):
         fields = ("id", "name", "attorney", "district")
 
 
-plantiff_schema = PlantiffSchema()
-plantiffs_schema = PlantiffSchema(many=True)
+plaintiff_schema = PlaintiffSchema()
+plaintiffs_schema = PlaintiffSchema(many=True)
 
 
 class JudgeSchema(Schema):
@@ -80,7 +80,7 @@ judges_schema = JudgeSchema(many=True)
 
 
 class DetainerWarrantSchema(Schema):
-    plantiff = fields.Nested(PlantiffSchema)
+    plaintiff = fields.Nested(PlaintiffSchema)
     courtroom = fields.Nested(CourtroomSchema)
     presiding_judge = fields.Nested(JudgeSchema)
     defendants = fields.Nested(DefendantSchema, many=True)
@@ -89,7 +89,7 @@ class DetainerWarrantSchema(Schema):
 
     class Meta:
         fields = ("docket_id", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
-                  "judgement", "judgement_notes", "plantiff", "courtroom", "presiding_judge", "defendants",
+                  "judgement", "judgement_notes", "plaintiff", "courtroom", "presiding_judge", "defendants",
                   "zip_code", "is_legacy", "is_cares")
 
 

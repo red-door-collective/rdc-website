@@ -21,7 +21,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import raiseload
 
 from eviction_tracker.database import db
-from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plantiff, Judge, PhoneNumberVerification
+from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, Judge, PhoneNumberVerification
 from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
 
@@ -89,9 +89,9 @@ class CourtroomResource(CourtroomResourceBase):
         return self.retrieve(id)
 
 
-class PlantiffResourceBase(GenericModelView):
-    model = Plantiff
-    schema = plantiff_schema
+class PlaintiffResourceBase(GenericModelView):
+    model = Plaintiff
+    schema = plaintiff_schema
 
     authentication = HeaderUserAuthentication()
     authorization = Protected()
@@ -100,12 +100,12 @@ class PlantiffResourceBase(GenericModelView):
     sorting = Sorting('name', default='name')
 
 
-class PlantiffListResource(PlantiffResourceBase):
+class PlaintiffListResource(PlaintiffResourceBase):
     def get(self):
         return self.list()
 
 
-class PlantiffResource(PlantiffResourceBase):
+class PlaintiffResource(PlaintiffResourceBase):
     def get(self, id):
         return self.retrieve(id)
 
