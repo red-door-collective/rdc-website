@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory, Attorney, Courtroom, DetainerWarrant, Judge, Plaintiff, Status, decoder)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, Courtroom, DetainerWarrant, Judge, Plaintiff, Status(..), decoder, statusText)
 
 import Defendant exposing (Defendant)
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
@@ -26,7 +26,7 @@ type alias Attorney =
 
 
 type alias Plaintiff =
-    { name : String, attorney : Attorney }
+    { name : String, attorney : Maybe Attorney }
 
 
 type alias Courtroom =
@@ -37,7 +37,7 @@ type alias DetainerWarrant =
     { docketId : String
     , fileDate : String
     , status : Status
-    , plaintiff : Plaintiff
+    , plaintiff : Maybe Plaintiff
     , courtDate : Maybe String
     , courtroom : Maybe Courtroom
     , presidingJudge : Maybe Judge
@@ -45,6 +45,16 @@ type alias DetainerWarrant =
     , amountClaimedCategory : AmountClaimedCategory
     , defendants : List Defendant
     }
+
+
+statusText : DetainerWarrant -> String
+statusText warrant =
+    case warrant.status of
+        Closed ->
+            "Closed"
+
+        Pending ->
+            "Pending"
 
 
 
@@ -113,7 +123,7 @@ plaintiffDecoder : Decoder Plaintiff
 plaintiffDecoder =
     Decode.succeed Plaintiff
         |> required "name" string
-        |> required "attorney" attorneyDecoder
+        |> required "attorney" (nullable attorneyDecoder)
 
 
 decoder : Decoder DetainerWarrant
@@ -122,7 +132,7 @@ decoder =
         |> required "docket_id" string
         |> required "file_date" string
         |> required "status" statusDecoder
-        |> required "plaintiff" plaintiffDecoder
+        |> required "plaintiff" (nullable plaintiffDecoder)
         |> required "court_date" (nullable string)
         |> required "courtroom" (nullable courtroomDecoder)
         |> required "presiding_judge" (nullable judgeDecoder)

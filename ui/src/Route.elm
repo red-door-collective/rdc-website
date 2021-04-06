@@ -2,7 +2,7 @@ module Route exposing (Route(..), fromUrl, href, replaceUrl)
 
 import Browser.Navigation as Nav
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, int, oneOf, s)
+import Url.Parser as Parser exposing ((</>), Parser, int, oneOf, s, string)
 
 
 
@@ -21,6 +21,7 @@ type Route
     | CampaignOverview Int
     | Event Int Int
     | ManageDetainerWarrants
+    | DetainerWarrantCreation (Maybe String)
 
 
 parser : Parser (Route -> a) a
@@ -37,6 +38,8 @@ parser =
         , Parser.map CampaignOverview (s "organize" </> s "campaigns" </> int)
         , Parser.map Event (s "organize" </> s "campaigns" </> int </> s "events" </> int)
         , Parser.map ManageDetainerWarrants (s "organize" </> s "detainer-warrants")
+        , Parser.map (DetainerWarrantCreation Nothing) (s "organize" </> s "detainer-warrants" </> s "edit")
+        , Parser.map (DetainerWarrantCreation << Just) (s "organize" </> s "detainer-warrants" </> s "edit" </> string)
         ]
 
 
@@ -103,3 +106,13 @@ routeToPieces page =
 
         ManageDetainerWarrants ->
             [ "organize", "detainer-warrants" ]
+
+        DetainerWarrantCreation maybeId ->
+            [ "organize", "detainer-warrants", "edit" ]
+                ++ (case maybeId of
+                        Just id ->
+                            [ id ]
+
+                        Nothing ->
+                            []
+                   )

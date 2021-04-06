@@ -40,6 +40,7 @@ type Page
     | OrganizerDashboard
     | CampaignOverview Int
     | Event Int Int
+    | DetainerWarrantCreation (Maybe String)
 
 
 type alias NavBar msg =
@@ -410,6 +411,14 @@ eventLink campaignId id =
     breadCrumbLink (Route.Event campaignId id) "Event"
 
 
+detainerWarrantLink maybeId =
+    breadCrumbLink (Route.DetainerWarrantCreation maybeId) "Edit"
+
+
+detainerWarrantsLink =
+    breadCrumbLink Route.ManageDetainerWarrants "Manage Detainer Warrants"
+
+
 viewBreadcrumbsHelp breadcrumbs =
     row [ spacing 10 ]
         (List.intersperse chevronRight breadcrumbs)
@@ -426,6 +435,9 @@ viewBreadcrumbs page =
 
                     Event campaignId eventId ->
                         [ dashboardLink True, campaignLink campaignId True, eventLink campaignId eventId False ]
+
+                    DetainerWarrantCreation maybeId ->
+                        [ detainerWarrantsLink True, detainerWarrantLink maybeId False ]
 
                     _ ->
                         []

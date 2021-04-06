@@ -174,8 +174,7 @@ viewWarrants model =
             , { header = viewHeaderCell "Plaintiff"
               , width = fill
               , view =
-                    \warrant ->
-                        viewTextRow warrant.plaintiff.name
+                    viewTextRow << Maybe.withDefault "" << Maybe.map .name << .plaintiff
               }
             ]
         }
