@@ -240,6 +240,8 @@ def register_extensions(app):
                      detainer_warrants.views.JudgeResource, app=app)
     api.add_resource('/detainer-warrants/', detainer_warrants.views.DetainerWarrantListResource,
                      detainer_warrants.views.DetainerWarrantResource, app=app)
+    api.add_resource('/detainer-warrants/edit/', detainer_warrants.views.DetainerWarrantEditResourceList,
+                     detainer_warrants.views.DetainerWarrantEditResource, app=app)
     api.add_resource('/phone-number-verifications/', detainer_warrants.views.PhoneNumberVerificationListResource,
                      detainer_warrants.views.PhoneNumberVerificationResource, app=app)
     api.add_resource('/users/', admin.views.UserListResource,

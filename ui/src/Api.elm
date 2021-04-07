@@ -211,13 +211,19 @@ throwaway url maybeCred toMsg =
         }
 
 
-put : Endpoint -> Body -> (Result Error a -> msg) -> Decoder a -> Cmd msg
-put url body toMsg decoder =
+put : Endpoint -> Maybe Cred -> Body -> (Result Error a -> msg) -> Decoder a -> Cmd msg
+put url maybeCred body toMsg decoder =
     Endpoint.request
         { method = "PUT"
         , url = url
         , expect = Http.expectJson toMsg decoder
-        , headers = []
+        , headers =
+            case maybeCred of
+                Just cred ->
+                    credHeaders cred
+
+                Nothing ->
+                    []
         , body = body
         , timeout = Nothing
         , tracker = Nothing

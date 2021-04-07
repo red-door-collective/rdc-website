@@ -93,5 +93,17 @@ class DetainerWarrantSchema(Schema):
                   "zip_code", "is_legacy", "is_cares")
 
 
+class DetainerWarrantEditSchema(Schema):
+    defendants = fields.Pluck(DefendantSchema, 'id', many=True)
+
+    amount_claimed = fields.Float()
+
+    class Meta:
+        fields = ("docket_id", "file_date", "status", "plaintiff_id", "court_date", "courtroom_id", "presiding_judge_id", "is_cares", "is_legacy",
+                  "nonpayment", "amount_claimed", "amount_claimed_category", "defendants", "judgement", "notes")
+
+
 detainer_warrant_schema = DetainerWarrantSchema()
 detainer_warrants_schema = DetainerWarrantSchema(many=True)
+detainer_warrant_edit_schema = DetainerWarrantEditSchema()
+detainer_warrants_edit_schema = DetainerWarrantEditSchema(many=True)

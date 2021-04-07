@@ -163,6 +163,31 @@ class DetainerWarrantResource(DetainerWarrantResourceBase):
         return self.retrieve(id)
 
 
+class DetainerWarrantEditResourceBase(GenericModelView):
+    model = DetainerWarrant
+    schema = detainer_warrant_edit_schema
+    id_fields = ('docket_id',)
+
+    authentication = HeaderUserAuthentication()
+    authorization = AllowDefendant()
+
+    pagination = CursorPagination()
+    sorting = Sorting('file_date', default='file_date')
+
+
+class DetainerWarrantEditResource(DetainerWarrantEditResourceBase):
+    def get(self, id):
+        return self.retrieve(id)
+
+    def put(self, id):
+        return self.upsert(id)
+
+
+class DetainerWarrantEditResourceList(DetainerWarrantEditResourceBase):
+    def get(self):
+        return self.list()
+
+
 class PhoneNumberVerificationResourceBase(GenericModelView):
     model = PhoneNumberVerification
     schema = phone_number_verification_schema

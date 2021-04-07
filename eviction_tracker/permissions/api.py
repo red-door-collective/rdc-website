@@ -25,6 +25,8 @@ class AllowDefendant(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
 
     def filter_query(self, query, view):
         # viewer = user_datastore.find_user(id=self.request_user_id)
+        if current_user.has_role('Superuser'):
+            return query
 
         try:
             return query.join(DetainerWarrant.defendants).filter(or_(

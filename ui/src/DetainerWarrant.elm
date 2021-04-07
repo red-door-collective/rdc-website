@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, Courtroom, DetainerWarrant, Judge, Plaintiff, Status(..), decoder, statusText)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, Courtroom, DetainerWarrant, Judge, Judgement(..), Plaintiff, Status(..), decoder, statusText)
 
 import Defendant exposing (Defendant)
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
@@ -18,19 +18,26 @@ type AmountClaimedCategory
 
 
 type alias Judge =
-    { name : String }
+    { id : Int, name : String }
 
 
 type alias Attorney =
-    { name : String }
+    { id : Int, name : String }
 
 
 type alias Plaintiff =
-    { name : String, attorney : Maybe Attorney }
+    { id : Int, name : String, attorney : Maybe Attorney }
 
 
 type alias Courtroom =
-    { name : String }
+    { id : Int, name : String }
+
+
+type Judgement
+    = NonSuit
+    | Poss
+    | PossAndPayment
+    | Dismissed
 
 
 type alias DetainerWarrant =
@@ -42,8 +49,9 @@ type alias DetainerWarrant =
     , courtroom : Maybe Courtroom
     , presidingJudge : Maybe Judge
     , amountClaimed : Maybe Float
-    , amountClaimedCategory : AmountClaimedCategory
+    , amountClaimedCategory : Maybe AmountClaimedCategory
     , defendants : List Defendant
+    , judgement : Maybe Judgement
     }
 
 
@@ -101,27 +109,54 @@ amountClaimedCategoryDecoder =
             )
 
 
+judgementDecoder : Decoder Judgement
+judgementDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                case str of
+                    "Non-suit" ->
+                        Decode.succeed NonSuit
+
+                    "POSS" ->
+                        Decode.succeed Poss
+
+                    "POSS + Payment" ->
+                        Decode.succeed PossAndPayment
+
+                    "Dismissed" ->
+                        Decode.succeed Dismissed
+
+                    _ ->
+                        Decode.succeed Dismissed
+            )
+
+
 attorneyDecoder : Decoder Attorney
 attorneyDecoder =
     Decode.succeed Attorney
+        |> required "id" int
         |> required "name" string
 
 
 courtroomDecoder : Decoder Courtroom
 courtroomDecoder =
     Decode.succeed Courtroom
+        |> required "id" int
         |> required "name" string
 
 
 judgeDecoder : Decoder Judge
 judgeDecoder =
     Decode.succeed Judge
+        |> required "id" int
         |> required "name" string
 
 
 plaintiffDecoder : Decoder Plaintiff
 plaintiffDecoder =
     Decode.succeed Plaintiff
+        |> required "id" int
         |> required "name" string
         |> required "attorney" (nullable attorneyDecoder)
 
@@ -137,5 +172,6 @@ decoder =
         |> required "courtroom" (nullable courtroomDecoder)
         |> required "presiding_judge" (nullable judgeDecoder)
         |> required "amount_claimed" (nullable float)
-        |> required "amount_claimed_category" amountClaimedCategoryDecoder
+        |> required "amount_claimed_category" (nullable amountClaimedCategoryDecoder)
         |> required "defendants" (list Defendant.decoder)
+        |> required "judgement" (nullable judgementDecoder)
