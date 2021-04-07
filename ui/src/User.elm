@@ -1,6 +1,6 @@
 module User exposing (Permissions(..), Role, User, permissions, roleDecoder, userDecoder)
 
-import Json.Decode as Decode exposing (Decoder, int, list, string)
+import Json.Decode as Decode exposing (Decoder, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (required)
 
 
@@ -14,7 +14,7 @@ type Permissions
 type alias Role =
     { id : Int
     , name : String
-    , description : String
+    , description : Maybe String
     }
 
 
@@ -58,7 +58,7 @@ roleDecoder =
     Decode.succeed Role
         |> required "id" int
         |> required "name" string
-        |> required "description" string
+        |> required "description" (nullable string)
 
 
 userDecoder : Decoder User

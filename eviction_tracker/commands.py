@@ -134,12 +134,16 @@ def bootstrap():
     simple = "123456"
     env = current_app.config.get('ENV')
     if env == 'development':
+        roles = ['Superuser', 'Admin', 'Organizer', 'Defendant']
+        for role in roles:
+            user_datastore.find_or_create_role(role)
+
         user_datastore.create_user(email="superuser@example.com", first_name="Super",
-                                   last_name="User", password=hash_password(simple))
+                                   last_name="User", password=hash_password(simple), roles=['Superuser'])
         user_datastore.create_user(email="admin@example.com", first_name="Admin",
-                                   last_name="Person", password=hash_password(simple))
+                                   last_name="Person", password=hash_password(simple), roles=['Admin'])
         user_datastore.create_user(email="organizer@example.com",
-                                   first_name="Organizer", last_name="Gal", password=hash_password(simple))
-        user_datastore.create_user(email="defendant@examplecom", first_name="Defendant",
-                                   last_name="Guy", password=hash_password(simple))
+                                   first_name="Organizer", last_name="Gal", password=hash_password(simple), roles=['Organizer'])
+        user_datastore.create_user(email="defendant@example.com", first_name="Defendant",
+                                   last_name="Guy", password=hash_password(simple), roles=['Defendant'])
         db.session.commit()
