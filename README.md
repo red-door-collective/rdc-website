@@ -4,9 +4,13 @@ Currently helping verify detainer warrant data for middle Tennessee - via Middle
 
 ## Features
 
-### Phone Number Verification
-
-🚧 [Under Construction](/projects/1) 🚧 
+* Presents [data visualizations](https://detainer-warrants.info/trends) for community awareness
+* Organizer Portal
+  * Create direct action campaigns
+  * Schedule events for campaigns
+  * Record relevant information for phonebanking sessions
+* Admin Portal
+  * Create and update detainer warrants
 
 ## Development
 
@@ -17,8 +21,8 @@ You'll need to set a few secret environment variables before booting the app.
 You can copy-paste the following lines into your terminal if you're using bash.
 
 ```bash
-echo 'export TWILIO_ACCOUNT_SID=fake' >>~/.bash_profile
-echo 'export TWILIO_AUTH_TOKEN=fake' >>~/.bash_profile
+echo 'export TWILIO_ACCOUNT_SID=fake' >> ~/.bash_profile
+echo 'export TWILIO_AUTH_TOKEN=fake' >> ~/.bash_profile
 ```
 
 Then, you can either run `source ~/.bash_profile` or open a new terminal tab and proceed to the next step.
@@ -106,6 +110,19 @@ And now, you can write python code with any of our libraries!
 ### Running commands
 
 While in a [Nix Shell](#using-nix), run `flask <name-of-command>`.
+
+### Bootstrap
+
+You'll want to set up a small set of users and roles for development.
+
+Run `flask bootstrap` to provision users and roles.
+
+Afterwards, you'll be able to [login](http://localhost:5000/login) to several demo users with varying roles.
+
+1. Superuser - superuser@example.com:123456
+2. Admin - admin@example.com:123456
+3. Organizer - organizer@example.com:123456
+4. Defendant - defendant@example.com:123456
 
 #### Sync database
 

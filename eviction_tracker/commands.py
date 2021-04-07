@@ -6,9 +6,11 @@ import phonenumbers
 import click
 from flask import current_app
 from flask.cli import with_appcontext
+from flask_security import hash_password
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 import gspread
 import eviction_tracker.detainer_warrants as detainer_warrants
+from eviction_tracker.admin.models import User, user_datastore
 from eviction_tracker.database import db
 from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant
 from twilio.rest import Client
@@ -124,3 +126,20 @@ def verify_phone(phone_number):
     """Verify an individual phone number"""
     client = twilio_client(current_app)
     validate_phone_number(client, current_app, phone_number)
+
+
+@click.command()
+@with_appcontext
+def bootstrap():
+    simple = "123456"
+    env = current_app.config.get('ENV')
+    if env == 'development':
+        user_datastore.create_user(email="superuser@example.com", first_name="Super",
+                                   last_name="User", password=hash_password(simple))
+        user_datastore.create_user(email="admin@example.com", first_name="Admin",
+                                   last_name="Person", password=hash_password(simple))
+        user_datastore.create_user(email="organizer@example.com",
+                                   first_name="Organizer", last_name="Gal", password=hash_password(simple))
+        user_datastore.create_user(email="defendant@examplecom", first_name="Defendant",
+                                   last_name="Guy", password=hash_password(simple))
+        db.session.commit()
