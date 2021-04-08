@@ -102,7 +102,7 @@ def _from_spreadsheet_row(raw_warrant, defaults):
 
     amount_claimed = Decimal(str(warrant[AMT_CLAIMED]).replace(
         '$', '').replace(',', '')) if warrant[AMT_CLAIMED] else None
-    amount_claimed_category = warrant[AMT_CLAIMED_CAT] or 'N/A'
+    amount_claimed_category = warrant[AMT_CLAIMED_CAT]
     is_cares = warrant[IS_CARES] == 'Yes' if warrant[IS_CARES] else None
     is_legacy = warrant[IS_LEGACY] == 'Yes' if warrant[IS_LEGACY] else None
     nonpayment = warrant[NONPAYMENT] == 'Yes' if warrant[NONPAYMENT] else None

@@ -3,8 +3,9 @@ module Page.Organize.DetainerWarrants exposing (Model, Msg, init, subscriptions,
 import Api exposing (Cred)
 import Api.Endpoint as Endpoint
 import Color
+import Date
 import DetainerWarrant exposing (DetainerWarrant)
-import Element exposing (Element, centerX, column, fill, height, image, maximum, minimum, padding, paragraph, px, row, spacing, text, textColumn, width)
+import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -14,6 +15,7 @@ import Html.Events
 import Http
 import Json.Decode as Decode
 import Palette
+import Route
 import Session exposing (Session)
 import Settings exposing (Settings)
 import User exposing (User)
@@ -125,13 +127,23 @@ viewSearchBar model =
         ]
 
 
+createNewWarrant =
+    row [ centerX ]
+        [ link buttonLinkAttrs
+            { url = Route.href (Route.DetainerWarrantCreation Nothing)
+            , label = text "Enter New Detainer Warrant"
+            }
+        ]
+
+
 view : Settings -> Model -> { title : String, content : Element Msg }
 view settings model =
-    { title = "Admin - Detainer Warrants"
+    { title = "Organize - Detainer Warrants"
     , content =
         row [ centerX, padding 10, Font.size 20, width (fill |> maximum 1000 |> minimum 400) ]
             [ column [ centerX, spacing 10 ]
-                [ viewSearchBar model
+                [ createNewWarrant
+                , viewSearchBar model
                 , viewWarrants model.warrants
                 ]
             ]
@@ -184,49 +196,85 @@ buttonStyle =
     }
 
 
-sortBy : String
-sortBy =
-    "Docket ID"
+buttonLinkAttrs =
+    [ Background.color Palette.sred
+    , Font.color Palette.white
+    , Border.rounded 3
+    , padding 5
+    ]
 
 
-asc : Bool
-asc =
-    True
+viewEditButton : DetainerWarrant -> Element Msg
+viewEditButton warrant =
+    row
+        tableCellAttrs
+        [ link
+            buttonLinkAttrs
+            { url = Route.href (Route.DetainerWarrantCreation (Just warrant.docketId)), label = text "Edit" }
+        ]
+
+
+tableCellAttrs =
+    [ Element.width fill
+    , height (px 60)
+    , Element.padding 10
+    , Border.solid
+    , Border.color Palette.grayLight
+    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+    ]
+
+
+viewHeaderCell text =
+    Element.row
+        [ Element.width fill
+        , Element.padding 10
+        , Font.semiBold
+        , Border.solid
+        , Border.color Palette.grayLight
+        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+        ]
+        [ Element.text text ]
+
+
+viewTextRow text =
+    Element.row tableCellAttrs
+        [ Element.text text ]
 
 
 viewWarrants : List DetainerWarrant -> Element Msg
-viewWarrants warrants =
-    Widget.sortTable tableStyle
-        { content = warrants
+viewWarrants detainerWarrants =
+    table []
+        { data = detainerWarrants
         , columns =
-            [ Widget.stringColumn
-                { title = "Docket ID"
-                , value = .docketId
-                , toString = \str -> "#" ++ str
-                , width = Element.fill
-                }
-            , Widget.stringColumn
-                { title = "Court Date"
-                , value = Maybe.withDefault "N/A" << .courtDate
-                , toString = identity
-                , width = Element.fill
-                }
-            , Widget.stringColumn
-                { title = "File Date"
-                , value = .fileDate
-                , toString = identity
-                , width = Element.fill
-                }
-            , Widget.stringColumn
-                { title = "Plaintiff"
-                , value = .plaintiff >> .name
-                , toString = identity
-                , width = Element.fill
-                }
+            [ { header = viewHeaderCell "Docket #"
+              , view = viewTextRow << .docketId
+              , width = Element.fill
+              }
+            , { header = viewHeaderCell "File Date"
+              , view = viewTextRow << Date.toIsoString << .fileDate
+              , width = Element.fill
+              }
+            , { header = viewHeaderCell "Status"
+              , view = viewTextRow << DetainerWarrant.statusText << .status
+              , width = fill
+              }
+            , { header = viewHeaderCell "Plaintiff"
+              , view = viewTextRow << Maybe.withDefault "" << Maybe.map .name << .plaintiff
+              , width = fill
+              }
+            , { header = viewHeaderCell "Plnt. Attorney"
+              , view = viewTextRow << Maybe.withDefault "" << Maybe.map .name << Maybe.andThen .attorney << .plaintiff
+              , width = fill
+              }
+            , { header = viewHeaderCell "Amount Claimed"
+              , view = viewTextRow << Maybe.withDefault "" << Maybe.map String.fromFloat << .amountClaimed
+              , width = fill
+              }
+            , { header = viewHeaderCell "Edit"
+              , view = viewEditButton
+              , width = fill
+              }
             ]
-        , asc = asc
-        , sortBy = sortBy
-        , onChange = ChangedSorting
         }
 
 

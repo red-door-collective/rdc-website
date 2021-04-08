@@ -14,6 +14,10 @@ type alias VerifiedPhone =
 type alias Defendant =
     { id : Int
     , name : String
+    , firstName : String
+    , middleName : Maybe String
+    , lastName : Maybe String
+    , suffix : Maybe String
     , address : Maybe String
     , potentialPhones : Maybe String
     , verifiedPhone : Maybe VerifiedPhone
@@ -33,6 +37,10 @@ decoder =
     Decode.succeed Defendant
         |> required "id" int
         |> required "name" string
+        |> required "first_name" string
+        |> required "middle_name" (nullable string)
+        |> required "last_name" (nullable string)
+        |> required "suffix" (nullable string)
         |> required "address" (nullable string)
         |> required "potential_phones" (nullable string)
         |> required "verified_phone" (nullable verifiedPhoneDecoder)

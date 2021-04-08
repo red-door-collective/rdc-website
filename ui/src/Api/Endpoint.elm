@@ -1,4 +1,4 @@
-module Api.Endpoint exposing (Endpoint, campaign, campaigns, currentUser, detainerWarrantStats, detainerWarrants, event, evictionStats, login, logout, plaintiffAttorneyStats, request, users)
+module Api.Endpoint exposing (Endpoint, attorneys, campaign, campaigns, courtrooms, currentUser, detainerWarrant, detainerWarrantStats, detainerWarrants, editDetainerWarrant, event, evictionStats, judges, login, logout, plaintiffAttorneyStats, plaintiffs, request, users)
 
 import Http
 import Url.Builder exposing (QueryParameter, string)
@@ -73,6 +73,36 @@ logout =
 detainerWarrants : Endpoint
 detainerWarrants =
     url [ "detainer-warrants" ] []
+
+
+detainerWarrant : String -> Endpoint
+detainerWarrant id =
+    url [ "detainer-warrants", id ] []
+
+
+editDetainerWarrant : String -> Endpoint
+editDetainerWarrant id =
+    url [ "detainer-warrants", "edit", id ] []
+
+
+plaintiffs : List QueryParameter -> Endpoint
+plaintiffs queryParams =
+    url [ "plaintiffs" ] queryParams
+
+
+attorneys : List QueryParameter -> Endpoint
+attorneys queryParams =
+    url [ "attorneys" ] queryParams
+
+
+judges : List QueryParameter -> Endpoint
+judges queryParams =
+    url [ "judges" ] queryParams
+
+
+courtrooms : List QueryParameter -> Endpoint
+courtrooms queryParams =
+    url [ "courtrooms" ] queryParams
 
 
 campaigns : Endpoint

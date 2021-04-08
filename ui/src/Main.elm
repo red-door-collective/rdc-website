@@ -17,6 +17,7 @@ import Page.Login as Login
 import Page.NotFound as NotFound
 import Page.Organize.CampaignOverview as CampaignOverview
 import Page.Organize.Dashboard as OrganizerDashboard
+import Page.Organize.DetainerWarrantCreation as DetainerWarrantCreation
 import Page.Organize.DetainerWarrants as ManageDetainerWarrants
 import Page.Organize.Event as Event
 import Page.Trends as Trends
@@ -40,6 +41,7 @@ type CurrentPage
     | CampaignOverview Int CampaignOverview.Model
     | Event Int Int Event.Model
     | ManageDetainerWarrants ManageDetainerWarrants.Model
+    | DetainerWarrantCreation (Maybe String) DetainerWarrantCreation.Model
 
 
 type alias Model =
@@ -78,6 +80,7 @@ type Msg
     | GotCampaignOverviewMsg CampaignOverview.Msg
     | GotEventMsg Event.Msg
     | GotManageDetainerWarrantsMsg ManageDetainerWarrants.Msg
+    | GotDetainerWarrantCreationMsg DetainerWarrantCreation.Msg
     | GotSession Session
     | GotHamburgerMenuPress
     | GotProfile (Result Http.Error User)
@@ -119,6 +122,9 @@ toSession model =
 
         ManageDetainerWarrants dw ->
             ManageDetainerWarrants.toSession dw
+
+        DetainerWarrantCreation _ dwc ->
+            DetainerWarrantCreation.toSession dwc
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -172,6 +178,10 @@ changeRouteTo maybeRoute model =
         Just Route.ManageDetainerWarrants ->
             ManageDetainerWarrants.init session
                 |> updateWith ManageDetainerWarrants GotManageDetainerWarrantsMsg model
+
+        Just (Route.DetainerWarrantCreation maybeId) ->
+            DetainerWarrantCreation.init maybeId session
+                |> updateWith (DetainerWarrantCreation maybeId) GotDetainerWarrantCreationMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -232,6 +242,10 @@ update msg model =
         ( GotManageDetainerWarrantsMsg subMsg, ManageDetainerWarrants dw ) ->
             ManageDetainerWarrants.update subMsg dw
                 |> updateWith ManageDetainerWarrants GotManageDetainerWarrantsMsg model
+
+        ( GotDetainerWarrantCreationMsg subMsg, DetainerWarrantCreation maybeId dwc ) ->
+            DetainerWarrantCreation.update subMsg dwc
+                |> updateWith (DetainerWarrantCreation maybeId) GotDetainerWarrantCreationMsg model
 
         ( GotHamburgerMenuPress, _ ) ->
             ( { model | hamburgerMenuOpen = not model.hamburgerMenuOpen }, Cmd.none )
@@ -344,11 +358,14 @@ view model =
         ManageDetainerWarrants dw ->
             viewPage Page.ManageDetainerWarrants GotManageDetainerWarrantsMsg (ManageDetainerWarrants.view settings dw)
 
+        DetainerWarrantCreation maybeId dwc ->
+            viewPage (Page.DetainerWarrantCreation maybeId) GotDetainerWarrantCreationMsg (DetainerWarrantCreation.view settings dwc)
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        ((case model.page of
+        [ case model.page of
             Redirect _ ->
                 Sub.none
 
@@ -381,9 +398,12 @@ subscriptions model =
 
             ManageDetainerWarrants dw ->
                 Sub.map GotManageDetainerWarrantsMsg (ManageDetainerWarrants.subscriptions dw)
-         )
-            :: [ Browser.Events.onResize OnResize, Session.changes GotSession (Session.navKey (toSession model)) ]
-        )
+
+            DetainerWarrantCreation _ dwc ->
+                Sub.map GotDetainerWarrantCreationMsg (DetainerWarrantCreation.subscriptions dwc)
+        , Browser.Events.onResize OnResize
+        , Session.changes GotSession (Session.navKey (toSession model))
+        ]
 
 
 

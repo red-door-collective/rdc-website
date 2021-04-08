@@ -26,6 +26,21 @@ from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
 
 
+@model_filter(fields.String())
+def filter_name(model, name):
+    return model.name.ilike(f'%{name}%')
+
+
+@model_filter(fields.String())
+def filter_first_name(model, name):
+    return model.first_name.ilike(f'%{name}%')
+
+
+@model_filter(fields.String())
+def filter_last_name(model, name):
+    return model.last_name.ilike(f'%{name}%')
+
+
 class AttorneyResourceBase(GenericModelView):
     model = Attorney
     schema = attorney_schema
@@ -35,6 +50,9 @@ class AttorneyResourceBase(GenericModelView):
 
     pagination = CursorPagination()
     sorting = Sorting('name', default='name')
+    filtering = Filtering(
+        name=filter_name,
+    )
 
 
 class AttorneyListResource(AttorneyResourceBase):
@@ -56,6 +74,10 @@ class DefendantResourceBase(GenericModelView):
 
     pagination = CursorPagination()
     sorting = Sorting('name', default='name')
+    filtering = Filtering(
+        first_name=filter_first_name,
+        last_name=filter_last_name
+    )
 
 
 class DefendantListResource(DefendantResourceBase):
@@ -77,6 +99,9 @@ class CourtroomResourceBase(GenericModelView):
 
     pagination = CursorPagination()
     sorting = Sorting('name', default='name')
+    filtering = Filtering(
+        name=filter_name,
+    )
 
 
 class CourtroomListResource(CourtroomResourceBase):
@@ -98,6 +123,9 @@ class PlaintiffResourceBase(GenericModelView):
 
     pagination = CursorPagination()
     sorting = Sorting('name', default='name')
+    filtering = Filtering(
+        name=filter_name,
+    )
 
 
 class PlaintiffListResource(PlaintiffResourceBase):
@@ -119,6 +147,9 @@ class JudgeResourceBase(GenericModelView):
 
     pagination = CursorPagination()
     sorting = Sorting('name', default='name')
+    filtering = Filtering(
+        name=filter_name,
+    )
 
 
 class JudgeListResource(JudgeResourceBase):
@@ -149,6 +180,7 @@ class DetainerWarrantResourceBase(GenericModelView):
     filtering = Filtering(
         docket_id=ColumnFilter(operator.eq),
         defendant_name=filter_defendant_name,
+        court_date=ColumnFilter(operator.eq),
         judgement=ColumnFilter(operator.eq)
     )
 
@@ -161,6 +193,31 @@ class DetainerWarrantListResource(DetainerWarrantResourceBase):
 class DetainerWarrantResource(DetainerWarrantResourceBase):
     def get(self, id):
         return self.retrieve(id)
+
+
+class DetainerWarrantEditResourceBase(GenericModelView):
+    model = DetainerWarrant
+    schema = detainer_warrant_edit_schema
+    id_fields = ('docket_id',)
+
+    authentication = HeaderUserAuthentication()
+    authorization = AllowDefendant()
+
+    pagination = CursorPagination()
+    sorting = Sorting('file_date', default='file_date')
+
+
+class DetainerWarrantEditResource(DetainerWarrantEditResourceBase):
+    def get(self, id):
+        return self.retrieve(id)
+
+    def put(self, id):
+        return self.upsert(id)
+
+
+class DetainerWarrantEditResourceList(DetainerWarrantEditResourceBase):
+    def get(self):
+        return self.list()
 
 
 class PhoneNumberVerificationResourceBase(GenericModelView):
