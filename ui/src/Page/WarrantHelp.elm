@@ -2,6 +2,7 @@ module Page.WarrantHelp exposing (Model, Msg, init, subscriptions, toSession, up
 
 import Api exposing (Cred)
 import Api.Endpoint as Endpoint
+import Date
 import Defendant exposing (Defendant)
 import DetainerWarrant exposing (DetainerWarrant)
 import Element exposing (Element, fill)
@@ -111,18 +112,6 @@ viewDefendants warrant =
         (List.map viewDefendant warrant.defendants)
 
 
-viewCourtDate : DetainerWarrant -> Element Msg
-viewCourtDate warrant =
-    viewTextRow
-        (case warrant.courtDate of
-            Just courtDate ->
-                courtDate
-
-            Nothing ->
-                "Unknown"
-        )
-
-
 viewTextRow text =
     Element.row
         [ Element.width fill
@@ -159,13 +148,11 @@ viewWarrants model =
               }
             , { header = viewHeaderCell "Court Date"
               , width = fill
-              , view = viewCourtDate
+              , view = viewTextRow << Maybe.withDefault "" << Maybe.map Date.toIsoString << .courtDate
               }
             , { header = viewHeaderCell "File Date"
               , width = fill
-              , view =
-                    \warrant ->
-                        viewTextRow warrant.fileDate
+              , view = viewTextRow << Date.toIsoString << .fileDate
               }
             , { header = viewHeaderCell "Defendants"
               , width = fill

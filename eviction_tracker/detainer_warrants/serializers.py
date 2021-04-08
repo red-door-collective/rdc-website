@@ -37,7 +37,7 @@ class DefendantSchema(Schema):
         PhoneNumberVerificationSchema)
 
     class Meta:
-        fields = ("id", "name", "district", "address",
+        fields = ("id", "name", "first_name", "middle_name", "last_name", "suffix", "district", "address",
                   "verified_phone", "potential_phones")
 
 
@@ -90,7 +90,7 @@ class DetainerWarrantSchema(Schema):
     class Meta:
         fields = ("docket_id", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
                   "judgement", "judgement_notes", "plaintiff", "courtroom", "presiding_judge", "defendants",
-                  "zip_code", "is_legacy", "is_cares")
+                  "zip_code", "is_legacy", "is_cares", "nonpayment", "notes")
 
 
 class DetainerWarrantEditSchema(Schema):

@@ -3,6 +3,7 @@ module Page.Organize.DetainerWarrants exposing (Model, Msg, init, subscriptions,
 import Api exposing (Cred)
 import Api.Endpoint as Endpoint
 import Color
+import Date
 import DetainerWarrant exposing (DetainerWarrant)
 import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
@@ -250,11 +251,11 @@ viewWarrants detainerWarrants =
               , width = Element.fill
               }
             , { header = viewHeaderCell "File Date"
-              , view = viewTextRow << .fileDate
+              , view = viewTextRow << Date.toIsoString << .fileDate
               , width = Element.fill
               }
             , { header = viewHeaderCell "Status"
-              , view = viewTextRow << DetainerWarrant.statusText
+              , view = viewTextRow << DetainerWarrant.statusText << .status
               , width = fill
               }
             , { header = viewHeaderCell "Plaintiff"

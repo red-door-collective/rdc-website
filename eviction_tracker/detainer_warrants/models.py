@@ -58,7 +58,7 @@ class Defendant(db.Model, Timestamped):
     phone_bank_attempts = relationship(
         'PhoneBankEvent', secondary=phone_bank_tenants, back_populates='tenants')
 
-    @ property
+    @property
     def name(self):
         return ' '.join(filter(lambda s: s != None, [self.first_name, self.middle_name, self.last_name, self.suffix]))
 
@@ -175,8 +175,7 @@ class DetainerWarrant(db.Model, Timestamped):
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
     amount_claimed = Column(db.Numeric(scale=2))  # USD
-    amount_claimed_category_id = Column(
-        db.Integer, nullable=False)  # enum (POSS | FEES | BOTH | NA)
+    amount_claimed_category_id = Column(db.Integer)
     is_cares = Column(db.Boolean)
     is_legacy = Column(db.Boolean)
     zip_code = Column(db.String(10))
@@ -222,6 +221,9 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @property
     def amount_claimed_category(self):
+        if self.amount_claimed_category_id is None:
+            return None
+
         category_by_id = {
             v: k for k, v in DetainerWarrant.amount_claimed_categories.items()}
         return category_by_id[self.amount_claimed_category_id]
@@ -229,7 +231,7 @@ class DetainerWarrant(db.Model, Timestamped):
     @amount_claimed_category.setter
     def amount_claimed_category(self, amount_claimed_category_name):
         self.amount_claimed_category_id = DetainerWarrant.amount_claimed_categories[
-            amount_claimed_category_name]
+            amount_claimed_category_name] if amount_claimed_category_name else None
 
     @property
     def judgement(self):
@@ -281,13 +283,13 @@ class PhoneNumberVerification(db.Model, Timestamped):
             national_format=lookup.national_format,
             phone_number=lookup.phone_number)
 
-    @ property
+    @property
     def caller_type(self):
         caller_type_by_id = {v: k for k,
                              v in PhoneNumberVerification.caller_types.items()}
         return caller_type_by_id.get(self.caller_type_id)
 
-    @ caller_type.setter
+    @caller_type.setter
     def caller_type(self, caller_type):
         self.caller_type_id = PhoneNumberVerification.caller_types.get(
             caller_type)

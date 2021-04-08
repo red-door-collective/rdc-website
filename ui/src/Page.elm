@@ -132,7 +132,7 @@ navBarLink { url, text, isActive } =
 
 navBar : NavBar msg -> Settings -> Page -> Element msg
 navBar config settings page =
-    column [ width fill ]
+    column [ width fill, spacing 10 ]
         [ case settings.device.class of
             Phone ->
                 phoneBar config settings page
