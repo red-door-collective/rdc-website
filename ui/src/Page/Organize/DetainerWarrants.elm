@@ -140,7 +140,7 @@ view : Settings -> Model -> { title : String, content : Element Msg }
 view settings model =
     { title = "Organize - Detainer Warrants"
     , content =
-        row [ centerX, padding 10, Font.size 20, width (fill |> maximum 1000 |> minimum 400) ]
+        row [ centerX, padding 10, Font.size 20, width (fill |> maximum 2000 |> minimum 400) ]
             [ column [ centerX, spacing 10 ]
                 [ createNewWarrant
                 , viewSearchBar model
@@ -243,7 +243,7 @@ viewTextRow text =
 
 viewWarrants : List DetainerWarrant -> Element Msg
 viewWarrants detainerWarrants =
-    table []
+    table [ width (fill |> maximum 1400), Font.size 14 ]
         { data = detainerWarrants
         , columns =
             [ { header = viewHeaderCell "Docket #"
