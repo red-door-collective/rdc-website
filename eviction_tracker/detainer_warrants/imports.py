@@ -85,7 +85,7 @@ def _from_spreadsheet_row(raw_warrant, defaults):
     plaintiff = None
     if warrant[PLAINTIFF]:
         plaintiff, _ = get_or_create(
-            db.session, Plaintiff, name=warrant[PLAINTIFF], attorney=attorney, defaults=defaults)
+            db.session, Plaintiff, name=warrant[PLAINTIFF], defaults=defaults)
 
     court_date = extract_raw_court_data(warrant[COURT_DATE])
     recurring_court_date = warrant[RECURRING_COURT_DATE]
@@ -102,7 +102,7 @@ def _from_spreadsheet_row(raw_warrant, defaults):
 
     amount_claimed = Decimal(str(warrant[AMT_CLAIMED]).replace(
         '$', '').replace(',', '')) if warrant[AMT_CLAIMED] else None
-    amount_claimed_category = warrant[AMT_CLAIMED_CAT]
+    amount_claimed_category = warrant[AMT_CLAIMED_CAT] or 'N/A'
     is_cares = warrant[IS_CARES] == 'Yes' if warrant[IS_CARES] else None
     is_legacy = warrant[IS_LEGACY] == 'Yes' if warrant[IS_LEGACY] else None
     nonpayment = warrant[NONPAYMENT] == 'Yes' if warrant[NONPAYMENT] else None
@@ -119,9 +119,10 @@ def _from_spreadsheet_row(raw_warrant, defaults):
                      file_date=file_date,
                      status_id=DetainerWarrant.statuses[status],
                      plaintiff_id=plaintiff.id if plaintiff else None,
+                     plaintiff_attorney_id=attorney.id if attorney else None,
                      court_date='11/3/2020' if court_date == '11/3' else court_date,
                      court_date_recurring_id=DetainerWarrant.recurring_court_dates[
-                         recurring_court_date] if recurring_court_date else None,
+                         recurring_court_date.upper()] if recurring_court_date else None,
                      courtroom_id=courtroom.id if courtroom else None,
                      presiding_judge_id=presiding_judge.id if presiding_judge else None,
                      amount_claimed=amount_claimed,

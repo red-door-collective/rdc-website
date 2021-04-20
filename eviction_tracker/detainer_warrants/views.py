@@ -49,7 +49,7 @@ class AttorneyResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination()
-    sorting = Sorting('name', default='name')
+    sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
     )
@@ -59,10 +59,16 @@ class AttorneyListResource(AttorneyResourceBase):
     def get(self):
         return self.list()
 
+    def post(self):
+        return self.create()
+
 
 class AttorneyResource(AttorneyResourceBase):
     def get(self, id):
         return self.retrieve(id)
+
+    def patch(self, id):
+        return self.update(int(id), partial=True)
 
 
 class DefendantResourceBase(GenericModelView):
@@ -73,7 +79,7 @@ class DefendantResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination()
-    sorting = Sorting('name', default='name')
+    sorting = Sorting('id', default='-id')
     filtering = Filtering(
         first_name=filter_first_name,
         last_name=filter_last_name
@@ -84,10 +90,16 @@ class DefendantListResource(DefendantResourceBase):
     def get(self):
         return self.list()
 
+    def post(self):
+        return self.create()
+
 
 class DefendantResource(DefendantResourceBase):
     def get(self):
         return self.retrieve(id)
+
+    def patch(self, id):
+        return self.update(int(id), partial=True)
 
 
 class CourtroomResourceBase(GenericModelView):
@@ -98,7 +110,7 @@ class CourtroomResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination()
-    sorting = Sorting('name', default='name')
+    sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
     )
@@ -108,10 +120,16 @@ class CourtroomListResource(CourtroomResourceBase):
     def get(self):
         return self.list()
 
+    def post(self):
+        return self.create()
+
 
 class CourtroomResource(CourtroomResourceBase):
     def get(self, id):
         return self.retrieve(id)
+
+    def patch(self, id):
+        return self.update(int(id), partial=True)
 
 
 class PlaintiffResourceBase(GenericModelView):
@@ -122,7 +140,7 @@ class PlaintiffResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination()
-    sorting = Sorting('name', default='name')
+    sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
     )
@@ -132,10 +150,16 @@ class PlaintiffListResource(PlaintiffResourceBase):
     def get(self):
         return self.list()
 
+    def post(self):
+        return self.create()
+
 
 class PlaintiffResource(PlaintiffResourceBase):
     def get(self, id):
         return self.retrieve(id)
+
+    def patch(self, id):
+        return self.update(int(id), partial=True)
 
 
 class JudgeResourceBase(GenericModelView):
@@ -146,7 +170,7 @@ class JudgeResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination()
-    sorting = Sorting('name', default='name')
+    sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
     )
@@ -156,15 +180,36 @@ class JudgeListResource(JudgeResourceBase):
     def get(self):
         return self.list()
 
+    def post(self):
+        return self.create()
+
 
 class JudgeResource(JudgeResourceBase):
     def get(self, id):
         return self.retrieve(id)
 
+    def patch(self, id):
+        return self.update(int(id), partial=True)
+
 
 @model_filter(fields.String())
 def filter_defendant_name(model, defendant_name):
-    return model.defendants.any(Defendant.first_name.ilike(f'%{defendant_name}%'))
+    return model._defendants.any(Defendant.first_name.ilike(f'%{defendant_name}%'))
+
+
+@model_filter(fields.String())
+def filter_address(model, address):
+    return model._defendants.any(Defendant.address.ilike(f'%{address}%'))
+
+
+@model_filter(fields.String())
+def filter_plaintiff_name(model, plaintiff_name):
+    return model._plaintiff.has(Plaintiff.name.ilike(f'%{plaintiff_name}%'))
+
+
+@model_filter(fields.String())
+def filter_plaintiff_attorney_name(model, plaintiff_attorney_name):
+    return model._plaintiff_attorney.has(Attorney.name.ilike(f'%{plaintiff_attorney_name}%'))
 
 
 class DetainerWarrantResourceBase(GenericModelView):
@@ -176,11 +221,14 @@ class DetainerWarrantResourceBase(GenericModelView):
     authorization = AllowDefendant()
 
     pagination = CursorPagination()
-    sorting = Sorting('file_date', default='file_date')
+    sorting = Sorting('file_date', default='-file_date')
     filtering = Filtering(
         docket_id=ColumnFilter(operator.eq),
         defendant_name=filter_defendant_name,
-        court_date=ColumnFilter(operator.eq),
+        file_date=ColumnFilter(operator.eq),
+        plaintiff=filter_plaintiff_name,
+        plaintiff_attorney=filter_plaintiff_attorney_name,
+        address=filter_address,
         judgement=ColumnFilter(operator.eq)
     )
 
@@ -194,30 +242,8 @@ class DetainerWarrantResource(DetainerWarrantResourceBase):
     def get(self, id):
         return self.retrieve(id)
 
-
-class DetainerWarrantEditResourceBase(GenericModelView):
-    model = DetainerWarrant
-    schema = detainer_warrant_edit_schema
-    id_fields = ('docket_id',)
-
-    authentication = HeaderUserAuthentication()
-    authorization = AllowDefendant()
-
-    pagination = CursorPagination()
-    sorting = Sorting('file_date', default='file_date')
-
-
-class DetainerWarrantEditResource(DetainerWarrantEditResourceBase):
-    def get(self, id):
-        return self.retrieve(id)
-
-    def put(self, id):
+    def patch(self, id):
         return self.upsert(id)
-
-
-class DetainerWarrantEditResourceList(DetainerWarrantEditResourceBase):
-    def get(self):
-        return self.list()
 
 
 class PhoneNumberVerificationResourceBase(GenericModelView):

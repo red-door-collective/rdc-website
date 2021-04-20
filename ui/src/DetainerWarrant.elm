@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, Courtroom, DetainerWarrant, DetainerWarrantEdit, Judge, Judgement(..), Plaintiff, Status(..), amountClaimedCategoryText, attorneyDecoder, courtroomDecoder, decoder, editDecoder, judgeDecoder, judgementText, plaintiffDecoder, statusText)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, Courtroom, DetainerWarrant, DetainerWarrantEdit, Judge, Judgement(..), Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, courtroomDecoder, dateDecoder, decoder, judgeDecoder, judgementOptions, judgementText, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
 
 import Date exposing (Date)
 import Defendant exposing (Defendant)
@@ -28,7 +28,7 @@ type alias Attorney =
 
 
 type alias Plaintiff =
-    { id : Int, name : String, attorney : Maybe Attorney }
+    { id : Int, name : String }
 
 
 type alias Courtroom =
@@ -40,6 +40,7 @@ type Judgement
     | Poss
     | PossAndPayment
     | Dismissed
+    | NotAvailable
 
 
 type alias DetainerWarrant =
@@ -47,37 +48,63 @@ type alias DetainerWarrant =
     , fileDate : Date
     , status : Status
     , plaintiff : Maybe Plaintiff
+    , plaintiffAttorney : Maybe Attorney
     , courtDate : Maybe Date
     , courtroom : Maybe Courtroom
     , presidingJudge : Maybe Judge
     , amountClaimed : Maybe Float
-    , amountClaimedCategory : Maybe AmountClaimedCategory
+    , amountClaimedCategory : AmountClaimedCategory
     , isCares : Maybe Bool
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
     , defendants : List Defendant
-    , judgement : Maybe Judgement
+    , judgement : Judgement
     , notes : Maybe String
     }
+
+
+type alias Related =
+    { id : Int }
 
 
 type alias DetainerWarrantEdit =
     { docketId : String
     , fileDate : String
     , status : Status
-    , plaintiffId : Maybe Int
+    , plaintiff : Maybe Related
+    , plaintiffAttorney : Maybe Related
     , courtDate : Maybe String
-    , courtroomId : Maybe Int
-    , presidingJudgeId : Maybe Int
+    , courtroom : Maybe Related
+    , presidingJudge : Maybe Related
     , amountClaimed : Maybe Float
-    , amountClaimedCategory : Maybe AmountClaimedCategory
+    , amountClaimedCategory : AmountClaimedCategory
     , isCares : Maybe Bool
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
-    , defendants : List Int
-    , judgement : Maybe Judgement
+    , defendants : List Related
+    , judgement : Judgement
     , notes : Maybe String
     }
+
+
+ternaryOptions : List (Maybe Bool)
+ternaryOptions =
+    [ Nothing, Just True, Just False ]
+
+
+statusOptions : List Status
+statusOptions =
+    [ Pending, Closed ]
+
+
+amountClaimedCategoryOptions : List AmountClaimedCategory
+amountClaimedCategoryOptions =
+    [ Possession, Fees, Both, NotApplicable ]
+
+
+judgementOptions : List Judgement
+judgementOptions =
+    [ NonSuit, Poss, PossAndPayment, Dismissed, NotAvailable ]
 
 
 statusText : Status -> String
@@ -116,10 +143,13 @@ judgementText judgement =
             "POSS"
 
         PossAndPayment ->
-            "POSS + Payment"
+            "POSS + PAYMENT"
 
         Dismissed ->
-            "Dismissed"
+            "DISMISSED"
+
+        NotAvailable ->
+            "N/A"
 
 
 
@@ -215,7 +245,6 @@ plaintiffDecoder =
     Decode.succeed Plaintiff
         |> required "id" int
         |> required "name" string
-        |> required "attorney" (nullable attorneyDecoder)
 
 
 dateDecoder : Decoder Date
@@ -230,34 +259,15 @@ decoder =
         |> required "file_date" dateDecoder
         |> required "status" statusDecoder
         |> required "plaintiff" (nullable plaintiffDecoder)
+        |> required "plaintiff_attorney" (nullable attorneyDecoder)
         |> required "court_date" (nullable dateDecoder)
         |> required "courtroom" (nullable courtroomDecoder)
         |> required "presiding_judge" (nullable judgeDecoder)
         |> required "amount_claimed" (nullable float)
-        |> required "amount_claimed_category" (nullable amountClaimedCategoryDecoder)
+        |> required "amount_claimed_category" amountClaimedCategoryDecoder
         |> required "is_cares" (nullable bool)
         |> required "is_legacy" (nullable bool)
         |> required "nonpayment" (nullable bool)
         |> required "defendants" (list Defendant.decoder)
-        |> required "judgement" (nullable judgementDecoder)
-        |> required "notes" (nullable string)
-
-
-editDecoder : Decoder DetainerWarrantEdit
-editDecoder =
-    Decode.succeed DetainerWarrantEdit
-        |> required "docket_id" string
-        |> required "file_date" string
-        |> required "status" statusDecoder
-        |> required "plaintiff_id" (nullable int)
-        |> required "court_date" (nullable string)
-        |> required "courtroom_id" (nullable int)
-        |> required "presiding_judge_id" (nullable int)
-        |> required "amount_claimed" (nullable float)
-        |> required "amount_claimed_category" (nullable amountClaimedCategoryDecoder)
-        |> required "is_cares" (nullable bool)
-        |> required "is_legacy" (nullable bool)
-        |> required "nonpayment" (nullable bool)
-        |> required "defendants" (list int)
-        |> required "judgement" (nullable judgementDecoder)
+        |> required "judgement" judgementDecoder
         |> required "notes" (nullable string)

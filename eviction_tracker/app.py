@@ -114,8 +114,7 @@ def top_plaintiff_attorneys_bet(start, end):
     with top as 
         (select a.name, count(dw.docket_id) as warrantCount
     from attorneys a
-    inner join plaintiffs p on p.attorney_id = a.id
-    inner join detainer_warrants dw on dw.plaintiff_id = p.id
+    inner join detainer_warrants dw on dw.plaintiff_attorney_id = a.id
     group by a.id, a.name
     order by count(dw.docket_id) desc)
     select *
@@ -240,8 +239,6 @@ def register_extensions(app):
                      detainer_warrants.views.JudgeResource, app=app)
     api.add_resource('/detainer-warrants/', detainer_warrants.views.DetainerWarrantListResource,
                      detainer_warrants.views.DetainerWarrantResource, app=app)
-    api.add_resource('/detainer-warrants/edit/', detainer_warrants.views.DetainerWarrantEditResourceList,
-                     detainer_warrants.views.DetainerWarrantEditResource, app=app)
     api.add_resource('/phone-number-verifications/', detainer_warrants.views.PhoneNumberVerificationListResource,
                      detainer_warrants.views.PhoneNumberVerificationResource, app=app)
     api.add_resource('/users/', admin.views.UserListResource,

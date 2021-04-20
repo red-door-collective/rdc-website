@@ -201,7 +201,7 @@ viewDefendants maybeForm defendants =
               , width = Element.fill
               }
             , { header = viewHeaderCell "Address"
-              , view = viewTextRow << Maybe.withDefault "N/A" << .address
+              , view = viewTextRow << .address
               , width = Element.fill
               }
             , { header = viewHeaderCell "Phone Number"
