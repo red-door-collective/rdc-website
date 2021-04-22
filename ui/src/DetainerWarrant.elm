@@ -138,7 +138,7 @@ judgementText : Judgement -> String
 judgementText judgement =
     case judgement of
         NonSuit ->
-            "Non-suit"
+            "NON-SUIT"
 
         Poss ->
             "POSS"
