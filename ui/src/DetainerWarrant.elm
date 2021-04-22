@@ -40,6 +40,7 @@ type Judgement
     | Poss
     | PossAndPayment
     | Dismissed
+    | FeesOnly
     | NotAvailable
 
 
@@ -99,12 +100,12 @@ statusOptions =
 
 amountClaimedCategoryOptions : List AmountClaimedCategory
 amountClaimedCategoryOptions =
-    [ Possession, Fees, Both, NotApplicable ]
+    [ NotApplicable, Possession, Fees, Both ]
 
 
 judgementOptions : List Judgement
 judgementOptions =
-    [ NonSuit, Poss, PossAndPayment, Dismissed, NotAvailable ]
+    [ NotAvailable, NonSuit, Poss, PossAndPayment, Dismissed, FeesOnly ]
 
 
 statusText : Status -> String
@@ -150,6 +151,9 @@ judgementText judgement =
 
         NotAvailable ->
             "N/A"
+
+        FeesOnly ->
+            "FEES ONLY"
 
 
 
@@ -202,20 +206,26 @@ judgementDecoder =
         |> Decode.andThen
             (\str ->
                 case str of
-                    "Non-suit" ->
+                    "NON-SUIT" ->
                         Decode.succeed NonSuit
 
                     "POSS" ->
                         Decode.succeed Poss
 
-                    "POSS + Payment" ->
+                    "POSS + PAYMENT" ->
                         Decode.succeed PossAndPayment
 
-                    "Dismissed" ->
+                    "DISMISSED" ->
                         Decode.succeed Dismissed
 
+                    "FEES ONLY" ->
+                        Decode.succeed FeesOnly
+
+                    "N/A" ->
+                        Decode.succeed NotAvailable
+
                     _ ->
-                        Decode.succeed Dismissed
+                        Decode.succeed NotAvailable
             )
 
 
