@@ -1,4 +1,4 @@
-port module Api exposing (Collection, Cred, Flags, Item, PageMeta, RollupMetadata, Window, addServerError, application, campaignApiDecoder, collectionDecoder, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, onStoreChange, pageMetaDecoder, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, userApiDecoder, users, viewerChanges)
+port module Api exposing (Collection, Cred, Flags, Item, PageMeta, RollupMetadata, Window, addServerError, application, campaignApiDecoder, collectionDecoder, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, onStoreChange, pageMetaDecoder, patch, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, userApiDecoder, users, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -215,6 +215,25 @@ put : Endpoint -> Maybe Cred -> Body -> (Result Error a -> msg) -> Decoder a -> 
 put url maybeCred body toMsg decoder =
     Endpoint.request
         { method = "PUT"
+        , url = url
+        , expect = Http.expectJson toMsg decoder
+        , headers =
+            case maybeCred of
+                Just cred ->
+                    credHeaders cred
+
+                Nothing ->
+                    []
+        , body = body
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+patch : Endpoint -> Maybe Cred -> Body -> (Result Error a -> msg) -> Decoder a -> Cmd msg
+patch url maybeCred body toMsg decoder =
+    Endpoint.request
+        { method = "PATCH"
         , url = url
         , expect = Http.expectJson toMsg decoder
         , headers =

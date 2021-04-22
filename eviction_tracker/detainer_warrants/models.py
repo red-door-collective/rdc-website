@@ -1,6 +1,6 @@
 from eviction_tracker.database import db, Timestamped, Column, Model, relationship
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, text
 from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 
@@ -50,7 +50,7 @@ class Defendant(db.Model, Timestamped):
     district = relationship('District', back_populates='defendants')
     detainer_warrants = relationship('DetainerWarrant',
                                      secondary=detainer_warrant_defendants,
-                                     back_populates='defendants',
+                                     back_populates='_defendants',
                                      passive_deletes=True
                                      )
     verified_phone = relationship(
@@ -76,7 +76,8 @@ class Attorney(db.Model, Timestamped):
     db.UniqueConstraint('name', 'district_id')
 
     district = relationship('District', back_populates='attorneys')
-    plaintiff_clients = relationship('Plaintiff', back_populates='attorney')
+    detainer_warrants = relationship(
+        'DetainerWarrant', back_populates='_plaintiff_attorney')
 
     def __repr__(self):
         return "<Attorney(name='%s', district_id='%s')>" % (self.name, self.district_id)
@@ -92,7 +93,7 @@ class Courtroom(db.Model, Timestamped):
     db.UniqueConstraint('name', 'district_id')
 
     district = relationship('District', back_populates='courtrooms')
-    cases = relationship('DetainerWarrant', back_populates='courtroom')
+    cases = relationship('DetainerWarrant', back_populates='_courtroom')
 
     def __repr__(self):
         return "<Courtroom(name='%s')>" % (self.name)
@@ -102,19 +103,17 @@ class Plaintiff(db.Model, Timestamped):
     __tablename__ = 'plaintiffs'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
-    attorney_id = Column(db.Integer, db.ForeignKey('attorneys.id'))
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
 
     db.UniqueConstraint('name', 'district_id')
 
     district = relationship('District', back_populates='plaintiffs')
-    attorney = relationship('Attorney', back_populates='plaintiff_clients')
     detainer_warrants = relationship(
-        'DetainerWarrant', back_populates='plaintiff')
+        'DetainerWarrant', back_populates='_plaintiff')
 
     def __repr__(self):
-        return "<Plaintiff(name='%s', attorney_id='%s', district_id='%s')>" % (self.name, self.attorney_id, self.district_id)
+        return "<Plaintiff(name='%s', district_id='%s')>" % (self.name, self.district_id)
 
 
 class Judge(db.Model, Timestamped):
@@ -127,7 +126,7 @@ class Judge(db.Model, Timestamped):
     db.UniqueConstraint('name', 'district_id')
 
     district = relationship('District', back_populates='judges')
-    cases = relationship('DetainerWarrant', back_populates='presiding_judge')
+    cases = relationship('DetainerWarrant', back_populates='_presiding_judge')
 
     def __repr__(self):
         return "<Judge(name='%s')>" % (self.name)
@@ -161,7 +160,8 @@ class DetainerWarrant(db.Model, Timestamped):
         'POSS': 1,
         'POSS + PAYMENT': 2,
         'DISMISSED': 3,
-        'N/A': 4
+        'N/A': 4,
+        'FEES ONLY': 5
     }
 
     __tablename__ = 'detainer_warrants'
@@ -170,12 +170,16 @@ class DetainerWarrant(db.Model, Timestamped):
     status_id = Column(db.Integer, nullable=False)
     plaintiff_id = Column(db.Integer, db.ForeignKey(
         'plaintiffs.id', ondelete='CASCADE'))
+    plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
+        'attorneys.id', ondelete=('CASCADE')
+    ))
     court_date = Column(db.Date)
     court_date_recurring_id = Column(db.Integer)
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
     amount_claimed = Column(db.Numeric(scale=2))  # USD
-    amount_claimed_category_id = Column(db.Integer)
+    amount_claimed_category_id = Column(
+        db.Integer, nullable=False, default=3, server_default=text("3"))
     is_cares = Column(db.Boolean)
     is_legacy = Column(db.Boolean)
     zip_code = Column(db.String(10))
@@ -184,15 +188,17 @@ class DetainerWarrant(db.Model, Timestamped):
     judgement_notes = Column(db.String(255))
     notes = Column(db.String(255))
 
-    plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
-    courtroom = relationship('Courtroom', back_populates='cases')
-    presiding_judge = relationship('Judge', back_populates='cases')
+    _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
+    _plaintiff_attorney = relationship(
+        'Attorney', back_populates='detainer_warrants')
+    _courtroom = relationship('Courtroom', back_populates='cases')
+    _presiding_judge = relationship('Judge', back_populates='cases')
 
-    defendants = relationship('Defendant',
-                              secondary=detainer_warrant_defendants,
-                              back_populates='detainer_warrants',
-                              cascade="all, delete",
-                              )
+    _defendants = relationship('Defendant',
+                               secondary=detainer_warrant_defendants,
+                               back_populates='detainer_warrants',
+                               cascade="all, delete",
+                               )
 
     canvass_attempts = relationship(
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")
@@ -241,6 +247,66 @@ class DetainerWarrant(db.Model, Timestamped):
     @judgement.setter
     def judgement(self, judgement_name):
         self.judgement_id = DetainerWarrant.judgements[judgement_name]
+
+    @property
+    def plaintiff(self):
+        return self._plaintiff
+
+    @plaintiff.setter
+    def plaintiff(self, plaintiff):
+        p_id = plaintiff.get('id')
+        if (p_id):
+            self._plaintiff = db.session.query(Plaintiff).get(p_id)
+        else:
+            self._plaintiff = plaintiff
+
+    @property
+    def plaintiff_attorney(self):
+        return self._plaintiff_attorney
+
+    @plaintiff_attorney.setter
+    def plaintiff_attorney(self, attorney):
+        a_id = attorney.get('id')
+        if (a_id):
+            self._plaintiff_attorney = db.session.query(Attorney).get(a_id)
+        else:
+            self._plaintiff_attorney = attorney
+
+    @property
+    def courtroom(self):
+        return self._courtroom
+
+    @courtroom.setter
+    def courtroom(self, courtroom):
+        c_id = courtroom.get('id')
+        if (c_id):
+            self._courtroom = db.session.query(Courtroom).get(c_id)
+        else:
+            self._courtroom = courtroom
+
+    @property
+    def presiding_judge(self):
+        return self._presiding_judge
+
+    @presiding_judge.setter
+    def presiding_judge(self, judge):
+        j_id = judge.get('id')
+        if (j_id):
+            self._presiding_judge = db.session.query(Judge).get(j_id)
+        else:
+            self._presiding_judge = judge
+
+    @property
+    def defendants(self):
+        return self._defendants
+
+    @defendants.setter
+    def defendants(self, defendants):
+        if (all(isinstance(d, Defendant) for d in defendants)):
+            self._defendants = defendants
+        else:
+            self._defendants = [db.session.query(
+                Defendant).get(d.get('id')) for d in defendants]
 
 
 class PhoneNumberVerification(db.Model, Timestamped):

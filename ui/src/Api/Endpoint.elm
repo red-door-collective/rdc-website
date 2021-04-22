@@ -1,4 +1,4 @@
-module Api.Endpoint exposing (Endpoint, attorneys, campaign, campaigns, courtrooms, currentUser, detainerWarrant, detainerWarrantStats, detainerWarrants, editDetainerWarrant, event, evictionStats, judges, login, logout, plaintiffAttorneyStats, plaintiffs, request, users)
+module Api.Endpoint exposing (Endpoint, attorney, attorneys, campaign, campaigns, courtroom, courtrooms, currentUser, defendant, defendants, detainerWarrant, detainerWarrantStats, detainerWarrants, detainerWarrantsSearch, event, evictionStats, judge, judges, login, logout, plaintiff, plaintiffAttorneyStats, plaintiffs, request, users)
 
 import Http
 import Url.Builder exposing (QueryParameter, string)
@@ -75,34 +75,73 @@ detainerWarrants =
     url [ "detainer-warrants" ] []
 
 
+type alias Param =
+    ( String, String )
+
+
+toQueryArgs : List Param -> List QueryParameter
+toQueryArgs params =
+    List.map (\( k, v ) -> string k v) params
+
+
+detainerWarrantsSearch : List Param -> Endpoint
+detainerWarrantsSearch params =
+    url [ "detainer-warrants" ] (toQueryArgs params)
+
+
 detainerWarrant : String -> Endpoint
 detainerWarrant id =
     url [ "detainer-warrants", id ] []
 
 
-editDetainerWarrant : String -> Endpoint
-editDetainerWarrant id =
-    url [ "detainer-warrants", "edit", id ] []
+plaintiffs : List Param -> Endpoint
+plaintiffs =
+    url [ "plaintiffs", "" ] << toQueryArgs
 
 
-plaintiffs : List QueryParameter -> Endpoint
-plaintiffs queryParams =
-    url [ "plaintiffs" ] queryParams
+plaintiff : Int -> Endpoint
+plaintiff id =
+    url [ "plaintiffs", String.fromInt id ] []
 
 
-attorneys : List QueryParameter -> Endpoint
-attorneys queryParams =
-    url [ "attorneys" ] queryParams
+attorneys : List Param -> Endpoint
+attorneys =
+    url [ "attorneys", "" ] << toQueryArgs
 
 
-judges : List QueryParameter -> Endpoint
-judges queryParams =
-    url [ "judges" ] queryParams
+attorney : Int -> Endpoint
+attorney id =
+    url [ "attorneys", String.fromInt id ] []
 
 
-courtrooms : List QueryParameter -> Endpoint
-courtrooms queryParams =
-    url [ "courtrooms" ] queryParams
+judges : List Param -> Endpoint
+judges =
+    url [ "judges", "" ] << toQueryArgs
+
+
+judge : Int -> Endpoint
+judge id =
+    url [ "judges", String.fromInt id ] []
+
+
+defendants : List Param -> Endpoint
+defendants =
+    url [ "defendants", "" ] << toQueryArgs
+
+
+defendant : Int -> Endpoint
+defendant id =
+    url [ "defendants", String.fromInt id ] []
+
+
+courtrooms : List Param -> Endpoint
+courtrooms =
+    url [ "courtrooms", "" ] << toQueryArgs
+
+
+courtroom : Int -> Endpoint
+courtroom id =
+    url [ "courtrooms", String.fromInt id ] []
 
 
 campaigns : Endpoint

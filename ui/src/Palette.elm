@@ -3,7 +3,7 @@ module Palette exposing
     , pinkLight, blueLight, goldLight, redLight, greenLight, cyanLight, tealLight, purpleLight
     , black, gray, grayLight, grayLightest
     , transparent
-    , blackLight, sred, white
+    , blackLight, redLightest, sred, white, grayBack
     )
 
 {-|
@@ -95,6 +95,12 @@ redLight =
     Element.rgb255 239 154 154
 
 
+{-| -}
+redLightest : Element.Color
+redLightest =
+    Element.rgba255 204 51 64 0.08
+
+
 sred : Element.Color
 sred =
     Element.rgb255 236 31 39
@@ -179,6 +185,12 @@ grayLight =
 grayLightest : Element.Color
 grayLightest =
     Element.rgb255 243 243 243
+
+
+{-| -}
+grayBack : Element.Color
+grayBack =
+    Element.rgb255 248 249 249
 
 
 {-| -}

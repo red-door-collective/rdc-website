@@ -2,25 +2,34 @@ module Page.Organize.DetainerWarrantCreation exposing (Model, Msg, init, subscri
 
 import Api exposing (Cred)
 import Api.Endpoint as Endpoint
+import Browser.Events exposing (onMouseDown)
 import Campaign exposing (Campaign)
 import Color
 import Date exposing (Date)
+import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
-import DetainerWarrant exposing (AmountClaimedCategory, Attorney, Courtroom, DetainerWarrant, DetainerWarrantEdit, Judge, Judgement, Plaintiff, Status)
+import DetainerWarrant exposing (AmountClaimedCategory, Attorney, Courtroom, DetainerWarrant, DetainerWarrantEdit, Judge, Judgement, Plaintiff, Status, amountClaimedCategoryText)
 import Dropdown
-import Element exposing (Element, centerX, column, el, fill, height, image, link, maximum, minimum, padding, paddingXY, paragraph, px, row, spacing, text, textColumn, width, wrappedRow)
+import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Html.Attributes
 import Html.Events
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import LineChart.Axis.Values exposing (Amount)
+import List.Extra as List
+import Mask
 import Maybe.Extra
 import Palette
+import PhoneNumber
+import PhoneNumber.Countries exposing (countryUS)
 import Route
 import SearchBox
 import Session exposing (Session)
@@ -30,7 +39,19 @@ import Task
 import Url.Builder as QueryParam
 import User exposing (User)
 import Widget
-import Widget.Icon
+import Widget.Customize as Customize
+import Widget.Icon exposing (Icon)
+import Widget.Material as Material
+
+
+validUSNumber : String -> Bool
+validUSNumber number =
+    PhoneNumber.valid
+        { defaultCountry = countryUS
+        , otherCountries = []
+        , types = PhoneNumber.anyType
+        }
+        number
 
 
 type alias DefendantForm =
@@ -39,7 +60,7 @@ type alias DefendantForm =
     , middleName : String
     , lastName : String
     , suffix : String
-    , potentialPhones : String
+    , potentialPhones : List String
     }
 
 
@@ -55,6 +76,11 @@ type alias FormOptions =
     , attorneys : List Attorney
     , judges : List Judge
     , courtrooms : List Courtroom
+    , tooltip : Maybe Tooltip
+    , docketId : Maybe String
+    , today : Maybe Date
+    , problems : List Problem
+    , originalWarrant : Maybe DetainerWarrant
     }
 
 
@@ -90,22 +116,25 @@ type alias Form =
     { docketId : String
     , fileDate : DatePickerState
     , status : Status
-    , statusDropdown : Dropdown.State String
+    , statusDropdown : Dropdown.State Status
     , plaintiff : PlaintiffForm
     , plaintiffAttorney : AttorneyForm
     , courtDate : DatePickerState
     , courtroom : CourtroomForm
     , presidingJudge : JudgeForm
+    , caresDropdown : Dropdown.State (Maybe Bool)
     , isCares : Maybe Bool
+    , legacyDropdown : Dropdown.State (Maybe Bool)
     , isLegacy : Maybe Bool
+    , nonpaymentDropdown : Dropdown.State (Maybe Bool)
     , isNonpayment : Maybe Bool
     , amountClaimed : String
-    , amountClaimedCategory : Maybe AmountClaimedCategory
-    , categoryDropdown : Dropdown.State String
+    , amountClaimedCategory : AmountClaimedCategory
+    , categoryDropdown : Dropdown.State AmountClaimedCategory
     , address : String
     , defendants : List DefendantForm
-    , judgement : Maybe Judgement
-    , judgementDropdown : Dropdown.State String
+    , judgement : Judgement
+    , judgementDropdown : Dropdown.State Judgement
     , notes : String
     }
 
@@ -115,16 +144,53 @@ type Problem
     | ServerError String
 
 
+type Tooltip
+    = DetainerWarrantInfo
+    | DocketIdInfo
+    | FileDateInfo
+    | StatusInfo
+    | PlaintiffInfo
+    | PlaintiffAttorneyInfo
+    | CourtDateInfo
+    | CourtroomInfo
+    | PresidingJudgeInfo
+    | AmountClaimedInfo
+    | AmountClaimedCategoryInfo
+    | CaresInfo
+    | LegacyInfo
+    | NonpaymentInfo
+    | AddressInfo
+    | PotentialPhoneNumbersInfo Int
+    | JudgementInfo
+    | NotesInfo
+
+
+type SaveState
+    = SavingRelatedModels { attorney : Bool, plaintiff : Bool, courtroom : Bool, judge : Bool, defendants : Int }
+    | SavingWarrant
+    | Done
+
+
 type alias Model =
     { session : Session
     , warrant : Maybe DetainerWarrant
     , docketId : Maybe String
+    , today : Maybe Date
+    , tooltip : Maybe Tooltip
     , problems : List Problem
     , form : FormStatus
     , plaintiffs : List Plaintiff
     , attorneys : List Attorney
     , judges : List Judge
     , courtrooms : List Courtroom
+    , saveState : SaveState
+    , newFormOnSuccess : Bool
+    }
+
+
+type alias DropdownState item =
+    { options : List item
+    , selectedOption : Maybe item
     }
 
 
@@ -173,9 +239,13 @@ initDefendantForm defendant =
     { id = Maybe.map .id defendant
     , firstName = Maybe.withDefault "" <| Maybe.map .firstName defendant
     , middleName = Maybe.withDefault "" <| Maybe.andThen .middleName defendant
-    , lastName = Maybe.withDefault "" <| Maybe.andThen .lastName defendant
+    , lastName = Maybe.withDefault "" <| Maybe.map .lastName defendant
     , suffix = Maybe.withDefault "" <| Maybe.andThen .suffix defendant
-    , potentialPhones = Maybe.withDefault "" <| Maybe.andThen .potentialPhones defendant
+    , potentialPhones =
+        defendant
+            |> Maybe.andThen .potentialPhones
+            |> Maybe.map (String.split ",")
+            |> Maybe.withDefault [ "" ]
     }
 
 
@@ -186,17 +256,20 @@ editForm warrant =
     , status = warrant.status
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm warrant.plaintiff
-    , plaintiffAttorney = initAttorneyForm (Maybe.andThen .attorney warrant.plaintiff)
+    , plaintiffAttorney = initAttorneyForm warrant.plaintiffAttorney
     , courtDate = initDatePicker warrant.courtDate
     , courtroom = initCourtroomForm warrant.courtroom
     , presidingJudge = initJudgeForm warrant.presidingJudge
+    , caresDropdown = Dropdown.init "cares-dropdown"
     , isCares = warrant.isCares
+    , legacyDropdown = Dropdown.init "legacy-dropdown"
     , isLegacy = warrant.isLegacy
+    , nonpaymentDropdown = Dropdown.init "nonpayment-dropdown"
     , isNonpayment = warrant.nonpayment
-    , amountClaimed = Maybe.withDefault "" <| Maybe.map String.fromFloat warrant.amountClaimed
+    , amountClaimed = Maybe.withDefault "" <| Maybe.map (Mask.floatDecimal Mask.defaultDecimalOptions) warrant.amountClaimed
     , amountClaimedCategory = warrant.amountClaimedCategory
     , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
-    , address = Maybe.withDefault "" <| Maybe.map (Maybe.withDefault "") <| List.head <| List.map .address warrant.defendants
+    , address = Maybe.withDefault "" <| List.head <| List.map .address warrant.defendants
     , defendants = List.map (initDefendantForm << Just) warrant.defendants
     , judgement = warrant.judgement
     , judgementDropdown = Dropdown.init "judgement-dropdown"
@@ -215,15 +288,18 @@ initCreate =
     , courtDate = initDatePicker Nothing
     , courtroom = initCourtroomForm Nothing
     , presidingJudge = initJudgeForm Nothing
+    , caresDropdown = Dropdown.init "cares-dropdown"
     , isCares = Nothing
+    , legacyDropdown = Dropdown.init "legacy-dropdown"
     , isLegacy = Nothing
+    , nonpaymentDropdown = Dropdown.init "nonpayment-dropdown"
     , isNonpayment = Nothing
     , amountClaimed = ""
-    , amountClaimedCategory = Nothing
+    , amountClaimedCategory = DetainerWarrant.NotApplicable
     , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
     , address = ""
     , defendants = [ initDefendantForm Nothing ]
-    , judgement = Nothing
+    , judgement = DetainerWarrant.NotAvailable
     , judgementDropdown = Dropdown.init "judgement-dropdown"
     , notes = ""
     }
@@ -243,7 +319,9 @@ init maybeId session =
     ( { session = session
       , warrant = Nothing
       , docketId = maybeId
+      , tooltip = Nothing
       , problems = []
+      , today = Nothing
       , form =
             case maybeId of
                 Just _ ->
@@ -255,6 +333,8 @@ init maybeId session =
       , attorneys = []
       , judges = []
       , courtrooms = []
+      , saveState = Done
+      , newFormOnSuccess = False
       }
     , case maybeId of
         Just id ->
@@ -273,33 +353,47 @@ getWarrant id maybeCred =
 type Msg
     = GotDetainerWarrant (Result Http.Error (Api.Item DetainerWarrant))
     | GotToday Date
+    | ChangeTooltip Tooltip
+    | CloseTooltip
     | ChangedDocketId String
     | ChangedFileDatePicker ChangeEvent
     | ChangedCourtDatePicker ChangeEvent
     | ChangedPlaintiffSearchBox (SearchBox.ChangeEvent Plaintiff)
     | ChangedPlaintiffAttorneySearchBox (SearchBox.ChangeEvent Attorney)
-    | PickedStatus (Maybe String)
-    | StatusDropdownMsg (Dropdown.Msg String)
+    | PickedStatus (Maybe Status)
+    | StatusDropdownMsg (Dropdown.Msg Status)
     | ChangedCourtroomSearchBox (SearchBox.ChangeEvent Courtroom)
     | ChangedJudgeSearchBox (SearchBox.ChangeEvent Judge)
     | ChangedAmountClaimed String
-    | PickedAmountClaimedCategory (Maybe String)
-    | CategoryDropdownMsg (Dropdown.Msg String)
-    | CheckedCares Bool
-    | CheckedLegacy Bool
-    | CheckedNonpayment Bool
+    | ConfirmAmountClaimed
+    | PickedAmountClaimedCategory (Maybe AmountClaimedCategory)
+    | CategoryDropdownMsg (Dropdown.Msg AmountClaimedCategory)
+    | CaresDropdownMsg (Dropdown.Msg (Maybe Bool))
+    | PickedCares (Maybe (Maybe Bool))
+    | LegacyDropdownMsg (Dropdown.Msg (Maybe Bool))
+    | PickedLegacy (Maybe (Maybe Bool))
+    | NonpaymentDropdownMsg (Dropdown.Msg (Maybe Bool))
+    | PickedNonpayment (Maybe (Maybe Bool))
     | ChangedAddress String
     | ChangedFirstName Int String
     | ChangedMiddleName Int String
     | ChangedLastName Int String
     | ChangedSuffix Int String
-    | ChangedPotentialPhones Int String
+    | ChangedPotentialPhones Int Int String
+    | AddPhone Int
+    | RemovePhone Int Int
     | AddDefendant
-    | PickedJudgement (Maybe String)
-    | JudgementDropdownMsg (Dropdown.Msg String)
+    | PickedJudgement (Maybe Judgement)
+    | JudgementDropdownMsg (Dropdown.Msg Judgement)
     | ChangedNotes String
     | SubmitForm
-    | CreatedDetainerWarrant (Result Http.Error (Api.Item DetainerWarrantEdit))
+    | SubmitAndAddAnother
+    | UpsertedPlaintiff (Result Http.Error (Api.Item DetainerWarrant.Plaintiff))
+    | UpsertedAttorney (Result Http.Error (Api.Item DetainerWarrant.Attorney))
+    | UpsertedCourtroom (Result Http.Error (Api.Item DetainerWarrant.Courtroom))
+    | UpsertedJudge (Result Http.Error (Api.Item DetainerWarrant.Judge))
+    | UpsertedDefendant Int (Result Http.Error (Api.Item Defendant))
+    | CreatedDetainerWarrant (Result Http.Error (Api.Item DetainerWarrant))
     | GotPlaintiffs (Result Http.Error (Api.Collection Plaintiff))
     | GotAttorneys (Result Http.Error (Api.Collection Attorney))
     | GotJudges (Result Http.Error (Api.Collection Attorney))
@@ -356,21 +450,6 @@ updateFormNarrow transform model =
     )
 
 
-statusOptions : List String
-statusOptions =
-    [ "Pending", "Closed" ]
-
-
-amountClaimedCategoryOptions : List String
-amountClaimedCategoryOptions =
-    [ "Possession", "Fees", "Both", "Not Applicable" ]
-
-
-judgementOptions : List String
-judgementOptions =
-    [ "Non-suit", "POSS", "POSS + Payment", "Dismissed" ]
-
-
 savingError : Http.Error -> Model -> Model
 savingError error model =
     let
@@ -415,7 +494,22 @@ update msg model =
                     in
                     { form | fileDate = updatedFileDate, courtDate = updatedCourtDate }
                 )
-                model
+                { model | today = Just today }
+
+        ChangeTooltip selection ->
+            ( { model
+                | tooltip =
+                    if Just selection == model.tooltip then
+                        Nothing
+
+                    else
+                        Just selection
+              }
+            , Cmd.none
+            )
+
+        CloseTooltip ->
+            ( { model | tooltip = Nothing }, Cmd.none )
 
         ChangedDocketId id ->
             updateForm (\form -> { form | docketId = id }) model
@@ -530,7 +624,7 @@ update msg model =
                                     form.plaintiff
 
                                 updatedPlaintiff =
-                                    { plaintiff | person = Just person }
+                                    { plaintiff | person = Just person, text = person.name }
                             in
                             { form | plaintiff = updatedPlaintiff }
                         )
@@ -553,7 +647,7 @@ update msg model =
                             { form | plaintiff = updatedPlaintiff }
                         )
                         model
-                    , Api.get (Endpoint.plaintiffs [ QueryParam.string "name" text ]) maybeCred GotPlaintiffs (Api.collectionDecoder DetainerWarrant.plaintiffDecoder)
+                    , Api.get (Endpoint.plaintiffs [ ( "name", text ) ]) maybeCred GotPlaintiffs (Api.collectionDecoder DetainerWarrant.plaintiffDecoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -582,7 +676,7 @@ update msg model =
                                     form.plaintiffAttorney
 
                                 updatedAttorney =
-                                    { attorney | person = Just person }
+                                    { attorney | person = Just person, text = person.name }
                             in
                             { form | plaintiffAttorney = updatedAttorney }
                         )
@@ -605,7 +699,7 @@ update msg model =
                             { form | plaintiffAttorney = updatedAttorney }
                         )
                         model
-                    , Api.get (Endpoint.attorneys [ QueryParam.string "name" text ]) maybeCred GotAttorneys (Api.collectionDecoder DetainerWarrant.attorneyDecoder)
+                    , Api.get (Endpoint.attorneys [ ( "name", text ) ]) maybeCred GotAttorneys (Api.collectionDecoder DetainerWarrant.attorneyDecoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -628,16 +722,7 @@ update msg model =
             updateForm
                 (\form ->
                     { form
-                        | status =
-                            case option of
-                                Just "Pending" ->
-                                    DetainerWarrant.Pending
-
-                                Just "Closed" ->
-                                    DetainerWarrant.Closed
-
-                                _ ->
-                                    DetainerWarrant.Pending
+                        | status = Maybe.withDefault DetainerWarrant.Pending option
                     }
                 )
                 model
@@ -647,7 +732,12 @@ update msg model =
                 (\form ->
                     let
                         ( state, cmd ) =
-                            Dropdown.update statusDropdownConfig subMsg form.statusDropdown statusOptions
+                            Dropdown.update (statusDropdownConfig [])
+                                subMsg
+                                { options = DetainerWarrant.statusOptions
+                                , selectedOption = Just form.status
+                                }
+                                form.statusDropdown
                     in
                     ( { form | statusDropdown = state }, cmd )
                 )
@@ -663,7 +753,7 @@ update msg model =
                                     form.courtroom
 
                                 updatedCourtroom =
-                                    { courtroom | selection = Just selection }
+                                    { courtroom | selection = Just selection, text = selection.name }
                             in
                             { form | courtroom = updatedCourtroom }
                         )
@@ -686,7 +776,7 @@ update msg model =
                             { form | courtroom = updatedCourtroom }
                         )
                         model
-                    , Api.get (Endpoint.courtrooms [ QueryParam.string "name" text ]) maybeCred GotCourtrooms (Api.collectionDecoder DetainerWarrant.courtroomDecoder)
+                    , Api.get (Endpoint.courtrooms [ ( "name", text ) ]) maybeCred GotCourtrooms (Api.collectionDecoder DetainerWarrant.courtroomDecoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -738,7 +828,7 @@ update msg model =
                             { form | presidingJudge = updatedJudge }
                         )
                         model
-                    , Api.get (Endpoint.judges [ QueryParam.string "name" text ]) maybeCred GotJudges (Api.collectionDecoder DetainerWarrant.judgeDecoder)
+                    , Api.get (Endpoint.judges [ ( "name", text ) ]) maybeCred GotJudges (Api.collectionDecoder DetainerWarrant.judgeDecoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -758,30 +848,35 @@ update msg model =
                         model
 
         ChangedAmountClaimed money ->
+            updateForm (\form -> { form | amountClaimed = String.replace "$" "" money }) model
+
+        ConfirmAmountClaimed ->
+            let
+                extract money =
+                    String.toFloat (String.replace "," "" money)
+
+                options =
+                    Mask.defaultDecimalOptions
+            in
             updateForm
-                (\form -> { form | amountClaimed = money })
+                (\form ->
+                    { form
+                        | amountClaimed =
+                            case extract form.amountClaimed of
+                                Just moneyFloat ->
+                                    Mask.floatDecimal options moneyFloat
+
+                                Nothing ->
+                                    form.amountClaimed
+                    }
+                )
                 model
 
         PickedAmountClaimedCategory option ->
             updateForm
                 (\form ->
                     { form
-                        | amountClaimedCategory =
-                            case option of
-                                Just "Possession" ->
-                                    Just DetainerWarrant.Possession
-
-                                Just "Fees" ->
-                                    Just DetainerWarrant.Fees
-
-                                Just "Both" ->
-                                    Just DetainerWarrant.Both
-
-                                Just "Not Applicable" ->
-                                    Just DetainerWarrant.NotApplicable
-
-                                _ ->
-                                    Nothing
+                        | amountClaimedCategory = Maybe.withDefault DetainerWarrant.NotApplicable option
                     }
                 )
                 model
@@ -791,25 +886,79 @@ update msg model =
                 (\form ->
                     let
                         ( state, cmd ) =
-                            Dropdown.update categoryDropdownConfig subMsg form.categoryDropdown amountClaimedCategoryOptions
+                            Dropdown.update (categoryDropdownConfig [])
+                                subMsg
+                                { options =
+                                    DetainerWarrant.amountClaimedCategoryOptions
+                                , selectedOption = Just form.amountClaimedCategory
+                                }
+                                form.categoryDropdown
                     in
                     ( { form | categoryDropdown = state }, cmd )
                 )
                 model
 
-        CheckedCares bool ->
-            updateForm
-                (\form -> { form | isCares = Just bool })
+        CaresDropdownMsg subMsg ->
+            updateFormNarrow
+                (\form ->
+                    let
+                        ( state, cmd ) =
+                            Dropdown.update (caresDropdownConfig [])
+                                subMsg
+                                { options = DetainerWarrant.ternaryOptions
+                                , selectedOption = Just form.isCares
+                                }
+                                form.caresDropdown
+                    in
+                    ( { form | caresDropdown = state }, cmd )
+                )
                 model
 
-        CheckedLegacy bool ->
+        PickedCares isCares ->
             updateForm
-                (\form -> { form | isLegacy = Just bool })
+                (\form -> { form | isCares = Maybe.andThen identity isCares })
                 model
 
-        CheckedNonpayment bool ->
+        LegacyDropdownMsg subMsg ->
+            updateFormNarrow
+                (\form ->
+                    let
+                        ( state, cmd ) =
+                            Dropdown.update (legacyDropdownConfig [])
+                                subMsg
+                                { options = DetainerWarrant.ternaryOptions
+                                , selectedOption = Just form.isLegacy
+                                }
+                                form.legacyDropdown
+                    in
+                    ( { form | legacyDropdown = state }, cmd )
+                )
+                model
+
+        PickedLegacy isLegacy ->
             updateForm
-                (\form -> { form | isNonpayment = Just bool })
+                (\form -> { form | isLegacy = Maybe.andThen identity isLegacy })
+                model
+
+        NonpaymentDropdownMsg subMsg ->
+            updateFormNarrow
+                (\form ->
+                    let
+                        ( state, cmd ) =
+                            Dropdown.update (nonpaymentDropdownConfig [])
+                                subMsg
+                                { options = DetainerWarrant.ternaryOptions
+                                , selectedOption = Just form.isNonpayment
+                                }
+                                form.nonpaymentDropdown
+                    in
+                    ( { form | nonpaymentDropdown = state }, cmd )
+                )
+                model
+
+        PickedNonpayment isNonpayment ->
+            updateForm
+                (\form -> { form | isNonpayment = Maybe.andThen identity isNonpayment })
                 model
 
         ChangedAddress address ->
@@ -821,22 +970,7 @@ update msg model =
             updateForm
                 (\form ->
                     { form
-                        | judgement =
-                            case option of
-                                Just "Non-suit" ->
-                                    Just DetainerWarrant.NonSuit
-
-                                Just "POSS" ->
-                                    Just DetainerWarrant.Poss
-
-                                Just "POSS + Payment" ->
-                                    Just DetainerWarrant.PossAndPayment
-
-                                Just "Dismissed" ->
-                                    Just DetainerWarrant.Dismissed
-
-                                _ ->
-                                    Nothing
+                        | judgement = Maybe.withDefault DetainerWarrant.NotAvailable option
                     }
                 )
                 model
@@ -913,7 +1047,7 @@ update msg model =
                 )
                 model
 
-        ChangedPotentialPhones selected phones ->
+        ChangedPotentialPhones selected phoneIndex phone ->
             updateForm
                 (\form ->
                     { form
@@ -921,7 +1055,18 @@ update msg model =
                             List.indexedMap
                                 (\index defendant ->
                                     if index == selected then
-                                        { defendant | potentialPhones = phones }
+                                        { defendant
+                                            | potentialPhones =
+                                                List.indexedMap
+                                                    (\i p ->
+                                                        if i == phoneIndex then
+                                                            Mask.number "###-###-####" phone
+
+                                                        else
+                                                            p
+                                                    )
+                                                    defendant.potentialPhones
+                                        }
 
                                     else
                                         defendant
@@ -936,12 +1081,53 @@ update msg model =
                 (\form -> { form | defendants = form.defendants ++ [ initDefendantForm Nothing ] })
                 model
 
+        AddPhone defendantIndex ->
+            updateForm
+                (\form ->
+                    { form
+                        | defendants =
+                            List.indexedMap
+                                (\index def ->
+                                    if index == defendantIndex then
+                                        { def | potentialPhones = def.potentialPhones ++ [ "" ] }
+
+                                    else
+                                        def
+                                )
+                                form.defendants
+                    }
+                )
+                model
+
+        RemovePhone defendantIndex phoneIndex ->
+            updateForm
+                (\form ->
+                    { form
+                        | defendants =
+                            List.indexedMap
+                                (\index def ->
+                                    if index == defendantIndex then
+                                        { def | potentialPhones = List.removeAt phoneIndex def.potentialPhones }
+
+                                    else
+                                        def
+                                )
+                                form.defendants
+                    }
+                )
+                model
+
         JudgementDropdownMsg subMsg ->
             updateFormNarrow
                 (\form ->
                     let
                         ( state, cmd ) =
-                            Dropdown.update judgementDropdownConfig subMsg form.judgementDropdown judgementOptions
+                            Dropdown.update (judgementDropdownConfig [])
+                                subMsg
+                                { options = DetainerWarrant.judgementOptions
+                                , selectedOption = Just form.judgement
+                                }
+                                form.judgementDropdown
                     in
                     ( { form | judgementDropdown = state }, cmd )
                 )
@@ -953,19 +1139,126 @@ update msg model =
                 model
 
         SubmitForm ->
-            case validate model.form of
-                Ok validForm ->
-                    ( { model | problems = [] }
-                    , updateDetainerWarrant maybeCred (toDetainerWarrant validForm).detainerWarrant
-                    )
+            submitForm model
 
-                Err problems ->
-                    ( { model | problems = problems }
-                    , Cmd.none
-                    )
+        SubmitAndAddAnother ->
+            submitFormAndAddAnother model
 
-        CreatedDetainerWarrant (Ok detainerWarrant) ->
+        UpsertedPlaintiff (Ok plaintiffItem) ->
+            nextStepSave
+                (updateFormOnly
+                    (\form -> { form | plaintiff = initPlaintiffForm (Just plaintiffItem.data) })
+                    { model
+                        | saveState =
+                            case model.saveState of
+                                SavingRelatedModels models ->
+                                    SavingRelatedModels { models | plaintiff = True }
+
+                                _ ->
+                                    model.saveState
+                    }
+                )
+
+        UpsertedPlaintiff (Err errors) ->
             ( model, Cmd.none )
+
+        UpsertedCourtroom (Ok courtroomItem) ->
+            nextStepSave
+                (updateFormOnly
+                    (\form -> { form | courtroom = initCourtroomForm (Just courtroomItem.data) })
+                    { model
+                        | saveState =
+                            case model.saveState of
+                                SavingRelatedModels models ->
+                                    SavingRelatedModels { models | courtroom = True }
+
+                                _ ->
+                                    model.saveState
+                    }
+                )
+
+        UpsertedCourtroom (Err errors) ->
+            ( model, Cmd.none )
+
+        UpsertedJudge (Ok judgeItem) ->
+            nextStepSave
+                (updateFormOnly
+                    (\form -> { form | presidingJudge = initJudgeForm (Just judgeItem.data) })
+                    { model
+                        | saveState =
+                            case model.saveState of
+                                SavingRelatedModels models ->
+                                    SavingRelatedModels { models | judge = True }
+
+                                _ ->
+                                    model.saveState
+                    }
+                )
+
+        UpsertedJudge (Err errors) ->
+            ( model, Cmd.none )
+
+        UpsertedDefendant index (Ok defendant) ->
+            nextStepSave
+                (updateFormOnly
+                    (\form ->
+                        { form
+                            | defendants =
+                                List.indexedMap
+                                    (\i def ->
+                                        if i == index then
+                                            initDefendantForm (Just defendant.data)
+
+                                        else
+                                            def
+                                    )
+                                    form.defendants
+                        }
+                    )
+                    { model
+                        | saveState =
+                            case model.saveState of
+                                SavingRelatedModels models ->
+                                    SavingRelatedModels { models | defendants = models.defendants + 1 }
+
+                                _ ->
+                                    model.saveState
+                    }
+                )
+
+        UpsertedDefendant _ (Err errors) ->
+            ( model, Cmd.none )
+
+        UpsertedAttorney (Ok attorney) ->
+            nextStepSave
+                (updateFormOnly
+                    (\form -> { form | plaintiffAttorney = initAttorneyForm (Just attorney.data) })
+                    { model
+                        | saveState =
+                            case model.saveState of
+                                SavingRelatedModels models ->
+                                    SavingRelatedModels { models | attorney = True }
+
+                                _ ->
+                                    model.saveState
+                    }
+                )
+
+        UpsertedAttorney (Err errors) ->
+            ( model, Cmd.none )
+
+        CreatedDetainerWarrant (Ok detainerWarrantItem) ->
+            ( { model
+                | form =
+                    Ready (editForm detainerWarrantItem.data)
+                , warrant = Just detainerWarrantItem.data
+              }
+            , if model.newFormOnSuccess then
+                Route.replaceUrl (Session.navKey model.session) (Route.DetainerWarrantCreation Nothing)
+
+              else
+                Cmd.none
+            )
 
         CreatedDetainerWarrant (Err errors) ->
             ( savingError errors model, Cmd.none )
@@ -995,6 +1288,93 @@ update msg model =
             ( model, Cmd.none )
 
 
+submitFormAndAddAnother : Model -> ( Model, Cmd Msg )
+submitFormAndAddAnother model =
+    Tuple.mapFirst (\m -> { m | newFormOnSuccess = True }) (submitForm model)
+
+
+submitForm : Model -> ( Model, Cmd Msg )
+submitForm model =
+    let
+        maybeCred =
+            Session.cred model.session
+    in
+    case validate model.form of
+        Ok validForm ->
+            let
+                apiForms =
+                    toDetainerWarrant validForm
+            in
+            ( { model
+                | newFormOnSuccess = False
+                , problems = []
+                , saveState =
+                    SavingRelatedModels
+                        { attorney = apiForms.attorney /= Nothing
+                        , plaintiff = apiForms.plaintiff /= Nothing
+                        , courtroom = apiForms.courtroom /= Nothing
+                        , judge = apiForms.judge /= Nothing
+                        , defendants = 0
+                        }
+              }
+            , Cmd.batch
+                (List.concat
+                    [ apiForms.attorney
+                        |> Maybe.map (List.singleton << upsertAttorney maybeCred)
+                        |> Maybe.withDefault []
+                    , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff maybeCred) apiForms.plaintiff
+                    , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertCourtroom maybeCred) apiForms.courtroom
+                    , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertJudge maybeCred) apiForms.judge
+                    , List.indexedMap (upsertDefendant maybeCred) apiForms.defendants
+                    ]
+                )
+            )
+
+        Err problems ->
+            ( { model | newFormOnSuccess = False, problems = problems }
+            , Cmd.none
+            )
+
+
+nextStepSave : Model -> ( Model, Cmd Msg )
+nextStepSave model =
+    let
+        maybeCred =
+            Session.cred model.session
+    in
+    case validate model.form of
+        Ok form ->
+            let
+                apiForms =
+                    toDetainerWarrant form
+            in
+            case model.saveState of
+                SavingRelatedModels models ->
+                    if
+                        models.attorney
+                            && models.courtroom
+                            && models.judge
+                            && models.plaintiff
+                            && List.length apiForms.defendants
+                            == models.defendants
+                    then
+                        ( { model | saveState = SavingWarrant }
+                        , updateDetainerWarrant maybeCred apiForms.detainerWarrant
+                        )
+
+                    else
+                        ( model, Cmd.none )
+
+                SavingWarrant ->
+                    ( model, Cmd.none )
+
+                Done ->
+                    ( model, Cmd.none )
+
+        Err _ ->
+            ( model, Cmd.none )
+
+
 onEnter : msg -> Element.Attribute msg
 onEnter msg =
     Element.htmlAttribute
@@ -1012,336 +1392,944 @@ onEnter msg =
         )
 
 
-viewDocketId : Form -> Element Msg
-viewDocketId form =
-    column [ width fill ]
-        [ Input.text []
-            { onChange = ChangedDocketId
-            , text = form.docketId
-            , placeholder = Just (Input.placeholder [] (text "Docket Id"))
-            , label = Input.labelHidden "Docket Id"
+palette : Material.Palette
+palette =
+    { primary = Color.rgb255 236 31 39
+    , secondary = Color.rgb255 216 27 96
+    , background = Color.rgb255 255 255 255
+    , surface = Color.rgb255 255 255 255
+    , error = Color.rgb255 156 39 176
+    , on =
+        { primary = Color.rgb255 255 255 255
+        , secondary = Color.rgb255 0 0 0
+        , background = Color.rgb255 0 0 0
+        , surface = Color.rgb255 0 0 0
+        , error = Color.rgb255 255 255 255
+        }
+    }
+
+
+focusedButtonStyles : List (Element.Attr decorative msg)
+focusedButtonStyles =
+    [ Background.color Palette.sred, Font.color Palette.white ]
+
+
+hoveredButtonStyles : List (Element.Attr decorative msg)
+hoveredButtonStyles =
+    [ Background.color Palette.sred, Font.color Palette.white ]
+
+
+helpButton : Tooltip -> Element Msg
+helpButton tooltip =
+    Input.button
+        [ Events.onLoseFocus CloseTooltip
+        , Font.color Palette.sred
+        , padding 10
+        , Element.alignBottom
+        , Border.rounded 3
+        , Element.mouseOver hoveredButtonStyles
+        , Element.focused focusedButtonStyles
+        ]
+        { label =
+            Element.html
+                (FeatherIcons.helpCircle
+                    |> FeatherIcons.toHtml []
+                )
+        , onPress = Just (ChangeTooltip tooltip)
+        }
+
+
+type alias Field =
+    { tooltip : Maybe Tooltip
+    , description : String
+    , children : List (Element Msg)
+    , currentTooltip : Maybe Tooltip
+    }
+
+
+requiredStar =
+    el [ Font.color Palette.sred, Element.alignTop, width Element.shrink ] (text "*")
+
+
+viewField : Field -> Element Msg
+viewField field =
+    let
+        help =
+            Maybe.withDefault Element.none <| Maybe.map helpButton field.tooltip
+
+        tooltip =
+            case field.tooltip of
+                Just tip ->
+                    withTooltip tip field.currentTooltip field.description
+
+                Nothing ->
+                    []
+    in
+    row
+        ([ width fill, height fill, spacingXY 5 0, paddingXY 0 10 ] ++ tooltip)
+        (help :: field.children)
+
+
+withChanges hasChanged attrs =
+    attrs
+        ++ (if hasChanged then
+                [ Border.color Palette.purpleLight ]
+
+            else
+                []
+           )
+
+
+withValidation validatedField problems attrs =
+    let
+        maybeError =
+            problems
+                |> List.filterMap
+                    (\problem ->
+                        case problem of
+                            InvalidEntry field problemText ->
+                                if validatedField == field then
+                                    Just problemText
+
+                                else
+                                    Nothing
+
+                            ServerError _ ->
+                                Nothing
+                    )
+                |> List.head
+    in
+    attrs
+        ++ (case maybeError of
+                Just errorText ->
+                    [ Border.color Palette.sred
+                    , Element.below
+                        (row [ paddingXY 0 10, spacing 5, Font.color Palette.sred, Font.size 14 ]
+                            [ FeatherIcons.alertTriangle
+                                |> FeatherIcons.withSize 16
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                                |> Element.el []
+                            , text errorText
+                            ]
+                        )
+                    ]
+
+                Nothing ->
+                    []
+           )
+
+
+viewDocketId : FormOptions -> Form -> Element Msg
+viewDocketId options form =
+    column [ width fill, height fill, padding 10 ]
+        [ viewField
+            { tooltip = Just DocketIdInfo
+            , description = "This is the unique id for a detainer warrant. Please take care when entering this."
+            , currentTooltip = options.tooltip
+            , children =
+                [ case options.docketId of
+                    Just docketId ->
+                        el [ height (px 41), Element.alignBottom, padding 10, Element.width Element.shrink ] (text ("Docket Number: " ++ docketId))
+
+                    Nothing ->
+                        textInput
+                            (withValidation DocketId options.problems [ Input.focusedOnLoad ])
+                            { onChange = ChangedDocketId
+                            , text = form.docketId
+                            , placeholder = Just (Input.placeholder [] (text "12AB34"))
+                            , label = requiredLabel Input.labelAbove "Docket Number"
+                            }
+                ]
             }
         ]
 
 
-viewFileDate form =
-    column [ width fill ]
-        [ DatePicker.input [ Element.centerX, Element.centerY ]
-            { onChange = ChangedFileDatePicker
-            , selected = form.fileDate.date
-            , text = form.fileDate.dateText
-            , label =
-                Input.labelHidden "Select File Date"
-            , placeholder = Just <| Input.placeholder [] (text "File Date")
-            , settings = DatePicker.defaultSettings
-            , model = form.fileDate.pickerModel
+viewFileDate : FormOptions -> Form -> Element Msg
+viewFileDate options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.fileDate.date << Just << .fileDate) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.fileDate.date /= Nothing)
+    in
+    column [ width fill, padding 10 ]
+        [ viewField
+            { tooltip = Just FileDateInfo
+            , description = "The date the detainer warrant was created in the court system."
+            , currentTooltip = options.tooltip
+            , children =
+                [ DatePicker.input (withValidation FileDate options.problems (withChanges hasChanges [ centerX, Element.centerY, Border.color Palette.grayLight ]))
+                    { onChange = ChangedFileDatePicker
+                    , selected = form.fileDate.date
+                    , text = form.fileDate.dateText
+                    , label =
+                        requiredLabel Input.labelAbove "File Date"
+                    , placeholder =
+                        Maybe.map (Input.placeholder [] << text << Date.toIsoString) options.today
+                    , settings = DatePicker.defaultSettings
+                    , model = form.fileDate.pickerModel
+                    }
+                ]
             }
         ]
 
 
-dropdownConfig : (Dropdown.Msg String -> Msg) -> (Maybe String -> Msg) -> Dropdown.Config String Msg
-dropdownConfig dropdownMsg itemPickedMsg =
+dropdownConfig label itemToStr dropdownMsg itemPickedMsg attrs =
     let
         containerAttrs =
-            [ width (px 300) ]
+            [ width (Element.shrink |> Element.minimum 250)
+            ]
 
         selectAttrs =
             [ Border.width 1
             , Border.rounded 5
+            , Border.color Palette.grayLight
             , paddingXY 16 8
             , spacing 10
             , width fill
+            , Element.focused
+                [ Border.color Palette.grayLight
+                , Border.shadow { offset = ( 0, 0 ), size = 3, blur = 3, color = Palette.gray }
+                ]
             ]
+                ++ attrs
 
         listAttrs =
             [ Border.width 1
             , Border.roundEach { topLeft = 0, topRight = 0, bottomLeft = 5, bottomRight = 5 }
             , width fill
             , spacing 5
+            , Background.color Palette.white
             ]
 
         itemToPrompt item =
-            text item
+            text (itemToStr item)
 
-        itemToElement selected highlighted i =
+        itemToElement selected highlighted item =
             let
                 bgColor =
                     if highlighted then
-                        Palette.sred
+                        Palette.redLight
 
                     else if selected then
-                        Palette.red
+                        Palette.sred
 
                     else
                         Palette.white
             in
             el
-                [ Background.color bgColor
-                , padding 8
-                , spacing 10
-                , width fill
-                ]
-                (text i)
+                ([ Background.color bgColor
+                 , padding 8
+                 , spacing 10
+                 , width fill
+                 ]
+                    ++ (if selected then
+                            []
+
+                        else
+                            [ Element.mouseOver [ Background.color Palette.redLight ] ]
+                       )
+                )
+                (text (itemToStr item))
     in
-    Dropdown.basic dropdownMsg itemPickedMsg itemToPrompt itemToElement
+    Dropdown.basic
+        { itemsFromModel = .options
+        , selectionFromModel = .selectedOption
+        , dropdownMsg = dropdownMsg
+        , onSelectMsg = itemPickedMsg
+        , itemToPrompt = itemToPrompt
+        , itemToElement = itemToElement
+        }
         |> Dropdown.withContainerAttributes containerAttrs
         |> Dropdown.withSelectAttributes selectAttrs
         |> Dropdown.withListAttributes listAttrs
+        |> Dropdown.withPromptElement (el [] <| text label)
+        |> Dropdown.withOpenCloseButtons
+            { openButton =
+                FeatherIcons.chevronDown |> FeatherIcons.toHtml [] |> Element.html
+            , closeButton = FeatherIcons.chevronUp |> FeatherIcons.toHtml [] |> Element.html
+            }
+
+
+ternaryText isCares =
+    case isCares of
+        Just bool ->
+            if bool then
+                "Yes"
+
+            else
+                "No"
+
+        Nothing ->
+            "Unknown"
+
+
+withUnknown fn maybe =
+    case maybe of
+        Just a ->
+            fn a
+
+        Nothing ->
+            "Unknown"
 
 
 categoryDropdownConfig =
-    dropdownConfig CategoryDropdownMsg PickedAmountClaimedCategory
+    dropdownConfig "Amount Claimed Category" DetainerWarrant.amountClaimedCategoryText CategoryDropdownMsg PickedAmountClaimedCategory
 
 
 statusDropdownConfig =
-    dropdownConfig StatusDropdownMsg PickedStatus
+    dropdownConfig "Status" DetainerWarrant.statusText StatusDropdownMsg PickedStatus
+
+
+caresDropdownConfig =
+    dropdownConfig "Cares" ternaryText CaresDropdownMsg PickedCares
+
+
+legacyDropdownConfig =
+    dropdownConfig "Cares" ternaryText LegacyDropdownMsg PickedLegacy
+
+
+nonpaymentDropdownConfig =
+    dropdownConfig "Cares" ternaryText NonpaymentDropdownMsg PickedNonpayment
 
 
 judgementDropdownConfig =
-    dropdownConfig JudgementDropdownMsg PickedJudgement
+    dropdownConfig "Judgement" DetainerWarrant.judgementText JudgementDropdownMsg PickedJudgement
 
 
-viewStatus : Form -> Element Msg
-viewStatus form =
-    column [ width fill ]
-        [ Dropdown.view statusDropdownConfig form.statusDropdown statusOptions
-            |> el []
+viewStatus : FormOptions -> Form -> Element Msg
+viewStatus options form =
+    let
+        defaultStatus =
+            DetainerWarrant.Pending
+
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.status << .status) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.status /= defaultStatus)
+    in
+    column [ width shrink ]
+        [ viewField
+            { tooltip = Just StatusInfo
+            , currentTooltip = options.tooltip
+            , description = "The current status of the case in the court system."
+            , children =
+                [ column [ spacing 5, width fill ]
+                    [ requiredLabel Element.el "Status"
+                    , Dropdown.view (statusDropdownConfig (withChanges hasChanges [])) { options = DetainerWarrant.statusOptions, selectedOption = Just form.status } form.statusDropdown
+                        |> el []
+                    ]
+                ]
+            }
         ]
+
+
+searchBox attrs =
+    SearchBox.input ([ Border.color Palette.grayLight ] ++ attrs)
 
 
 viewPlaintiffSearch : FormOptions -> Form -> Element Msg
 viewPlaintiffSearch options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.plaintiff.person << .plaintiff) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.plaintiff.text /= "")
+    in
     row [ width fill ]
-        [ SearchBox.input []
-            { onChange = ChangedPlaintiffSearchBox
-            , text = form.plaintiff.text
-            , selected = form.plaintiff.person
-            , options = Just options.plaintiffs
-            , label = Input.labelHidden "Select Plaintiff"
-            , placeholder = Just <| Input.placeholder [] (text "Plaintiff")
-            , toLabel = \person -> person.name
-            , filter = \query option -> True
-            , state = form.plaintiff.searchBox
+        [ viewField
+            { tooltip = Just PlaintiffInfo
+            , currentTooltip = options.tooltip
+            , description = "The plaintiff is typically the landlord seeking money or possession from the defendant (tenant)."
+            , children =
+                [ searchBox (withChanges hasChanges [])
+                    { onChange = ChangedPlaintiffSearchBox
+                    , text = form.plaintiff.text
+                    , selected = form.plaintiff.person
+                    , options = Just ({ id = -1, name = form.plaintiff.text } :: options.plaintiffs)
+                    , label = Input.labelAbove [] (text "Plaintiff")
+                    , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff")
+                    , toLabel = \person -> person.name
+                    , filter = \query option -> True
+                    , state = form.plaintiff.searchBox
+                    }
+                ]
             }
         ]
 
 
 viewPlaintiffAttorneySearch : FormOptions -> Form -> Element Msg
 viewPlaintiffAttorneySearch options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.plaintiffAttorney.person << .plaintiffAttorney) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.plaintiffAttorney.text /= "")
+    in
     column [ width fill ]
-        [ SearchBox.input []
-            { onChange = ChangedPlaintiffAttorneySearchBox
-            , text = form.plaintiffAttorney.text
-            , selected = form.plaintiffAttorney.person
-            , options = Just options.attorneys
-            , label = Input.labelHidden "Select Plaintiff Attorney"
-            , placeholder = Just <| Input.placeholder [] (text "Plaintiff Attorney")
-            , toLabel = \person -> person.name
-            , filter = \query option -> True
-            , state = form.plaintiffAttorney.searchBox
+        [ viewField
+            { tooltip = Just PlaintiffAttorneyInfo
+            , currentTooltip = options.tooltip
+            , description = "The plaintiff attorney is the legal representation for the plaintiff in this eviction process."
+            , children =
+                [ searchBox (withChanges hasChanges [])
+                    { onChange = ChangedPlaintiffAttorneySearchBox
+                    , text = form.plaintiffAttorney.text
+                    , selected = form.plaintiffAttorney.person
+                    , options = Just ({ id = -1, name = form.plaintiffAttorney.text } :: options.attorneys)
+                    , label = Input.labelAbove [] (text "Plaintiff Attorney")
+                    , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff attorney")
+                    , toLabel = \person -> person.name
+                    , filter = \query option -> True
+                    , state = form.plaintiffAttorney.searchBox
+                    }
+                ]
             }
         ]
 
 
-viewCourtDate : Form -> Element Msg
-viewCourtDate form =
+viewCourtDate : FormOptions -> Form -> Element Msg
+viewCourtDate options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.courtDate.date << .courtDate) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.courtDate.dateText /= "")
+    in
     column [ width fill ]
-        [ DatePicker.input [ Element.centerX, Element.centerY ]
-            { onChange = ChangedCourtDatePicker
-            , selected = form.courtDate.date
-            , text = form.courtDate.dateText
-            , label =
-                Input.labelHidden "Select Court Date"
-            , placeholder = Just <| Input.placeholder [] (text "Court Date")
-            , settings = DatePicker.defaultSettings
-            , model = form.courtDate.pickerModel
+        [ viewField
+            { tooltip = Just CourtDateInfo
+            , currentTooltip = options.tooltip
+            , description = "The date set for deliberating the judgement of the eviction in court."
+            , children =
+                [ DatePicker.input (withValidation CourtDate options.problems (withChanges hasChanges [ Element.centerX, Element.centerY ]))
+                    { onChange = ChangedCourtDatePicker
+                    , selected = form.courtDate.date
+                    , text = form.courtDate.dateText
+                    , label =
+                        Input.labelAbove [] (text "Court Date")
+                    , placeholder = Just <| Input.placeholder [] (text (Maybe.withDefault "" <| Maybe.map Date.toIsoString options.today))
+                    , settings = DatePicker.defaultSettings
+                    , model = form.courtDate.pickerModel
+                    }
+                ]
             }
         ]
 
 
 viewCourtroom : FormOptions -> Form -> Element Msg
 viewCourtroom options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.courtroom.selection << .courtroom) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.courtroom.text /= "")
+    in
     column [ width fill ]
-        [ SearchBox.input []
-            { onChange = ChangedCourtroomSearchBox
-            , text = form.courtroom.text
-            , selected = form.courtroom.selection
-            , options = Just options.courtrooms
-            , label =
-                Input.labelHidden "Select Courtroom"
-            , placeholder = Just <| Input.placeholder [] (text "Courtroom")
-            , toLabel = .name
-            , filter = \query option -> True
-            , state = form.courtroom.searchBox
+        [ viewField
+            { tooltip = Just CourtroomInfo
+            , currentTooltip = options.tooltip
+            , description = "The court room where eviction proceedings will occur."
+            , children =
+                [ searchBox (withChanges hasChanges [])
+                    { onChange = ChangedCourtroomSearchBox
+                    , text = form.courtroom.text
+                    , selected = form.courtroom.selection
+                    , options = Just ({ id = -1, name = form.courtroom.text } :: options.courtrooms)
+                    , label =
+                        Input.labelAbove [] (text "Courtroom")
+                    , placeholder = Just <| Input.placeholder [] (text "Search for courtroom")
+                    , toLabel = .name
+                    , filter = \query option -> True
+                    , state = form.courtroom.searchBox
+                    }
+                ]
             }
         ]
 
 
 viewPresidingJudgeSearch : FormOptions -> Form -> Element Msg
 viewPresidingJudgeSearch options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.presidingJudge.person << .presidingJudge) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.presidingJudge.text /= "")
+    in
     column [ width fill ]
-        [ SearchBox.input []
-            { onChange = ChangedJudgeSearchBox
-            , text = form.presidingJudge.text
-            , selected = form.presidingJudge.person
-            , options = Just options.judges
-            , label = Input.labelHidden "Select Presiding Judge"
-            , placeholder = Just <| Input.placeholder [] (text "Presiding Judge")
-            , toLabel = \person -> person.name
-            , filter = \query option -> True
-            , state = form.presidingJudge.searchBox
+        [ viewField
+            { tooltip = Just PresidingJudgeInfo
+            , currentTooltip = options.tooltip
+            , description = "The judge that will be presiding over the court case."
+            , children =
+                [ searchBox (withChanges hasChanges [])
+                    { onChange = ChangedJudgeSearchBox
+                    , text = form.presidingJudge.text
+                    , selected = form.presidingJudge.person
+                    , options = Just ({ id = -1, name = form.presidingJudge.text } :: options.judges)
+                    , label = Input.labelAbove [] (text "Presiding Judge")
+                    , placeholder = Just <| Input.placeholder [] (text "Search for judge")
+                    , toLabel = \person -> person.name
+                    , filter = \query option -> True
+                    , state = form.presidingJudge.searchBox
+                    }
+                ]
             }
         ]
 
 
-viewAmountClaimed form =
+viewAmountClaimed : FormOptions -> Form -> Element Msg
+viewAmountClaimed options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.amountClaimed << Mask.floatDecimal Mask.defaultDecimalOptions) <|
+                    Maybe.andThen .amountClaimed options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.amountClaimed /= "")
+    in
     column [ width fill ]
-        [ Input.text []
-            { onChange = ChangedAmountClaimed
-            , text = form.amountClaimed
-            , label = Input.labelHidden "Amount Claimed"
-            , placeholder = Just <| Input.placeholder [] (text "Amount Claimed ($)")
+        [ viewField
+            { tooltip = Just AmountClaimedInfo
+            , currentTooltip = options.tooltip
+            , description = "The monetary amount the plaintiff is requesting from the defendant."
+            , children =
+                [ textInput (withChanges hasChanges [ Events.onLoseFocus ConfirmAmountClaimed ])
+                    { onChange = ChangedAmountClaimed
+                    , text =
+                        if form.amountClaimed == "" then
+                            form.amountClaimed
+
+                        else
+                            "$" ++ form.amountClaimed
+                    , label = Input.labelAbove [] (text "Amount Claimed")
+                    , placeholder = Just <| Input.placeholder [] (text "$0.00")
+                    }
+                ]
             }
         ]
 
 
-viewAmountClaimedCategory : Form -> Element Msg
-viewAmountClaimedCategory form =
-    column [ width fill ]
-        [ Dropdown.view categoryDropdownConfig form.categoryDropdown amountClaimedCategoryOptions
-            |> el []
-        ]
+viewAmountClaimedCategory : FormOptions -> Form -> Element Msg
+viewAmountClaimedCategory options form =
+    let
+        defaultCategory =
+            DetainerWarrant.NotApplicable
 
-
-viewCares : Form -> Element Msg
-viewCares form =
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.amountClaimedCategory << .amountClaimedCategory) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.amountClaimedCategory /= defaultCategory)
+    in
     column [ width fill ]
-        [ Input.checkbox []
-            { onChange = CheckedCares
-            , icon = Input.defaultCheckbox
-            , checked = Maybe.withDefault False <| form.isCares
-            , label =
-                Input.labelRight []
-                    (text "Is CARES Property?")
+        [ viewField
+            { tooltip = Just AmountClaimedCategoryInfo
+            , currentTooltip = options.tooltip
+            , description = "Plaintiffs may ask for payment, repossession, or more."
+            , children =
+                [ column [ spacing 5, width fill ]
+                    [ el [] (text "Amount Claimed Category")
+                    , Dropdown.view (categoryDropdownConfig (withChanges hasChanges []))
+                        { options =
+                            DetainerWarrant.amountClaimedCategoryOptions
+                        , selectedOption = Just form.amountClaimedCategory
+                        }
+                        form.categoryDropdown
+                        |> el []
+                    ]
+                ]
             }
         ]
 
 
-viewLegacy form =
+viewCares : FormOptions -> Form -> Element Msg
+viewCares options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.isCares << .isCares) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.isCares /= Nothing)
+    in
     column [ width fill ]
-        [ Input.checkbox []
-            { onChange = CheckedLegacy
-            , icon = Input.defaultCheckbox
-            , checked = Maybe.withDefault False <| form.isLegacy
-            , label =
-                Input.labelRight []
-                    (text "Is L.E.G.A.C.Y. Property?")
+        [ viewField
+            { tooltip = Just CaresInfo
+            , currentTooltip = options.tooltip
+            , description = "C.A.R.E.S. was an aid package provided during the pandemic. If a docket number has a \"Notice,\" check to see whether the property falls under the CARES act"
+            , children =
+                [ column [ spacing 5, width fill ]
+                    [ el [] (text "Is C.A.R.E.S. property?")
+                    , Dropdown.view (caresDropdownConfig (withChanges hasChanges [])) { options = DetainerWarrant.ternaryOptions, selectedOption = Just form.isCares } form.caresDropdown
+                        |> el []
+                    ]
+                ]
             }
         ]
 
 
-viewNonpayment : Form -> Element Msg
-viewNonpayment form =
+viewLegacy : FormOptions -> Form -> Element Msg
+viewLegacy options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.isLegacy << .isLegacy) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.isLegacy /= Nothing)
+    in
     column [ width fill ]
-        [ Input.checkbox []
-            { onChange = CheckedNonpayment
-            , icon = Input.defaultCheckbox
-            , checked = Maybe.withDefault False <| form.isNonpayment
-            , label =
-                Input.labelRight []
-                    (text "Is Nonpayment?")
+        [ viewField
+            { tooltip = Just LegacyInfo
+            , currentTooltip = options.tooltip
+            , description = "L.E.G.A.C.Y. is a special court created for handling evictions during the pandemic. Looks up cases listed under \"LEGACY Case DW Numbers\" tab and check if the case is there or not."
+            , children =
+                [ column [ spacing 5, width fill ]
+                    [ el [] (text "Is L.E.G.A.C.Y. property?")
+                    , Dropdown.view (legacyDropdownConfig (withChanges hasChanges [])) { options = DetainerWarrant.ternaryOptions, selectedOption = Just form.isLegacy } form.legacyDropdown
+                        |> el []
+                    ]
+                ]
             }
         ]
 
 
-viewAddress : Form -> Element Msg
-viewAddress form =
-    row [ width fill ]
-        [ Input.text []
-            { onChange = ChangedAddress
-            , text = form.address
-            , label = Input.labelHidden "Defendant Address"
-            , placeholder = Just <| Input.placeholder [] (text "Defendant Address")
+viewNonpayment : FormOptions -> Form -> Element Msg
+viewNonpayment options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.isNonpayment << .nonpayment) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.isNonpayment /= Nothing)
+    in
+    column [ width fill ]
+        [ viewField
+            { tooltip = Just NonpaymentInfo
+            , currentTooltip = options.tooltip
+            , description = "People can be evicted for a number of reasons, including non-payment of rent. We want to know if people are being evicted for this reason because those cases should go to the diversionary court. We assume cases that request $$ are for non-payment but this box is sometimes checked on eviction forms."
+            , children =
+                [ column [ spacing 5, width fill ]
+                    [ el [] (text "Is nonpayment?")
+                    , Dropdown.view (nonpaymentDropdownConfig (withChanges hasChanges [])) { options = DetainerWarrant.ternaryOptions, selectedOption = Just form.isNonpayment } form.nonpaymentDropdown
+                        |> el []
+                    ]
+                ]
             }
         ]
 
 
-viewDefendantForm : Int -> DefendantForm -> Element Msg
-viewDefendantForm index defendant =
-    column [ spacing 10 ]
-        [ row [ width fill, spacing 10 ]
-            [ column [ width fill ]
-                [ Input.text []
+requiredLabel labelFn str =
+    labelFn [] (row [ spacing 5 ] [ text str, requiredStar ])
+
+
+viewAddress : FormOptions -> Form -> Element Msg
+viewAddress options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.address << .address) <|
+                    Maybe.andThen (List.head << .defendants) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.address /= "")
+    in
+    row [ width (fill |> maximum 800) ]
+        [ viewField
+            { tooltip = Just AddressInfo
+            , currentTooltip = options.tooltip
+            , description = "The address where the defendant or defendants reside."
+            , children =
+                [ textInput (withValidation DefendantAddress options.problems (withChanges hasChanges []))
+                    { onChange = ChangedAddress
+                    , text = form.address
+                    , label = requiredLabel Input.labelAbove "Defendant Address"
+                    , placeholder = Just <| Input.placeholder [] (text "123 Street Address, City, Zip Code")
+                    }
+                ]
+            }
+        ]
+
+
+textInput attrs config =
+    Input.text ([ Border.color Palette.grayLight ] ++ attrs) config
+
+
+viewFirstName : FormOptions -> Int -> DefendantForm -> Element Msg
+viewFirstName options index defendant =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) defendant.firstName << .firstName) <|
+                    Maybe.andThen (List.head << .defendants) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && defendant.firstName /= "")
+    in
+    column [ width fill ]
+        [ viewField
+            { tooltip = Nothing
+            , description = ""
+            , currentTooltip = Nothing
+            , children =
+                [ textInput (withValidation (DefendantFirstName index) options.problems (withChanges hasChanges []))
                     { onChange = ChangedFirstName index
                     , text = defendant.firstName
-                    , label = Input.labelHidden "First Name"
-                    , placeholder = Just <| Input.placeholder [] (text "First Name")
+                    , label = requiredLabel Input.labelAbove "First Name"
+                    , placeholder = Nothing
                     }
                 ]
-            , column [ width fill ]
-                [ Input.text []
-                    { onChange = ChangedMiddleName index
-                    , text = defendant.middleName
-                    , label = Input.labelHidden "Middle Name"
-                    , placeholder = Just <| Input.placeholder [] (text "Middle Name")
-                    }
-                ]
-            , column [ width fill ]
-                [ Input.text []
-                    { onChange = ChangedLastName index
-                    , text = defendant.lastName
-                    , label = Input.labelHidden "Last Name"
-                    , placeholder = Just <| Input.placeholder [] (text "Last Name")
-                    }
-                ]
-            , column [ width (fill |> maximum 100) ]
-                [ Input.text []
-                    { onChange = ChangedSuffix index
-                    , text = defendant.suffix
-                    , label = Input.labelHidden "Suffix"
-                    , placeholder = Just <| Input.placeholder [] (text "Suffix")
-                    }
-                ]
-            ]
-        , row [ width (fill |> maximum 600) ]
-            [ Input.text []
-                { onChange = ChangedPotentialPhones index
-                , text = defendant.potentialPhones
-                , label = Input.labelHidden "Potential Phone Numbers"
-                , placeholder = Just <| Input.placeholder [] (text "Potential Phones Numbers")
-                }
-            ]
+            }
         ]
 
 
-viewDefendants : Form -> Element Msg
-viewDefendants form =
-    row [ width (fill |> maximum 1000) ]
-        [ column [ width fill, spacing 10 ]
-            ([ paragraph [ Font.center, centerX ] [ text "Defendants" ] ]
-                ++ List.indexedMap viewDefendantForm form.defendants
-                ++ [ Input.button [] { onPress = Just AddDefendant, label = text "Add Defendant" } ]
+viewMiddleName : FormOptions -> Int -> DefendantForm -> Element Msg
+viewMiddleName options index defendant =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) defendant.middleName) <|
+                    Maybe.andThen .middleName <|
+                        Maybe.andThen (List.head << .defendants) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && defendant.middleName /= "")
+    in
+    column [ width fill ]
+        [ viewField
+            { tooltip = Nothing
+            , description = ""
+            , currentTooltip = Nothing
+            , children =
+                [ textInput (withChanges hasChanges [])
+                    { onChange = ChangedMiddleName index
+                    , text = defendant.middleName
+                    , label = Input.labelAbove [] (text "Middle Name")
+                    , placeholder = Nothing
+                    }
+                ]
+            }
+        ]
+
+
+viewLastName : FormOptions -> Int -> DefendantForm -> Element Msg
+viewLastName options index defendant =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) defendant.lastName << .lastName) <|
+                    Maybe.andThen (List.head << .defendants) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && defendant.lastName /= "")
+    in
+    column [ width fill ]
+        [ viewField
+            { tooltip = Nothing
+            , description = ""
+            , currentTooltip = Nothing
+            , children =
+                [ textInput (withValidation (DefendantLastName index) options.problems (withChanges hasChanges []))
+                    { onChange = ChangedLastName index
+                    , text = defendant.lastName
+                    , label =
+                        requiredLabel Input.labelAbove "Last Name"
+                    , placeholder = Nothing
+                    }
+                ]
+            }
+        ]
+
+
+viewSuffix : FormOptions -> Int -> DefendantForm -> Element Msg
+viewSuffix options index defendant =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) defendant.suffix) <|
+                    Maybe.andThen .suffix <|
+                        Maybe.andThen (List.head << .defendants) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && defendant.suffix /= "")
+    in
+    column [ width (fill |> maximum 100) ]
+        [ viewField
+            { tooltip = Nothing
+            , description = ""
+            , currentTooltip = Nothing
+            , children =
+                [ textInput (withChanges hasChanges [])
+                    { onChange = ChangedSuffix index
+                    , text = defendant.suffix
+                    , label = Input.labelAbove [] (text "Suffix")
+                    , placeholder = Nothing
+                    }
+                ]
+            }
+        ]
+
+
+viewPotentialPhones : FormOptions -> Int -> DefendantForm -> Element Msg
+viewPotentialPhones options index defendant =
+    wrappedRow [ width fill, spacing 10 ]
+        (List.indexedMap
+            (\i phone ->
+                let
+                    originalPhones : Maybe (List String)
+                    originalPhones =
+                        Maybe.map (String.split ",") <|
+                            Maybe.andThen .potentialPhones <|
+                                Maybe.andThen (List.getAt index) <|
+                                    Maybe.map .defendants options.originalWarrant
+
+                    originalPhone : Maybe String
+                    originalPhone =
+                        Maybe.andThen (List.getAt i) <| originalPhones
+
+                    hasChanges =
+                        (Maybe.withDefault False <|
+                            Maybe.map ((/=) phone) <|
+                                originalPhone
+                        )
+                            || (options.originalWarrant == Nothing && defendant.potentialPhones /= [ "" ])
+                            || (options.originalWarrant /= Nothing && i >= (Maybe.withDefault 0 <| Maybe.map List.length originalPhones))
+                in
+                column
+                    [ width
+                        (px
+                            (if i == 0 then
+                                495
+
+                             else
+                                205
+                            )
+                        )
+                    ]
+                    [ viewField
+                        { tooltip =
+                            if i == 0 then
+                                Just <| PotentialPhoneNumbersInfo index
+
+                            else
+                                Nothing
+                        , currentTooltip = options.tooltip
+                        , description = "Provide a phone number for the tenant so they will be called and texted during upcoming phonebanks and receive notifications about their detainer warrant updates."
+                        , children =
+                            [ textInput (withValidation (DefendantPhoneNumber index i) options.problems (withChanges hasChanges []))
+                                { onChange = ChangedPotentialPhones index i
+                                , text = phone
+                                , label =
+                                    if i == 0 then
+                                        Input.labelLeft [ paddingXY 5 0 ] (text "Potential Phone Numbers")
+
+                                    else
+                                        Input.labelHidden "Potential Phone"
+                                , placeholder = Just <| Input.placeholder [] (text "123-456-7890")
+                                }
+                            , if i == 0 then
+                                Element.none
+
+                              else
+                                Input.button [ padding 2, Element.alignTop, Font.color Palette.sred, Border.color Palette.sred, Border.width 1 ] { onPress = Just <| RemovePhone index i, label = Element.el [ width shrink, height shrink, padding 0 ] (Element.html (FeatherIcons.x |> FeatherIcons.withSize 16 |> FeatherIcons.toHtml [])) }
+                            ]
+                        }
+                    ]
+            )
+            defendant.potentialPhones
+            ++ [ Input.button primaryStyles { onPress = Just <| AddPhone index, label = Element.el [ width shrink, height shrink ] (Element.html (FeatherIcons.plus |> FeatherIcons.withSize 15 |> FeatherIcons.toHtml [])) } ]
+        )
+
+
+viewDefendantForm : FormOptions -> Int -> DefendantForm -> Element Msg
+viewDefendantForm options index defendant =
+    column
+        [ width fill
+        , spacing 10
+        , padding 20
+        , Border.width 1
+        , Border.color Palette.grayLight
+        , Border.innerGlow Palette.grayLightest 2
+        , Border.rounded 5
+        ]
+        [ row [ centerX, spacing 20 ]
+            [ viewFirstName options index defendant
+            , viewMiddleName options index defendant
+            , viewLastName options index defendant
+            , viewSuffix options index defendant
+            ]
+        , viewPotentialPhones options index defendant
+        ]
+
+
+viewDefendants : FormOptions -> Form -> Element Msg
+viewDefendants options form =
+    row [ centerX, width (fill |> maximum 1000), padding 10 ]
+        [ column [ width fill, spacing 20 ]
+            (List.indexedMap (viewDefendantForm options) form.defendants
+                ++ [ Input.button (primaryStyles ++ [ Element.alignRight ]) { onPress = Just AddDefendant, label = text "Add Defendant" } ]
             )
         ]
 
 
-viewJudgement : Form -> Element Msg
-viewJudgement form =
-    column [ width fill ]
-        [ Dropdown.view judgementDropdownConfig form.judgementDropdown judgementOptions
-            |> el []
+viewJudgement : FormOptions -> Form -> Element Msg
+viewJudgement options form =
+    let
+        defaultCategory =
+            DetainerWarrant.NotAvailable
+
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.judgement << .judgement) options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.judgement /= defaultCategory)
+    in
+    column [ width Element.shrink ]
+        [ viewField
+            { tooltip = Just JudgementInfo
+            , currentTooltip = options.tooltip
+            , description = "The ruling from the court that will determine if fees or repossession are enforced."
+            , children =
+                [ column [ spacing 5, width fill ]
+                    [ el [] (text "Judgement")
+                    , Dropdown.view (judgementDropdownConfig (withChanges hasChanges []))
+                        { options = DetainerWarrant.judgementOptions
+                        , selectedOption = Just form.judgement
+                        }
+                        form.judgementDropdown
+                        |> el []
+                    ]
+                ]
+            }
         ]
 
 
-viewNotes : Form -> Element Msg
-viewNotes form =
+viewNotes : FormOptions -> Form -> Element Msg
+viewNotes options form =
+    let
+        hasChanges =
+            (Maybe.withDefault False <|
+                Maybe.map ((/=) form.notes) <|
+                    Maybe.andThen .notes options.originalWarrant
+            )
+                || (options.originalWarrant == Nothing && form.notes /= "")
+    in
     column [ width fill ]
-        [ Input.multiline []
-            { onChange = ChangedNotes
-            , text = form.notes
-            , label = Input.labelHidden "Notes"
-            , placeholder = Just <| Input.placeholder [] (text "Notes")
-            , spellcheck = True
+        [ viewField
+            { tooltip = Just NotesInfo
+            , currentTooltip = options.tooltip
+            , description = "Any additional notes you have about this case go here! This is a great place to leave feedback for the form as well, perhaps there's another field or field option we need to provide."
+            , children =
+                [ Input.multiline (withChanges hasChanges [])
+                    { onChange = ChangedNotes
+                    , text = form.notes
+                    , label = Input.labelAbove [] (text "Notes")
+                    , placeholder = Just <| Input.placeholder [] (text "Add anything you think is noteworthy.")
+                    , spellcheck = True
+                    }
+                ]
             }
         ]
 
@@ -1350,7 +2338,6 @@ formGroup : List (Element Msg) -> Element Msg
 formGroup group =
     row
         [ spacing 10
-        , padding 10
         , width fill
         ]
         group
@@ -1359,8 +2346,8 @@ formGroup group =
 tile : List (Element Msg) -> Element Msg
 tile groups =
     column
-        [ spacing 10
-        , padding 10
+        [ spacing 20
+        , padding 20
         , width fill
         , Border.rounded 3
         , Border.color Palette.grayLight
@@ -1370,15 +2357,34 @@ tile groups =
         groups
 
 
+primaryStyles : List (Element.Attr () msg)
+primaryStyles =
+    [ Background.color Palette.sred
+    , Font.color Palette.white
+    , Font.size 20
+    , padding 10
+    , Border.rounded 3
+    ]
+
+
+submitAndAddAnother : Element Msg
+submitAndAddAnother =
+    Input.button
+        [ Background.color Palette.redLightest
+        , Font.color Palette.sred
+        , padding 10
+        , Border.rounded 3
+        , Border.width 1
+        , Border.color Palette.sred
+        , Font.size 22
+        ]
+        { onPress = Just SubmitAndAddAnother, label = text "Submit and add another" }
+
+
 submitButton : Element Msg
 submitButton =
     Input.button
-        [ Background.color Palette.sred
-        , Font.color Palette.white
-        , Font.size 20
-        , padding 10
-        , Border.rounded 3
-        ]
+        (primaryStyles ++ [ Font.size 22 ])
         { onPress = Just SubmitForm, label = text "Submit" }
 
 
@@ -1389,45 +2395,52 @@ viewForm options formStatus =
             column [] [ text "Initializing" ]
 
         Ready form ->
-            column [ centerX, spacing 25 ]
+            column [ centerX, spacing 30 ]
                 [ tile
-                    [ formGroup
-                        [ viewDocketId form
-                        , viewFileDate form
-                        , viewStatus form
+                    [ paragraph [ Font.center, centerX ] [ text "Court" ]
+                    , formGroup
+                        [ viewDocketId options form
+                        , viewFileDate options form
+                        , viewStatus options form
                         ]
                     , formGroup
                         [ viewPlaintiffSearch options form
                         , viewPlaintiffAttorneySearch options form
                         ]
                     , formGroup
-                        [ viewCourtDate form
+                        [ viewCourtDate options form
                         , viewCourtroom options form
                         , viewPresidingJudgeSearch options form
                         ]
                     ]
                 , tile
-                    [ formGroup
-                        [ viewAmountClaimed form
-                        , viewAmountClaimedCategory form
+                    [ paragraph [ Font.center, centerX ] [ text "Claims" ]
+                    , formGroup
+                        [ viewAmountClaimed options form
+                        , viewAmountClaimedCategory options form
                         ]
                     , formGroup
-                        [ viewCares form
-                        , viewLegacy form
-                        , viewNonpayment form
+                        [ viewCares options form
+                        , viewLegacy options form
+                        , viewNonpayment options form
                         ]
                     ]
                 , tile
-                    [ viewAddress form
-                    , viewDefendants form
+                    [ paragraph [ Font.center, centerX ] [ text "Defendants" ]
+                    , viewAddress options form
+                    , viewDefendants options form
                     ]
                 , tile
-                    [ formGroup
-                        [ viewJudgement form
-                        , viewNotes form
+                    [ paragraph [ Font.center, centerX ] [ text "Judgement" ]
+                    , formGroup
+                        [ viewJudgement options form
+                        , viewNotes options form
                         ]
                     ]
-                , row [ centerX ] [ submitButton ]
+                , row [ Element.alignRight, spacing 10 ]
+                    [ submitAndAddAnother
+                    , submitButton
+                    ]
                 ]
 
 
@@ -1437,20 +2450,23 @@ formOptions model =
     , attorneys = model.attorneys
     , judges = model.judges
     , courtrooms = model.courtrooms
+    , tooltip = model.tooltip
+    , docketId = model.docketId
+    , today = model.today
+    , problems = model.problems
+    , originalWarrant = model.warrant
     }
 
 
 viewProblem : Problem -> Element Msg
 viewProblem problem =
     paragraph []
-        [ text
-            (case problem of
-                InvalidEntry _ value ->
-                    value
+        [ case problem of
+            InvalidEntry _ value ->
+                Element.none
 
-                ServerError err ->
-                    "something went wrong: " ++ err
-            )
+            ServerError err ->
+                text ("something went wrong: " ++ err)
         ]
 
 
@@ -1459,26 +2475,71 @@ viewProblems problems =
     row [] [ column [] (List.map viewProblem problems) ]
 
 
+viewTooltip : String -> Element Msg
+viewTooltip str =
+    textColumn
+        [ width (fill |> maximum 600)
+        , padding 10
+        , Background.color Palette.red
+        , Font.color Palette.white
+        , Border.rounded 3
+        , Font.size 14
+        , Border.shadow
+            { offset = ( 0, 3 ), blur = 6, size = 0, color = Element.rgba 0 0 0 0.32 }
+        ]
+        [ paragraph [] [ text str ] ]
+
+
+withTooltip : Tooltip -> Maybe Tooltip -> String -> List (Element.Attribute Msg)
+withTooltip candidate active str =
+    if Just candidate == active then
+        [ below (viewTooltip str) ]
+
+    else
+        []
+
+
 view : Settings -> Model -> { title : String, content : Element Msg }
 view settings model =
     { title = "Organize - Detainer Warrant - Edit"
     , content =
-        row [ centerX, padding 10, Font.size 20, width (fill |> maximum 1000 |> minimum 400) ]
+        row
+            [ centerX
+            , padding 20
+            , Font.size 20
+            , width (fill |> maximum 1200 |> minimum 400)
+            , Element.inFront
+                (Input.button
+                    (primaryStyles
+                        ++ [ Font.size 14
+                           , Element.alignRight
+                           , Element.alignTop
+                           , Events.onLoseFocus CloseTooltip
+                           ]
+                        ++ withTooltip DetainerWarrantInfo model.tooltip "In some states, such as Tennessee, when a property owner wants to evict a tenant, he must first give notice, known as a detainer warrant. A detainer warrant is not the same as an arrest warrant, however. It is the document that informs the tenant about the court date set in the eviction proceeding. The notification gives the tenant the opportunity to appear in court and tell the judge her side of the story."
+                    )
+                    { onPress = Just (ChangeTooltip DetainerWarrantInfo), label = text "What is a Detainer Warrant?" }
+                )
+            ]
             [ column [ centerX, spacing 10 ]
-                [ paragraph [ Font.center, centerX ]
-                    [ text
-                        ((case model.docketId of
-                            Just _ ->
-                                "Edit"
-
-                            Nothing ->
-                                "Create"
-                         )
-                            ++ " Detainer Warrant"
-                        )
+                [ row
+                    [ width fill
                     ]
-                , paragraph [ Font.center, centerX ]
-                    [ text "Insert instructions here" ]
+                    [ column [ centerX, width (px 300) ]
+                        [ paragraph [ Font.center, centerX, width Element.shrink ]
+                            [ text
+                                ((case model.docketId of
+                                    Just _ ->
+                                        "Edit"
+
+                                    Nothing ->
+                                        "Create"
+                                 )
+                                    ++ " Detainer Warrant"
+                                )
+                            ]
+                        ]
+                    ]
                 , viewProblems model.problems
                 , row [ width fill ]
                     [ viewForm (formOptions model) model.form
@@ -1496,10 +2557,105 @@ subscriptions model =
 
         Ready form ->
             Sub.batch
-                [ Dropdown.onOutsideClick form.statusDropdown StatusDropdownMsg
-                , Dropdown.onOutsideClick form.categoryDropdown CategoryDropdownMsg
-                , Dropdown.onOutsideClick form.judgementDropdown JudgementDropdownMsg
-                ]
+                ([ Dropdown.onOutsideClick form.statusDropdown StatusDropdownMsg
+                 , Dropdown.onOutsideClick form.categoryDropdown CategoryDropdownMsg
+                 , Dropdown.onOutsideClick form.judgementDropdown JudgementDropdownMsg
+                 ]
+                    ++ Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip)
+                )
+
+
+isOutsideTooltip : String -> Decode.Decoder Bool
+isOutsideTooltip tooltipId =
+    Decode.oneOf
+        [ Decode.field "id" Decode.string
+            |> Decode.andThen
+                (\id ->
+                    if tooltipId == id then
+                        Decode.succeed False
+
+                    else
+                        Decode.fail "continue"
+                )
+        , Decode.lazy (\_ -> isOutsideTooltip tooltipId |> Decode.field "parentNode")
+        , Decode.succeed True
+        ]
+
+
+outsideTarget : String -> Msg -> Decode.Decoder Msg
+outsideTarget tooltipId msg =
+    Decode.field "target" (isOutsideTooltip tooltipId)
+        |> Decode.andThen
+            (\isOutside ->
+                if isOutside then
+                    Decode.succeed msg
+
+                else
+                    Decode.fail "inside dropdown"
+            )
+
+
+onOutsideClick : Tooltip -> Sub Msg
+onOutsideClick tip =
+    onMouseDown (outsideTarget (tooltipToString tip) CloseTooltip)
+
+
+tooltipToString : Tooltip -> String
+tooltipToString tip =
+    case tip of
+        DetainerWarrantInfo ->
+            "detainer-warrant-info"
+
+        DocketIdInfo ->
+            "docket-id-info"
+
+        FileDateInfo ->
+            "file-date-info"
+
+        StatusInfo ->
+            "status-info"
+
+        PlaintiffInfo ->
+            "plaintiff-info"
+
+        PlaintiffAttorneyInfo ->
+            "plaintiff-attorney-info"
+
+        CourtDateInfo ->
+            "court-date-info"
+
+        CourtroomInfo ->
+            "courtroom-info"
+
+        PresidingJudgeInfo ->
+            "presiding-judge-info"
+
+        AmountClaimedInfo ->
+            "amount-claimed-info"
+
+        AmountClaimedCategoryInfo ->
+            "amount-claimed-category-info"
+
+        CaresInfo ->
+            "cares-info"
+
+        LegacyInfo ->
+            "legacy-info"
+
+        NonpaymentInfo ->
+            "nonpayment-info"
+
+        AddressInfo ->
+            "address-info"
+
+        PotentialPhoneNumbersInfo index ->
+            "potential-phone-numbers-info-" ++ String.fromInt index
+
+        JudgementInfo ->
+            "judgement-info"
+
+        NotesInfo ->
+            "notes-info"
 
 
 
@@ -1525,13 +2681,31 @@ type TrimmedForm
 {-| When adding a variant here, add it to `fieldsToValidate` too!
 -}
 type ValidatedField
-    = DefendantAddress
+    = DocketId
+    | FileDate
+    | CourtDate
+    | DefendantAddress
+    | DefendantFirstName Int
+    | DefendantLastName Int
+    | DefendantPhoneNumber Int Int
 
 
-fieldsToValidate : List ValidatedField
-fieldsToValidate =
-    [ DefendantAddress
-    ]
+fieldsToValidate : List DefendantForm -> List ValidatedField
+fieldsToValidate defendants =
+    let
+        numDefendants =
+            List.length defendants - 1
+    in
+    List.concat
+        [ [ DocketId
+          , FileDate
+          , CourtDate
+          , DefendantAddress
+          ]
+        , List.map DefendantFirstName <| List.range 0 numDefendants
+        , List.map DefendantLastName <| List.range 0 numDefendants
+        , List.concat <| List.indexedMap (\i def -> List.indexedMap (\j _ -> DefendantPhoneNumber i j) def.potentialPhones) defendants
+        ]
 
 
 {-| Trim the form and validate its fields. If there are problems, report them!
@@ -1547,7 +2721,7 @@ validate formStatus =
                 trimmedForm =
                     trimFields form
             in
-            case List.concatMap (validateField trimmedForm) fieldsToValidate of
+            case List.concatMap (validateField trimmedForm) (fieldsToValidate form.defendants) of
                 [] ->
                     Ok trimmedForm
 
@@ -1559,9 +2733,76 @@ validateField : TrimmedForm -> ValidatedField -> List Problem
 validateField (Trimmed form) field =
     List.map (InvalidEntry field) <|
         case field of
+            DocketId ->
+                if String.isEmpty form.docketId then
+                    []
+
+                else
+                    []
+
+            FileDate ->
+                case Date.fromIsoString form.fileDate.dateText of
+                    Ok _ ->
+                        []
+
+                    Err errorStr ->
+                        [ errorStr ]
+
+            CourtDate ->
+                if String.isEmpty form.courtDate.dateText then
+                    []
+
+                else
+                    case Date.fromIsoString form.courtDate.dateText of
+                        Ok _ ->
+                            []
+
+                        Err errorStr ->
+                            [ errorStr ]
+
             DefendantAddress ->
                 if String.isEmpty form.address then
-                    [ "Defendant Address cannot be blank" ]
+                    [ "Defendant address cannot be blank" ]
+
+                else
+                    []
+
+            DefendantFirstName defIndex ->
+                let
+                    firstName =
+                        List.getAt defIndex form.defendants
+                            |> Maybe.map .firstName
+                            |> Maybe.withDefault ""
+                in
+                if String.isEmpty firstName then
+                    [ "First name cannot be blank" ]
+
+                else
+                    []
+
+            DefendantLastName defIndex ->
+                let
+                    lastName =
+                        List.getAt defIndex form.defendants
+                            |> Maybe.map .lastName
+                            |> Maybe.withDefault ""
+                in
+                if String.isEmpty lastName then
+                    [ "Last name cannot be blank" ]
+
+                else
+                    []
+
+            DefendantPhoneNumber defIndex phoneIndex ->
+                let
+                    phone =
+                        form.defendants
+                            |> List.getAt defIndex
+                            |> Maybe.andThen (List.getAt phoneIndex << .potentialPhones)
+                            |> Maybe.withDefault ""
+                in
+                if validUSNumber phone then
+                    [ "Invalid phone number format" ]
 
                 else
                     []
@@ -1581,53 +2822,21 @@ trimFields form =
         }
 
 
-type alias DefendantFormData =
-    { id : Maybe Int
-    , firstName : String
-    , middleName : Maybe String
-    , lastName : String
-    , suffix : Maybe String
-    }
-
-
-type alias PlaintiffFormData =
-    { id : Maybe Int
-    , name : String
-    , attorneyId : Maybe Int
-    }
-
-
-type alias AttorneyFormData =
-    { id : Maybe Int
-    , name : String
-    }
-
-
-type alias JudgeFormData =
-    { id : Maybe Int
-    , name : String
-    }
-
-
-type alias CourtroomFormData =
-    { id : Maybe Int
-    , name : String
-    }
-
-
 type alias ApiForms =
     { detainerWarrant : DetainerWarrantEdit
-    , defendants : List DefendantFormData
-    , plaintiff : Maybe PlaintiffFormData
-    , attorney : Maybe AttorneyFormData
-    , judge : Maybe JudgeFormData
-    , courtroom : Maybe CourtroomFormData
+    , defendants : List Defendant
+    , plaintiff : Maybe Plaintiff
+    , attorney : Maybe Attorney
+    , judge : Maybe Judge
+    , courtroom : Maybe Courtroom
     }
 
 
-toDefendantData : DefendantForm -> DefendantFormData
-toDefendantData defendant =
-    { id = defendant.id
+toDefendantData : String -> DefendantForm -> Defendant
+toDefendantData address defendant =
+    { id = Maybe.withDefault -1 defendant.id
+    , name = ""
+    , verifiedPhone = Nothing
     , firstName = defendant.firstName
     , middleName =
         if String.isEmpty defendant.middleName then
@@ -1642,7 +2851,18 @@ toDefendantData defendant =
 
         else
             Just defendant.suffix
+    , address = address
+    , potentialPhones =
+        if List.isEmpty defendant.potentialPhones || defendant.potentialPhones == [ "" ] then
+            Nothing
+
+        else
+            Just <| String.join "," defendant.potentialPhones
     }
+
+
+related id =
+    { id = id }
 
 
 toDetainerWarrant : TrimmedForm -> ApiForms
@@ -1651,16 +2871,17 @@ toDetainerWarrant (Trimmed form) =
         { docketId = form.docketId
         , fileDate = Maybe.withDefault "10-10-2222" <| Maybe.map Date.toIsoString form.fileDate.date
         , status = form.status
-        , plaintiffId = Maybe.map .id form.plaintiff.person
+        , plaintiff = Maybe.map (related << .id) form.plaintiff.person
+        , plaintiffAttorney = Maybe.map (related << .id) form.plaintiffAttorney.person
         , courtDate = Maybe.map Date.toIsoString form.courtDate.date
-        , courtroomId = Maybe.map .id form.courtroom.selection
-        , presidingJudgeId = Maybe.map .id form.presidingJudge.person
+        , courtroom = Maybe.map (related << .id) form.courtroom.selection
+        , presidingJudge = Maybe.map (related << .id) form.presidingJudge.person
         , isCares = form.isCares
         , isLegacy = form.isLegacy
         , nonpayment = form.isNonpayment
-        , amountClaimed = String.toFloat form.amountClaimed
+        , amountClaimed = String.toFloat <| String.replace "," "" form.amountClaimed
         , amountClaimedCategory = form.amountClaimedCategory
-        , defendants = List.filterMap .id form.defendants
+        , defendants = List.filterMap (Maybe.map related << .id) form.defendants
         , judgement = form.judgement
         , notes =
             if String.isEmpty form.notes then
@@ -1669,67 +2890,203 @@ toDetainerWarrant (Trimmed form) =
             else
                 Just form.notes
         }
-    , defendants = List.map toDefendantData form.defendants
+    , defendants = List.map (toDefendantData form.address) form.defendants
     , plaintiff =
-        case form.plaintiff.person of
-            Just plaintiff ->
-                Just { id = Just plaintiff.id, name = plaintiff.name, attorneyId = Maybe.map .id plaintiff.attorney }
-
-            Nothing ->
-                Nothing
+        form.plaintiff.person
     , attorney =
-        case form.plaintiffAttorney.person of
-            Just attorney ->
-                Just { id = Just attorney.id, name = attorney.name }
-
-            Nothing ->
-                Nothing
+        form.plaintiffAttorney.person
     , judge =
-        case form.presidingJudge.person of
-            Just judge ->
-                Just { id = Just judge.id, name = judge.name }
-
-            Nothing ->
-                Nothing
+        form.presidingJudge.person
     , courtroom =
-        case form.courtroom.selection of
-            Just courtroom ->
-                Just { id = Just courtroom.id, name = courtroom.name }
-
-            Nothing ->
-                Nothing
+        form.courtroom.selection
     }
+
+
+conditional fieldName fn field =
+    Maybe.withDefault [] <| Maybe.map (\f -> [ ( fieldName, fn f ) ]) field
+
+
+nullable fieldName fn field =
+    Maybe.withDefault [ ( fieldName, Encode.null ) ] <| Maybe.map (\f -> [ ( fieldName, fn f ) ]) field
+
+
+toBody data =
+    Encode.object [ ( "data", data ) ]
+        |> Http.jsonBody
+
+
+upsertDefendant : Maybe Cred -> Int -> Defendant -> Cmd Msg
+upsertDefendant maybeCred index form =
+    let
+        decoder =
+            Api.itemDecoder Defendant.decoder
+
+        defendant =
+            Encode.object
+                ([ ( "first_name", Encode.string form.firstName )
+                 , ( "last_name", Encode.string form.lastName )
+                 , ( "address", Encode.string form.address )
+                 , defaultDistrict
+                 ]
+                    ++ conditional "id" Encode.int (remoteId form)
+                    ++ conditional "middle_name" Encode.string form.middleName
+                    ++ conditional "suffix" Encode.string form.suffix
+                    ++ conditional "potential_phones" Encode.string form.potentialPhones
+                )
+
+        body =
+            toBody defendant
+    in
+    case remoteId form of
+        Just id ->
+            Api.patch (Endpoint.defendant id) maybeCred body (UpsertedDefendant index) decoder
+
+        Nothing ->
+            Api.post (Endpoint.defendants []) maybeCred body (UpsertedDefendant index) decoder
+
+
+upsertCourtroom : Maybe Cred -> Courtroom -> Cmd Msg
+upsertCourtroom maybeCred courtroom =
+    let
+        decoder =
+            Api.itemDecoder DetainerWarrant.courtroomDecoder
+
+        data =
+            Encode.object
+                ([ ( "name", Encode.string courtroom.name )
+                 , defaultDistrict
+                 ]
+                    ++ conditional "id" Encode.int (remoteId courtroom)
+                )
+
+        body =
+            toBody data
+    in
+    case remoteId courtroom of
+        Just id ->
+            Api.patch (Endpoint.courtroom id) maybeCred body UpsertedCourtroom decoder
+
+        Nothing ->
+            Api.post (Endpoint.courtrooms []) maybeCred body UpsertedCourtroom decoder
+
+
+upsertJudge : Maybe Cred -> Judge -> Cmd Msg
+upsertJudge maybeCred form =
+    let
+        decoder =
+            Api.itemDecoder DetainerWarrant.judgeDecoder
+
+        judge =
+            Encode.object
+                ([ ( "name", Encode.string form.name )
+                 , defaultDistrict
+                 ]
+                    ++ conditional "id" Encode.int (remoteId form)
+                )
+
+        body =
+            toBody judge
+    in
+    case remoteId form of
+        Just id ->
+            Api.patch (Endpoint.judge id) maybeCred body UpsertedJudge decoder
+
+        Nothing ->
+            Api.post (Endpoint.judges []) maybeCred body UpsertedJudge decoder
+
+
+remoteId : { a | id : number } -> Maybe number
+remoteId resource =
+    if resource.id == -1 then
+        Nothing
+
+    else
+        Just resource.id
+
+
+upsertAttorney : Maybe Cred -> Attorney -> Cmd Msg
+upsertAttorney maybeCred attorney =
+    let
+        decoder =
+            Api.itemDecoder DetainerWarrant.attorneyDecoder
+
+        data =
+            Encode.object
+                ([ ( "name", Encode.string attorney.name )
+                 , defaultDistrict
+                 ]
+                    ++ conditional "id" Encode.int (remoteId attorney)
+                )
+
+        body =
+            toBody data
+    in
+    case remoteId attorney of
+        Just id ->
+            Api.patch (Endpoint.attorney id) maybeCred body UpsertedAttorney decoder
+
+        Nothing ->
+            Api.post (Endpoint.attorneys []) maybeCred body UpsertedAttorney decoder
+
+
+defaultDistrict =
+    ( "district_id", Encode.int 1 )
+
+
+upsertPlaintiff : Maybe Cred -> Plaintiff -> Cmd Msg
+upsertPlaintiff maybeCred plaintiff =
+    let
+        decoder =
+            Api.itemDecoder DetainerWarrant.plaintiffDecoder
+
+        data =
+            Encode.object
+                ([ ( "name", Encode.string plaintiff.name )
+                 , defaultDistrict
+                 ]
+                    ++ conditional "id" Encode.int (remoteId plaintiff)
+                )
+
+        body =
+            toBody data
+    in
+    case remoteId plaintiff of
+        Just id ->
+            Api.patch (Endpoint.plaintiff id) maybeCred body UpsertedPlaintiff decoder
+
+        Nothing ->
+            Api.post (Endpoint.plaintiffs []) maybeCred body UpsertedPlaintiff decoder
+
+
+encodeRelated record =
+    Encode.object [ ( "id", Encode.int record.id ) ]
 
 
 updateDetainerWarrant : Maybe Cred -> DetainerWarrantEdit -> Cmd Msg
 updateDetainerWarrant maybeCred form =
     let
-        conditional fieldName fn field =
-            Maybe.withDefault [] <| Maybe.map (\f -> [ ( fieldName, fn f ) ]) field
-
+        -- something =
+        --     Debug.log "form" form
         detainerWarrant =
             Encode.object
                 ([ ( "docket_id", Encode.string form.docketId )
                  , ( "file_date", Encode.string form.fileDate )
                  , ( "status", Encode.string (DetainerWarrant.statusText form.status) )
-                 , ( "defendants", Encode.list Encode.int form.defendants )
+                 , ( "defendants", Encode.list encodeRelated form.defendants )
+                 , ( "amount_claimed_category", Encode.string (DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory) )
+                 , ( "judgement", Encode.string (DetainerWarrant.judgementText form.judgement) )
                  ]
-                    ++ conditional "plaintiff_id" Encode.int form.plaintiffId
-                    ++ conditional "court_date" Encode.string form.courtDate
-                    ++ conditional "courtroom_id" Encode.int form.courtroomId
-                    ++ conditional "presiding_judge_id" Encode.int form.presidingJudgeId
-                    ++ conditional "is_cares" Encode.bool form.isCares
-                    ++ conditional "is_legacy" Encode.bool form.isLegacy
-                    ++ conditional "nonpayment" Encode.bool form.nonpayment
-                    ++ conditional "amount_claimed" Encode.float form.amountClaimed
-                    ++ conditional "amount_claimed_category" Encode.string (Maybe.map DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory)
-                    ++ conditional "judgement" Encode.string (Maybe.map DetainerWarrant.judgementText form.judgement)
-                    ++ conditional "notes" Encode.string form.notes
+                    ++ nullable "plaintiff" encodeRelated form.plaintiff
+                    ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney
+                    ++ nullable "court_date" Encode.string form.courtDate
+                    ++ nullable "courtroom" encodeRelated form.courtroom
+                    ++ nullable "presiding_judge" encodeRelated form.presidingJudge
+                    ++ nullable "is_cares" Encode.bool form.isCares
+                    ++ nullable "is_legacy" Encode.bool form.isLegacy
+                    ++ nullable "nonpayment" Encode.bool form.nonpayment
+                    ++ nullable "amount_claimed" Encode.float form.amountClaimed
+                    ++ nullable "notes" Encode.string form.notes
                 )
-
-        body =
-            Encode.object [ ( "data", detainerWarrant ) ]
-                |> Http.jsonBody
     in
-    Api.itemDecoder DetainerWarrant.editDecoder
-        |> Api.put (Endpoint.editDetainerWarrant form.docketId) maybeCred body CreatedDetainerWarrant
+    Api.itemDecoder DetainerWarrant.decoder
+        |> Api.patch (Endpoint.detainerWarrant form.docketId) maybeCred (toBody detainerWarrant) CreatedDetainerWarrant
