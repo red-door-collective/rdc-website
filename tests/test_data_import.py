@@ -76,7 +76,7 @@ class TestDataImport(TestCase):
             example['File_date'], '%m/%d/%y'))
         self.assertEqual(warrant.status, example['Status'])
         self.assertEqual(warrant.plaintiff.name, example['Plaintiff'])
-        self.assertEqual(warrant.plaintiff.attorney.name,
+        self.assertEqual(warrant.plaintiff_attorney.name,
                          example['Plaintiff_atty'])
         self.assertEqual(warrant.court_date,
                          date_as_str(example['Court_date'], '%m/%d/%Y'))
