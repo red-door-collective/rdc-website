@@ -254,7 +254,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @plaintiff.setter
     def plaintiff(self, plaintiff):
-        p_id = plaintiff.get('id')
+        p_id = plaintiff and plaintiff.get('id')
         if (p_id):
             self._plaintiff = db.session.query(Plaintiff).get(p_id)
         else:
@@ -266,7 +266,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @plaintiff_attorney.setter
     def plaintiff_attorney(self, attorney):
-        a_id = attorney.get('id')
+        a_id = attorney and attorney.get('id')
         if (a_id):
             self._plaintiff_attorney = db.session.query(Attorney).get(a_id)
         else:
@@ -278,7 +278,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @courtroom.setter
     def courtroom(self, courtroom):
-        c_id = courtroom.get('id')
+        c_id = courtroom and courtroom.get('id')
         if (c_id):
             self._courtroom = db.session.query(Courtroom).get(c_id)
         else:
@@ -290,7 +290,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @presiding_judge.setter
     def presiding_judge(self, judge):
-        j_id = judge.get('id')
+        j_id = judge and judge.get('id')
         if (j_id):
             self._presiding_judge = db.session.query(Judge).get(j_id)
         else:

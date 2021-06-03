@@ -70,10 +70,10 @@ judges_schema = JudgeSchema(many=True)
 
 
 class DetainerWarrantSchema(Schema):
-    plaintiff = fields.Nested(PlaintiffSchema)
-    plaintiff_attorney = fields.Nested(AttorneySchema)
-    courtroom = fields.Nested(CourtroomSchema)
-    presiding_judge = fields.Nested(JudgeSchema)
+    plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
+    plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    courtroom = fields.Nested(CourtroomSchema, allow_none=True)
+    presiding_judge = fields.Nested(JudgeSchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
 
     amount_claimed = fields.Float(allow_none=True)

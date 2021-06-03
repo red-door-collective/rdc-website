@@ -1310,10 +1310,10 @@ submitForm model =
                 , problems = []
                 , saveState =
                     SavingRelatedModels
-                        { attorney = apiForms.attorney /= Nothing
-                        , plaintiff = apiForms.plaintiff /= Nothing
-                        , courtroom = apiForms.courtroom /= Nothing
-                        , judge = apiForms.judge /= Nothing
+                        { attorney = apiForms.attorney == Nothing
+                        , plaintiff = apiForms.plaintiff == Nothing
+                        , courtroom = apiForms.courtroom == Nothing
+                        , judge = apiForms.judge == Nothing
                         , defendants = 0
                         }
               }
@@ -1356,7 +1356,7 @@ nextStepSave model =
                             && models.judge
                             && models.plaintiff
                             && List.length apiForms.defendants
-                            == models.defendants
+                            >= models.defendants
                     then
                         ( { model | saveState = SavingWarrant }
                         , updateDetainerWarrant maybeCred apiForms.detainerWarrant
