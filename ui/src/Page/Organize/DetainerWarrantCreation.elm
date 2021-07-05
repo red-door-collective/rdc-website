@@ -9,7 +9,7 @@ import Date exposing (Date)
 import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
-import DetainerWarrant exposing (AmountClaimedCategory, Attorney, Courtroom, DetainerWarrant, DetainerWarrantEdit, Judge, Judgement, Plaintiff, Status, amountClaimedCategoryText)
+import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status, amountClaimedCategoryText)
 import Dropdown
 import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Background as Background
@@ -133,8 +133,7 @@ type alias Form =
     , categoryDropdown : Dropdown.State AmountClaimedCategory
     , address : String
     , defendants : List DefendantForm
-    , judgement : Judgement
-    , judgementDropdown : Dropdown.State Judgement
+    , judgements : List JudgementForm
     , notes : String
     }
 
@@ -142,6 +141,17 @@ type alias Form =
 type Problem
     = InvalidEntry ValidatedField String
     | ServerError String
+
+
+type JudgementDetail
+    = Summary
+    | FeesClaimedInfo
+    | PossessionClaimedInfo
+    | FeesHaveInterestInfo
+    | InterestRateFollowsSiteInfo
+    | InterestRateInfo
+    | DismissalBasisInfo
+    | WithPrejudiceInfo
 
 
 type Tooltip
@@ -161,7 +171,7 @@ type Tooltip
     | NonpaymentInfo
     | AddressInfo
     | PotentialPhoneNumbersInfo Int
-    | JudgementInfo
+    | JudgementInfo Int JudgementDetail
     | NotesInfo
 
 
@@ -185,12 +195,6 @@ type alias Model =
     , courtrooms : List Courtroom
     , saveState : SaveState
     , newFormOnSuccess : Bool
-    }
-
-
-type alias DropdownState item =
-    { options : List item
-    , selectedOption : Maybe item
     }
 
 
@@ -271,10 +275,74 @@ editForm warrant =
     , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
     , address = Maybe.withDefault "" <| List.head <| List.map .address warrant.defendants
     , defendants = List.map (initDefendantForm << Just) warrant.defendants
-    , judgement = warrant.judgement
-    , judgementDropdown = Dropdown.init "judgement-dropdown"
+    , judgements = List.indexedMap (\index j -> judgementFormInit index (Just j)) warrant.judgements
     , notes = Maybe.withDefault "" warrant.notes
     }
+
+
+judgementFormInit : Int -> Maybe Judgement -> JudgementForm
+judgementFormInit index existing =
+    let
+        new =
+            { id = Nothing
+            , conditionsDropdown = Dropdown.init ("judgement-dropdown-new-" ++ String.fromInt index)
+            , condition = PlaintiffOption
+            , notes = ""
+            , enteredBy = Default
+            , claimsFees = ""
+            , claimsPossession = False
+            , hasInterest = False
+            , interestRate = ""
+            , interestFollowsSite = True
+            , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt index)
+            , dismissalBasis = FailureToProsecute
+            , withPrejudice = False
+            }
+    in
+    case existing of
+        Just judgement ->
+            let
+                default =
+                    { new
+                        | id = Just judgement.id
+                        , enteredBy = judgement.enteredBy
+                        , conditionsDropdown = Dropdown.init ("judgement-dropdown-" ++ String.fromInt judgement.id)
+                        , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt judgement.id)
+                        , notes = Maybe.withDefault "" judgement.notes
+                    }
+            in
+            case judgement.conditions of
+                PlaintiffConditions owed ->
+                    { default
+                        | condition = PlaintiffOption
+                        , claimsFees = Maybe.withDefault "" <| Maybe.map String.fromFloat owed.claimsFees
+                        , claimsPossession = owed.claimsPossession
+                        , hasInterest = owed.interest /= Nothing
+                        , interestRate =
+                            case owed.interest of
+                                Just (WithRate rate) ->
+                                    String.fromFloat rate
+
+                                _ ->
+                                    ""
+                        , interestFollowsSite =
+                            case owed.interest of
+                                Just FollowsSite ->
+                                    True
+
+                                _ ->
+                                    False
+                    }
+
+                DefendantConditions dismissal ->
+                    { default
+                        | condition = DefendantOption
+                        , dismissalBasis = dismissal.basis
+                        , withPrejudice = dismissal.withPrejudice
+                    }
+
+        Nothing ->
+            new
 
 
 initCreate : Form
@@ -299,8 +367,7 @@ initCreate =
     , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
     , address = ""
     , defendants = [ initDefendantForm Nothing ]
-    , judgement = DetainerWarrant.NotAvailable
-    , judgementDropdown = Dropdown.init "judgement-dropdown"
+    , judgements = []
     , notes = ""
     }
 
@@ -383,8 +450,19 @@ type Msg
     | AddPhone Int
     | RemovePhone Int Int
     | AddDefendant
-    | PickedJudgement (Maybe Judgement)
-    | JudgementDropdownMsg (Dropdown.Msg Judgement)
+    | AddJudgement
+    | PickedConditions Int (Maybe ConditionOption)
+    | ConditionsDropdownMsg Int (Dropdown.Msg ConditionOption)
+    | ChangedFeesClaimed Int String
+    | ConfirmedFeesClaimed Int
+    | ToggleJudgmentPossession Int Bool
+    | ToggleJudgmentInterest Int Bool
+    | ChangedInterestRate Int String
+    | ConfirmedInterestRate Int
+    | ToggleInterestFollowSite Int Bool
+    | DismissalBasisDropdownMsg Int (Dropdown.Msg DismissalBasis)
+    | PickedDismissalBasis Int (Maybe DismissalBasis)
+    | ToggledWithPrejudice Int Bool
     | ChangedNotes String
     | SubmitForm
     | SubmitAndAddAnother
@@ -966,13 +1044,58 @@ update msg model =
                 (\form -> { form | address = address })
                 model
 
-        PickedJudgement option ->
+        AddJudgement ->
             updateForm
+                (\form -> { form | judgements = judgementFormInit (List.length form.judgements - 1) Nothing :: form.judgements })
+                model
+
+        PickedConditions selected option ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | condition = Maybe.withDefault PlaintiffOption option }))
+                model
+
+        DismissalBasisDropdownMsg selected subMsg ->
+            updateFormNarrow
                 (\form ->
-                    { form
-                        | judgement = Maybe.withDefault DetainerWarrant.NotAvailable option
-                    }
+                    let
+                        judgementsAndCmds =
+                            List.indexedMap
+                                (\candidate judgement ->
+                                    if selected == candidate then
+                                        let
+                                            ( state, cmd ) =
+                                                Dropdown.update (dismissalBasisDropdownConfig selected [])
+                                                    subMsg
+                                                    { options = DetainerWarrant.dismissalBasisOptions
+                                                    , selectedOption = Just judgement.dismissalBasis
+                                                    }
+                                                    judgement.dismissalBasisDropdown
+                                        in
+                                        ( { judgement
+                                            | dismissalBasisDropdown = state
+                                          }
+                                        , cmd
+                                        )
+
+                                    else
+                                        ( judgement, Cmd.none )
+                                )
+                                form.judgements
+                    in
+                    ( { form | judgements = List.map Tuple.first judgementsAndCmds }
+                    , Cmd.batch (List.map Tuple.second judgementsAndCmds)
+                    )
                 )
+                model
+
+        PickedDismissalBasis selected option ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | dismissalBasis = Maybe.withDefault FailureToProsecute option }))
+                model
+
+        ToggledWithPrejudice selected checked ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | withPrejudice = checked }))
                 model
 
         ChangedFirstName selected name ->
@@ -1117,20 +1240,92 @@ update msg model =
                 )
                 model
 
-        JudgementDropdownMsg subMsg ->
+        ConditionsDropdownMsg selected subMsg ->
             updateFormNarrow
                 (\form ->
                     let
-                        ( state, cmd ) =
-                            Dropdown.update (judgementDropdownConfig [])
-                                subMsg
-                                { options = DetainerWarrant.judgementOptions
-                                , selectedOption = Just form.judgement
-                                }
-                                form.judgementDropdown
+                        judgementsAndCmds =
+                            List.indexedMap
+                                (\candidate judgement ->
+                                    if selected == candidate then
+                                        let
+                                            ( state, cmd ) =
+                                                Dropdown.update (conditionsDropdownConfig selected [])
+                                                    subMsg
+                                                    { options = DetainerWarrant.conditionsOptions
+                                                    , selectedOption = Just judgement.condition
+                                                    }
+                                                    judgement.conditionsDropdown
+                                        in
+                                        ( { judgement
+                                            | conditionsDropdown = state
+                                          }
+                                        , cmd
+                                        )
+
+                                    else
+                                        ( judgement, Cmd.none )
+                                )
+                                form.judgements
                     in
-                    ( { form | judgementDropdown = state }, cmd )
+                    ( { form | judgements = List.map Tuple.first judgementsAndCmds }
+                    , Cmd.batch (List.map Tuple.second judgementsAndCmds)
+                    )
                 )
+                model
+
+        ChangedFeesClaimed selected money ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | claimsFees = String.replace "$" "" money }))
+                model
+
+        ConfirmedFeesClaimed selected ->
+            let
+                extract money =
+                    String.toFloat (String.replace "," "" money)
+
+                options =
+                    Mask.defaultDecimalOptions
+            in
+            updateForm
+                (updateJudgement selected
+                    (\judgement ->
+                        { judgement
+                            | claimsFees =
+                                case extract judgement.claimsFees of
+                                    Just moneyFloat ->
+                                        Mask.floatDecimal options moneyFloat
+
+                                    Nothing ->
+                                        judgement.claimsFees
+                        }
+                    )
+                )
+                model
+
+        ToggleJudgmentPossession selected checked ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | claimsPossession = checked }))
+                model
+
+        ToggleJudgmentInterest selected checked ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | hasInterest = checked }))
+                model
+
+        ChangedInterestRate selected interestRate ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | interestRate = String.replace "%" "" interestRate }))
+                model
+
+        ConfirmedInterestRate selected ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | interestRate = String.replace "%" "" judgement.interestRate ++ "%" }))
+                model
+
+        ToggleInterestFollowSite selected checked ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | interestFollowsSite = checked }))
                 model
 
         ChangedNotes notes ->
@@ -1286,6 +1481,22 @@ update msg model =
 
         GotCourtrooms (Err problems) ->
             ( model, Cmd.none )
+
+
+updateJudgement : Int -> (JudgementForm -> JudgementForm) -> Form -> Form
+updateJudgement selected fn form =
+    { form
+        | judgements =
+            List.indexedMap
+                (\index judgement ->
+                    if selected == index then
+                        fn judgement
+
+                    else
+                        judgement
+                )
+                form.judgements
+    }
 
 
 submitFormAndAddAnother : Model -> ( Model, Cmd Msg )
@@ -1688,15 +1899,19 @@ caresDropdownConfig =
 
 
 legacyDropdownConfig =
-    dropdownConfig "Cares" ternaryText LegacyDropdownMsg PickedLegacy
+    dropdownConfig "Legacy" ternaryText LegacyDropdownMsg PickedLegacy
 
 
 nonpaymentDropdownConfig =
-    dropdownConfig "Cares" ternaryText NonpaymentDropdownMsg PickedNonpayment
+    dropdownConfig "Nonpayment" ternaryText NonpaymentDropdownMsg PickedNonpayment
 
 
-judgementDropdownConfig =
-    dropdownConfig "Judgement" DetainerWarrant.judgementText JudgementDropdownMsg PickedJudgement
+conditionsDropdownConfig index =
+    dropdownConfig "Granted to" DetainerWarrant.conditionText (ConditionsDropdownMsg index) (PickedConditions index)
+
+
+dismissalBasisDropdownConfig index =
+    dropdownConfig "Dismissal based on" DetainerWarrant.dismissalBasisText (DismissalBasisDropdownMsg index) (PickedDismissalBasis index)
 
 
 viewStatus : FormOptions -> Form -> Element Msg
@@ -2274,35 +2489,199 @@ viewDefendants options form =
         ]
 
 
-viewJudgement : FormOptions -> Form -> Element Msg
-viewJudgement options form =
-    let
-        defaultCategory =
-            DetainerWarrant.NotAvailable
+viewJudgements : FormOptions -> Form -> Element Msg
+viewJudgements options form =
+    column [] (Input.button primaryStyles { onPress = Just AddJudgement, label = text "Add Judgement" } :: List.indexedMap (viewJudgement options) form.judgements)
 
-        hasChanges =
-            (Maybe.withDefault False <|
-                Maybe.map ((/=) form.judgement << .judgement) options.originalWarrant
-            )
-                || (options.originalWarrant == Nothing && form.judgement /= defaultCategory)
-    in
-    column [ width Element.shrink ]
-        [ viewField
-            { tooltip = Just JudgementInfo
-            , currentTooltip = options.tooltip
-            , description = "The ruling from the court that will determine if fees or repossession are enforced."
-            , children =
-                [ column [ spacing 5, width fill ]
-                    [ el [] (text "Judgement")
-                    , Dropdown.view (judgementDropdownConfig (withChanges hasChanges []))
-                        { options = DetainerWarrant.judgementOptions
-                        , selectedOption = Just form.judgement
-                        }
-                        form.judgementDropdown
-                        |> el []
+
+viewJudgementInterest : FormOptions -> Int -> JudgementForm -> Element Msg
+viewJudgementInterest options index form =
+    column []
+        [ row [ spacing 5 ]
+            [ viewField
+                { tooltip = Just (JudgementInfo index FeesHaveInterestInfo)
+                , currentTooltip = options.tooltip
+                , description = "Do the fees claimed have interest?"
+                , children =
+                    [ column [ spacing 5, width fill ]
+                        [ Input.checkbox
+                            []
+                            { onChange = ToggleJudgmentInterest index
+                            , icon = Input.defaultCheckbox
+                            , checked = form.hasInterest
+                            , label = Input.labelAbove [] (text "Fees Have Interest")
+                            }
+                        ]
                     ]
+                }
+            , if form.hasInterest then
+                viewField
+                    { tooltip = Just (JudgementInfo index InterestRateFollowsSiteInfo)
+                    , currentTooltip = options.tooltip
+                    , description = "Does the interest rate follow from the website?"
+                    , children =
+                        [ column [ spacing 5, width fill ]
+                            [ Input.checkbox
+                                []
+                                { onChange = ToggleInterestFollowSite index
+                                , icon = Input.defaultCheckbox
+                                , checked = form.interestFollowsSite
+                                , label = Input.labelAbove [] (text "Interest Rate Follows Site")
+                                }
+                            ]
+                        ]
+                    }
+
+              else
+                Element.none
+            ]
+        , if form.interestFollowsSite then
+            Element.none
+
+          else
+            viewField
+                { tooltip = Just (JudgementInfo index InterestRateInfo)
+                , currentTooltip = options.tooltip
+                , description = "The rate of interest that accrues for fees."
+                , children =
+                    [ column [ spacing 5, width fill ]
+                        [ textInput (withChanges False [ Events.onLoseFocus (ConfirmedInterestRate index) ])
+                            { onChange = ChangedInterestRate index
+                            , text = form.interestRate
+                            , label = Input.labelAbove [] (text "Interest Rate")
+                            , placeholder = Just <| Input.placeholder [] (text "0%")
+                            }
+                        ]
+                    ]
+                }
+        ]
+
+
+viewJudgementPossession : FormOptions -> Int -> JudgementForm -> Element Msg
+viewJudgementPossession options index form =
+    viewField
+        { tooltip = Just (JudgementInfo index PossessionClaimedInfo)
+        , currentTooltip = options.tooltip
+        , description = "Has the Plaintiff claimed the residence?"
+        , children =
+            [ column [ spacing 5, width fill ]
+                [ Input.checkbox
+                    []
+                    { onChange = ToggleJudgmentPossession index
+                    , icon = Input.defaultCheckbox
+                    , checked = form.claimsPossession
+                    , label = Input.labelAbove [] (text "Possession Claimed")
+                    }
                 ]
-            }
+            ]
+        }
+
+
+viewJudgementPlaintiff : FormOptions -> Int -> JudgementForm -> List (Element Msg)
+viewJudgementPlaintiff options index form =
+    [ viewField
+        { tooltip = Just (JudgementInfo index FeesClaimedInfo)
+        , currentTooltip = options.tooltip
+        , description = "Fees the Plaintiff has claimed."
+        , children =
+            [ column [ spacing 5, width fill ]
+                [ textInput (withChanges False [ Events.onLoseFocus (ConfirmedFeesClaimed index) ])
+                    { onChange = ChangedFeesClaimed index
+                    , text =
+                        if form.claimsFees == "" then
+                            form.claimsFees
+
+                        else
+                            "$" ++ form.claimsFees
+                    , label = Input.labelAbove [] (text "Fees Claimed")
+                    , placeholder = Just <| Input.placeholder [] (text "$0.00")
+                    }
+                ]
+            ]
+        }
+    , viewJudgementPossession options index form
+    ]
+
+
+viewJudgementDefendant : FormOptions -> Int -> JudgementForm -> List (Element Msg)
+viewJudgementDefendant options index form =
+    [ viewField
+        { tooltip = Just (JudgementInfo index DismissalBasisInfo)
+        , currentTooltip = options.tooltip
+        , description = "Basis for dismissal"
+        , children =
+            [ column [ spacing 5, width fill ]
+                [ el [] (text "Basis for Dismissal")
+                , Dropdown.view (dismissalBasisDropdownConfig index [])
+                    { options = DetainerWarrant.dismissalBasisOptions
+                    , selectedOption = Just form.dismissalBasis
+                    }
+                    form.dismissalBasisDropdown
+                    |> el []
+                ]
+            ]
+        }
+    , viewField
+        { tooltip = Just (JudgementInfo index WithPrejudiceInfo)
+        , currentTooltip = options.tooltip
+        , description = "Whether or not the dismissal is made with prejudice."
+        , children =
+            [ column [ spacing 5, width fill ]
+                [ Input.checkbox
+                    []
+                    { onChange = ToggledWithPrejudice index
+                    , icon = Input.defaultCheckbox
+                    , checked = form.withPrejudice
+                    , label = Input.labelAbove [] (text "Dismissal is")
+                    }
+                ]
+            ]
+        }
+    ]
+
+
+viewJudgement : FormOptions -> Int -> JudgementForm -> Element Msg
+viewJudgement options index form =
+    let
+        hasChanges =
+            True
+
+        -- (Maybe.withDefault False <|
+        --     Maybe.map ((/=) form.judgement << .judgement) options.originalWarrant
+        -- )
+        --     || (options.originalWarrant == Nothing && form.judgement /= defaultCategory)
+    in
+    column [ width Element.shrink, spacing 5 ]
+        [ row [ spacing 5 ]
+            (viewField
+                { tooltip = Just (JudgementInfo index Summary)
+                , currentTooltip = options.tooltip
+                , description = "The ruling from the court that will determine if fees or repossession are enforced."
+                , children =
+                    [ column [ spacing 5, width fill ]
+                        [ el [] (text "Granted to")
+                        , Dropdown.view (conditionsDropdownConfig index [])
+                            { options = DetainerWarrant.conditionsOptions
+                            , selectedOption = Just form.condition
+                            }
+                            form.conditionsDropdown
+                            |> el []
+                        ]
+                    ]
+                }
+                :: (case form.condition of
+                        PlaintiffOption ->
+                            viewJudgementPlaintiff options index form
+
+                        DefendantOption ->
+                            viewJudgementDefendant options index form
+                   )
+            )
+        , if form.claimsFees /= "" then
+            viewJudgementInterest options index form
+
+          else
+            Element.none
         ]
 
 
@@ -2433,7 +2812,7 @@ viewForm options formStatus =
                 , tile
                     [ paragraph [ Font.center, centerX ] [ text "Judgement" ]
                     , formGroup
-                        [ viewJudgement options form
+                        [ viewJudgements options form
                         , viewNotes options form
                         ]
                     ]
@@ -2559,7 +2938,8 @@ subscriptions model =
             Sub.batch
                 ([ Dropdown.onOutsideClick form.statusDropdown StatusDropdownMsg
                  , Dropdown.onOutsideClick form.categoryDropdown CategoryDropdownMsg
-                 , Dropdown.onOutsideClick form.judgementDropdown JudgementDropdownMsg
+
+                 --  , Dropdown.onOutsideClick form.conditionsDropdown ConditionsDropdownMsg
                  ]
                     ++ Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip)
                 )
@@ -2651,8 +3031,35 @@ tooltipToString tip =
         PotentialPhoneNumbersInfo index ->
             "potential-phone-numbers-info-" ++ String.fromInt index
 
-        JudgementInfo ->
-            "judgement-info"
+        JudgementInfo index detail ->
+            "judgement-"
+                ++ (case detail of
+                        Summary ->
+                            "summary"
+
+                        FeesClaimedInfo ->
+                            "fees-claimed-info"
+
+                        PossessionClaimedInfo ->
+                            "possession-claimed-info"
+
+                        FeesHaveInterestInfo ->
+                            "fees-have-interest-info"
+
+                        InterestRateFollowsSiteInfo ->
+                            "interest-rate-follows-site-info"
+
+                        InterestRateInfo ->
+                            "interest-rate-info"
+
+                        DismissalBasisInfo ->
+                            "dismissal-basis-info"
+
+                        WithPrejudiceInfo ->
+                            "with-prejudice-info"
+                   )
+                ++ "-"
+                ++ String.fromInt index
 
         NotesInfo ->
             "notes-info"
@@ -2882,7 +3289,7 @@ toDetainerWarrant (Trimmed form) =
         , amountClaimed = String.toFloat <| String.replace "," "" form.amountClaimed
         , amountClaimedCategory = form.amountClaimedCategory
         , defendants = List.filterMap (Maybe.map related << .id) form.defendants
-        , judgement = form.judgement
+        , judgements = List.map DetainerWarrant.editFromForm form.judgements
         , notes =
             if String.isEmpty form.notes then
                 Nothing
@@ -3062,6 +3469,23 @@ encodeRelated record =
     Encode.object [ ( "id", Encode.int record.id ) ]
 
 
+encodeJudgement : JudgementEdit -> Encode.Value
+encodeJudgement judgement =
+    Encode.object
+        ([ ( "in_favor_of", Encode.string judgement.inFavorOf )
+         , ( "has_interest", Encode.bool judgement.hasInterest )
+         ]
+            ++ nullable "notes" Encode.string judgement.notes
+            ++ nullable "entered_by" Encode.string judgement.enteredBy
+            ++ nullable "claims_fees" Encode.float judgement.claimsFees
+            ++ nullable "claims_possession" Encode.bool judgement.claimsPossession
+            ++ nullable "interest_rate" Encode.float judgement.interestRate
+            ++ nullable "interest_follows_site" Encode.bool judgement.interestFollowsSite
+            ++ nullable "dismissal_basis" Encode.string judgement.dismissalBasis
+            ++ nullable "with_prejudice" Encode.bool judgement.withPrejudice
+        )
+
+
 updateDetainerWarrant : Maybe Cred -> DetainerWarrantEdit -> Cmd Msg
 updateDetainerWarrant maybeCred form =
     let
@@ -3074,7 +3498,7 @@ updateDetainerWarrant maybeCred form =
                  , ( "status", Encode.string (DetainerWarrant.statusText form.status) )
                  , ( "defendants", Encode.list encodeRelated form.defendants )
                  , ( "amount_claimed_category", Encode.string (DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory) )
-                 , ( "judgement", Encode.string (DetainerWarrant.judgementText form.judgement) )
+                 , ( "judgements", Encode.list encodeJudgement form.judgements )
                  ]
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
                     ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney

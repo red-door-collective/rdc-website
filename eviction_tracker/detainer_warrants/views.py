@@ -228,8 +228,7 @@ class DetainerWarrantResourceBase(GenericModelView):
         file_date=ColumnFilter(operator.eq),
         plaintiff=filter_plaintiff_name,
         plaintiff_attorney=filter_plaintiff_attorney_name,
-        address=filter_address,
-        judgement=ColumnFilter(operator.eq)
+        address=filter_address
     )
 
 

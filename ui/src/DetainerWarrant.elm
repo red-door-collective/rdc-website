@@ -1,9 +1,10 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, Courtroom, DetainerWarrant, DetainerWarrantEdit, Judge, Judgement(..), Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, courtroomDecoder, dateDecoder, decoder, judgeDecoder, judgementOptions, judgementText, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
 
 import Date exposing (Date)
 import Defendant exposing (Defendant)
+import Dropdown
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
-import Json.Decode.Pipeline exposing (optional, required)
+import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
 import Time exposing (Month(..))
 
 
@@ -35,13 +36,47 @@ type alias Courtroom =
     { id : Int, name : String }
 
 
-type Judgement
-    = NonSuit
-    | Poss
-    | PossAndPayment
-    | Dismissed
-    | FeesOnly
-    | NotAvailable
+type Entrance
+    = Default
+    | AgreementOfParties
+    | TrialInCourt
+
+
+type DismissalBasis
+    = FailureToProsecute
+    | FindingInFavorOfDefendant
+    | NonSuitByPlaintiff
+
+
+type Interest
+    = WithRate Float
+    | FollowsSite
+
+
+type alias OwedConditions =
+    { claimsFees : Maybe Float
+    , claimsPossession : Bool
+    , interest : Maybe Interest
+    }
+
+
+type alias DismissalConditions =
+    { basis : DismissalBasis
+    , withPrejudice : Bool
+    }
+
+
+type Conditions
+    = PlaintiffConditions OwedConditions
+    | DefendantConditions DismissalConditions
+
+
+type alias Judgement =
+    { id : Int
+    , notes : Maybe String
+    , enteredBy : Entrance
+    , conditions : Conditions
+    }
 
 
 type alias DetainerWarrant =
@@ -59,13 +94,132 @@ type alias DetainerWarrant =
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
     , defendants : List Defendant
-    , judgement : Judgement
+    , judgements : List Judgement
     , notes : Maybe String
     }
 
 
 type alias Related =
     { id : Int }
+
+
+type alias JudgementEdit =
+    { id : Maybe Int
+    , notes : Maybe String
+    , enteredBy : Maybe String
+    , inFavorOf : String
+
+    -- Plaintiff Favor
+    , claimsFees : Maybe Float
+    , claimsPossession : Maybe Bool
+    , hasInterest : Bool
+    , interestRate : Maybe Float
+    , interestFollowsSite : Maybe Bool
+
+    -- Tenant Favor
+    , dismissalBasis : Maybe String
+    , withPrejudice : Maybe Bool
+    }
+
+
+type alias JudgementForm =
+    { id : Maybe Int
+    , conditionsDropdown : Dropdown.State ConditionOption
+    , condition : ConditionOption
+    , enteredBy : Entrance
+    , notes : String
+    , claimsFees : String
+    , claimsPossession : Bool
+    , hasInterest : Bool
+    , interestRate : String
+    , interestFollowsSite : Bool
+    , dismissalBasisDropdown : Dropdown.State DismissalBasis
+    , dismissalBasis : DismissalBasis
+    , withPrejudice : Bool
+    }
+
+
+entranceText : Entrance -> String
+entranceText entrance =
+    case entrance of
+        Default ->
+            "DEFAULT"
+
+        AgreementOfParties ->
+            "AGREEMENT_OF_PARTIES"
+
+        TrialInCourt ->
+            "TRIAL_IN_COURT"
+
+
+dismissalBasisText : DismissalBasis -> String
+dismissalBasisText basis =
+    case basis of
+        FailureToProsecute ->
+            "FAILURE_TO_PROSECUTE"
+
+        FindingInFavorOfDefendant ->
+            "FINDING_IN_FAVOR_OF_DEFENDANT"
+
+        NonSuitByPlaintiff ->
+            "NON_SUIT_BY_PLAINTIFF"
+
+
+editFromForm : JudgementForm -> JudgementEdit
+editFromForm form =
+    { id = form.id
+    , notes =
+        if String.isEmpty form.notes then
+            Nothing
+
+        else
+            Just form.notes
+    , enteredBy = Just <| entranceText form.enteredBy
+    , inFavorOf =
+        case form.condition of
+            PlaintiffOption ->
+                "PLAINTIFF"
+
+            DefendantOption ->
+                "DEFENDANT"
+    , claimsFees =
+        if form.claimsFees == "" then
+            Nothing
+
+        else
+            String.toFloat <| String.replace "," "" form.claimsFees
+    , claimsPossession =
+        if form.condition == DefendantOption then
+            Nothing
+
+        else
+            Just form.claimsPossession
+    , hasInterest = form.hasInterest
+    , interestRate =
+        if form.hasInterest then
+            String.toFloat <| String.replace "%" "" form.interestRate
+
+        else
+            Nothing
+    , interestFollowsSite =
+        if form.hasInterest then
+            Just form.interestFollowsSite
+
+        else
+            Nothing
+    , dismissalBasis =
+        if form.condition == DefendantOption then
+            Just (dismissalBasisText form.dismissalBasis)
+
+        else
+            Nothing
+    , withPrejudice =
+        if form.condition == DefendantOption then
+            Just form.withPrejudice
+
+        else
+            Nothing
+    }
 
 
 type alias DetainerWarrantEdit =
@@ -83,9 +237,19 @@ type alias DetainerWarrantEdit =
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
     , defendants : List Related
-    , judgement : Judgement
+    , judgements : List JudgementEdit
     , notes : Maybe String
     }
+
+
+conditionText : ConditionOption -> String
+conditionText option =
+    case option of
+        PlaintiffOption ->
+            "Plaintiff"
+
+        DefendantOption ->
+            "Defendant"
 
 
 ternaryOptions : List (Maybe Bool)
@@ -103,9 +267,19 @@ amountClaimedCategoryOptions =
     [ NotApplicable, Possession, Fees, Both ]
 
 
-judgementOptions : List Judgement
-judgementOptions =
-    [ NotAvailable, NonSuit, Poss, PossAndPayment, Dismissed, FeesOnly ]
+dismissalBasisOptions : List DismissalBasis
+dismissalBasisOptions =
+    [ FailureToProsecute, FindingInFavorOfDefendant, NonSuitByPlaintiff ]
+
+
+type ConditionOption
+    = PlaintiffOption
+    | DefendantOption
+
+
+conditionsOptions : List ConditionOption
+conditionsOptions =
+    [ PlaintiffOption, DefendantOption ]
 
 
 statusText : Status -> String
@@ -132,32 +306,6 @@ amountClaimedCategoryText category =
 
         NotApplicable ->
             "N/A"
-
-
-judgementText : Judgement -> String
-judgementText judgement =
-    case judgement of
-        NonSuit ->
-            "NON-SUIT"
-
-        Poss ->
-            "POSS"
-
-        PossAndPayment ->
-            "POSS + PAYMENT"
-
-        Dismissed ->
-            "DISMISSED"
-
-        NotAvailable ->
-            "N/A"
-
-        FeesOnly ->
-            "FEES ONLY"
-
-
-
--- SERIALIZATION
 
 
 statusDecoder : Decoder Status
@@ -200,33 +348,114 @@ amountClaimedCategoryDecoder =
             )
 
 
-judgementDecoder : Decoder Judgement
-judgementDecoder =
+interestConditionsDecoder : Decoder Interest
+interestConditionsDecoder =
+    Decode.field "interest_rate" (nullable float)
+        |> Decode.andThen
+            (\rate ->
+                Decode.succeed <|
+                    case rate of
+                        Nothing ->
+                            FollowsSite
+
+                        Just someRate ->
+                            WithRate someRate
+            )
+
+
+interestDecoder : Decoder (Maybe Interest)
+interestDecoder =
+    Decode.field "interest" bool
+        |> Decode.andThen
+            (\hasInterest ->
+                if hasInterest then
+                    Decode.map Just interestConditionsDecoder
+
+                else
+                    Decode.succeed Nothing
+            )
+
+
+owedConditionsDecoder : Decoder OwedConditions
+owedConditionsDecoder =
+    Decode.succeed OwedConditions
+        |> required "claims_fees" (nullable float)
+        |> required "claims_possession" bool
+        |> custom interestDecoder
+
+
+dismissalBasisDecoder : Decoder DismissalBasis
+dismissalBasisDecoder =
     Decode.string
         |> Decode.andThen
             (\str ->
                 case str of
-                    "NON-SUIT" ->
-                        Decode.succeed NonSuit
+                    "FAILURE_TO_PROSECUTE" ->
+                        Decode.succeed FailureToProsecute
 
-                    "POSS" ->
-                        Decode.succeed Poss
+                    "FINDING_IN_FAVOR_OF_DEFENDANT" ->
+                        Decode.succeed FindingInFavorOfDefendant
 
-                    "POSS + PAYMENT" ->
-                        Decode.succeed PossAndPayment
-
-                    "DISMISSED" ->
-                        Decode.succeed Dismissed
-
-                    "FEES ONLY" ->
-                        Decode.succeed FeesOnly
-
-                    "N/A" ->
-                        Decode.succeed NotAvailable
+                    "NON_SUIT_BY_PLAINTIFF" ->
+                        Decode.succeed NonSuitByPlaintiff
 
                     _ ->
-                        Decode.succeed NotAvailable
+                        Decode.fail "oops"
             )
+
+
+dismissalConditionsDecoder : Decoder DismissalConditions
+dismissalConditionsDecoder =
+    Decode.succeed DismissalConditions
+        |> required "dismissal_basis" dismissalBasisDecoder
+        |> required "withPrejudice" bool
+
+
+entranceDecoder : Decoder Entrance
+entranceDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                case str of
+                    "DEFAULT" ->
+                        Decode.succeed Default
+
+                    "AGREEMENT_OF_PARTIES" ->
+                        Decode.succeed AgreementOfParties
+
+                    "TRIAL_IN_COURT" ->
+                        Decode.succeed TrialInCourt
+
+                    _ ->
+                        Decode.fail "oops"
+            )
+
+
+fromConditions : Conditions -> Decoder Judgement
+fromConditions conditions =
+    Decode.succeed Judgement
+        |> required "id" int
+        |> required "notes" (nullable string)
+        |> required "enteredBy" entranceDecoder
+        |> custom (Decode.succeed conditions)
+
+
+judgementDecoder : Decoder Judgement
+judgementDecoder =
+    Decode.field "in_favor_of" string
+        |> Decode.andThen
+            (\str ->
+                case str of
+                    "PLAINTIFF" ->
+                        Decode.map PlaintiffConditions owedConditionsDecoder
+
+                    "DEFENDANT" ->
+                        Decode.map DefendantConditions dismissalConditionsDecoder
+
+                    _ ->
+                        Decode.fail "oops"
+            )
+        |> Decode.andThen fromConditions
 
 
 attorneyDecoder : Decoder Attorney
@@ -279,5 +508,5 @@ decoder =
         |> required "is_legacy" (nullable bool)
         |> required "nonpayment" (nullable bool)
         |> required "defendants" (list Defendant.decoder)
-        |> required "judgement" judgementDecoder
+        |> custom (list judgementDecoder)
         |> required "notes" (nullable string)

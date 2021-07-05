@@ -69,12 +69,25 @@ judge_schema = JudgeSchema()
 judges_schema = JudgeSchema(many=True)
 
 
+class JudgementSchema(Schema):
+    class Meta:
+        fields = ("id", "in_favor_of", "claims_possession",
+                  "claims_fees", "entered_by", "interest", "interest_rate",
+                  "interest_follows_site", "dismissal_basis", "with_prejudice", "notes"
+                  )
+
+
+judgement_schema = JudgementSchema()
+judgements_schema = JudgementSchema(many=True)
+
+
 class DetainerWarrantSchema(Schema):
     plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     courtroom = fields.Nested(CourtroomSchema, allow_none=True)
     presiding_judge = fields.Nested(JudgeSchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
+    judgements = fields.Nested(JudgementSchema, many=True)
 
     amount_claimed = fields.Float(allow_none=True)
     court_date = fields.Date(allow_none=True)
@@ -85,7 +98,7 @@ class DetainerWarrantSchema(Schema):
 
     class Meta:
         fields = ("docket_id", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
-                  "judgement", "judgement_notes", "plaintiff", "plaintiff_attorney", "courtroom", "presiding_judge", "defendants",
+                  "judgements", "plaintiff", "plaintiff_attorney", "courtroom", "presiding_judge", "defendants",
                   "zip_code", "is_legacy", "is_cares", "nonpayment", "notes")
 
 
