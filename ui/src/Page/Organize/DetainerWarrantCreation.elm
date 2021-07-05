@@ -146,6 +146,7 @@ type JudgementDetail
     | InterestRateInfo
     | DismissalBasisInfo
     | WithPrejudiceInfo
+    | JudgementNotesDetail
 
 
 type Tooltip
@@ -460,6 +461,7 @@ type Msg
     | DismissalBasisDropdownMsg Int (Dropdown.Msg DismissalBasis)
     | PickedDismissalBasis Int (Maybe DismissalBasis)
     | ToggledWithPrejudice Int Bool
+    | ChangedJudgementNotes Int String
     | ChangedNotes String
     | SubmitForm
     | SubmitAndAddAnother
@@ -1384,6 +1386,11 @@ update msg model =
         ToggleInterestFollowSite selected checked ->
             updateForm
                 (updateJudgement selected (\judgement -> { judgement | interestFollowsSite = checked }))
+                model
+
+        ChangedJudgementNotes selected notes ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | notes = notes }))
                 model
 
         ChangedNotes notes ->
@@ -2770,6 +2777,38 @@ viewJudgement options index form =
 
           else
             Element.none
+        , viewJudgementNotes options index form
+        ]
+
+
+viewJudgementNotes : FormOptions -> Int -> JudgementForm -> Element Msg
+viewJudgementNotes options index form =
+    let
+        hasChanges =
+            (options.originalWarrant
+                |> Maybe.map (List.take index << .judgements)
+                |> Maybe.andThen List.head
+                |> Maybe.andThen .notes
+                |> Maybe.map ((/=) form.notes)
+                |> Maybe.withDefault False
+            )
+                || (options.originalWarrant == Nothing && form.notes /= "")
+    in
+    column [ width fill ]
+        [ viewField
+            { tooltip = Just (JudgementInfo index JudgementNotesDetail)
+            , currentTooltip = options.tooltip
+            , description = "Any additional notes you have about this particular judgement go here!"
+            , children =
+                [ Input.multiline (withChanges hasChanges [])
+                    { onChange = ChangedJudgementNotes index
+                    , text = form.notes
+                    , label = Input.labelAbove [] (text "Notes")
+                    , placeholder = Just <| Input.placeholder [] (text "Add any notes from the judgement sheet or any comments you think is noteworthy.")
+                    , spellcheck = True
+                    }
+                ]
+            }
         ]
 
 
@@ -2900,7 +2939,9 @@ viewForm options formStatus =
                 , tile
                     [ paragraph [ Font.center, centerX ] [ text "Judgement" ]
                     , viewJudgements options form
-                    , viewNotes options form
+                    ]
+                , tile
+                    [ viewNotes options form
                     ]
                 , row [ Element.alignRight, spacing 10 ]
                     [ submitAndAddAnother
@@ -3146,6 +3187,9 @@ tooltipToString tip =
 
                         WithPrejudiceInfo ->
                             "with-prejudice-info"
+
+                        JudgementNotesDetail ->
+                            "notes-detail"
                    )
                 ++ "-"
                 ++ String.fromInt index
