@@ -1,11 +1,19 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
 
 import Date exposing (Date)
+import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import Dropdown
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
 import Time exposing (Month(..))
+
+
+type alias DatePickerState =
+    { date : Maybe Date
+    , dateText : String
+    , pickerModel : DatePicker.Model
+    }
 
 
 type Status
@@ -74,6 +82,7 @@ type Conditions
 type alias Judgement =
     { id : Int
     , notes : Maybe String
+    , fileDate : Date
     , enteredBy : Entrance
     , conditions : Conditions
     }
@@ -107,6 +116,7 @@ type alias JudgementEdit =
     { id : Maybe Int
     , notes : Maybe String
     , enteredBy : Maybe String
+    , fileDate : String
     , inFavorOf : String
 
     -- Plaintiff Favor
@@ -127,6 +137,7 @@ type alias JudgementForm =
     , conditionsDropdown : Dropdown.State ConditionOption
     , condition : ConditionOption
     , enteredBy : Entrance
+    , fileDate : DatePickerState
     , notes : String
     , claimsFees : String
     , claimsPossession : Bool
@@ -165,8 +176,8 @@ dismissalBasisText basis =
             "NON_SUIT_BY_PLAINTIFF"
 
 
-editFromForm : JudgementForm -> JudgementEdit
-editFromForm form =
+editFromForm : Date -> JudgementForm -> JudgementEdit
+editFromForm today form =
     { id = form.id
     , notes =
         if String.isEmpty form.notes then
@@ -174,6 +185,10 @@ editFromForm form =
 
         else
             Just form.notes
+    , fileDate =
+        form.fileDate.date
+            |> Maybe.withDefault today
+            |> Date.toIsoString
     , enteredBy = Just <| entranceText form.enteredBy
     , inFavorOf =
         case form.condition of
@@ -436,6 +451,7 @@ fromConditions conditions =
     Decode.succeed Judgement
         |> required "id" int
         |> required "notes" (nullable string)
+        |> required "fileDate" dateDecoder
         |> required "enteredBy" entranceDecoder
         |> custom (Decode.succeed conditions)
 
