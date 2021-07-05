@@ -73,7 +73,8 @@ class JudgementSchema(Schema):
     class Meta:
         fields = ("id", "in_favor_of", "claims_possession",
                   "claims_fees", "entered_by", "interest", "interest_rate",
-                  "interest_follows_site", "dismissal_basis", "with_prejudice", "notes"
+                  "interest_follows_site", "dismissal_basis", "with_prejudice",
+                  "file_date", "notes"
                   )
 
 

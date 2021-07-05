@@ -161,6 +161,7 @@ class Judgement(db.Model, Timestamped):
     interest_follows_site = Column(db.Boolean)
     dismissal_basis_id = Column(db.Integer)
     with_prejudice = Column(db.Boolean)
+    file_date = Column(db.Date, nullable=False)
     notes = Column(db.String(255))
     detainer_warrant_id = Column(
         db.String(255), db.ForeignKey('detainer_warrants.docket_id'), nullable=False)
