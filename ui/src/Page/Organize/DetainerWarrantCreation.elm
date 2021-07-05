@@ -1047,7 +1047,7 @@ update msg model =
             case model.today of
                 Just today ->
                     updateForm
-                        (\form -> { form | judgements = judgementFormInit today (List.length form.judgements - 1) Nothing :: form.judgements })
+                        (\form -> { form | judgements = form.judgements ++ [ judgementFormInit today (List.length form.judgements - 1) Nothing ] })
                         model
 
                 Nothing ->
@@ -2567,7 +2567,20 @@ viewDefendants options form =
 
 viewJudgements : FormOptions -> Form -> Element Msg
 viewJudgements options form =
-    column [] (Input.button primaryStyles { onPress = Just AddJudgement, label = text "Add Judgement" } :: List.indexedMap (viewJudgement options) form.judgements)
+    column [ spacing 20, width fill ]
+        (List.indexedMap (viewJudgement options) form.judgements
+            ++ [ Input.button
+                    (primaryStyles
+                        ++ [ if List.isEmpty form.judgements then
+                                Element.centerX
+
+                             else
+                                Element.alignRight
+                           ]
+                    )
+                    { onPress = Just AddJudgement, label = text "Add Judgement" }
+               ]
+        )
 
 
 viewJudgementInterest : FormOptions -> Int -> JudgementForm -> Element Msg
@@ -2727,7 +2740,15 @@ viewJudgement options index form =
         -- )
         --     || (options.originalWarrant == Nothing && form.judgement /= defaultCategory)
     in
-    column [ width Element.shrink, spacing 5 ]
+    column
+        [ width fill
+        , spacing 10
+        , padding 20
+        , Border.width 1
+        , Border.color Palette.grayLight
+        , Border.innerGlow Palette.grayLightest 2
+        , Border.rounded 5
+        ]
         [ row [ spacing 5 ]
             ([ viewField
                 { tooltip = Just (JudgementInfo index JudgementFileDateDetail)
@@ -2772,7 +2793,7 @@ viewJudgement options index form =
                             viewJudgementDefendant options index form
                    )
             )
-        , if form.claimsFees /= "" then
+        , if form.claimsFees /= "" && form.condition == PlaintiffOption then
             viewJudgementInterest options index form
 
           else
@@ -2937,7 +2958,7 @@ viewForm options formStatus =
                     , viewDefendants options form
                     ]
                 , tile
-                    [ paragraph [ Font.center, centerX ] [ text "Judgement" ]
+                    [ paragraph [ Font.center, centerX ] [ text "Judgements" ]
                     , viewJudgements options form
                     ]
                 , tile
