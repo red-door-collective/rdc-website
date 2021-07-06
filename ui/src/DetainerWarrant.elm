@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
 
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
@@ -6,6 +6,7 @@ import Defendant exposing (Defendant)
 import Dropdown
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
+import String.Extra
 import Time exposing (Month(..))
 
 
@@ -161,6 +162,15 @@ entranceText entrance =
 
         TrialInCourt ->
             "TRIAL_IN_COURT"
+
+
+dismissalBasisOption : DismissalBasis -> String
+dismissalBasisOption basis =
+    basis
+        |> dismissalBasisText
+        |> String.replace "_" " "
+        |> String.toLower
+        |> String.Extra.toSentenceCase
 
 
 dismissalBasisText : DismissalBasis -> String

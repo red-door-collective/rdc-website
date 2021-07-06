@@ -1866,7 +1866,7 @@ viewFileDate options form =
 dropdownConfig label itemToStr dropdownMsg itemPickedMsg attrs =
     let
         containerAttrs =
-            [ width (Element.shrink |> Element.minimum 250)
+            [ width (Element.fill |> Element.minimum 250)
             ]
 
         selectAttrs =
@@ -1987,7 +1987,7 @@ conditionsDropdownConfig index =
 
 
 dismissalBasisDropdownConfig index =
-    dropdownConfig "Dismissal based on" DetainerWarrant.dismissalBasisText (DismissalBasisDropdownMsg index) (PickedDismissalBasis index)
+    dropdownConfig "Dismissal based on" DetainerWarrant.dismissalBasisOption (DismissalBasisDropdownMsg index) (PickedDismissalBasis index)
 
 
 viewStatus : FormOptions -> Form -> Element Msg
@@ -2697,16 +2697,16 @@ viewJudgementDefendant options index form =
     [ viewField
         { tooltip = Just (JudgementInfo index DismissalBasisInfo)
         , currentTooltip = options.tooltip
-        , description = "Basis for dismissal"
+        , description = "Why is the case being dismissed?"
         , children =
-            [ column [ spacing 5, width fill ]
-                [ el [] (text "Basis for Dismissal")
+            [ column [ spacing 5, width (fill |> minimum 350) ]
+                [ el [] (text "Basis for dismissal")
                 , Dropdown.view (dismissalBasisDropdownConfig index [])
                     { options = DetainerWarrant.dismissalBasisOptions
                     , selectedOption = Just form.dismissalBasis
                     }
                     form.dismissalBasisDropdown
-                    |> el []
+                    |> el [ width fill ]
                 ]
             ]
         }
@@ -2750,7 +2750,7 @@ viewJudgement options index form =
         , Border.rounded 5
         ]
         [ row [ spacing 5 ]
-            ([ viewField
+            [ viewField
                 { tooltip = Just (JudgementInfo index JudgementFileDateDetail)
                 , currentTooltip = options.tooltip
                 , description = "The date this judgement was filed."
@@ -2768,7 +2768,7 @@ viewJudgement options index form =
                         }
                     ]
                 }
-             , viewField
+            , viewField
                 { tooltip = Just (JudgementInfo index Summary)
                 , currentTooltip = options.tooltip
                 , description = "The ruling from the court that will determine if fees or repossession are enforced."
@@ -2784,14 +2784,14 @@ viewJudgement options index form =
                         ]
                     ]
                 }
-             ]
-                ++ (case form.condition of
-                        PlaintiffOption ->
-                            viewJudgementPlaintiff options index form
+            ]
+        , row [ spacing 5 ]
+            (case form.condition of
+                PlaintiffOption ->
+                    viewJudgementPlaintiff options index form
 
-                        DefendantOption ->
-                            viewJudgementDefendant options index form
-                   )
+                DefendantOption ->
+                    viewJudgementDefendant options index form
             )
         , if form.claimsFees /= "" && form.condition == PlaintiffOption then
             viewJudgementInterest options index form
