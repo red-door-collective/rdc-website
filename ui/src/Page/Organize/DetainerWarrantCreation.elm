@@ -2,6 +2,7 @@ module Page.Organize.DetainerWarrantCreation exposing (Model, Msg, init, subscri
 
 import Api exposing (Cred)
 import Api.Endpoint as Endpoint
+import Browser.Dom
 import Browser.Events exposing (onMouseDown)
 import Campaign exposing (Campaign)
 import Color
@@ -475,6 +476,7 @@ type Msg
     | GotAttorneys (Result Http.Error (Api.Collection Attorney))
     | GotJudges (Result Http.Error (Api.Collection Attorney))
     | GotCourtrooms (Result Http.Error (Api.Collection Courtroom))
+    | NoOp
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -1046,8 +1048,20 @@ update msg model =
         AddJudgement ->
             case model.today of
                 Just today ->
-                    updateForm
-                        (\form -> { form | judgements = form.judgements ++ [ judgementFormInit today (List.length form.judgements - 1) Nothing ] })
+                    updateFormNarrow
+                        (\form ->
+                            let
+                                nextJudgementId =
+                                    List.length form.judgements
+                            in
+                            ( { form
+                                | judgements = form.judgements ++ [ judgementFormInit today nextJudgementId Nothing ]
+                              }
+                            , Task.attempt
+                                (always NoOp)
+                                (Browser.Dom.focus (judgementInfoText nextJudgementId JudgementFileDateDetail))
+                            )
+                        )
                         model
 
                 Nothing ->
@@ -1545,6 +1559,9 @@ update msg model =
             ( { model | courtrooms = courtroomsPage.data }, Cmd.none )
 
         GotCourtrooms (Err problems) ->
+            ( model, Cmd.none )
+
+        NoOp ->
             ( model, Cmd.none )
 
 
@@ -2755,7 +2772,19 @@ viewJudgement options index form =
                 , currentTooltip = options.tooltip
                 , description = "The date this judgement was filed."
                 , children =
-                    [ DatePicker.input (withValidation (ValidJudgement index JudgementFileDate) options.problems (withChanges hasChanges [ centerX, Element.centerY, Border.color Palette.grayLight ]))
+                    [ DatePicker.input
+                        (withValidation
+                            (ValidJudgement index JudgementFileDate)
+                            options.problems
+                            (withChanges
+                                hasChanges
+                                [ Element.htmlAttribute (Html.Attributes.id (judgementInfoText index JudgementFileDateDetail))
+                                , centerX
+                                , Element.centerY
+                                , Border.color Palette.grayLight
+                                ]
+                            )
+                        )
                         { onChange = ChangedJudgementFileDatePicker index
                         , selected = form.fileDate.date
                         , text = form.fileDate.dateText
@@ -3128,6 +3157,44 @@ onOutsideClick tip =
     onMouseDown (outsideTarget (tooltipToString tip) CloseTooltip)
 
 
+judgementInfoText : Int -> JudgementDetail -> String
+judgementInfoText index detail =
+    "judgement-"
+        ++ (case detail of
+                JudgementFileDateDetail ->
+                    "file-date-detail"
+
+                Summary ->
+                    "summary"
+
+                FeesClaimedInfo ->
+                    "fees-claimed-info"
+
+                PossessionClaimedInfo ->
+                    "possession-claimed-info"
+
+                FeesHaveInterestInfo ->
+                    "fees-have-interest-info"
+
+                InterestRateFollowsSiteInfo ->
+                    "interest-rate-follows-site-info"
+
+                InterestRateInfo ->
+                    "interest-rate-info"
+
+                DismissalBasisInfo ->
+                    "dismissal-basis-info"
+
+                WithPrejudiceInfo ->
+                    "with-prejudice-info"
+
+                JudgementNotesDetail ->
+                    "notes-detail"
+           )
+        ++ "-"
+        ++ String.fromInt index
+
+
 tooltipToString : Tooltip -> String
 tooltipToString tip =
     case tip of
@@ -3180,40 +3247,7 @@ tooltipToString tip =
             "potential-phone-numbers-info-" ++ String.fromInt index
 
         JudgementInfo index detail ->
-            "judgement-"
-                ++ (case detail of
-                        JudgementFileDateDetail ->
-                            "file-date-detail"
-
-                        Summary ->
-                            "summary"
-
-                        FeesClaimedInfo ->
-                            "fees-claimed-info"
-
-                        PossessionClaimedInfo ->
-                            "possession-claimed-info"
-
-                        FeesHaveInterestInfo ->
-                            "fees-have-interest-info"
-
-                        InterestRateFollowsSiteInfo ->
-                            "interest-rate-follows-site-info"
-
-                        InterestRateInfo ->
-                            "interest-rate-info"
-
-                        DismissalBasisInfo ->
-                            "dismissal-basis-info"
-
-                        WithPrejudiceInfo ->
-                            "with-prejudice-info"
-
-                        JudgementNotesDetail ->
-                            "notes-detail"
-                   )
-                ++ "-"
-                ++ String.fromInt index
+            judgementInfoText index detail
 
         NotesInfo ->
             "notes-info"
