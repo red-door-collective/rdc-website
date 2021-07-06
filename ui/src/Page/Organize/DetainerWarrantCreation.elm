@@ -3680,8 +3680,10 @@ encodeJudgement : JudgementEdit -> Encode.Value
 encodeJudgement judgement =
     Encode.object
         ([ ( "in_favor_of", Encode.string judgement.inFavorOf )
-         , ( "has_interest", Encode.bool judgement.hasInterest )
+         , ( "interest", Encode.bool judgement.hasInterest )
+         , ( "file_date", Encode.string judgement.fileDate )
          ]
+            ++ nullable "id" Encode.int judgement.id
             ++ nullable "notes" Encode.string judgement.notes
             ++ nullable "entered_by" Encode.string judgement.enteredBy
             ++ nullable "claims_fees" Encode.float judgement.claimsFees

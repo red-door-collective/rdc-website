@@ -368,8 +368,12 @@ class DetainerWarrant(db.Model, Timestamped):
         if (all(isinstance(j, Judgement) for j in judgements)):
             self._judgements = judgements
         else:
-            self._judgements = [db.session.query(
-                Judgement).get(j.get('id')) for j in judgements]
+            self._judgements = [
+                db.session.query(Judgement).get(j.get('id')).update(**j)
+                if j.get('id') is not None
+                else Judgement.create(**j, detainer_warrant_id=self.docket_id)
+                for j in judgements
+            ]
 
 
 class PhoneNumberVerification(db.Model, Timestamped):

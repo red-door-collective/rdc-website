@@ -70,6 +70,16 @@ judges_schema = JudgeSchema(many=True)
 
 
 class JudgementSchema(Schema):
+    claims_possession = fields.Bool(allow_none=True)
+    claims_fees = fields.Float(allow_none=True)
+    entered_by = fields.String(allow_none=True)
+    interest = fields.Bool(allow_none=True)
+    interest_rate = fields.Float(allow_none=True)
+    interest_follows_site = fields.Bool(allow_none=True)
+    dismissal_basis = fields.String(allow_none=True)
+    with_prejudice = fields.Bool(allow_none=True)
+    notes = fields.String(allow_none=True)
+
     class Meta:
         fields = ("id", "in_favor_of", "claims_possession",
                   "claims_fees", "entered_by", "interest", "interest_rate",

@@ -476,7 +476,7 @@ judgementDecoder =
     Decode.field "in_favor_of" string
         |> Decode.andThen
             (\str ->
-                case Debug.log "str" str of
+                case str of
                     "PLAINTIFF" ->
                         Decode.map PlaintiffConditions owedConditionsDecoder
 
