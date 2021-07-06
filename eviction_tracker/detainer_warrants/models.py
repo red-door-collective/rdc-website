@@ -172,7 +172,7 @@ class Judgement(db.Model, Timestamped):
     @property
     def in_favor_of(self):
         parties_by_id = {v: k for k, v in Judgement.parties.items()}
-        return self.in_favor_of_id and parties_by_id[self.in_favor_of_id]
+        return parties_by_id[self.in_favor_of_id] if self.in_favor_of_id is not None else None
 
     @in_favor_of.setter
     def in_favor_of(self, in_favor_of):
@@ -181,7 +181,7 @@ class Judgement(db.Model, Timestamped):
     @property
     def entered_by(self):
         entrances_by_id = {v: k for k, v in Judgement.entrances.items()}
-        return self.entered_by_id and entrances_by_id[self.entered_by_id]
+        return entrances_by_id[self.entered_by_id] if self.entered_by_id is not None else 'DEFAULT'
 
     @entered_by.setter
     def entered_by(self, entered_by):
@@ -191,7 +191,7 @@ class Judgement(db.Model, Timestamped):
     def dismissal_basis(self):
         dismissal_bases_by_id = {v: k for k,
                                  v in Judgement.dismissal_bases.items()}
-        return self.dismissal_basis_id and dismissal_bases_by_id[self.dismissal_basis_id]
+        return dismissal_bases_by_id[self.dismissal_basis_id] if self.dismissal_basis_id is not None else None
 
     @dismissal_basis.setter
     def dismissal_basis(self, dismissal_basis):

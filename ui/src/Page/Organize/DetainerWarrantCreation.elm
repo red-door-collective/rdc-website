@@ -2895,7 +2895,6 @@ formGroup group =
     row
         [ spacing 10
         , width fill
-        , Element.explain Debug.todo
         ]
         group
 
@@ -3697,8 +3696,6 @@ encodeJudgement judgement =
 updateDetainerWarrant : Maybe Cred -> DetainerWarrantEdit -> Cmd Msg
 updateDetainerWarrant maybeCred form =
     let
-        -- something =
-        --     Debug.log "form" form
         detainerWarrant =
             Encode.object
                 ([ ( "docket_id", Encode.string form.docketId )

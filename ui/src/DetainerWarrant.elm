@@ -390,14 +390,19 @@ interestConditionsDecoder =
 
 interestDecoder : Decoder (Maybe Interest)
 interestDecoder =
-    Decode.field "interest" bool
+    Decode.field "interest" (nullable bool)
         |> Decode.andThen
-            (\hasInterest ->
-                if hasInterest then
-                    Decode.map Just interestConditionsDecoder
+            (\maybeHasInterest ->
+                maybeHasInterest
+                    |> Maybe.map
+                        (\hasInterest ->
+                            if hasInterest then
+                                Decode.map Just interestConditionsDecoder
 
-                else
-                    Decode.succeed Nothing
+                            else
+                                Decode.succeed Nothing
+                        )
+                    |> Maybe.withDefault (Decode.succeed Nothing)
             )
 
 
@@ -461,8 +466,8 @@ fromConditions conditions =
     Decode.succeed Judgement
         |> required "id" int
         |> required "notes" (nullable string)
-        |> required "fileDate" dateDecoder
-        |> required "enteredBy" entranceDecoder
+        |> required "file_date" dateDecoder
+        |> required "entered_by" entranceDecoder
         |> custom (Decode.succeed conditions)
 
 
@@ -471,7 +476,7 @@ judgementDecoder =
     Decode.field "in_favor_of" string
         |> Decode.andThen
             (\str ->
-                case str of
+                case Debug.log "str" str of
                     "PLAINTIFF" ->
                         Decode.map PlaintiffConditions owedConditionsDecoder
 
@@ -534,5 +539,5 @@ decoder =
         |> required "is_legacy" (nullable bool)
         |> required "nonpayment" (nullable bool)
         |> required "defendants" (list Defendant.decoder)
-        |> custom (list judgementDecoder)
+        |> required "judgements" (list judgementDecoder)
         |> required "notes" (nullable string)
