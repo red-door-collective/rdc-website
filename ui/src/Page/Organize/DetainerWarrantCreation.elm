@@ -2584,7 +2584,7 @@ viewDefendants options form =
 
 viewJudgements : FormOptions -> Form -> Element Msg
 viewJudgements options form =
-    column [ spacing 20, width fill ]
+    column [ centerX, spacing 20, width (fill |> maximum 1000), padding 10 ]
         (List.indexedMap (viewJudgement options) form.judgements
             ++ [ Input.button
                     (primaryStyles
