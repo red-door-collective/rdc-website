@@ -1826,7 +1826,7 @@ withValidation validatedField problems attrs =
 
 viewDocketId : FormOptions -> Form -> Element Msg
 viewDocketId options form =
-    column [ width fill, height fill, padding 10 ]
+    column [ width fill, height fill, paddingXY 0 10 ]
         [ viewField
             { tooltip = Just DocketIdInfo
             , description = "This is the unique id for a detainer warrant. Please take care when entering this."
@@ -2895,6 +2895,7 @@ formGroup group =
     row
         [ spacing 10
         , width fill
+        , Element.explain Debug.todo
         ]
         group
 
