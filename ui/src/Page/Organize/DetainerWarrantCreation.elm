@@ -10,7 +10,7 @@ import Date exposing (Date)
 import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
-import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status, amountClaimedCategoryText)
+import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status, amountClaimedCategoryText)
 import Dropdown
 import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, inFront, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Background as Background
@@ -87,13 +87,6 @@ type alias PlaintiffForm =
 
 type alias AttorneyForm =
     { person : Maybe Attorney
-    , text : String
-    , searchBox : SearchBox.State
-    }
-
-
-type alias JudgeForm =
-    { person : Maybe Judge
     , text : String
     , searchBox : SearchBox.State
     }
@@ -294,6 +287,7 @@ judgementFormInit today index existing =
             , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt index)
             , dismissalBasis = FailureToProsecute
             , withPrejudice = False
+            , judge = { text = "", person = Nothing, searchBox = SearchBox.init }
             }
     in
     case existing of
@@ -306,6 +300,13 @@ judgementFormInit today index existing =
                         , fileDate = { date = Just judgement.fileDate, dateText = Date.toIsoString judgement.fileDate, pickerModel = DatePicker.init |> DatePicker.setToday today }
                         , conditionsDropdown = Dropdown.init ("judgement-dropdown-" ++ String.fromInt judgement.id)
                         , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt judgement.id)
+                        , judge =
+                            { text =
+                                Maybe.withDefault "" <|
+                                    Maybe.map .name judgement.judge
+                            , person = judgement.judge
+                            , searchBox = SearchBox.init
+                            }
                         , notes = Maybe.withDefault "" judgement.notes
                     }
             in
@@ -463,6 +464,7 @@ type Msg
     | DismissalBasisDropdownMsg Int (Dropdown.Msg DismissalBasis)
     | PickedDismissalBasis Int (Maybe DismissalBasis)
     | ToggledWithPrejudice Int Bool
+    | ChangedJudgementJudgeSearchBox Int (SearchBox.ChangeEvent Judge)
     | ChangedJudgementNotes Int String
     | ChangedNotes String
     | SubmitForm
@@ -1405,6 +1407,64 @@ update msg model =
             updateForm
                 (updateJudgement selected (\judgement -> { judgement | interestFollowsSite = checked }))
                 model
+
+        ChangedJudgementJudgeSearchBox selected changeEvent ->
+            case changeEvent of
+                SearchBox.SelectionChanged person ->
+                    updateForm
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    judge =
+                                        form.judge
+
+                                    updatedJudge =
+                                        { judge | person = Just person }
+                                in
+                                { form | judge = updatedJudge }
+                            )
+                        )
+                        model
+
+                SearchBox.TextChanged text ->
+                    ( updateFormOnly
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    judge =
+                                        form.judge
+
+                                    updatedJudge =
+                                        { judge
+                                            | person = Nothing
+                                            , text = text
+                                            , searchBox = SearchBox.reset judge.searchBox
+                                        }
+                                in
+                                { form | judge = updatedJudge }
+                            )
+                        )
+                        model
+                    , Api.get (Endpoint.judges [ ( "name", text ) ]) maybeCred GotJudges (Api.collectionDecoder DetainerWarrant.judgeDecoder)
+                    )
+
+                SearchBox.SearchBoxChanged subMsg ->
+                    updateForm
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    judge =
+                                        form.judge
+
+                                    updatedJudge =
+                                        { judge
+                                            | searchBox = SearchBox.update subMsg judge.searchBox
+                                        }
+                                in
+                                { form | judge = updatedJudge }
+                            )
+                        )
+                        model
 
         ChangedJudgementNotes selected notes ->
             updateForm
@@ -2765,6 +2825,39 @@ viewJudgementDefendant options index form =
     ]
 
 
+viewJudgeSearch : FormOptions -> Int -> JudgementForm -> Element Msg
+viewJudgeSearch options index form =
+    let
+        hasChanges =
+            False
+
+        -- (Maybe.withDefault False <|
+        --     Maybe.map ((/=) form.judge.person << .judge) options.originalWarrant
+        -- )
+        --     || (options.originalWarrant == Nothing && form.presidingJudge.text /= "")
+    in
+    column [ width fill ]
+        [ viewField
+            { tooltip = Just PresidingJudgeInfo
+            , currentTooltip = options.tooltip
+            , description = "The judge that will be presiding over the court case."
+            , children =
+                [ searchBox (withChanges hasChanges [])
+                    { onChange = ChangedJudgementJudgeSearchBox index
+                    , text = form.judge.text
+                    , selected = form.judge.person
+                    , options = Just ({ id = -1, name = form.judge.text } :: options.judges)
+                    , label = Input.labelAbove [] (text "Judge")
+                    , placeholder = Just <| Input.placeholder [] (text "Search for judge")
+                    , toLabel = \person -> person.name
+                    , filter = \query option -> True
+                    , state = form.judge.searchBox
+                    }
+                ]
+            }
+        ]
+
+
 viewJudgement : FormOptions -> Int -> JudgementForm -> Element Msg
 viewJudgement options index form =
     let
@@ -2832,7 +2925,10 @@ viewJudgement options index form =
                         }
                     ]
                 }
-            , viewField
+            , viewJudgeSearch options index form
+            ]
+        , row [ spacing 5 ]
+            [ viewField
                 { tooltip = Just (JudgementInfo index Summary)
                 , currentTooltip = options.tooltip
                 , description = "The ruling from the court that will determine if fees or repossession are enforced."
@@ -3727,6 +3823,7 @@ encodeJudgement judgement =
             ++ nullable "interest_follows_site" Encode.bool judgement.interestFollowsSite
             ++ nullable "dismissal_basis" Encode.string judgement.dismissalBasis
             ++ nullable "with_prejudice" Encode.bool judgement.withPrejudice
+            ++ nullable "judge" encodeRelated judgement.judge
         )
 
 

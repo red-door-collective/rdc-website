@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
 
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
@@ -6,6 +6,7 @@ import Defendant exposing (Defendant)
 import Dropdown
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
+import SearchBox
 import String.Extra
 import Time exposing (Month(..))
 
@@ -85,6 +86,7 @@ type alias Judgement =
     , notes : Maybe String
     , fileDate : Date
     , enteredBy : Entrance
+    , judge : Maybe Judge
     , conditions : Conditions
     }
 
@@ -119,6 +121,7 @@ type alias JudgementEdit =
     , enteredBy : Maybe String
     , fileDate : String
     , inFavorOf : String
+    , judge : Maybe Judge
 
     -- Plaintiff Favor
     , claimsFees : Maybe Float
@@ -130,6 +133,13 @@ type alias JudgementEdit =
     -- Tenant Favor
     , dismissalBasis : Maybe String
     , withPrejudice : Maybe Bool
+    }
+
+
+type alias JudgeForm =
+    { person : Maybe Judge
+    , text : String
+    , searchBox : SearchBox.State
     }
 
 
@@ -148,6 +158,7 @@ type alias JudgementForm =
     , dismissalBasisDropdown : Dropdown.State DismissalBasis
     , dismissalBasis : DismissalBasis
     , withPrejudice : Bool
+    , judge : JudgeForm
     }
 
 
@@ -248,6 +259,8 @@ editFromForm today form =
 
         else
             Nothing
+    , judge =
+        form.judge.person
     }
 
 
@@ -472,6 +485,7 @@ fromConditions conditions =
         |> required "notes" (nullable string)
         |> required "file_date" dateDecoder
         |> required "entered_by" entranceDecoder
+        |> required "judge" (nullable judgeDecoder)
         |> custom (Decode.succeed conditions)
 
 

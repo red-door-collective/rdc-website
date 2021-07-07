@@ -81,11 +81,13 @@ class JudgementSchema(Schema):
     with_prejudice = fields.Bool(allow_none=True)
     notes = fields.String(allow_none=True)
 
+    judge = fields.Nested(JudgeSchema, allow_none=True)
+
     class Meta:
         fields = ("id", "in_favor_of", "claims_possession",
                   "claims_fees", "entered_by", "interest", "interest_rate",
                   "interest_follows_site", "dismissal_basis", "with_prejudice",
-                  "file_date", "notes"
+                  "file_date", "judge", "notes"
                   )
 
 

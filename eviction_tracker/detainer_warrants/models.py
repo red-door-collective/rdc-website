@@ -127,6 +127,7 @@ class Judge(db.Model, Timestamped):
 
     district = relationship('District', back_populates='judges')
     cases = relationship('DetainerWarrant', back_populates='_presiding_judge')
+    rulings = relationship('Judgement', back_populates='_judge')
 
     def __repr__(self):
         return "<Judge(name='%s')>" % (self.name)
@@ -165,9 +166,12 @@ class Judgement(db.Model, Timestamped):
     notes = Column(db.String(255))
     detainer_warrant_id = Column(
         db.String(255), db.ForeignKey('detainer_warrants.docket_id'), nullable=False)
+    judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
 
     detainer_warrant = relationship(
         'DetainerWarrant', back_populates='_judgements')
+    _judge = relationship(
+        'Judge', back_populates='rulings')
 
     @property
     def in_favor_of(self):
@@ -197,6 +201,18 @@ class Judgement(db.Model, Timestamped):
     def dismissal_basis(self, dismissal_basis):
         self.dismissal_basis_id = self.dismissal_basis_id and Judgement.dismissal_bases[
             dismissal_basis]
+
+    @property
+    def judge(self):
+        return self._judge
+
+    @judge.setter
+    def judge(self, judge):
+        j_id = judge and judge.get('id')
+        if (j_id):
+            self._judge = db.session.query(Judge).get(j_id)
+        else:
+            self._judge = judge
 
     def __repr__(self):
         return "<Judgement(in_favor_of='%s')>" % (self.in_favor_of)
