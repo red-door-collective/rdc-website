@@ -12,12 +12,12 @@ import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status, amountClaimedCategoryText)
 import Dropdown
-import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
+import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, inFront, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
-import Element.Input as Input
+import Element.Input as Input exposing (labelHidden)
 import FeatherIcons
 import Html.Attributes
 import Html.Events
@@ -449,6 +449,7 @@ type Msg
     | RemovePhone Int Int
     | AddDefendant
     | AddJudgement
+    | RemoveJudgement Int
     | ChangedJudgementFileDatePicker Int ChangeEvent
     | PickedConditions Int (Maybe ConditionOption)
     | ConditionsDropdownMsg Int (Dropdown.Msg ConditionOption)
@@ -1066,6 +1067,9 @@ update msg model =
 
                 Nothing ->
                     ( model, Cmd.none )
+
+        RemoveJudgement selected ->
+            updateForm (\form -> { form | judgements = List.removeAt selected form.judgements }) model
 
         ChangedJudgementFileDatePicker selected changeEvent ->
             case changeEvent of
@@ -2541,7 +2545,22 @@ viewPotentialPhones options index defendant =
                                 Element.none
 
                               else
-                                Input.button [ padding 2, Element.alignTop, Font.color Palette.sred, Border.color Palette.sred, Border.width 1 ] { onPress = Just <| RemovePhone index i, label = Element.el [ width shrink, height shrink, padding 0 ] (Element.html (FeatherIcons.x |> FeatherIcons.withSize 16 |> FeatherIcons.toHtml [])) }
+                                Input.button
+                                    [ padding 2
+                                    , Element.alignTop
+                                    , Font.color Palette.sred
+                                    , Border.color Palette.sred
+                                    , Border.width 1
+                                    ]
+                                    { onPress = Just <| RemovePhone index i
+                                    , label =
+                                        Element.el
+                                            [ width shrink
+                                            , height shrink
+                                            , padding 0
+                                            ]
+                                            (Element.html (FeatherIcons.x |> FeatherIcons.withSize 16 |> FeatherIcons.toHtml []))
+                                    }
                             ]
                         }
                     ]
@@ -2765,8 +2784,24 @@ viewJudgement options index form =
         , Border.color Palette.grayLight
         , Border.innerGlow Palette.grayLightest 2
         , Border.rounded 5
+        , inFront
+            (row [ Element.alignRight, padding 20 ]
+                [ Input.button primaryStyles
+                    { onPress = Just (RemoveJudgement index)
+                    , label =
+                        Element.el
+                            [ width shrink
+                            , height shrink
+                            , padding 0
+                            ]
+                            (Element.html (FeatherIcons.x |> FeatherIcons.withSize 16 |> FeatherIcons.toHtml []))
+                    }
+                ]
+            )
         ]
-        [ row [ spacing 5 ]
+        [ row
+            [ spacing 5
+            ]
             [ viewField
                 { tooltip = Just (JudgementInfo index JudgementFileDateDetail)
                 , currentTooltip = options.tooltip

@@ -188,6 +188,10 @@ dismissalBasisText basis =
 
 editFromForm : Date -> JudgementForm -> JudgementEdit
 editFromForm today form =
+    let
+        rate =
+            String.toFloat <| String.replace "%" "" form.interestRate
+    in
     { id = form.id
     , notes =
         if String.isEmpty form.notes then
@@ -221,13 +225,13 @@ editFromForm today form =
             Just form.claimsPossession
     , hasInterest = form.hasInterest
     , interestRate =
-        if form.hasInterest then
-            String.toFloat <| String.replace "%" "" form.interestRate
+        if form.hasInterest && not form.interestFollowsSite then
+            rate
 
         else
             Nothing
     , interestFollowsSite =
-        if form.hasInterest then
+        if form.hasInterest && form.interestFollowsSite then
             Just form.interestFollowsSite
 
         else
@@ -438,7 +442,7 @@ dismissalConditionsDecoder : Decoder DismissalConditions
 dismissalConditionsDecoder =
     Decode.succeed DismissalConditions
         |> required "dismissal_basis" dismissalBasisDecoder
-        |> required "withPrejudice" bool
+        |> required "with_prejudice" bool
 
 
 entranceDecoder : Decoder Entrance

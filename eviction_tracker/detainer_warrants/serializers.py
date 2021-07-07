@@ -70,6 +70,7 @@ judges_schema = JudgeSchema(many=True)
 
 
 class JudgementSchema(Schema):
+    id = fields.Int(allow_none=True)
     claims_possession = fields.Bool(allow_none=True)
     claims_fees = fields.Float(allow_none=True)
     entered_by = fields.String(allow_none=True)

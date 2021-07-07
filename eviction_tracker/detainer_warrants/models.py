@@ -368,6 +368,13 @@ class DetainerWarrant(db.Model, Timestamped):
         if (all(isinstance(j, Judgement) for j in judgements)):
             self._judgements = judgements
         else:
+            if (len(judgements) < len(self._judgements)):
+                original = set([j.id for j in self._judgements])
+                new = set([j.get("id") for j in judgements])
+                judgements_to_delete = original - new
+                for j_id in judgements_to_delete:
+                    db.session.delete(db.session.query(Judgement).get(j_id))
+
             self._judgements = [
                 db.session.query(Judgement).get(j.get('id')).update(**j)
                 if j.get('id') is not None
