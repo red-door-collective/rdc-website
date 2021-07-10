@@ -21,7 +21,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import raiseload
 
 from eviction_tracker.database import db
-from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, Judge, PhoneNumberVerification
+from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, Judge, Judgement, PhoneNumberVerification
 from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
 
@@ -185,6 +185,33 @@ class JudgeListResource(JudgeResourceBase):
 
 
 class JudgeResource(JudgeResourceBase):
+    def get(self, id):
+        return self.retrieve(id)
+
+    def patch(self, id):
+        return self.update(int(id), partial=True)
+
+
+class JudgementResourceBase(GenericModelView):
+    model = Judgement
+    schema = judgement_schema
+
+    authentication = HeaderUserAuthentication()
+    authorization = Protected()
+
+    pagination = CursorPagination()
+    sorting = Sorting('id', default='-id')
+
+
+class JudgementListResource(JudgementResourceBase):
+    def get(self):
+        return self.list()
+
+    def post(self):
+        return self.create()
+
+
+class JudgementResource(JudgementResourceBase):
     def get(self, id):
         return self.retrieve(id)
 

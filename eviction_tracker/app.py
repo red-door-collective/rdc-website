@@ -235,6 +235,8 @@ def register_extensions(app):
                      detainer_warrants.views.CourtroomResource, app=app)
     api.add_resource('/plaintiffs/', detainer_warrants.views.PlaintiffListResource,
                      detainer_warrants.views.PlaintiffResource, app=app)
+    api.add_resource('/judgements/', detainer_warrants.views.JudgementListResource,
+                     detainer_warrants.views.JudgementResource, app=app)
     api.add_resource('/judges/', detainer_warrants.views.JudgeListResource,
                      detainer_warrants.views.JudgeResource, app=app)
     api.add_resource('/detainer-warrants/', detainer_warrants.views.DetainerWarrantListResource,
@@ -376,6 +378,7 @@ def register_commands(app):
     """Register Click commands."""
     app.cli.add_command(commands.test)
     app.cli.add_command(commands.sync)
+    app.cli.add_command(commands.sync_judgements)
     app.cli.add_command(commands.verify_phone)
     app.cli.add_command(commands.verify_phones)
     app.cli.add_command(commands.bootstrap)

@@ -1,11 +1,11 @@
 from .models import db
 from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plaintiff, detainer_warrant_defendants
-from .util import get_or_create
+from .util import get_or_create, normalize
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
 
-DOCKET_ID = 'Docket_number'
+DOCKET_ID = 'Docket #'
 FILE_DATE = 'File_date'
 STATUS = 'Status'
 PLAINTIFF = 'Plaintiff'
@@ -20,7 +20,6 @@ IS_CARES = 'CARES'
 IS_LEGACY = 'LEGACY'
 NONPAYMENT = 'Nonpayment'
 ADDRESS = 'Address'
-JUDGEMENT = 'Judgement'
 NOTES = 'Notes'
 
 
@@ -61,15 +60,6 @@ def link_defendant(docket_id, defendant):
                        .values(detainer_warrant_docket_id=docket_id, defendant_id=defendant.id))
 
 
-def extract_raw_court_data(court_date):
-    exceptions = []  # [None, 'Any Tuesday', 'Any Tues', 'Any Weds', 'Soonest Tuesday', 'Soonest Friday', 'NA - Continuance - Positive for Covid',
-    # 'NA - "any Tuesday"', 'Non-suit retracted', 'TBD / Not Serviced', 'TBD', 'not stated', '(1/7/21) needs update', 'TBD / 12/4/20', 'Earliest Thurs']
-    if court_date in exceptions:
-        return None
-    else:
-        return court_date
-
-
 def _from_spreadsheet_row(raw_warrant, defaults):
     warrant = {k: normalize(v) for k, v in raw_warrant.items()}
 
@@ -87,7 +77,7 @@ def _from_spreadsheet_row(raw_warrant, defaults):
         plaintiff, _ = get_or_create(
             db.session, Plaintiff, name=warrant[PLAINTIFF], defaults=defaults)
 
-    court_date = extract_raw_court_data(warrant[COURT_DATE])
+    court_date = warrant[COURT_DATE]
     recurring_court_date = warrant[RECURRING_COURT_DATE]
 
     courtroom = None
@@ -111,8 +101,6 @@ def _from_spreadsheet_row(raw_warrant, defaults):
     defendant2 = create_defendant(defaults, 2, warrant)
     defendant3 = create_defendant(defaults, 3, warrant)
 
-    judgement = warrant[JUDGEMENT] or 'N/A'
-
     notes = warrant[NOTES]
 
     dw_values = dict(docket_id=docket_id,
@@ -131,8 +119,6 @@ def _from_spreadsheet_row(raw_warrant, defaults):
                      is_cares=is_cares,
                      is_legacy=is_legacy,
                      nonpayment=nonpayment,
-                     judgement_id=DetainerWarrant.judgements[judgement.upper(
-                     )],
                      notes=notes
                      )
 

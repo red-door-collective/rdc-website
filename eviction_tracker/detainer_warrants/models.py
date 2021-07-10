@@ -78,6 +78,12 @@ class Attorney(db.Model, Timestamped):
     district = relationship('District', back_populates='attorneys')
     detainer_warrants = relationship(
         'DetainerWarrant', back_populates='_plaintiff_attorney')
+    # _prosecutions = relationship(
+    #     'Judgement', back_populates='_plaintiff_attorney'
+    # )
+    # _defenses = relationship(
+    #     'Judgement', back_populates='_defendant_attorney'
+    # )
 
     def __repr__(self):
         return "<Attorney(name='%s', district_id='%s')>" % (self.name, self.district_id)
@@ -111,6 +117,9 @@ class Plaintiff(db.Model, Timestamped):
     district = relationship('District', back_populates='plaintiffs')
     detainer_warrants = relationship(
         'DetainerWarrant', back_populates='_plaintiff')
+    _judgements = relationship(
+        'Judgement', back_populates='_plaintiff'
+    )
 
     def __repr__(self):
         return "<Plaintiff(name='%s', district_id='%s')>" % (self.name, self.district_id)
@@ -127,7 +136,7 @@ class Judge(db.Model, Timestamped):
 
     district = relationship('District', back_populates='judges')
     cases = relationship('DetainerWarrant', back_populates='_presiding_judge')
-    rulings = relationship('Judgement', back_populates='_judge')
+    _rulings = relationship('Judgement', back_populates='_judge')
 
     def __repr__(self):
         return "<Judge(name='%s')>" % (self.name)
@@ -154,24 +163,46 @@ class Judgement(db.Model, Timestamped):
     __tablename__ = "judgements"
     id = Column(db.Integer, primary_key=True)
     in_favor_of_id = Column(db.Integer)
-    claims_possession = Column(db.Boolean)
-    claims_fees = Column(db.Numeric(scale=2))
+    awards_possession = Column(db.Boolean)
+    awards_fees = Column(db.Numeric(scale=2))
     entered_by_id = Column(db.Integer)
     interest = Column(db.Boolean)
     interest_rate = Column(db.Numeric)
     interest_follows_site = Column(db.Boolean)
     dismissal_basis_id = Column(db.Integer)
     with_prejudice = Column(db.Boolean)
-    file_date = Column(db.Date, nullable=False)
+    court_date = Column(db.Date)
+    mediation_letter = Column(db.Boolean)
+    defendant_address = Column(db.String(255))
     notes = Column(db.String(255))
+
     detainer_warrant_id = Column(
         db.String(255), db.ForeignKey('detainer_warrants.docket_id'), nullable=False)
     judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
+    courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
+    plaintiff_id = Column(db.Integer, db.ForeignKey(
+        'plaintiffs.id', ondelete='CASCADE'))
+    plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
+        'attorneys.id', ondelete=('CASCADE')
+    ))
+    defendant_attorney_id = Column(db.Integer, db.ForeignKey(
+        'attorneys.id', ondelete=('CASCADE')
+    ))
 
     detainer_warrant = relationship(
         'DetainerWarrant', back_populates='_judgements')
+
+    _plaintiff = relationship(
+        'Plaintiff', back_populates='_judgements'
+    )
+    _plaintiff_attorney = relationship(
+        'Attorney', foreign_keys=plaintiff_attorney_id
+    )
+    _defendant_attorney = relationship(
+        'Attorney', foreign_keys=defendant_attorney_id
+    )
     _judge = relationship(
-        'Judge', back_populates='rulings')
+        'Judge', back_populates='_rulings')
 
     @property
     def in_favor_of(self):
@@ -213,6 +244,54 @@ class Judgement(db.Model, Timestamped):
             self._judge = db.session.query(Judge).get(j_id)
         else:
             self._judge = judge
+
+    @property
+    def plaintiff(self):
+        return self._plaintiff
+
+    @plaintiff.setter
+    def plaintiff(self, plaintiff):
+        p_id = plaintiff and plaintiff.get('id')
+        if (p_id):
+            self._plaintiff = db.session.query(Plaintiff).get(p_id)
+        else:
+            self._plaintiff = plaintiff
+
+    @property
+    def plaintiff_attorney(self):
+        return self._plaintiff_attorney
+
+    @plaintiff_attorney.setter
+    def plaintiff_attorney(self, attorney):
+        a_id = attorney and attorney.get('id')
+        if (a_id):
+            self._plaintiff_attorney = db.session.query(Attorney).get(a_id)
+        else:
+            self._plaintiff_attorney = attorney
+
+    @property
+    def defendant_attorney(self):
+        return self._defendant_attorney
+
+    @defendant_attorney.setter
+    def defendant_attorney(self, attorney):
+        a_id = attorney and attorney.get('id')
+        if (a_id):
+            self._defendant_attorney = db.session.query(Attorney).get(a_id)
+        else:
+            self._defendant_attorney = attorney
+
+    @property
+    def courtroom(self):
+        return self._courtroom
+
+    @courtroom.setter
+    def courtroom(self, courtroom):
+        c_id = courtroom and courtroom.get('id')
+        if (c_id):
+            self._courtroom = db.session.query(Courtroom).get(c_id)
+        else:
+            self._courtroom = courtroom
 
     def __repr__(self):
         return "<Judgement(in_favor_of='%s')>" % (self.in_favor_of)

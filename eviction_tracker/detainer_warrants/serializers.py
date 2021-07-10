@@ -71,23 +71,29 @@ judges_schema = JudgeSchema(many=True)
 
 class JudgementSchema(Schema):
     id = fields.Int(allow_none=True)
-    claims_possession = fields.Bool(allow_none=True)
-    claims_fees = fields.Float(allow_none=True)
+    awards_possession = fields.Bool(allow_none=True)
+    awards_fees = fields.Float(allow_none=True)
     entered_by = fields.String(allow_none=True)
     interest = fields.Bool(allow_none=True)
     interest_rate = fields.Float(allow_none=True)
     interest_follows_site = fields.Bool(allow_none=True)
     dismissal_basis = fields.String(allow_none=True)
     with_prejudice = fields.Bool(allow_none=True)
+    court_date = fields.Date(allow_none=True)
     notes = fields.String(allow_none=True)
 
     judge = fields.Nested(JudgeSchema, allow_none=True)
+    plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
+    plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    defendant_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    courtroom = fields.Nested(CourtroomSchema, allow_none=True)
 
     class Meta:
-        fields = ("id", "in_favor_of", "claims_possession",
-                  "claims_fees", "entered_by", "interest", "interest_rate",
+        fields = ("id", "in_favor_of", "awards_possession",
+                  "awards_fees", "entered_by", "interest", "interest_rate",
                   "interest_follows_site", "dismissal_basis", "with_prejudice",
-                  "file_date", "judge", "notes"
+                  "plaintiff", "plaintiff_attorney", "defendant_attorney", "courtroom"
+                  "court_date", "judge", "notes"
                   )
 
 
