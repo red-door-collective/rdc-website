@@ -30,6 +30,16 @@ def test():
     exit(rv)
 
 
+def dw_rows(limit, sheet):
+    ws = sheet.worksheet("2020-2021 detainer warrants")
+
+    all_rows = ws.get_all_records()
+
+    stop_index = int(limit) if limit else all_rows
+
+    return all_rows[:stop_index] if limit else all_rows
+
+
 @click.command()
 @click.option('-s', '--sheet-name', default=None,
               help='Name of Google spreadsheet')
@@ -49,13 +59,7 @@ def sync(sheet_name, limit, service_account_key):
 
     sh = gc.open(sheet_name)
 
-    ws = sh.worksheet("2020-2021 detainer warrants")
-
-    all_rows = ws.get_all_records()
-
-    stop_index = int(limit) if limit else all_rows
-
-    rows = all_rows[:stop_index] if limit else all_rows
+    rows = dw_rows(limit, sh)
 
     detainer_warrants.imports.from_spreadsheet(rows)
 
@@ -67,13 +71,22 @@ def sync(sheet_name, limit, service_account_key):
               help='Number of rows to insert')
 @click.option('-k', '--service-account-key', default=None,
               help='Google Service Account filepath')
+@click.option('-w', '--warrant-sheet', default=None,
+              help='Extract judgements from detainer warrant sheet')
 @with_appcontext
-def sync_judgements(sheet_name, limit, service_account_key):
+def sync_judgements(sheet_name, limit, service_account_key, warrant_sheet):
     connect_kwargs = dict()
     if service_account_key:
         connect_kwargs['filename'] = service_account_key
 
     gc = gspread.service_account(**connect_kwargs)
+
+    if warrant_sheet:
+        sh = gc.open(warrant_sheet)
+        rows = dw_rows(limit, sh)
+
+        detainer_warrants.judgement_imports.from_dw_sheet(rows)
+        return
 
     sh = gc.open(sheet_name)
 

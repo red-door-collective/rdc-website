@@ -64,8 +64,8 @@ type Interest
 
 
 type alias OwedConditions =
-    { claimsFees : Maybe Float
-    , claimsPossession : Bool
+    { awardsFees : Maybe Float
+    , awardsPossession : Bool
     , interest : Maybe Interest
     }
 
@@ -84,10 +84,10 @@ type Conditions
 type alias Judgement =
     { id : Int
     , notes : Maybe String
-    , fileDate : Date
+    , courtDate : Date
     , enteredBy : Entrance
     , judge : Maybe Judge
-    , conditions : Conditions
+    , conditions : Maybe Conditions
     }
 
 
@@ -119,13 +119,13 @@ type alias JudgementEdit =
     { id : Maybe Int
     , notes : Maybe String
     , enteredBy : Maybe String
-    , fileDate : String
-    , inFavorOf : String
+    , courtDate : String
+    , inFavorOf : Maybe String
     , judge : Maybe Judge
 
     -- Plaintiff Favor
-    , claimsFees : Maybe Float
-    , claimsPossession : Maybe Bool
+    , awardsFees : Maybe Float
+    , awardsPossession : Maybe Bool
     , hasInterest : Bool
     , interestRate : Maybe Float
     , interestFollowsSite : Maybe Bool
@@ -145,13 +145,13 @@ type alias JudgeForm =
 
 type alias JudgementForm =
     { id : Maybe Int
-    , conditionsDropdown : Dropdown.State ConditionOption
-    , condition : ConditionOption
+    , conditionsDropdown : Dropdown.State (Maybe ConditionOption)
+    , condition : Maybe ConditionOption
     , enteredBy : Entrance
-    , fileDate : DatePickerState
+    , courtDate : DatePickerState
     , notes : String
-    , claimsFees : String
-    , claimsPossession : Bool
+    , awardsFees : String
+    , awardsPossession : Bool
     , hasInterest : Bool
     , interestRate : String
     , interestFollowsSite : Bool
@@ -210,30 +210,34 @@ editFromForm today form =
 
         else
             Just form.notes
-    , fileDate =
-        form.fileDate.date
+    , courtDate =
+        form.courtDate.date
             |> Maybe.withDefault today
             |> Date.toIsoString
     , enteredBy = Just <| entranceText form.enteredBy
     , inFavorOf =
-        case form.condition of
-            PlaintiffOption ->
-                "PLAINTIFF"
+        Maybe.map
+            (\option ->
+                case option of
+                    PlaintiffOption ->
+                        "PLAINTIFF"
 
-            DefendantOption ->
-                "DEFENDANT"
-    , claimsFees =
-        if form.claimsFees == "" then
+                    DefendantOption ->
+                        "DEFENDANT"
+            )
+            form.condition
+    , awardsFees =
+        if form.awardsFees == "" then
             Nothing
 
         else
-            String.toFloat <| String.replace "," "" form.claimsFees
-    , claimsPossession =
-        if form.condition == DefendantOption then
+            String.toFloat <| String.replace "," "" form.awardsFees
+    , awardsPossession =
+        if form.condition == Just DefendantOption then
             Nothing
 
         else
-            Just form.claimsPossession
+            Just form.awardsPossession
     , hasInterest = form.hasInterest
     , interestRate =
         if form.hasInterest && not form.interestFollowsSite then
@@ -248,13 +252,13 @@ editFromForm today form =
         else
             Nothing
     , dismissalBasis =
-        if form.condition == DefendantOption then
+        if form.condition == Just DefendantOption then
             Just (dismissalBasisText form.dismissalBasis)
 
         else
             Nothing
     , withPrejudice =
-        if form.condition == DefendantOption then
+        if form.condition == Just DefendantOption then
             Just form.withPrejudice
 
         else
@@ -319,9 +323,9 @@ type ConditionOption
     | DefendantOption
 
 
-conditionsOptions : List ConditionOption
+conditionsOptions : List (Maybe ConditionOption)
 conditionsOptions =
-    [ PlaintiffOption, DefendantOption ]
+    [ Nothing, Just PlaintiffOption, Just DefendantOption ]
 
 
 statusText : Status -> String
@@ -426,8 +430,8 @@ interestDecoder =
 owedConditionsDecoder : Decoder OwedConditions
 owedConditionsDecoder =
     Decode.succeed OwedConditions
-        |> required "claims_fees" (nullable float)
-        |> required "claims_possession" bool
+        |> required "awards_fees" (nullable float)
+        |> required "awards_possession" bool
         |> custom interestDecoder
 
 
@@ -454,8 +458,8 @@ dismissalBasisDecoder =
 dismissalConditionsDecoder : Decoder DismissalConditions
 dismissalConditionsDecoder =
     Decode.succeed DismissalConditions
-        |> required "dismissal_basis" dismissalBasisDecoder
-        |> required "with_prejudice" bool
+        |> optional "dismissal_basis" dismissalBasisDecoder FailureToProsecute
+        |> optional "with_prejudice" bool False
 
 
 entranceDecoder : Decoder Entrance
@@ -478,12 +482,12 @@ entranceDecoder =
             )
 
 
-fromConditions : Conditions -> Decoder Judgement
+fromConditions : Maybe Conditions -> Decoder Judgement
 fromConditions conditions =
     Decode.succeed Judgement
         |> required "id" int
         |> required "notes" (nullable string)
-        |> required "file_date" dateDecoder
+        |> required "court_date" dateDecoder
         |> required "entered_by" entranceDecoder
         |> required "judge" (nullable judgeDecoder)
         |> custom (Decode.succeed conditions)
@@ -491,18 +495,18 @@ fromConditions conditions =
 
 judgementDecoder : Decoder Judgement
 judgementDecoder =
-    Decode.field "in_favor_of" string
+    Decode.field "in_favor_of" (nullable string)
         |> Decode.andThen
-            (\str ->
-                case str of
-                    "PLAINTIFF" ->
-                        Decode.map PlaintiffConditions owedConditionsDecoder
+            (\maybeStr ->
+                case maybeStr of
+                    Just "PLAINTIFF" ->
+                        Decode.map (Just << PlaintiffConditions) owedConditionsDecoder
 
-                    "DEFENDANT" ->
-                        Decode.map DefendantConditions dismissalConditionsDecoder
+                    Just "DEFENDANT" ->
+                        Decode.map (Just << DefendantConditions) dismissalConditionsDecoder
 
                     _ ->
-                        Decode.fail "oops"
+                        Decode.succeed Nothing
             )
         |> Decode.andThen fromConditions
 

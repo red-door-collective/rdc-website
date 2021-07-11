@@ -134,3 +134,36 @@ def from_spreadsheet(judgements):
     for judgement in judgements:
         court_date = judgement[COURT_DATE] if judgement[COURT_DATE] else court_date
         _from_spreadsheet(defaults, court_date, judgement)
+
+
+def _from_dw_sheet_row(raw_warrant):
+    warrant = {k: normalize(v) for k, v in raw_warrant.items()}
+
+    dw = db.session.query(DetainerWarrant).get(warrant["Docket #"])
+
+    if not dw:
+        print('no existing detainer warrant')
+        return
+
+    outcome = warrant['Judgement'].lower() if warrant['Judgement'] else None
+    if outcome and len(dw._judgements) == 0:
+        in_favor_of = 'PLAINTIFF' if 'poss' in outcome or 'fees' in outcome else 'DEFENDANT'
+        awards_possession = 'poss' in outcome
+        awards_fees = dw.amount_claimed if 'fees' in outcome or 'payment' in outcome else None
+
+        judgement = Judgement.create(
+            detainer_warrant_id=dw.docket_id,
+            in_favor_of_id=Judgement.parties[in_favor_of],
+            awards_possession=awards_possession,
+            awards_fees=awards_fees
+        )
+
+        db.session.add(judgement)
+        dw._judgements = dw._judgements + [judgement]
+        db.session.add(dw)
+        db.session.commit()
+
+
+def from_dw_sheet(warrants):
+    for warrant in warrants:
+        _from_dw_sheet_row(warrant)

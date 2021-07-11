@@ -264,7 +264,7 @@ editForm warrant =
     , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
     , address = Maybe.withDefault "" <| List.head <| List.map .address warrant.defendants
     , defendants = List.map (initDefendantForm << Just) warrant.defendants
-    , judgements = List.indexedMap (\index j -> judgementFormInit j.fileDate index (Just j)) warrant.judgements
+    , judgements = List.indexedMap (\index j -> judgementFormInit j.courtDate index (Just j)) warrant.judgements
     , notes = Maybe.withDefault "" warrant.notes
     }
 
@@ -275,12 +275,12 @@ judgementFormInit today index existing =
         new =
             { id = Nothing
             , conditionsDropdown = Dropdown.init ("judgement-dropdown-new-" ++ String.fromInt index)
-            , condition = PlaintiffOption
+            , condition = Just PlaintiffOption
             , notes = ""
-            , fileDate = { date = Just today, dateText = Date.toIsoString today, pickerModel = DatePicker.init |> DatePicker.setToday today }
+            , courtDate = { date = Just today, dateText = Date.toIsoString today, pickerModel = DatePicker.init |> DatePicker.setToday today }
             , enteredBy = Default
-            , claimsFees = ""
-            , claimsPossession = False
+            , awardsFees = ""
+            , awardsPossession = False
             , hasInterest = False
             , interestRate = ""
             , interestFollowsSite = True
@@ -297,7 +297,7 @@ judgementFormInit today index existing =
                     { new
                         | id = Just judgement.id
                         , enteredBy = judgement.enteredBy
-                        , fileDate = { date = Just judgement.fileDate, dateText = Date.toIsoString judgement.fileDate, pickerModel = DatePicker.init |> DatePicker.setToday today }
+                        , courtDate = { date = Just judgement.courtDate, dateText = Date.toIsoString judgement.courtDate, pickerModel = DatePicker.init |> DatePicker.setToday today }
                         , conditionsDropdown = Dropdown.init ("judgement-dropdown-" ++ String.fromInt judgement.id)
                         , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt judgement.id)
                         , judge =
@@ -311,11 +311,11 @@ judgementFormInit today index existing =
                     }
             in
             case judgement.conditions of
-                PlaintiffConditions owed ->
+                Just (PlaintiffConditions owed) ->
                     { default
-                        | condition = PlaintiffOption
-                        , claimsFees = Maybe.withDefault "" <| Maybe.map String.fromFloat owed.claimsFees
-                        , claimsPossession = owed.claimsPossession
+                        | condition = Just PlaintiffOption
+                        , awardsFees = Maybe.withDefault "" <| Maybe.map String.fromFloat owed.awardsFees
+                        , awardsPossession = owed.awardsPossession
                         , hasInterest = owed.interest /= Nothing
                         , interestRate =
                             case owed.interest of
@@ -333,12 +333,15 @@ judgementFormInit today index existing =
                                     False
                     }
 
-                DefendantConditions dismissal ->
+                Just (DefendantConditions dismissal) ->
                     { default
-                        | condition = DefendantOption
+                        | condition = Just DefendantOption
                         , dismissalBasis = dismissal.basis
                         , withPrejudice = dismissal.withPrejudice
                     }
+
+                Nothing ->
+                    new
 
         Nothing ->
             new
@@ -452,8 +455,8 @@ type Msg
     | AddJudgement
     | RemoveJudgement Int
     | ChangedJudgementFileDatePicker Int ChangeEvent
-    | PickedConditions Int (Maybe ConditionOption)
-    | ConditionsDropdownMsg Int (Dropdown.Msg ConditionOption)
+    | PickedConditions Int (Maybe (Maybe ConditionOption))
+    | ConditionsDropdownMsg Int (Dropdown.Msg (Maybe ConditionOption))
     | ChangedFeesClaimed Int String
     | ConfirmedFeesClaimed Int
     | ToggleJudgmentPossession Int Bool
@@ -1080,13 +1083,13 @@ update msg model =
                         (updateJudgement selected
                             (\judgement ->
                                 let
-                                    fileDate =
-                                        judgement.fileDate
+                                    courtDate =
+                                        judgement.courtDate
 
-                                    updatedFileDate =
-                                        { fileDate | date = Just date, dateText = Date.toIsoString date }
+                                    updatedCourtDate =
+                                        { courtDate | date = Just date, dateText = Date.toIsoString date }
                                 in
-                                { judgement | fileDate = updatedFileDate }
+                                { judgement | courtDate = updatedCourtDate }
                             )
                         )
                         model
@@ -1096,19 +1099,19 @@ update msg model =
                         (updateJudgement selected
                             (\judgement ->
                                 let
-                                    fileDate =
-                                        judgement.fileDate
+                                    courtDate =
+                                        judgement.courtDate
 
-                                    updatedFileDate =
-                                        { fileDate
+                                    updatedCourtDate =
+                                        { courtDate
                                             | date =
                                                 Date.fromIsoString text
                                                     |> Result.toMaybe
-                                                    |> Maybe.Extra.orElse fileDate.date
+                                                    |> Maybe.Extra.orElse courtDate.date
                                             , dateText = text
                                         }
                                 in
-                                { judgement | fileDate = updatedFileDate }
+                                { judgement | courtDate = updatedCourtDate }
                             )
                         )
                         model
@@ -1118,20 +1121,23 @@ update msg model =
                         (updateJudgement selected
                             (\judgement ->
                                 let
-                                    fileDate =
-                                        judgement.fileDate
+                                    courtDate =
+                                        judgement.courtDate
 
-                                    updatedFileDate =
-                                        { fileDate | pickerModel = fileDate.pickerModel |> DatePicker.update subMsg }
+                                    updatedCourtDate =
+                                        { courtDate
+                                            | pickerModel =
+                                                courtDate.pickerModel |> DatePicker.update subMsg
+                                        }
                                 in
-                                { judgement | fileDate = updatedFileDate }
+                                { judgement | courtDate = updatedCourtDate }
                             )
                         )
                         model
 
         PickedConditions selected option ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | condition = Maybe.withDefault PlaintiffOption option }))
+                (updateJudgement selected (\judgement -> { judgement | condition = Maybe.andThen identity option }))
                 model
 
         DismissalBasisDropdownMsg selected subMsg ->
@@ -1356,7 +1362,7 @@ update msg model =
 
         ChangedFeesClaimed selected money ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | claimsFees = String.replace "$" "" money }))
+                (updateJudgement selected (\judgement -> { judgement | awardsFees = String.replace "$" "" money }))
                 model
 
         ConfirmedFeesClaimed selected ->
@@ -1371,13 +1377,13 @@ update msg model =
                 (updateJudgement selected
                     (\judgement ->
                         { judgement
-                            | claimsFees =
-                                case extract judgement.claimsFees of
+                            | awardsFees =
+                                case extract judgement.awardsFees of
                                     Just moneyFloat ->
                                         Mask.floatDecimal options moneyFloat
 
                                     Nothing ->
-                                        judgement.claimsFees
+                                        judgement.awardsFees
                         }
                     )
                 )
@@ -1385,7 +1391,7 @@ update msg model =
 
         ToggleJudgmentPossession selected checked ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | claimsPossession = checked }))
+                (updateJudgement selected (\judgement -> { judgement | awardsPossession = checked }))
                 model
 
         ToggleJudgmentInterest selected checked ->
@@ -2064,7 +2070,7 @@ nonpaymentDropdownConfig =
 
 
 conditionsDropdownConfig index =
-    dropdownConfig "Granted to" DetainerWarrant.conditionText (ConditionsDropdownMsg index) (PickedConditions index)
+    dropdownConfig "Granted to" (Maybe.withDefault "-" << Maybe.map DetainerWarrant.conditionText) (ConditionsDropdownMsg index) (PickedConditions index)
 
 
 dismissalBasisDropdownConfig index =
@@ -2754,7 +2760,7 @@ viewJudgementPossession options index form =
                     []
                     { onChange = ToggleJudgmentPossession index
                     , icon = Input.defaultCheckbox
-                    , checked = form.claimsPossession
+                    , checked = form.awardsPossession
                     , label = Input.labelAbove [] (text "Possession Claimed")
                     }
                 ]
@@ -2773,11 +2779,11 @@ viewJudgementPlaintiff options index form =
                 [ textInput (withChanges False [ Events.onLoseFocus (ConfirmedFeesClaimed index) ])
                     { onChange = ChangedFeesClaimed index
                     , text =
-                        if form.claimsFees == "" then
-                            form.claimsFees
+                        if form.awardsFees == "" then
+                            form.awardsFees
 
                         else
-                            "$" ++ form.claimsFees
+                            "$" ++ form.awardsFees
                     , label = Input.labelAbove [] (text "Fees Claimed")
                     , placeholder = Just <| Input.placeholder [] (text "$0.00")
                     }
@@ -2914,14 +2920,14 @@ viewJudgement options index form =
                             )
                         )
                         { onChange = ChangedJudgementFileDatePicker index
-                        , selected = form.fileDate.date
-                        , text = form.fileDate.dateText
+                        , selected = form.courtDate.date
+                        , text = form.courtDate.dateText
                         , label =
-                            requiredLabel Input.labelAbove "File Date"
+                            requiredLabel Input.labelAbove "Court Date"
                         , placeholder =
                             Maybe.map (Input.placeholder [] << text << Date.toIsoString) options.today
                         , settings = DatePicker.defaultSettings
-                        , model = form.fileDate.pickerModel
+                        , model = form.courtDate.pickerModel
                         }
                     ]
                 }
@@ -2947,13 +2953,16 @@ viewJudgement options index form =
             ]
         , row [ spacing 5 ]
             (case form.condition of
-                PlaintiffOption ->
+                Just PlaintiffOption ->
                     viewJudgementPlaintiff options index form
 
-                DefendantOption ->
+                Just DefendantOption ->
                     viewJudgementDefendant options index form
+
+                Nothing ->
+                    [ Element.none ]
             )
-        , if form.claimsFees /= "" && form.condition == PlaintiffOption then
+        , if form.awardsFees /= "" && form.condition == Just PlaintiffOption then
             viewJudgementInterest options index form
 
           else
@@ -3543,7 +3552,7 @@ validateField today (Trimmed form) field =
                     Just judgement ->
                         case judgementValidation of
                             JudgementFileDate ->
-                                if Date.compare (Maybe.withDefault today judgement.fileDate.date) (Maybe.withDefault today form.fileDate.date) == LT then
+                                if Date.compare (Maybe.withDefault today judgement.courtDate.date) (Maybe.withDefault today form.courtDate.date) == LT then
                                     [ "Judgement cannot be filed before detainer warrant." ]
 
                                 else
@@ -3810,19 +3819,33 @@ encodeRelated record =
 encodeJudgement : JudgementEdit -> Encode.Value
 encodeJudgement judgement =
     Encode.object
-        ([ ( "in_favor_of", Encode.string judgement.inFavorOf )
-         , ( "interest", Encode.bool judgement.hasInterest )
-         , ( "file_date", Encode.string judgement.fileDate )
+        ([ ( "interest", Encode.bool judgement.hasInterest )
+         , ( "court_date", Encode.string judgement.courtDate )
          ]
+            ++ nullable "in_favor_of" Encode.string judgement.inFavorOf
             ++ nullable "id" Encode.int judgement.id
             ++ nullable "notes" Encode.string judgement.notes
             ++ nullable "entered_by" Encode.string judgement.enteredBy
-            ++ nullable "claims_fees" Encode.float judgement.claimsFees
-            ++ nullable "claims_possession" Encode.bool judgement.claimsPossession
+            ++ nullable "awards_fees" Encode.float judgement.awardsFees
+            ++ nullable "awards_possession" Encode.bool judgement.awardsPossession
             ++ nullable "interest_rate" Encode.float judgement.interestRate
             ++ nullable "interest_follows_site" Encode.bool judgement.interestFollowsSite
-            ++ nullable "dismissal_basis" Encode.string judgement.dismissalBasis
-            ++ nullable "with_prejudice" Encode.bool judgement.withPrejudice
+            ++ nullable "dismissal_basis"
+                Encode.string
+                (if judgement.inFavorOf == Just "DEFENDANT" then
+                    judgement.dismissalBasis
+
+                 else
+                    Nothing
+                )
+            ++ nullable "with_prejudice"
+                Encode.bool
+                (if judgement.inFavorOf == Just "DEFENDANT" then
+                    judgement.withPrejudice
+
+                 else
+                    Nothing
+                )
             ++ nullable "judge" encodeRelated judgement.judge
         )
 
