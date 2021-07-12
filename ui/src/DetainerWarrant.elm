@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions, judgementDecoder)
 
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
@@ -283,7 +283,6 @@ type alias DetainerWarrantEdit =
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
     , defendants : List Related
-    , judgements : List JudgementEdit
     , notes : Maybe String
     }
 

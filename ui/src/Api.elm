@@ -268,14 +268,20 @@ post url maybeCred body toMsg decoder =
         }
 
 
-delete : Endpoint -> Body -> (Result Error a -> msg) -> Decoder a -> Cmd msg
-delete url body toMsg decoder =
+delete : Endpoint -> Maybe Cred ->  (Result Error () -> msg) -> Cmd msg
+delete url maybeCred  toMsg =
     Endpoint.request
         { method = "DELETE"
         , url = url
-        , expect = Http.expectJson toMsg decoder
-        , headers = []
-        , body = body
+        , expect = Http.expectWhatever toMsg
+        , headers =
+            case maybeCred of
+                Just cred ->
+                    credHeaders cred
+
+                Nothing ->
+                    []
+        , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
         }

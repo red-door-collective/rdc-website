@@ -189,7 +189,7 @@ class Judgement(db.Model, Timestamped):
         'attorneys.id', ondelete=('CASCADE')
     ))
 
-    detainer_warrant = relationship(
+    _detainer_warrant = relationship(
         'DetainerWarrant', back_populates='_judgements')
 
     _plaintiff = relationship(
@@ -293,6 +293,19 @@ class Judgement(db.Model, Timestamped):
         else:
             self._courtroom = courtroom
 
+    @property
+    def detainer_warrant(self):
+        return self._detainer_warrant
+
+    @detainer_warrant.setter
+    def detainer_warrant(self, warrant):
+        w_id = warrant and warrant.get('docket_id')
+        if (w_id):
+            self._detainer_warrant = db.session.query(
+                DetainerWarrant).get(w_id)
+        else:
+            self._detainer_warrant = warrant
+
     def __repr__(self):
         return "<Judgement(in_favor_of='%s')>" % (self.in_favor_of)
 
@@ -353,7 +366,7 @@ class DetainerWarrant(db.Model, Timestamped):
                                back_populates='detainer_warrants',
                                cascade="all, delete",
                                )
-    _judgements = relationship('Judgement', back_populates='detainer_warrant')
+    _judgements = relationship('Judgement', back_populates='_detainer_warrant')
 
     canvass_attempts = relationship(
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")
@@ -456,7 +469,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @property
     def judgements(self):
-        return self._judgements
+        return sorted(self._judgements, key=lambda j: j.court_date)
 
     @judgements.setter
     def judgements(self, judgements):

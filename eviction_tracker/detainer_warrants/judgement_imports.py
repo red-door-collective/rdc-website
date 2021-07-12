@@ -80,8 +80,12 @@ def _from_spreadsheet(defaults, court_date, raw_judgement):
     if outcome:
         in_favor_of = 'PLAINTIFF' if 'poss' in outcome or 'fees' in outcome else 'DEFENDANT'
         awards_possession = 'poss' in outcome
-        awards_fees = Decimal(str(judgement[AMOUNT]).replace(
-            '$', '').replace(',', '')) if 'fees' in outcome and judgement[AMOUNT] else None
+        try:
+            awards_fees = Decimal(str(judgement[AMOUNT]).replace(
+                '$', '').replace(',', '')) if 'fees' in outcome and judgement[AMOUNT] else None
+        except KeyError:
+            awards_fees = Decimal(str(judgement["Amount Awarded"]).replace(
+                '$', '').replace(',', '')) if 'fees' in outcome and judgement["Amount Awarded"] else None
 
     basis = judgement[JUDGEMENT_BASIS].lower(
     ) if judgement[JUDGEMENT_BASIS] else None

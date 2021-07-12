@@ -200,7 +200,7 @@ class JudgementResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination()
-    sorting = Sorting('id', default='-id')
+    sorting = Sorting('court_date', default='-court_date')
 
 
 class JudgementListResource(JudgementResourceBase):
@@ -217,6 +217,9 @@ class JudgementResource(JudgementResourceBase):
 
     def patch(self, id):
         return self.update(int(id), partial=True)
+
+    def delete(self, id):
+        return self.destroy(int(id))
 
 
 @model_filter(fields.String())

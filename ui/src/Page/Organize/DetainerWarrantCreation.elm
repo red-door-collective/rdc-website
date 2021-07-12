@@ -133,8 +133,8 @@ type Problem
 type JudgementDetail
     = JudgementFileDateDetail
     | Summary
-    | FeesClaimedInfo
-    | PossessionClaimedInfo
+    | FeesAwardedInfo
+    | PossessionAwardedInfo
     | FeesHaveInterestInfo
     | InterestRateFollowsSiteInfo
     | InterestRateInfo
@@ -165,7 +165,7 @@ type Tooltip
 
 
 type SaveState
-    = SavingRelatedModels { attorney : Bool, plaintiff : Bool, courtroom : Bool, judge : Bool, defendants : Int }
+    = SavingRelatedModels { attorney : Bool, plaintiff : Bool, courtroom : Bool, judge : Bool, defendants : Int, judgements : Int }
     | SavingWarrant
     | Done
 
@@ -341,7 +341,7 @@ judgementFormInit today index existing =
                     }
 
                 Nothing ->
-                    new
+                    default
 
         Nothing ->
             new
@@ -457,8 +457,8 @@ type Msg
     | ChangedJudgementFileDatePicker Int ChangeEvent
     | PickedConditions Int (Maybe (Maybe ConditionOption))
     | ConditionsDropdownMsg Int (Dropdown.Msg (Maybe ConditionOption))
-    | ChangedFeesClaimed Int String
-    | ConfirmedFeesClaimed Int
+    | ChangedFeesAwarded Int String
+    | ConfirmedFeesAwarded Int
     | ToggleJudgmentPossession Int Bool
     | ToggleJudgmentInterest Int Bool
     | ChangedInterestRate Int String
@@ -477,6 +477,8 @@ type Msg
     | UpsertedCourtroom (Result Http.Error (Api.Item DetainerWarrant.Courtroom))
     | UpsertedJudge (Result Http.Error (Api.Item DetainerWarrant.Judge))
     | UpsertedDefendant Int (Result Http.Error (Api.Item Defendant))
+    | UpsertedJudgement Int (Result Http.Error (Api.Item Judgement))
+    | DeletedJudgement Int (Result Http.Error ())
     | CreatedDetainerWarrant (Result Http.Error (Api.Item DetainerWarrant))
     | GotPlaintiffs (Result Http.Error (Api.Collection Plaintiff))
     | GotAttorneys (Result Http.Error (Api.Collection Attorney))
@@ -1360,12 +1362,12 @@ update msg model =
                 )
                 model
 
-        ChangedFeesClaimed selected money ->
+        ChangedFeesAwarded selected money ->
             updateForm
                 (updateJudgement selected (\judgement -> { judgement | awardsFees = String.replace "$" "" money }))
                 model
 
-        ConfirmedFeesClaimed selected ->
+        ConfirmedFeesAwarded selected ->
             let
                 extract money =
                     String.toFloat (String.replace "," "" money)
@@ -1573,6 +1575,48 @@ update msg model =
         UpsertedDefendant _ (Err errors) ->
             ( model, Cmd.none )
 
+        UpsertedJudgement index (Ok judgement) ->
+            case model.today of
+                Just today ->
+                    nextStepSave
+                        (updateFormOnly
+                            (\form ->
+                                { form
+                                    | judgements =
+                                        List.indexedMap
+                                            (\i def ->
+                                                if i == index then
+                                                    judgementFormInit today index (Just judgement.data)
+
+                                                else
+                                                    def
+                                            )
+                                            form.judgements
+                                }
+                            )
+                            { model
+                                | saveState =
+                                    case model.saveState of
+                                        SavingRelatedModels models ->
+                                            SavingRelatedModels { models | judgements = models.judgements + 1 }
+
+                                        _ ->
+                                            model.saveState
+                            }
+                        )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        UpsertedJudgement _ (Err errors) ->
+            ( model, Cmd.none )
+
+        DeletedJudgement _ (Ok _) ->
+            ( model, Cmd.none )
+
+        DeletedJudgement _ (Err errors) ->
+            ( model, Cmd.none )
+
         UpsertedAttorney (Ok attorney) ->
             nextStepSave
                 (updateFormOnly
@@ -1669,6 +1713,18 @@ submitForm model =
                     let
                         apiForms =
                             toDetainerWarrant today validForm
+
+                        toDelete =
+                            case model.warrant of
+                                Just warrant ->
+                                    if List.length warrant.judgements /= List.length apiForms.judgements then
+                                        Set.toList (Set.diff (Set.fromList (List.map .id warrant.judgements)) (Set.fromList (List.filterMap .id apiForms.judgements)))
+
+                                    else
+                                        []
+
+                                Nothing ->
+                                    []
                     in
                     ( { model
                         | newFormOnSuccess = False
@@ -1680,6 +1736,7 @@ submitForm model =
                                 , courtroom = apiForms.courtroom == Nothing
                                 , judge = apiForms.judge == Nothing
                                 , defendants = 0
+                                , judgements = 0
                                 }
                       }
                     , Cmd.batch
@@ -1691,6 +1748,8 @@ submitForm model =
                             , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertCourtroom maybeCred) apiForms.courtroom
                             , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertJudge maybeCred) apiForms.judge
                             , List.indexedMap (upsertDefendant maybeCred) apiForms.defendants
+                            , List.indexedMap (upsertJudgement maybeCred apiForms.detainerWarrant) apiForms.judgements
+                            , List.indexedMap (deleteJudgement maybeCred) toDelete
                             ]
                         )
                     )
@@ -2751,7 +2810,7 @@ viewJudgementInterest options index form =
 viewJudgementPossession : FormOptions -> Int -> JudgementForm -> Element Msg
 viewJudgementPossession options index form =
     viewField
-        { tooltip = Just (JudgementInfo index PossessionClaimedInfo)
+        { tooltip = Just (JudgementInfo index PossessionAwardedInfo)
         , currentTooltip = options.tooltip
         , description = "Has the Plaintiff claimed the residence?"
         , children =
@@ -2761,7 +2820,7 @@ viewJudgementPossession options index form =
                     { onChange = ToggleJudgmentPossession index
                     , icon = Input.defaultCheckbox
                     , checked = form.awardsPossession
-                    , label = Input.labelAbove [] (text "Possession Claimed")
+                    , label = Input.labelAbove [] (text "Possession Awarded")
                     }
                 ]
             ]
@@ -2771,20 +2830,20 @@ viewJudgementPossession options index form =
 viewJudgementPlaintiff : FormOptions -> Int -> JudgementForm -> List (Element Msg)
 viewJudgementPlaintiff options index form =
     [ viewField
-        { tooltip = Just (JudgementInfo index FeesClaimedInfo)
+        { tooltip = Just (JudgementInfo index FeesAwardedInfo)
         , currentTooltip = options.tooltip
-        , description = "Fees the Plaintiff has claimed."
+        , description = "Fees the Plaintiff has been awarded."
         , children =
             [ column [ spacing 5, width fill ]
-                [ textInput (withChanges False [ Events.onLoseFocus (ConfirmedFeesClaimed index) ])
-                    { onChange = ChangedFeesClaimed index
+                [ textInput (withChanges False [ Events.onLoseFocus (ConfirmedFeesAwarded index) ])
+                    { onChange = ChangedFeesAwarded index
                     , text =
                         if form.awardsFees == "" then
                             form.awardsFees
 
                         else
                             "$" ++ form.awardsFees
-                    , label = Input.labelAbove [] (text "Fees Claimed")
+                    , label = Input.labelAbove [] (text "Fees Awarded")
                     , placeholder = Just <| Input.placeholder [] (text "$0.00")
                     }
                 ]
@@ -3307,10 +3366,10 @@ judgementInfoText index detail =
                 Summary ->
                     "summary"
 
-                FeesClaimedInfo ->
+                FeesAwardedInfo ->
                     "fees-claimed-info"
 
-                PossessionClaimedInfo ->
+                PossessionAwardedInfo ->
                     "possession-claimed-info"
 
                 FeesHaveInterestInfo ->
@@ -3583,6 +3642,7 @@ type alias ApiForms =
     , attorney : Maybe Attorney
     , judge : Maybe Judge
     , courtroom : Maybe Courtroom
+    , judgements : List JudgementEdit
     }
 
 
@@ -3636,7 +3696,6 @@ toDetainerWarrant today (Trimmed form) =
         , amountClaimed = String.toFloat <| String.replace "," "" form.amountClaimed
         , amountClaimedCategory = form.amountClaimedCategory
         , defendants = List.filterMap (Maybe.map related << .id) form.defendants
-        , judgements = List.map (DetainerWarrant.editFromForm today) form.judgements
         , notes =
             if String.isEmpty form.notes then
                 Nothing
@@ -3653,6 +3712,8 @@ toDetainerWarrant today (Trimmed form) =
         form.presidingJudge.person
     , courtroom =
         form.courtroom.selection
+    , judgements =
+        List.map (DetainerWarrant.editFromForm today) form.judgements
     }
 
 
@@ -3697,6 +3758,28 @@ upsertDefendant maybeCred index form =
 
         Nothing ->
             Api.post (Endpoint.defendants []) maybeCred body (UpsertedDefendant index) decoder
+
+
+upsertJudgement : Maybe Cred -> DetainerWarrantEdit -> Int -> JudgementEdit -> Cmd Msg
+upsertJudgement maybeCred warrant index form =
+    let
+        decoder =
+            Api.itemDecoder DetainerWarrant.judgementDecoder
+
+        body =
+            toBody (encodeJudgement warrant form)
+    in
+    case form.id of
+        Just id ->
+            Api.patch (Endpoint.judgement id) maybeCred body (UpsertedJudgement index) decoder
+
+        Nothing ->
+            Api.post (Endpoint.judgements []) maybeCred body (UpsertedJudgement index) decoder
+
+
+deleteJudgement : Maybe Cred -> Int -> Int -> Cmd Msg
+deleteJudgement maybeCred index id =
+    Api.delete (Endpoint.judgement id) maybeCred (DeletedJudgement index)
 
 
 upsertCourtroom : Maybe Cred -> Courtroom -> Cmd Msg
@@ -3816,14 +3899,15 @@ encodeRelated record =
     Encode.object [ ( "id", Encode.int record.id ) ]
 
 
-encodeJudgement : JudgementEdit -> Encode.Value
-encodeJudgement judgement =
+encodeJudgement : DetainerWarrantEdit -> JudgementEdit -> Encode.Value
+encodeJudgement warrant judgement =
     Encode.object
         ([ ( "interest", Encode.bool judgement.hasInterest )
          , ( "court_date", Encode.string judgement.courtDate )
+         , ( "detainer_warrant", Encode.object [ ( "docket_id", Encode.string warrant.docketId ) ] )
          ]
+            ++ conditional "id" Encode.int judgement.id
             ++ nullable "in_favor_of" Encode.string judgement.inFavorOf
-            ++ nullable "id" Encode.int judgement.id
             ++ nullable "notes" Encode.string judgement.notes
             ++ nullable "entered_by" Encode.string judgement.enteredBy
             ++ nullable "awards_fees" Encode.float judgement.awardsFees
@@ -3860,7 +3944,6 @@ updateDetainerWarrant maybeCred form =
                  , ( "status", Encode.string (DetainerWarrant.statusText form.status) )
                  , ( "defendants", Encode.list encodeRelated form.defendants )
                  , ( "amount_claimed_category", Encode.string (DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory) )
-                 , ( "judgements", Encode.list encodeJudgement form.judgements )
                  ]
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
                     ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney

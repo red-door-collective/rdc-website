@@ -87,12 +87,15 @@ class JudgementSchema(Schema):
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     defendant_attorney = fields.Nested(AttorneySchema, allow_none=True)
     courtroom = fields.Nested(CourtroomSchema, allow_none=True)
+    detainer_warrant = fields.Nested(
+        lambda: DetainerWarrantSchema(only=["docket_id"]))
 
     class Meta:
         fields = ("id", "court_date", "in_favor_of", "awards_possession",
                   "awards_fees", "entered_by", "interest", "interest_rate",
                   "interest_follows_site", "dismissal_basis", "with_prejudice", "notes",
-                  "judge", "plaintiff", "plaintiff_attorney", "defendant_attorney", "courtroom"
+                  "judge", "plaintiff", "plaintiff_attorney", "defendant_attorney", "courtroom",
+                  "detainer_warrant"
                   )
 
 
