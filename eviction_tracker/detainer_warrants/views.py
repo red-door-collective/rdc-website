@@ -21,7 +21,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import raiseload
 
 from eviction_tracker.database import db
-from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, Judge, PhoneNumberVerification
+from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, Judge, Judgement, PhoneNumberVerification
 from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
 
@@ -192,6 +192,36 @@ class JudgeResource(JudgeResourceBase):
         return self.update(int(id), partial=True)
 
 
+class JudgementResourceBase(GenericModelView):
+    model = Judgement
+    schema = judgement_schema
+
+    authentication = HeaderUserAuthentication()
+    authorization = Protected()
+
+    pagination = CursorPagination()
+    sorting = Sorting('court_date', default='-court_date')
+
+
+class JudgementListResource(JudgementResourceBase):
+    def get(self):
+        return self.list()
+
+    def post(self):
+        return self.create()
+
+
+class JudgementResource(JudgementResourceBase):
+    def get(self, id):
+        return self.retrieve(id)
+
+    def patch(self, id):
+        return self.update(int(id), partial=True)
+
+    def delete(self, id):
+        return self.destroy(int(id))
+
+
 @model_filter(fields.String())
 def filter_defendant_name(model, defendant_name):
     return model._defendants.any(Defendant.first_name.ilike(f'%{defendant_name}%'))
@@ -228,8 +258,7 @@ class DetainerWarrantResourceBase(GenericModelView):
         file_date=ColumnFilter(operator.eq),
         plaintiff=filter_plaintiff_name,
         plaintiff_attorney=filter_plaintiff_attorney_name,
-        address=filter_address,
-        judgement=ColumnFilter(operator.eq)
+        address=filter_address
     )
 
 

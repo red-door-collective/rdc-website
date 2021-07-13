@@ -30,9 +30,19 @@ def test():
     exit(rv)
 
 
+def dw_rows(limit, sheet):
+    ws = sheet.worksheet("2020-2021 detainer warrants")
+
+    all_rows = ws.get_all_records()
+
+    stop_index = int(limit) if limit else all_rows
+
+    return all_rows[:stop_index] if limit else all_rows
+
+
 @click.command()
 @click.option('-s', '--sheet-name', default=None,
-              help='Google Service Account filepath')
+              help='Name of Google spreadsheet')
 @click.option('-l', '--limit', default=None,
               help='Number of rows to insert')
 @click.option('-k', '--service-account-key', default=None,
@@ -49,15 +59,48 @@ def sync(sheet_name, limit, service_account_key):
 
     sh = gc.open(sheet_name)
 
-    ws = sh.worksheet("All Detainer Warrants")
-
-    all_rows = ws.get_all_records()
-
-    stop_index = int(limit) if limit else all_rows
-
-    rows = all_rows[:stop_index] if limit else all_rows
+    rows = dw_rows(limit, sh)
 
     detainer_warrants.imports.from_spreadsheet(rows)
+
+
+@click.command()
+@click.option('-s', '--sheet-name', default=None,
+              help='Name of Google spreadsheet')
+@click.option('-l', '--limit', default=None,
+              help='Number of rows to insert')
+@click.option('-k', '--service-account-key', default=None,
+              help='Google Service Account filepath')
+@click.option('-w', '--warrant-sheet', default=None,
+              help='Extract judgements from detainer warrant sheet')
+@with_appcontext
+def sync_judgements(sheet_name, limit, service_account_key, warrant_sheet):
+    connect_kwargs = dict()
+    if service_account_key:
+        connect_kwargs['filename'] = service_account_key
+
+    gc = gspread.service_account(**connect_kwargs)
+
+    if warrant_sheet:
+        sh = gc.open(warrant_sheet)
+        rows = dw_rows(limit, sh)
+
+        detainer_warrants.judgement_imports.from_dw_sheet(rows)
+        return
+
+    sh = gc.open(sheet_name)
+
+    worksheets = [sh.worksheet(ws) for ws in [
+        "March 2021", "May 2021", "April 2021", "June 2021", "July 2021"]]
+
+    for ws in worksheets:
+        all_rows = ws.get_all_records()
+
+        stop_index = int(limit) if limit else all_rows
+
+        rows = all_rows[:stop_index] if limit else all_rows
+
+        detainer_warrants.judgement_imports.from_spreadsheet(rows)
 
 
 def validate_phone_number(client, app, phone_number):

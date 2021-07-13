@@ -29,7 +29,7 @@ class AllowDefendant(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
             return query
 
         try:
-            return query.join(DetainerWarrant.defendants).filter(or_(
+            return query.join(DetainerWarrant._defendants).filter(or_(
                 Defendant.first_name.ilike(f'%{current_user.first_name}%'),
                 Defendant.last_name.ilike(f'%{current_user.last_name}%')
             ))

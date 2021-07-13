@@ -69,12 +69,47 @@ judge_schema = JudgeSchema()
 judges_schema = JudgeSchema(many=True)
 
 
+class JudgementSchema(Schema):
+    id = fields.Int(allow_none=True)
+    court_date = fields.Date(allow_none=True)
+    awards_possession = fields.Bool(allow_none=True)
+    awards_fees = fields.Float(allow_none=True)
+    entered_by = fields.String(allow_none=True)
+    interest = fields.Bool(allow_none=True)
+    interest_rate = fields.Float(allow_none=True)
+    interest_follows_site = fields.Bool(allow_none=True)
+    dismissal_basis = fields.String(allow_none=True)
+    with_prejudice = fields.Bool(allow_none=True)
+    notes = fields.String(allow_none=True)
+
+    judge = fields.Nested(JudgeSchema, allow_none=True)
+    plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
+    plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    defendant_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    courtroom = fields.Nested(CourtroomSchema, allow_none=True)
+    detainer_warrant = fields.Nested(
+        lambda: DetainerWarrantSchema(only=["docket_id"]))
+
+    class Meta:
+        fields = ("id", "court_date", "in_favor_of", "awards_possession",
+                  "awards_fees", "entered_by", "interest", "interest_rate",
+                  "interest_follows_site", "dismissal_basis", "with_prejudice", "notes",
+                  "judge", "plaintiff", "plaintiff_attorney", "defendant_attorney", "courtroom",
+                  "detainer_warrant"
+                  )
+
+
+judgement_schema = JudgementSchema()
+judgements_schema = JudgementSchema(many=True)
+
+
 class DetainerWarrantSchema(Schema):
     plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     courtroom = fields.Nested(CourtroomSchema, allow_none=True)
     presiding_judge = fields.Nested(JudgeSchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
+    judgements = fields.Nested(JudgementSchema, many=True)
 
     amount_claimed = fields.Float(allow_none=True)
     court_date = fields.Date(allow_none=True)
@@ -85,7 +120,7 @@ class DetainerWarrantSchema(Schema):
 
     class Meta:
         fields = ("docket_id", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
-                  "judgement", "judgement_notes", "plaintiff", "plaintiff_attorney", "courtroom", "presiding_judge", "defendants",
+                  "judgements", "plaintiff", "plaintiff_attorney", "courtroom", "presiding_judge", "defendants",
                   "zip_code", "is_legacy", "is_cares", "nonpayment", "notes")
 
 

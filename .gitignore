@@ -12,3 +12,5 @@ serve_app
 eviction_tracker/static
 !eviction_tracker/static/images/*.png
 result
+
+ui/index.html # accidental default gen
