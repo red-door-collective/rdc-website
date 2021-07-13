@@ -9,7 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 
 example = {
-    'Docket_number': '20GT5633',
+    'Docket #': '20GT5633',
     'Order #': 5633,
     'File_date': '12/3/20',
     'Status': 'PENDING',
@@ -71,7 +71,7 @@ class TestDataImport(TestCase):
         detainer_warrants.imports.from_spreadsheet([example])
         warrant = db.session.query(DetainerWarrant).first()
 
-        self.assertEqual(warrant.docket_id, example['Docket_number'])
+        self.assertEqual(warrant.docket_id, example['Docket #'])
         self.assertEqual(warrant.file_date, date_as_str(
             example['File_date'], '%m/%d/%y'))
         self.assertEqual(warrant.status, example['Status'])
@@ -95,7 +95,6 @@ class TestDataImport(TestCase):
             warrant.defendants[0].name, 'Wenzel McKenzie Stuwart Jr.')
         self.assertEqual(
             warrant.defendants[0].potential_phones, example['Def_1_phone'])
-        self.assertEqual(warrant.judgement, example['Judgement'])
 
 
 if __name__ == '__main__':
