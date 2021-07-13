@@ -165,8 +165,9 @@ type Tooltip
 
 
 type SaveState
-    = SavingRelatedModels { attorney : Bool, plaintiff : Bool, courtroom : Bool, judge : Bool, defendants : Int, judgements : Int }
+    = SavingRelatedModels { attorney : Bool, plaintiff : Bool, courtroom : Bool, judge : Bool, defendants : Int }
     | SavingWarrant
+    | SavingJudgements { judgements : Int }
     | Done
 
 
@@ -1597,8 +1598,8 @@ update msg model =
                             { model
                                 | saveState =
                                     case model.saveState of
-                                        SavingRelatedModels models ->
-                                            SavingRelatedModels { models | judgements = models.judgements + 1 }
+                                        SavingJudgements models ->
+                                            SavingJudgements { models | judgements = models.judgements + 1 }
 
                                         _ ->
                                             model.saveState
@@ -1612,7 +1613,7 @@ update msg model =
             ( model, Cmd.none )
 
         DeletedJudgement _ (Ok _) ->
-            ( model, Cmd.none )
+            nextStepSave model
 
         DeletedJudgement _ (Err errors) ->
             ( model, Cmd.none )
@@ -1636,17 +1637,10 @@ update msg model =
             ( model, Cmd.none )
 
         CreatedDetainerWarrant (Ok detainerWarrantItem) ->
-            ( { model
-                | form =
-                    Ready (editForm detainerWarrantItem.data)
-                , warrant = Just detainerWarrantItem.data
-              }
-            , if model.newFormOnSuccess then
-                Route.replaceUrl (Session.navKey model.session) (Route.DetainerWarrantCreation Nothing)
-
-              else
-                Cmd.none
-            )
+            nextStepSave
+                { model
+                    | warrant = Just detainerWarrantItem.data
+                }
 
         CreatedDetainerWarrant (Err errors) ->
             ( savingError errors model, Cmd.none )
@@ -1713,18 +1707,6 @@ submitForm model =
                     let
                         apiForms =
                             toDetainerWarrant today validForm
-
-                        toDelete =
-                            case model.warrant of
-                                Just warrant ->
-                                    if List.length warrant.judgements /= List.length apiForms.judgements then
-                                        Set.toList (Set.diff (Set.fromList (List.map .id warrant.judgements)) (Set.fromList (List.filterMap .id apiForms.judgements)))
-
-                                    else
-                                        []
-
-                                Nothing ->
-                                    []
                     in
                     ( { model
                         | newFormOnSuccess = False
@@ -1736,7 +1718,6 @@ submitForm model =
                                 , courtroom = apiForms.courtroom == Nothing
                                 , judge = apiForms.judge == Nothing
                                 , defendants = 0
-                                , judgements = 0
                                 }
                       }
                     , Cmd.batch
@@ -1748,8 +1729,6 @@ submitForm model =
                             , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertCourtroom maybeCred) apiForms.courtroom
                             , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertJudge maybeCred) apiForms.judge
                             , List.indexedMap (upsertDefendant maybeCred) apiForms.defendants
-                            , List.indexedMap (upsertJudgement maybeCred apiForms.detainerWarrant) apiForms.judgements
-                            , List.indexedMap (deleteJudgement maybeCred) toDelete
                             ]
                         )
                     )
@@ -1795,10 +1774,47 @@ nextStepSave model =
                                 ( model, Cmd.none )
 
                         SavingWarrant ->
-                            ( model, Cmd.none )
+                            let
+                                toDelete =
+                                    case model.warrant of
+                                        Just warrant ->
+                                            if List.length warrant.judgements /= List.length apiForms.judgements then
+                                                Set.toList (Set.diff (Set.fromList (List.map .id warrant.judgements)) (Set.fromList (List.filterMap .id apiForms.judgements)))
+
+                                            else
+                                                []
+
+                                        Nothing ->
+                                            []
+                            in
+                            if List.isEmpty apiForms.judgements && List.isEmpty toDelete then
+                                nextStepSave { model | saveState = Done }
+
+                            else
+                                ( { model | saveState = SavingJudgements { judgements = 0 } }
+                                , Cmd.batch
+                                    (List.concat
+                                        [ List.indexedMap (upsertJudgement maybeCred apiForms.detainerWarrant) apiForms.judgements
+                                        , List.indexedMap (deleteJudgement maybeCred) toDelete
+                                        ]
+                                    )
+                                )
+
+                        SavingJudgements models ->
+                            if models.judgements >= List.length apiForms.judgements then
+                                nextStepSave { model | saveState = Done }
+
+                            else
+                                ( model, Cmd.none )
 
                         Done ->
-                            ( model, Cmd.none )
+                            ( model
+                            , if model.newFormOnSuccess then
+                                Route.replaceUrl (Session.navKey model.session) (Route.DetainerWarrantCreation Nothing)
+
+                              else
+                                Route.replaceUrl (Session.navKey model.session) (Route.DetainerWarrantCreation (Just apiForms.detainerWarrant.docketId))
+                            )
 
                 Err _ ->
                     ( model, Cmd.none )
