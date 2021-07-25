@@ -103,6 +103,16 @@ def sync_judgements(sheet_name, limit, service_account_key, warrant_sheet):
         detainer_warrants.judgement_imports.from_spreadsheet(rows)
 
 
+@click.command()
+@click.option('-c', '--courtroom', default=None,
+              help='Courtroom')
+@click.option('-d', '--date', default=None,
+              help='Date')
+@with_appcontext
+def scrape_sessions_site(courtroom, date):
+    detainer_warrants.judgement_scraping.scrape(courtroom, date)
+
+
 def validate_phone_number(client, app, phone_number):
     """Asks Twilio for additional phone number information. Saves result to the database."""
     proper_phone_number = None

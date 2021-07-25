@@ -26,6 +26,8 @@ Flask-Security-Too = "4.0.0"
 bcrypt = "^3.2.0"
 twilio = "^6.55.0"
 phonenumbers = "^8.12.20"
+pyquery = "^1.4.3"
+nameparser = "^1.0.6"
 
 
 [tool.poetry.dev-dependencies]

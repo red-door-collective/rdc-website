@@ -379,6 +379,7 @@ def register_commands(app):
     app.cli.add_command(commands.test)
     app.cli.add_command(commands.sync)
     app.cli.add_command(commands.sync_judgements)
+    app.cli.add_command(commands.scrape_sessions_site)
     app.cli.add_command(commands.verify_phone)
     app.cli.add_command(commands.verify_phones)
     app.cli.add_command(commands.bootstrap)
