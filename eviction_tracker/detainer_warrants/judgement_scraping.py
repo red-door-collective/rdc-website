@@ -132,10 +132,11 @@ def scrape(courtroom, date):
     detainers = {}
     for dw in re.sub(r'\r\n', '', re.sub(r'-{4,}', '|', content)).split('|'):
         if dw[DOCKET_INDEX] != ' ':  # new docket
+            attorney = dw[PLAINTIFF_ATTORNEY_INDEX:DEFENDANT_ADDRESS_INDEX].strip()
             cur_detainer_id = dw[DOCKET_INDEX:CONT_INDEX].strip()
             detainers[cur_detainer_id] = {
                 'plaintiff': dw[PLAINTIFF_INDEX:DEFENDANT_INDEX].strip(),
-                'plaintiff_attorney': dw[PLAINTIFF_ATTORNEY_INDEX:DEFENDANT_ADDRESS_2_INDEX],
+                'plaintiff_attorney': None if attorney == ', PRS' else attorney,
                 'defendants': [{
                     'name': dw[DEFENDANT_INDEX:PLAINTIFF_ATTORNEY_INDEX].strip(),
                     'address': re.sub(r'[ ]{3,}', '', dw[DEFENDANT_ADDRESS_INDEX:]).strip()

@@ -152,7 +152,7 @@ viewWarrants model =
               }
             , { header = viewHeaderCell "File Date"
               , width = fill
-              , view = viewTextRow << Date.toIsoString << .fileDate
+              , view = viewTextRow << Maybe.withDefault "" << Maybe.map Date.toIsoString << .fileDate
               }
             , { header = viewHeaderCell "Defendants"
               , width = fill

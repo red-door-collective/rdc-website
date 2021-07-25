@@ -377,11 +377,11 @@ class DetainerWarrant(db.Model, Timestamped):
     @property
     def status(self):
         status_by_id = {v: k for k, v in DetainerWarrant.statuses.items()}
-        return status_by_id[self.status_id]
+        return status_by_id[self.status_id] if self.status_id else None
 
     @status.setter
     def status(self, status_name):
-        self.status_id = DetainerWarrant.statuses[status_name]
+        self.status_id = DetainerWarrant.statuses[status_name] if status_name else None
 
     @property
     def recurring_court_date(self):

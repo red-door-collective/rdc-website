@@ -111,6 +111,8 @@ class DetainerWarrantSchema(Schema):
     defendants = fields.Nested(DefendantSchema, many=True)
     judgements = fields.Nested(JudgementSchema, many=True)
 
+    file_date = fields.Date(allow_none=True)
+    status = fields.String(allow_none=True)
     amount_claimed = fields.Float(allow_none=True)
     court_date = fields.Date(allow_none=True)
     is_cares = fields.Bool(allow_none=True)

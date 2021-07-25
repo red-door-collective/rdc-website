@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions, judgementDecoder)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, judgementDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
 
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
@@ -93,8 +93,8 @@ type alias Judgement =
 
 type alias DetainerWarrant =
     { docketId : String
-    , fileDate : Date
-    , status : Status
+    , fileDate : Maybe Date
+    , status : Maybe Status
     , plaintiff : Maybe Plaintiff
     , plaintiffAttorney : Maybe Attorney
     , courtDate : Maybe Date
@@ -270,8 +270,8 @@ editFromForm today form =
 
 type alias DetainerWarrantEdit =
     { docketId : String
-    , fileDate : String
-    , status : Status
+    , fileDate : Maybe String
+    , status : Maybe Status
     , plaintiff : Maybe Related
     , plaintiffAttorney : Maybe Related
     , courtDate : Maybe String
@@ -302,9 +302,9 @@ ternaryOptions =
     [ Nothing, Just True, Just False ]
 
 
-statusOptions : List Status
+statusOptions : List (Maybe Status)
 statusOptions =
-    [ Pending, Closed ]
+    [ Nothing, Just Pending, Just Closed ]
 
 
 amountClaimedCategoryOptions : List AmountClaimedCategory
@@ -547,8 +547,8 @@ decoder : Decoder DetainerWarrant
 decoder =
     Decode.succeed DetainerWarrant
         |> required "docket_id" string
-        |> required "file_date" dateDecoder
-        |> required "status" statusDecoder
+        |> required "file_date" (nullable dateDecoder)
+        |> required "status" (nullable statusDecoder)
         |> required "plaintiff" (nullable plaintiffDecoder)
         |> required "plaintiff_attorney" (nullable attorneyDecoder)
         |> required "court_date" (nullable dateDecoder)
