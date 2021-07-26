@@ -44,7 +44,7 @@ empty_defendant = ['' for i in range(6)]
 
 header = [
     DOCKET_ID, FILE_DATE, STATUS, PLAINTIFF, PLTF_ATTORNEY, COURT_DATE, RECURRING_COURT_DATE, COURTROOM, JUDGE, AMT_CLAIMED, AMT_CLAIMED_CAT,
-    IS_CARES, IS_LEGACY, NONPAYMENT, ADDRESS] + defendant_headers(1) + defendant_headers(2) + defendant_headers(3) + defendant_headers(4) + [JUDGEMENT, NOTES]
+    IS_CARES, IS_LEGACY, NONPAYMENT, 'Zipcode', ADDRESS] + defendant_headers(1) + defendant_headers(2) + defendant_headers(3) + defendant_headers(4) + [JUDGEMENT, NOTES]
 
 
 def date_str(d):
@@ -60,7 +60,7 @@ def defendant_columns(defendant):
 
 
 def _to_spreadsheet_row(warrant):
-    return list(chain.from_iterable([
+    return [dw if dw else '' for dw in list(chain.from_iterable([
         [
             warrant.docket_id,
             date_str(warrant.file_date) if warrant.file_date else '',
@@ -68,6 +68,7 @@ def _to_spreadsheet_row(warrant):
             warrant.plaintiff.name if warrant.plaintiff else '',
             warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
             date_str(warrant.court_date) if warrant.court_date else '',
+            warrant.recurring_court_date if warrant.recurring_court_date else '',
             warrant.courtroom.name if warrant.courtroom else '',
             warrant.presiding_judge.name if warrant.presiding_judge else '',
             str(warrant.amount_claimed) if warrant.amount_claimed else '',
@@ -84,7 +85,7 @@ def _to_spreadsheet_row(warrant):
         [warrant.judgements[-1].summary if len(warrant.judgements) > 0 else '',
          warrant.notes
          ]
-    ]))
+    ]))]
 
 
 def to_spreadsheet(sheet_name, service_account_key=None):
@@ -96,11 +97,11 @@ def to_spreadsheet(sheet_name, service_account_key=None):
 
     wks = gc.open(sheet_name).sheet1
 
-    wks.update('A1:AO1', [header])
+    wks.update('A1:AP1', [header])
 
     warrants = DetainerWarrant.query.filter(
         DetainerWarrant.docket_id.ilike('%\G\T%'))
 
     rows = [_to_spreadsheet_row(warrant) for warrant in warrants]
 
-    wks.update(f'A2:AO{warrants.count() + 1}', rows)
+    wks.update(f'A2:AP{warrants.count() + 1}', rows)

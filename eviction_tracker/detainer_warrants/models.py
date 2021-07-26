@@ -408,11 +408,12 @@ class DetainerWarrant(db.Model, Timestamped):
     def recurring_court_date(self):
         date_by_id = {v: k for k,
                       v in DetainerWarrant.recurring_court_dates.items()}
-        return date_by_id[self.court_date_recurring_id]
+        return date_by_id[self.court_date_recurring_id] if self.court_date_recurring_id else None
 
     @recurring_court_date.setter
     def recurring_court_date(self, day_of_week):
-        self.court_date_recurring_id = DetainerWarrant.recurring_court_dates[day_of_week]
+        self.court_date_recurring_id = DetainerWarrant.recurring_court_dates[
+            day_of_week] if day_of_week else None
 
     @property
     def amount_claimed_category(self):
