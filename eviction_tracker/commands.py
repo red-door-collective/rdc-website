@@ -113,6 +113,16 @@ def scrape_sessions_site(courtroom, date):
     detainer_warrants.judgement_scraping.scrape(courtroom, date)
 
 
+@click.command()
+@click.option('-s', '--sheet-name', default=None,
+              help='Sheet name')
+@click.option('-k', '--service-account-key', default=None,
+              help='Google Service Account filepath')
+@with_appcontext
+def export(sheet_name, service_account_key):
+    detainer_warrants.exports.to_spreadsheet(sheet_name, service_account_key)
+
+
 def validate_phone_number(client, app, phone_number):
     """Asks Twilio for additional phone number information. Saves result to the database."""
     proper_phone_number = None
@@ -127,7 +137,7 @@ def validate_phone_number(client, app, phone_number):
     existing_number = db.session.query(PhoneNumberVerification).filter_by(
         phone_number=proper_phone_number).first()
 
-    if existing_number is not None:
+    if existing_numbe/r is not None:
         app.logger.info(f'number already validated: {existing_number}')
         return
 

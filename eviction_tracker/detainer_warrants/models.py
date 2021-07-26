@@ -310,6 +310,21 @@ class Judgement(db.Model, Timestamped):
         else:
             self._detainer_warrant = warrant
 
+    @property
+    def summary(self):
+        if bool(self.awards_fees) and bool(self.awards_possession):
+            return 'POSS + Payment'
+        elif self.awards_possession:
+            return 'POSS'
+        elif self.awards_fees:
+            return 'Fees only'
+        elif self.dismissal_basis_id == 2:
+            return 'Non-suit'
+        elif self.dismissal_basis_id is not None:
+            return 'Dismissed'
+        else:
+            return ''
+
     def __repr__(self):
         return "<Judgement(in_favor_of='%s')>" % (self.in_favor_of)
 
