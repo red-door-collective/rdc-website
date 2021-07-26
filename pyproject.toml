@@ -28,6 +28,8 @@ twilio = "^6.55.0"
 phonenumbers = "^8.12.20"
 pyquery = "^1.4.3"
 nameparser = "^1.0.6"
+APScheduler = "^3.7.0"
+Flask-APScheduler = "1.12.1"
 
 
 [tool.poetry.dev-dependencies]

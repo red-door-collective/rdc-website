@@ -125,6 +125,9 @@ def scrape(courtroom, date):
         SN: 2,
         SN2: 3
     })
+    if 'No GS-Civil docket for' in r.text:  # no longer or not yet published
+        return
+
     d = pq(r.text)
     content = d("pre").eq(0).text(squash_space=False)
 

@@ -7,6 +7,7 @@ from flask_resty import Api
 from flask_login import LoginManager
 from flask_security import Security, SQLAlchemyUserDatastore, UserMixin, RoleMixin
 from flask_security.models import fsqla_v2 as fsqla
+from flask_apscheduler import APScheduler
 
 
 class CRUDMixin(Model):
@@ -51,3 +52,4 @@ marshmallow = Marshmallow()
 migrate = Migrate(compare_type=True)
 api = Api(prefix='/api/v1')
 security = Security()
+scheduler = APScheduler()

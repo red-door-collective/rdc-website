@@ -1,7 +1,7 @@
 import flask
 from flask import Flask, render_template, request, redirect
 from flask_security import hash_password, auth_token_required
-from eviction_tracker.extensions import assets, db, marshmallow, migrate, api, login_manager, security
+from eviction_tracker.extensions import assets, db, marshmallow, migrate, api, login_manager, security, scheduler
 from eviction_tracker.admin.models import User, user_datastore
 import yaml
 import os
@@ -15,6 +15,8 @@ from dateutil.rrule import rrule, MONTHLY
 from collections import OrderedDict
 import flask_wtf
 from flask_security import current_user
+from flask_apscheduler import APScheduler
+
 
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
@@ -54,6 +56,7 @@ def create_app(testing=False):
     app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
     app.config['TWILIO_ACCOUNT_SID'] = os.environ['TWILIO_ACCOUNT_SID']
     app.config['TWILIO_AUTH_TOKEN'] = os.environ['TWILIO_AUTH_TOKEN']
+    app.config['SCHEDULER_API_ENABLED'] = True
     app.config.update(**security_config)
 
     register_extensions(app)
@@ -226,6 +229,10 @@ def register_extensions(app):
     login_manager.login_view = None
     security.init_app(app, user_datastore)
     flask_wtf.CSRFProtect(app)
+    scheduler.init_app(app)
+    scheduler.start()
+
+    from eviction_tracker import tasks
 
     api.add_resource('/attorneys/', detainer_warrants.views.AttorneyListResource,
                      detainer_warrants.views.AttorneyResource, app=app)

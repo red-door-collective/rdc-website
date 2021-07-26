@@ -21,6 +21,32 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "apscheduler"
+version = "3.7.0"
+description = "In-process task scheduler with Cron-like capabilities"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
+
+[package.dependencies]
+pytz = "*"
+six = ">=1.4.0"
+tzlocal = ">=2.0,<3.0"
+
+[package.extras]
+asyncio = ["trollius"]
+doc = ["sphinx", "sphinx-rtd-theme"]
+gevent = ["gevent"]
+mongodb = ["pymongo (>=3.0)"]
+redis = ["redis (>=3.0)"]
+rethinkdb = ["rethinkdb (>=2.4.0)"]
+sqlalchemy = ["sqlalchemy (>=0.8)"]
+testing = ["pytest (<6)", "pytest-cov", "pytest-tornado5", "mock", "pytest-asyncio (<0.6)", "pytest-asyncio"]
+tornado = ["tornado (>=4.3)"]
+twisted = ["twisted"]
+zookeeper = ["kazoo"]
+
+[[package]]
 name = "atomicwrites"
 version = "1.4.0"
 description = "Atomic file writes."
@@ -280,6 +306,19 @@ Werkzeug = ">=0.15,<2.0"
 dev = ["pytest", "coverage", "tox", "sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-issues"]
 docs = ["sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-issues"]
 dotenv = ["python-dotenv"]
+
+[[package]]
+name = "flask-apscheduler"
+version = "1.12.1"
+description = "Adds APScheduler support to Flask"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+apscheduler = ">=3.2.0,<4.0.0"
+flask = ">=0.10.1"
+python-dateutil = ">=2.4.2"
 
 [[package]]
 name = "flask-assets"
@@ -1380,6 +1419,17 @@ requests = {version = ">=2.0.0", markers = "python_version >= \"3.0\""}
 six = "*"
 
 [[package]]
+name = "tzlocal"
+version = "2.1"
+description = "tzinfo object for the local timezone"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+pytz = "*"
+
+[[package]]
 name = "ujson"
 version = "4.0.2"
 description = "Ultra fast JSON encoder and decoder for Python"
@@ -1497,7 +1547,7 @@ locale = ["Babel (>=1.3)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "22372d0006e33012d723e4d168a3c55f560f4b6e9a99ef40305fa95fa96e67c3"
+content-hash = "84805cdbb77c5975cc0fb290d3537ee8b71a80100d2549778a9efea1c5a36103"
 
 [metadata.files]
 alembic = [
@@ -1507,6 +1557,10 @@ alembic = [
 appnope = [
     {file = "appnope-0.1.2-py2.py3-none-any.whl", hash = "sha256:93aa393e9d6c54c5cd570ccadd8edad61ea0c4b9ea7a01409020c9aa019eb442"},
     {file = "appnope-0.1.2.tar.gz", hash = "sha256:dd83cd4b5b460958838f6eb3000c660b1f9caf2a5b1de4264e941512f603258a"},
+]
+apscheduler = [
+    {file = "APScheduler-3.7.0-py2.py3-none-any.whl", hash = "sha256:c06cc796d5bb9eb3c4f77727f6223476eb67749e7eea074d1587550702a7fbe3"},
+    {file = "APScheduler-3.7.0.tar.gz", hash = "sha256:1cab7f2521e107d07127b042155b632b7a1cd5e02c34be5a28ff62f77c900c6a"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.0-py2.py3-none-any.whl", hash = "sha256:6d1784dea7c0c8d4a5172b6c620f40b6e4cbfdf96d783691f2e1302a7b88e197"},
@@ -1697,6 +1751,9 @@ fancycompleter = [
 flask = [
     {file = "Flask-1.1.4-py2.py3-none-any.whl", hash = "sha256:c34f04500f2cbbea882b1acb02002ad6fe6b7ffa64a6164577995657f50aed22"},
     {file = "Flask-1.1.4.tar.gz", hash = "sha256:0fbeb6180d383a9186d0d6ed954e0042ad9f18e0e8de088b2b419d526927d196"},
+]
+flask-apscheduler = [
+    {file = "Flask-APScheduler-1.12.1.tar.gz", hash = "sha256:45e19411efb3a7e986ed0b476a2d93900744967782fbc349f54b954ac2440362"},
 ]
 flask-assets = [
     {file = "Flask-Assets-2.0.tar.gz", hash = "sha256:1dfdea35e40744d46aada72831f7613d67bf38e8b20ccaaa9e91fdc37aa3b8c2"},
@@ -2314,6 +2371,10 @@ traitlets = [
 ]
 twilio = [
     {file = "twilio-6.62.0.tar.gz", hash = "sha256:f681f908ab641fae325f08555d0224a27239a82051f16d6239c316bb0e005cbc"},
+]
+tzlocal = [
+    {file = "tzlocal-2.1-py2.py3-none-any.whl", hash = "sha256:e2cb6c6b5b604af38597403e9852872d7f534962ae2954c7f35efcb1ccacf4a4"},
+    {file = "tzlocal-2.1.tar.gz", hash = "sha256:643c97c5294aedc737780a49d9df30889321cbe1204eac2c2ec6134035a92e44"},
 ]
 ujson = [
     {file = "ujson-4.0.2-cp36-cp36m-macosx_10_14_x86_64.whl", hash = "sha256:e390df0dcc7897ffb98e17eae1f4c442c39c91814c298ad84d935a3c5c7a32fa"},
