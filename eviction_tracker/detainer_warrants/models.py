@@ -188,6 +188,7 @@ class Judgement(db.Model, Timestamped):
     defendant_attorney_id = Column(db.Integer, db.ForeignKey(
         'attorneys.id', ondelete=('CASCADE')
     ))
+    last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
     _detainer_warrant = relationship(
         'DetainerWarrant', back_populates='_judgements')
@@ -203,6 +204,9 @@ class Judgement(db.Model, Timestamped):
     )
     _judge = relationship(
         'Judge', back_populates='_rulings')
+    last_edited_by = relationship(
+        'User', back_populates='edited_judgements'
+    )
 
     @property
     def in_favor_of(self):
@@ -335,8 +339,8 @@ class DetainerWarrant(db.Model, Timestamped):
 
     __tablename__ = 'detainer_warrants'
     docket_id = Column(db.String(255), primary_key=True)
-    file_date = Column(db.Date, nullable=False)
-    status_id = Column(db.Integer, nullable=False)
+    file_date = Column(db.Date)
+    status_id = Column(db.Integer)
     plaintiff_id = Column(db.Integer, db.ForeignKey(
         'plaintiffs.id', ondelete='CASCADE'))
     plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
@@ -354,6 +358,7 @@ class DetainerWarrant(db.Model, Timestamped):
     zip_code = Column(db.String(10))
     nonpayment = Column(db.Boolean)
     notes = Column(db.String(255))
+    last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
     _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
     _plaintiff_attorney = relationship(
@@ -367,6 +372,7 @@ class DetainerWarrant(db.Model, Timestamped):
                                cascade="all, delete",
                                )
     _judgements = relationship('Judgement', back_populates='_detainer_warrant')
+    last_edited_by = relationship('User', back_populates='edited_warrants')
 
     canvass_attempts = relationship(
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")
@@ -377,11 +383,11 @@ class DetainerWarrant(db.Model, Timestamped):
     @property
     def status(self):
         status_by_id = {v: k for k, v in DetainerWarrant.statuses.items()}
-        return status_by_id[self.status_id]
+        return status_by_id[self.status_id] if self.status_id else None
 
     @status.setter
     def status(self, status_name):
-        self.status_id = DetainerWarrant.statuses[status_name]
+        self.status_id = DetainerWarrant.statuses[status_name] if status_name else None
 
     @property
     def recurring_court_date(self):

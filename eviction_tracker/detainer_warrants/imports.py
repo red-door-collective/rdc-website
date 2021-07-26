@@ -119,7 +119,8 @@ def _from_spreadsheet_row(raw_warrant, defaults):
                      is_cares=is_cares,
                      is_legacy=is_legacy,
                      nonpayment=nonpayment,
-                     notes=notes
+                     notes=notes,
+                     last_edited_by_id=-1
                      )
 
     insert_stmt = insert(DetainerWarrant).values(

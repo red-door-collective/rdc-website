@@ -15,7 +15,7 @@ from eviction_tracker.database import db
 from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
-
+import uuid
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
@@ -103,6 +103,16 @@ def sync_judgements(sheet_name, limit, service_account_key, warrant_sheet):
         detainer_warrants.judgement_imports.from_spreadsheet(rows)
 
 
+@click.command()
+@click.option('-c', '--courtroom', default=None,
+              help='Courtroom')
+@click.option('-d', '--date', default=None,
+              help='Date')
+@with_appcontext
+def scrape_sessions_site(courtroom, date):
+    detainer_warrants.judgement_scraping.scrape(courtroom, date)
+
+
 def validate_phone_number(client, app, phone_number):
     """Asks Twilio for additional phone number information. Saves result to the database."""
     proper_phone_number = None
@@ -176,11 +186,14 @@ def verify_phone(phone_number):
 def bootstrap():
     simple = "123456"
     env = current_app.config.get('ENV')
-    if env == 'development':
-        roles = ['Superuser', 'Admin', 'Organizer', 'Defendant']
-        for role in roles:
-            user_datastore.find_or_create_role(role)
+    roles = ['Superuser', 'Admin', 'Organizer', 'Defendant']
+    for role in roles:
+        user_datastore.find_or_create_role(role)
 
+    user_datastore.create_user(id=-1, email="system-user@reddoorcollective.org", first_name="System",
+                               last_name="User", password=hash_password(str(uuid.uuid4())), roles=['Superuser'])
+
+    if env == 'development':
         user_datastore.create_user(email="superuser@example.com", first_name="Super",
                                    last_name="User", password=hash_password(simple), roles=['Superuser'])
         user_datastore.create_user(email="admin@example.com", first_name="Admin",
@@ -189,4 +202,5 @@ def bootstrap():
                                    first_name="Organizer", last_name="Gal", password=hash_password(simple), roles=['Organizer'])
         user_datastore.create_user(email="defendant@example.com", first_name="Defendant",
                                    last_name="Guy", password=hash_password(simple), roles=['Defendant'])
-        db.session.commit()
+
+    db.session.commit()

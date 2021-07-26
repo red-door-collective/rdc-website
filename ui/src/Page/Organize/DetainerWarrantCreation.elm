@@ -102,8 +102,8 @@ type alias CourtroomForm =
 type alias Form =
     { docketId : String
     , fileDate : DatePickerState
-    , status : Status
-    , statusDropdown : Dropdown.State Status
+    , status : Maybe Status
+    , statusDropdown : Dropdown.State (Maybe Status)
     , plaintiff : PlaintiffForm
     , plaintiffAttorney : AttorneyForm
     , courtDate : DatePickerState
@@ -246,7 +246,7 @@ initDefendantForm defendant =
 editForm : DetainerWarrant -> Form
 editForm warrant =
     { docketId = warrant.docketId
-    , fileDate = initDatePicker (Just warrant.fileDate)
+    , fileDate = initDatePicker warrant.fileDate
     , status = warrant.status
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm warrant.plaintiff
@@ -352,7 +352,7 @@ initCreate : Form
 initCreate =
     { docketId = ""
     , fileDate = initDatePicker Nothing
-    , status = DetainerWarrant.Pending
+    , status = Nothing
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm Nothing
     , plaintiffAttorney = initAttorneyForm Nothing
@@ -430,8 +430,8 @@ type Msg
     | ChangedCourtDatePicker ChangeEvent
     | ChangedPlaintiffSearchBox (SearchBox.ChangeEvent Plaintiff)
     | ChangedPlaintiffAttorneySearchBox (SearchBox.ChangeEvent Attorney)
-    | PickedStatus (Maybe Status)
-    | StatusDropdownMsg (Dropdown.Msg Status)
+    | PickedStatus (Maybe (Maybe Status))
+    | StatusDropdownMsg (Dropdown.Msg (Maybe Status))
     | ChangedCourtroomSearchBox (SearchBox.ChangeEvent Courtroom)
     | ChangedJudgeSearchBox (SearchBox.ChangeEvent Judge)
     | ChangedAmountClaimed String
@@ -810,7 +810,7 @@ update msg model =
             updateForm
                 (\form ->
                     { form
-                        | status = Maybe.withDefault DetainerWarrant.Pending option
+                        | status = Maybe.andThen identity option
                     }
                 )
                 model
@@ -1999,7 +1999,7 @@ viewFileDate options form =
     let
         hasChanges =
             (Maybe.withDefault False <|
-                Maybe.map ((/=) form.fileDate.date << Just << .fileDate) options.originalWarrant
+                Maybe.map ((/=) form.fileDate.date << .fileDate) options.originalWarrant
             )
                 || (options.originalWarrant == Nothing && form.fileDate.date /= Nothing)
     in
@@ -2014,7 +2014,7 @@ viewFileDate options form =
                     , selected = form.fileDate.date
                     , text = form.fileDate.dateText
                     , label =
-                        requiredLabel Input.labelAbove "File Date"
+                        Input.labelAbove [] (text "File Date")
                     , placeholder =
                         Maybe.map (Input.placeholder [] << text << Date.toIsoString) options.today
                     , settings = DatePicker.defaultSettings
@@ -2129,7 +2129,7 @@ categoryDropdownConfig =
 
 
 statusDropdownConfig =
-    dropdownConfig "Status" DetainerWarrant.statusText StatusDropdownMsg PickedStatus
+    dropdownConfig "Status" (Maybe.withDefault "-" << Maybe.map DetainerWarrant.statusText) StatusDropdownMsg PickedStatus
 
 
 caresDropdownConfig =
@@ -2162,7 +2162,7 @@ viewStatus options form =
             (Maybe.withDefault False <|
                 Maybe.map ((/=) form.status << .status) options.originalWarrant
             )
-                || (options.originalWarrant == Nothing && form.status /= defaultStatus)
+                || (options.originalWarrant == Nothing)
     in
     column [ width shrink ]
         [ viewField
@@ -2171,7 +2171,7 @@ viewStatus options form =
             , description = "The current status of the case in the court system."
             , children =
                 [ column [ spacing 5, width fill ]
-                    [ requiredLabel Element.el "Status"
+                    [ Element.el [] (text "Status")
                     , Dropdown.view (statusDropdownConfig (withChanges hasChanges [])) { options = DetainerWarrant.statusOptions, selectedOption = Just form.status } form.statusDropdown
                         |> el []
                     ]
@@ -3556,12 +3556,7 @@ validateField today (Trimmed form) field =
                     []
 
             FileDate ->
-                case Date.fromIsoString form.fileDate.dateText of
-                    Ok _ ->
-                        []
-
-                    Err errorStr ->
-                        [ errorStr ]
+                []
 
             CourtDate ->
                 if String.isEmpty form.courtDate.dateText then
@@ -3699,7 +3694,7 @@ toDetainerWarrant : Date -> TrimmedForm -> ApiForms
 toDetainerWarrant today (Trimmed form) =
     { detainerWarrant =
         { docketId = form.docketId
-        , fileDate = Maybe.withDefault (Date.toIsoString today) <| Maybe.map Date.toIsoString form.fileDate.date
+        , fileDate = Maybe.map Date.toIsoString form.fileDate.date
         , status = form.status
         , plaintiff = Maybe.map (related << .id) form.plaintiff.person
         , plaintiffAttorney = Maybe.map (related << .id) form.plaintiffAttorney.person
@@ -3956,11 +3951,11 @@ updateDetainerWarrant maybeCred form =
         detainerWarrant =
             Encode.object
                 ([ ( "docket_id", Encode.string form.docketId )
-                 , ( "file_date", Encode.string form.fileDate )
-                 , ( "status", Encode.string (DetainerWarrant.statusText form.status) )
                  , ( "defendants", Encode.list encodeRelated form.defendants )
                  , ( "amount_claimed_category", Encode.string (DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory) )
                  ]
+                    ++ nullable "file_date" Encode.string form.fileDate
+                    ++ nullable "status" Encode.string (Maybe.map DetainerWarrant.statusText form.status)
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
                     ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney
                     ++ nullable "court_date" Encode.string form.courtDate

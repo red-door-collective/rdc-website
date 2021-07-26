@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields
+from ..admin import serializers
 
 
 class DistrictSchema(Schema):
@@ -110,7 +111,10 @@ class DetainerWarrantSchema(Schema):
     presiding_judge = fields.Nested(JudgeSchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
     judgements = fields.Nested(JudgementSchema, many=True)
+    last_edited_by = fields.Nested(serializers.UserSchema)
 
+    file_date = fields.Date(allow_none=True)
+    status = fields.String(allow_none=True)
     amount_claimed = fields.Float(allow_none=True)
     court_date = fields.Date(allow_none=True)
     is_cares = fields.Bool(allow_none=True)
@@ -120,7 +124,7 @@ class DetainerWarrantSchema(Schema):
 
     class Meta:
         fields = ("docket_id", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
-                  "judgements", "plaintiff", "plaintiff_attorney", "courtroom", "presiding_judge", "defendants",
+                  "judgements", "last_edited_by", "plaintiff", "plaintiff_attorney", "courtroom", "presiding_judge", "defendants",
                   "zip_code", "is_legacy", "is_cares", "nonpayment", "notes")
 
 

@@ -599,11 +599,11 @@ viewWarrants model =
               , width = Element.fill
               }
             , { header = viewHeaderCell "File Date"
-              , view = cell (Date.toIsoString << .fileDate)
+              , view = cell (Maybe.withDefault "" << Maybe.map Date.toIsoString << .fileDate)
               , width = Element.fill
               }
             , { header = viewHeaderCell "Status"
-              , view = cell (DetainerWarrant.statusText << .status)
+              , view = cell (Maybe.withDefault "" << Maybe.map DetainerWarrant.statusText << .status)
               , width = fill
               }
             , { header = viewHeaderCell "Plaintiff"
