@@ -76,7 +76,7 @@ class TestDataImport(TestCase):
         db.drop_all()
 
     def test_detainer_warrant_import(self):
-        detainer_warrants.imports.from_spreadsheet([example])
+        detainer_warrants.imports.from_workbook([example])
         warrant = db.session.query(DetainerWarrant).first()
 
         self.assertEqual(warrant.docket_id, example['Docket #'])
