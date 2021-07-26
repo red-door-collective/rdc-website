@@ -44,9 +44,7 @@ def _from_spreadsheet(defaults, court_date, raw_judgement):
         return
 
     warrant, _ = get_or_create(db.session, DetainerWarrant,
-                               docket_id=docket_id, defaults={
-                                   'status_id': 1, 'file_date': date.today()}
-                               )
+                               docket_id=docket_id, defaults={'last_edited_by_id': -1})
 
     plaintiff_attorney = None
     if judgement[PLAINTIFF_ATTORNEY]:
@@ -111,6 +109,7 @@ def _from_spreadsheet(defaults, court_date, raw_judgement):
         mediation_letter=mediation_letter,
         dismissal_basis_id=Judgement.dismissal_bases[dismissal_basis] if dismissal_basis else None,
         notes=notes,
+        last_edited_by_id=-1
     )
 
     insert_stmt = insert(Judgement).values(

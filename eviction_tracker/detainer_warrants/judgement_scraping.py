@@ -90,7 +90,8 @@ def insert_warrant(defaults, docket_id, listing):
                      plaintiff_id=plaintiff.id if plaintiff else None,
                      plaintiff_attorney_id=attorney.id if attorney else None,
                      court_date=court_date,
-                     courtroom_id=courtroom.id if courtroom else None
+                     courtroom_id=courtroom.id if courtroom else None,
+                     last_edited_by_id=-1
                      )
 
     insert_stmt = insert(DetainerWarrant).values(

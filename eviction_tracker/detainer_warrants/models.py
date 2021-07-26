@@ -188,6 +188,7 @@ class Judgement(db.Model, Timestamped):
     defendant_attorney_id = Column(db.Integer, db.ForeignKey(
         'attorneys.id', ondelete=('CASCADE')
     ))
+    last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
     _detainer_warrant = relationship(
         'DetainerWarrant', back_populates='_judgements')
@@ -203,6 +204,9 @@ class Judgement(db.Model, Timestamped):
     )
     _judge = relationship(
         'Judge', back_populates='_rulings')
+    last_edited_by = relationship(
+        'User', back_populates='edited_judgements'
+    )
 
     @property
     def in_favor_of(self):
@@ -354,6 +358,7 @@ class DetainerWarrant(db.Model, Timestamped):
     zip_code = Column(db.String(10))
     nonpayment = Column(db.Boolean)
     notes = Column(db.String(255))
+    last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
     _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
     _plaintiff_attorney = relationship(
@@ -367,6 +372,7 @@ class DetainerWarrant(db.Model, Timestamped):
                                cascade="all, delete",
                                )
     _judgements = relationship('Judgement', back_populates='_detainer_warrant')
+    last_edited_by = relationship('User', back_populates='edited_warrants')
 
     canvass_attempts = relationship(
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")

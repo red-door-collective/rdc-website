@@ -215,6 +215,10 @@ class JudgementResource(JudgementResourceBase):
     def get(self, id):
         return self.retrieve(id)
 
+    def update_item(self, item, data):
+        data['last_edited_by_id'] = current_user.id
+        super().update_item(item, data)
+
     def patch(self, id):
         return self.update(int(id), partial=True)
 
@@ -270,6 +274,10 @@ class DetainerWarrantListResource(DetainerWarrantResourceBase):
 class DetainerWarrantResource(DetainerWarrantResourceBase):
     def get(self, id):
         return self.retrieve(id)
+
+    def update_item(self, item, data):
+        data['last_edited_by_id'] = current_user.id
+        super().update_item(item, data)
 
     def patch(self, id):
         return self.upsert(id)

@@ -43,6 +43,12 @@ class User(db.Model, UserMixin):
                          )
     attended_events = relationship(
         'Event', secondary=events_users, back_populates='attendees')
+    edited_warrants = relationship(
+        'DetainerWarrant', back_populates='last_edited_by'
+    )
+    edited_judgements = relationship(
+        'Judgement', back_populates='last_edited_by'
+    )
 
     @property
     def name(self):
