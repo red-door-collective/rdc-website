@@ -149,12 +149,16 @@ def _from_workbook_row(raw_warrant, defaults):
     db.session.commit()
 
 
+def from_workbook_help(warrants):
+    defaults = district_defaults()
+
+    for warrant in warrants:
+        _from_workbook_row(warrant, defaults)
+
+
 def from_workbook(workbook_name, limit=None, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
     warrants = dw_rows(limit, wb)
 
-    defaults = district_defaults()
-
-    for warrant in warrants:
-        _from_workbook_row(warrant, defaults)
+    from_workbook_help(warrants, defaults)

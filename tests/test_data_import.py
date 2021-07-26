@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_testing import TestCase
 from eviction_tracker.app import create_app, db, DetainerWarrant
 from eviction_tracker.admin.models import User, user_datastore
+from eviction_tracker.detainer_warrants.models import District
 from flask_security import hash_password, auth_token_required
 import eviction_tracker.detainer_warrants as detainer_warrants
 from datetime import datetime
@@ -70,13 +71,14 @@ class TestDataImport(TestCase):
             user_datastore.find_or_create_role(role)
         user_datastore.create_user(id=-1, email="system-user@reddoorcollective.org", first_name="System",
                                    last_name="User", password=hash_password(str(uuid.uuid4())), roles=['Superuser'])
+        District.create(name='Davidson County')
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
 
     def test_detainer_warrant_import(self):
-        detainer_warrants.imports.from_workbook([example])
+        detainer_warrants.imports.from_workbook_help([example])
         warrant = db.session.query(DetainerWarrant).first()
 
         self.assertEqual(warrant.docket_id, example['Docket #'])
