@@ -35,12 +35,16 @@ def extract_dismissal_basis(outcome, basis):
             return None
 
 
+def judgement_exists(court_date, docket_id):
+    return bool(Judgement.query.filter_by(detainer_warrant_id=docket_id, court_date=court_date).first())
+
+
 def _from_spreadsheet(defaults, court_date, raw_judgement):
     judgement = {k: normalize(v) for k, v in raw_judgement.items()}
 
     docket_id = judgement[DOCKET_ID]
 
-    if not docket_id:
+    if not bool(docket_id) or judgement_exists(court_date, docket_id):
         return
 
     warrant, _ = get_or_create(db.session, DetainerWarrant,
