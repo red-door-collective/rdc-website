@@ -57,6 +57,7 @@ def create_app(testing=False):
     app.config['TWILIO_ACCOUNT_SID'] = os.environ['TWILIO_ACCOUNT_SID']
     app.config['TWILIO_AUTH_TOKEN'] = os.environ['TWILIO_AUTH_TOKEN']
     app.config['SCHEDULER_API_ENABLED'] = True
+    app.config['TESTING'] = testing
     app.config.update(**security_config)
 
     register_extensions(app)
@@ -229,8 +230,9 @@ def register_extensions(app):
     login_manager.login_view = None
     security.init_app(app, user_datastore)
     flask_wtf.CSRFProtect(app)
-    scheduler.init_app(app)
-    scheduler.start()
+    if app.config['TESTING'] == False:
+        scheduler.init_app(app)
+        scheduler.start()
 
     from eviction_tracker import tasks
 
