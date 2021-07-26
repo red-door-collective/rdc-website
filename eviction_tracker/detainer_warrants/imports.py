@@ -1,6 +1,6 @@
 from .models import db
 from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plaintiff, detainer_warrant_defendants
-from .util import get_or_create, normalize
+from .util import get_or_create, normalize, open_workbook, dw_rows, district_defaults
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
@@ -60,7 +60,7 @@ def link_defendant(docket_id, defendant):
                        .values(detainer_warrant_docket_id=docket_id, defendant_id=defendant.id))
 
 
-def _from_spreadsheet_row(raw_warrant, defaults):
+def _from_workbook_row(raw_warrant, defaults):
     warrant = {k: normalize(v) for k, v in raw_warrant.items()}
 
     docket_id = warrant[DOCKET_ID]
@@ -149,13 +149,16 @@ def _from_spreadsheet_row(raw_warrant, defaults):
     db.session.commit()
 
 
-def from_spreadsheet(warrants):
-    district, _ = get_or_create(db.session, District, name="Davidson County")
-
-    db.session.add(district)
-    db.session.commit()
-
-    defaults = {'district': district}
+def from_workbook_help(warrants):
+    defaults = district_defaults()
 
     for warrant in warrants:
-        _from_spreadsheet_row(warrant, defaults)
+        _from_workbook_row(warrant, defaults)
+
+
+def from_workbook(workbook_name, limit=None, service_account_key=None):
+    wb = open_workbook(workbook_name, service_account_key)
+
+    warrants = dw_rows(limit, wb)
+
+    from_workbook_help(warrants, defaults)

@@ -1,6 +1,6 @@
 from .models import db
 from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Judgement, Plaintiff, detainer_warrant_defendants
-from .util import get_or_create, normalize
+from .util import open_workbook
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
@@ -51,6 +51,13 @@ def date_str(d):
     return datetime.strftime(d, '%m/%d/%Y')
 
 
+def defendant_name(defendant):
+    if defendant:
+        return defendant.name
+    else:
+        return ''
+
+
 def defendant_columns(defendant):
     if defendant:
         return [defendant.name, defendant.first_name, defendant.middle_name, defendant.last_name,
@@ -88,23 +95,30 @@ def _to_spreadsheet_row(warrant):
     ]))]
 
 
-def to_spreadsheet(sheet_name, service_account_key=None):
-    connect_kwargs = dict()
-    if service_account_key:
-        connect_kwargs['filename'] = service_account_key
+def get_or_create_sheet(wb, name, rows=100, cols=25):
+    try:
+        return wb.worksheet(name)
+    except gspread.exceptions.GSpreadException:
+        return wb.add_worksheet(
+            title=name, rows=str(rows), cols=str(cols))
 
-    gc = gspread.service_account(**connect_kwargs)
 
-    wks = gc.open(sheet_name).sheet1
-
-    wks.update('A1:AP1', [header])
+def to_spreadsheet(workbook_name, service_account_key=None):
+    wb = open_workbook(workbook_name, service_account_key)
 
     warrants = DetainerWarrant.query.filter(
         DetainerWarrant.docket_id.ilike('%\G\T%'))
 
+    total = warrants.count()
+
+    wks = get_or_create_sheet(wb,
+                              'Detainer Warrants', rows=total + 1, cols=len(header))
+
+    wks.update('A1:AP1', [header])
+
     rows = [_to_spreadsheet_row(warrant) for warrant in warrants]
 
-    wks.update(f'A2:AP{warrants.count() + 1}', rows)
+    wks.update(f'A2:AP{total + 1}', rows)
 
 
 judgement_headers = ['Court Date', 'Docket #', 'Courtroom', 'Plaintiff', 'Pltf Lawyer', 'Defendant', 'Def Lawyer', 'Def. Address', 'Reason',
@@ -134,27 +148,63 @@ def _to_judgement_row(judgement):
             ]]
 
 
-def to_judgement_sheet(sheet_name, service_account_key=None):
-    connect_kwargs = dict()
-    if service_account_key:
-        connect_kwargs['filename'] = service_account_key
-
-    gc = gspread.service_account(**connect_kwargs)
+def to_judgement_sheet(workbook_name, service_account_key=None):
+    wb = open_workbook(workbook_name, service_account_key)
 
     judgements = Judgement.query.filter(
         Judgement.detainer_warrant_id.ilike('%\G\T%'))
 
     total = judgements.count()
 
-    wb = gc.open(sheet_name)
-
-    wks = wb.worksheet('Judgements')
-    if not wks:
-        wks = wb.add_worksheet(
-            title="Judgements", rows=str(total + 1), cols="15")
+    wks = get_or_create_sheet(wb,
+                              'Judgements', rows=total + 1, cols=len(judgement_headers))
 
     wks.update('A1:O1', [judgement_headers])
 
     rows = [_to_judgement_row(judgement) for judgement in judgements]
 
     wks.update(f'A2:O{total + 1}', rows)
+
+
+court_watch_headers = ['Court Date', 'Plaintiff', 'Plaintiff Attorney', 'Courtroom',
+                       'Address', 'Defendant',
+                       'Defendant 2', 'Defendant 3', 'Defendant 4', 'Notes', 'Docket #']
+
+
+def _to_court_watch_row(warrant):
+    return [dw if dw else '' for dw in list(chain.from_iterable([
+        [
+            date_str(warrant.court_date) if warrant.court_date else '',
+            warrant.plaintiff.name if warrant.plaintiff else '',
+            warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
+            warrant.courtroom.name if warrant.courtroom else '',
+            warrant.defendants[0].address if len(
+                warrant.defendants) > 0 else ''
+        ],
+        [defendant_name(safelist(warrant.defendants).get(index))
+         for index in range(4)],
+        [
+            warrant.notes,
+            warrant.docket_id
+        ]
+    ]))]
+
+
+def to_court_watch_sheet(workbook_name, service_account_key=None):
+    wb = open_workbook(workbook_name, service_account_key)
+
+    warrants = DetainerWarrant.query.filter(
+        DetainerWarrant.docket_id.ilike('%\G\T%'),
+        DetainerWarrant.court_date != None
+    ).order_by(DetainerWarrant.court_date.desc())
+
+    total = warrants.count()
+
+    wks = get_or_create_sheet(wb,
+                              'Court Watch', rows=total + 1, cols=len(court_watch_headers))
+
+    wks.update('A1:K1', [court_watch_headers])
+
+    rows = [_to_court_watch_row(warrant) for warrant in warrants]
+
+    wks.update(f'A2:K{total + 1}', rows)

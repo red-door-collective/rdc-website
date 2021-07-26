@@ -1,6 +1,6 @@
 from .models import db
 from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Judgement, Plaintiff, detainer_warrant_defendants
-from .util import get_or_create, normalize
+from .util import get_or_create, normalize, open_workbook, dw_rows, district_defaults
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
@@ -39,7 +39,7 @@ def judgement_exists(court_date, docket_id):
     return bool(Judgement.query.filter_by(detainer_warrant_id=docket_id, court_date=court_date).first())
 
 
-def _from_spreadsheet(defaults, court_date, raw_judgement):
+def _from_workbook(defaults, court_date, raw_judgement):
     judgement = {k: normalize(v) for k, v in raw_judgement.items()}
 
     docket_id = judgement[DOCKET_ID]
@@ -129,21 +129,28 @@ def _from_spreadsheet(defaults, court_date, raw_judgement):
     db.session.commit()
 
 
-def from_spreadsheet(judgements):
-    district, _ = get_or_create(db.session, District, name="Davidson County")
+def from_workbook(workbook_name, limit=None, service_account_key=None):
+    wb = open_workbook(workbook_name, service_account_key)
 
-    db.session.add(district)
-    db.session.commit()
+    worksheets = [wb.worksheet(ws) for ws in [
+        "March 2021", "May 2021", "April 2021", "June 2021", "July 2021"]]
 
-    defaults = {'district': district}
+    defaults = district_defaults()
 
-    court_date = None
-    for judgement in judgements:
-        court_date = judgement[COURT_DATE] if judgement[COURT_DATE] else court_date
-        _from_spreadsheet(defaults, court_date, judgement)
+    for ws in worksheets:
+        all_rows = ws.get_all_records()
+
+        stop_index = int(limit) if limit else all_rows
+
+        judgements = all_rows[:stop_index] if limit else all_rows
+
+        court_date = None
+        for judgement in judgements:
+            court_date = judgement[COURT_DATE] if judgement[COURT_DATE] else court_date
+            _from_workbook(defaults, court_date, judgement)
 
 
-def _from_dw_sheet_row(raw_warrant):
+def _from_dw_wb_row(raw_warrant):
     warrant = {k: normalize(v) for k, v in raw_warrant.items()}
 
     dw = db.session.query(DetainerWarrant).get(warrant["Docket #"])
@@ -171,6 +178,8 @@ def _from_dw_sheet_row(raw_warrant):
         db.session.commit()
 
 
-def from_dw_sheet(warrants):
+def from_dw_wb(workbook_name, limit=None, service_account_key=None):
+    wb = open_workbook(workbook_name, service_account_key)
+    warrants = dw_rows(limit, wb)
     for warrant in warrants:
-        _from_dw_sheet_row(warrant)
+        _from_dw_wb_row(warrant)

@@ -1,4 +1,29 @@
+from .models import District
 from sqlalchemy.sql import ClauseElement
+import gspread
+
+
+def district_defaults():
+    district = District.query.filter_by(name="Davidson County").first()
+    return {'district': district}
+
+
+def dw_rows(limit, workbook):
+    ws = workbook.worksheet("2020-2021 detainer warrants")
+
+    all_rows = ws.get_all_records()
+
+    stop_index = int(limit) if limit else all_rows
+
+    return all_rows[:stop_index] if limit else all_rows
+
+
+def open_workbook(workbook_name, service_account_key):
+    connect_kwargs = dict()
+    if service_account_key:
+        connect_kwargs['filename'] = service_account_key
+
+    return gspread.service_account(**connect_kwargs).open(workbook_name)
 
 
 def get_or_create(session, model, defaults=None, **kwargs):

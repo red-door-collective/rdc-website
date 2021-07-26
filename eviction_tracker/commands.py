@@ -30,77 +30,38 @@ def test():
     exit(rv)
 
 
-def dw_rows(limit, sheet):
-    ws = sheet.worksheet("2020-2021 detainer warrants")
-
-    all_rows = ws.get_all_records()
-
-    stop_index = int(limit) if limit else all_rows
-
-    return all_rows[:stop_index] if limit else all_rows
-
-
 @click.command()
-@click.option('-s', '--sheet-name', default=None,
+@click.option('-w', '--workbook-name', default='CURRENT 2020-2021 Detainer Warrants',
               help='Name of Google spreadsheet')
 @click.option('-l', '--limit', default=None,
               help='Number of rows to insert')
 @click.option('-k', '--service-account-key', default=None,
               help='Google Service Account filepath')
 @with_appcontext
-def sync(sheet_name, limit, service_account_key):
+def sync(workbook_name, limit, service_account_key):
     """Sync data with the Google spreadsheet"""
-
-    connect_kwargs = dict()
-    if service_account_key:
-        connect_kwargs['filename'] = service_account_key
-
-    gc = gspread.service_account(**connect_kwargs)
-
-    sh = gc.open(sheet_name)
-
-    rows = dw_rows(limit, sh)
-
-    detainer_warrants.imports.from_spreadsheet(rows)
+    detainer_warrants.imports.from_workbook(
+        workbook_name, limit=limit, service_account_key=service_account_key)
 
 
 @click.command()
-@click.option('-s', '--sheet-name', default=None,
+@click.option('-w', '--workbook-name', default='GS Dockets (Starting March 15)',
               help='Name of Google spreadsheet')
 @click.option('-l', '--limit', default=None,
               help='Number of rows to insert')
 @click.option('-k', '--service-account-key', default=None,
               help='Google Service Account filepath')
-@click.option('-w', '--warrant-sheet', default=None,
-              help='Extract judgements from detainer warrant sheet')
+@click.option('-ww', '--warrant-wb', is_flag=True, flag_value='CURRENT 2020-2021 Detainer Warrants',
+              default=None, help='Extract judgements from detainer warrant sheet')
 @with_appcontext
-def sync_judgements(sheet_name, limit, service_account_key, warrant_sheet):
-    connect_kwargs = dict()
-    if service_account_key:
-        connect_kwargs['filename'] = service_account_key
+def sync_judgements(workbook_name, limit, service_account_key, warrant_wb):
+    if warrant_wb:
+        detainer_warrants.judgement_imports.from_dw_wb(
+            warrant_wb, limit=limit, service_account_key=service_account_key)
 
-    gc = gspread.service_account(**connect_kwargs)
-
-    if warrant_sheet:
-        sh = gc.open(warrant_sheet)
-        rows = dw_rows(limit, sh)
-
-        detainer_warrants.judgement_imports.from_dw_sheet(rows)
-        return
-
-    sh = gc.open(sheet_name)
-
-    worksheets = [sh.worksheet(ws) for ws in [
-        "March 2021", "May 2021", "April 2021", "June 2021", "July 2021"]]
-
-    for ws in worksheets:
-        all_rows = ws.get_all_records()
-
-        stop_index = int(limit) if limit else all_rows
-
-        rows = all_rows[:stop_index] if limit else all_rows
-
-        detainer_warrants.judgement_imports.from_spreadsheet(rows)
+    else:
+        detainer_warrants.judgement_imports.from_workbook(
+            workbook_name, limit=limit, service_account_key=service_account_key)
 
 
 @click.command()
@@ -114,15 +75,18 @@ def scrape_sessions_site(courtroom, date):
 
 
 @click.command()
-@click.option('-s', '--sheet-name', default=None,
+@click.option('-w', '--workbook-name', default='Website Export',
               help='Sheet name')
 @click.option('-k', '--service-account-key', default=None,
               help='Google Service Account filepath')
 @with_appcontext
-def export(sheet_name, service_account_key):
-    detainer_warrants.exports.to_spreadsheet(sheet_name, service_account_key)
-    detainer_warrants.exports.to_judgement_sheet(
-        sheet_name, service_account_key)
+def export(workbook_name, service_account_key):
+    # detainer_warrants.exports.to_spreadsheet(
+    #     workbook_name, service_account_key)
+    # detainer_warrants.exports.to_judgement_sheet(
+    #     workbook_name, service_account_key)
+    detainer_warrants.exports.to_court_watch_sheet(
+        workbook_name, service_account_key)
 
 
 def validate_phone_number(client, app, phone_number):
@@ -196,8 +160,14 @@ def verify_phone(phone_number):
 @click.command()
 @with_appcontext
 def bootstrap():
+    district, _ = get_or_create(db.session, District, name="Davidson County")
+
+    db.session.add(district)
+    db.session.commit()
+
     simple = "123456"
     env = current_app.config.get('ENV')
+
     roles = ['Superuser', 'Admin', 'Organizer', 'Defendant']
     for role in roles:
         user_datastore.find_or_create_role(role)
