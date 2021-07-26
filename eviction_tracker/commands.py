@@ -120,7 +120,7 @@ def scrape_sessions_site(courtroom, date):
               help='Google Service Account filepath')
 @with_appcontext
 def export(sheet_name, service_account_key):
-    # detainer_warrants.exports.to_spreadsheet(sheet_name, service_account_key)
+    detainer_warrants.exports.to_spreadsheet(sheet_name, service_account_key)
     detainer_warrants.exports.to_judgement_sheet(
         sheet_name, service_account_key)
 
