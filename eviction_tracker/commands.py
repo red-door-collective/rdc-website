@@ -120,7 +120,9 @@ def scrape_sessions_site(courtroom, date):
               help='Google Service Account filepath')
 @with_appcontext
 def export(sheet_name, service_account_key):
-    detainer_warrants.exports.to_spreadsheet(sheet_name, service_account_key)
+    # detainer_warrants.exports.to_spreadsheet(sheet_name, service_account_key)
+    detainer_warrants.exports.to_judgement_sheet(
+        sheet_name, service_account_key)
 
 
 def validate_phone_number(client, app, phone_number):
@@ -137,7 +139,7 @@ def validate_phone_number(client, app, phone_number):
     existing_number = db.session.query(PhoneNumberVerification).filter_by(
         phone_number=proper_phone_number).first()
 
-    if existing_numbe/r is not None:
+    if existing_number is not None:
         app.logger.info(f'number already validated: {existing_number}')
         return
 

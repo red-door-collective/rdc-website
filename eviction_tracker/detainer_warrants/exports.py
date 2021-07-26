@@ -1,5 +1,5 @@
 from .models import db
-from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plaintiff, detainer_warrant_defendants
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Judgement, Plaintiff, detainer_warrant_defendants
 from .util import get_or_create, normalize
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
@@ -105,3 +105,56 @@ def to_spreadsheet(sheet_name, service_account_key=None):
     rows = [_to_spreadsheet_row(warrant) for warrant in warrants]
 
     wks.update(f'A2:AP{warrants.count() + 1}', rows)
+
+
+judgement_headers = ['Court Date', 'Docket #', 'Courtroom', 'Plaintiff', 'Pltf Lawyer', 'Defendant', 'Def Lawyer', 'Def. Address', 'Reason',
+                     'Amount', '"Mediation Letter"', 'Notes (anything unusual on detainer or in', 'Judgement', 'Judge',	'Judgement Basis']
+
+
+def _to_judgement_row(judgement):
+    return [dw if dw else '' for dw in
+            [
+                date_str(judgement.court_date) if judgement.court_date else '',
+                judgement.detainer_warrant_id,
+                judgement.detainer_warrant.courtroom.name if judgement.detainer_warrant.courtroom else '',
+                judgement.plaintiff.name if judgement.plaintiff else '',
+                judgement.plaintiff_attorney.name if judgement.plaintiff_attorney else '',
+                judgement.detainer_warrant.defendants[0].name if len(
+                    judgement.detainer_warrant.defendants) > 0 else '',
+                judgement.defendant_attorney.name if judgement.defendant_attorney else '',
+                judgement.detainer_warrant.defendants[0].address if len(
+                    judgement.detainer_warrant.defendants) > 0 else '',
+                '',  # reason?
+                str(judgement.awards_fees) if judgement.awards_fees else '',
+                judgement.mediation_letter,
+                judgement.notes,
+                judgement.summary,
+                judgement.judge.name if judgement.judge else '',
+                judgement.dismissal_basis
+            ]]
+
+
+def to_judgement_sheet(sheet_name, service_account_key=None):
+    connect_kwargs = dict()
+    if service_account_key:
+        connect_kwargs['filename'] = service_account_key
+
+    gc = gspread.service_account(**connect_kwargs)
+
+    judgements = Judgement.query.filter(
+        Judgement.detainer_warrant_id.ilike('%\G\T%'))
+
+    total = judgements.count()
+
+    wb = gc.open(sheet_name)
+
+    wks = wb.worksheet('Judgements')
+    if not wks:
+        wks = wb.add_worksheet(
+            title="Judgements", rows=str(total + 1), cols="15")
+
+    wks.update('A1:O1', [judgement_headers])
+
+    rows = [_to_judgement_row(judgement) for judgement in judgements]
+
+    wks.update(f'A2:O{total + 1}', rows)

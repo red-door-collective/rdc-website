@@ -10,8 +10,10 @@ def export():
     print('Exporting to google sheets')
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
     with scheduler.app.app_context():
-        detainer_warrants.exports.to_spreadsheet(
-            'Website Export', '/srv/within/eviction-tracker/google_service_account.json')
+        sheet = 'Website Export'
+        key = '/srv/within/eviction-tracker/google_service_account.json'
+        detainer_warrants.exports.to_spreadsheet(sheet, key)
+        detainer_warrants.exports.to_judgement_sheet(sheet, key)
 
 
 @scheduler.task('interval', id='sync_with_sessions_site', minutes=60)
