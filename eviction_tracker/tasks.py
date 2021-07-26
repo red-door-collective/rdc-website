@@ -5,6 +5,17 @@ import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.extensions import scheduler
 
 
+@scheduler.task('interval', id='export', minutes=60)
+def export():
+    print('Exporting to google sheets')
+    print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
+    with scheduler.app.app_context():
+        sheet = 'Website Export'
+        key = '/srv/within/eviction-tracker/google_service_account.json'
+        detainer_warrants.exports.to_spreadsheet(sheet, key)
+        detainer_warrants.exports.to_judgement_sheet(sheet, key)
+
+
 @scheduler.task('interval', id='sync_with_sessions_site', minutes=60)
 def sync_with_sessions_site():
     print('Syncing with sessions site:')
