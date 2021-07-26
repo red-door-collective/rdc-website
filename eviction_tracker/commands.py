@@ -75,16 +75,22 @@ def scrape_sessions_site(courtroom, date):
 
 
 @click.command()
+@with_appcontext
+def scrape_sessions_week():
+    detainer_warrants.judgement_scraping.scrape_entire_site()
+
+
+@click.command()
 @click.option('-w', '--workbook-name', default='Website Export',
               help='Sheet name')
 @click.option('-k', '--service-account-key', default=None,
               help='Google Service Account filepath')
 @with_appcontext
 def export(workbook_name, service_account_key):
-    # detainer_warrants.exports.to_spreadsheet(
-    #     workbook_name, service_account_key)
-    # detainer_warrants.exports.to_judgement_sheet(
-    #     workbook_name, service_account_key)
+    detainer_warrants.exports.to_spreadsheet(
+        workbook_name, service_account_key)
+    detainer_warrants.exports.to_judgement_sheet(
+        workbook_name, service_account_key)
     detainer_warrants.exports.to_court_watch_sheet(
         workbook_name, service_account_key)
 

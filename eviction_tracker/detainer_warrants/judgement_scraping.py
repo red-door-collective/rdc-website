@@ -4,6 +4,7 @@ import re
 import requests
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
+from datetime import date, datetime, timedelta
 
 from .models import db
 from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plaintiff, detainer_warrant_defendants
@@ -165,3 +166,14 @@ def scrape(courtroom, date):
 
     for docket_id, listing in detainers.items():
         insert_warrant(defaults, docket_id, listing)
+
+
+def scrape_entire_site():
+    today = date.today()
+    day_delta = timedelta(days=1)
+    week = [day_delta * num + today for num in range(4)]
+    for day in week:
+        date_str = datetime.strftime(day, '%m/%d/%Y')
+        print(f'scraping court dates for {date_str}')
+        scrape('1A', date_str)
+        scrape('1B', date_str)

@@ -389,6 +389,7 @@ def register_commands(app):
     app.cli.add_command(commands.sync)
     app.cli.add_command(commands.sync_judgements)
     app.cli.add_command(commands.scrape_sessions_site)
+    app.cli.add_command(commands.scrape_sessions_week)
     app.cli.add_command(commands.export)
     app.cli.add_command(commands.verify_phone)
     app.cli.add_command(commands.verify_phones)
