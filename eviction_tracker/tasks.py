@@ -1,11 +1,12 @@
 import time
 from datetime import datetime, date, timedelta
+from apscheduler.triggers.interval import IntervalTrigger
 
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.extensions import scheduler
 
 
-@scheduler.task('interval', id='import_warrants', minutes=60)
+@scheduler.task(IntervalTrigger(minutes=60), id='import_warrants')
 def import_warrants():
     print('Importing from google sheets')
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
@@ -21,7 +22,7 @@ def import_warrants():
             judgement_wb, service_account_key=key)
 
 
-@scheduler.task('interval', id='export', minutes=65)
+@scheduler.task(IntervalTrigger(minutes=65), id='export')
 def export():
     print('Exporting to google sheets')
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
@@ -33,7 +34,7 @@ def export():
         detainer_warrants.exports.to_court_watch_sheet(workbook_name, key)
 
 
-@scheduler.task('interval', id='sync_with_sessions_site', minutes=60)
+@scheduler.task(IntervalTrigger(minutes=60), id='sync_with_sessions_site')
 def sync_with_sessions_site():
     print('Syncing with sessions site:')
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
