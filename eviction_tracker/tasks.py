@@ -21,7 +21,7 @@ def import_warrants():
             judgement_wb, service_account_key=key)
 
 
-@scheduler.task('interval', id='export', minutes=60)
+@scheduler.task('interval', id='export', minutes=65)
 def export():
     print('Exporting to google sheets')
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
