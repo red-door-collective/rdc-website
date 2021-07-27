@@ -7,8 +7,8 @@ from sqlalchemy.dialects.postgresql import insert
 from datetime import date, datetime, timedelta
 
 from .models import db
-from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plaintiff, detainer_warrant_defendants
-from .util import get_or_create, normalize
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Judgement, Plaintiff, detainer_warrant_defendants
+from .util import get_or_create, normalize, district_defaults
 
 SITE = "http://circuitclerk.nashville.gov/dockets/viewdocket_c.asp"
 
@@ -117,6 +117,19 @@ def insert_warrant(defaults, docket_id, listing):
 
     db.session.commit()
 
+    if Judgement.query.filter_by(court_date=court_date, detainer_warrant_id=docket_id).first():
+        return
+
+    Judgement.create(
+        court_date=court_date,
+        detainer_warrant_id=docket_id,
+        courtroom_id=courtroom.id if courtroom else None,
+        plaintiff_id=plaintiff.id if plaintiff else None,
+        plaintiff_attorney_id=attorney.id if attorney else None
+    )
+
+    db.session.commit()
+
 
 def scrape(courtroom, date):
     r = requests.get(SITE, params={
@@ -157,13 +170,7 @@ def scrape(courtroom, date):
                 'address': re.sub(r'[ ]{3,}', '', dw[DEFENDANT_ADDRESS_INDEX:]).strip()
             })
 
-    district, _ = get_or_create(db.session, District, name="Davidson County")
-
-    db.session.add(district)
-    db.session.commit()
-
-    defaults = {'district': district}
-
+    defaults = district_defaults()
     for docket_id, listing in detainers.items():
         insert_warrant(defaults, docket_id, listing)
 
