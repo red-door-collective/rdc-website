@@ -491,7 +491,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @property
     def judgements(self):
-        return sorted(self._judgements, key=lambda j: j.court_date)
+        return sorted(self._judgements, key=lambda j: (j.court_date is not None, j.court_date), reverse=True)
 
     @judgements.setter
     def judgements(self, judgements):
