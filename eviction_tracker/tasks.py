@@ -12,7 +12,7 @@ def import_warrants():
     with scheduler.app.app_context():
         dw_wb = 'CURRENT 2020-2021 Detainer Warrants'
         judgement_wb = 'GS Dockets (Starting March 15)'
-        key = '/srv/within/eviction-tracker/google_service_account.json'
+        key = scheduler.app.config['GOOGLE_ACCOUNT_PATH']
         detainer_warrants.imports.from_workbook(
             dw_wb, service_account_key=key)
         detainer_warrants.judgement_imports.from_dw_wb(
@@ -27,7 +27,7 @@ def export():
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
     with scheduler.app.app_context():
         workbook_name = 'Website Export'
-        key = '/srv/within/eviction-tracker/google_service_account.json'
+        key = scheduler.app.config['GOOGLE_ACCOUNT_PATH']
         detainer_warrants.exports.to_spreadsheet(workbook_name, key)
         detainer_warrants.exports.to_judgement_sheet(workbook_name, key)
         detainer_warrants.exports.to_court_watch_sheet(workbook_name, key)

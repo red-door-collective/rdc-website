@@ -56,6 +56,7 @@ def create_app(testing=False):
     app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
     app.config['TWILIO_ACCOUNT_SID'] = os.environ['TWILIO_ACCOUNT_SID']
     app.config['TWILIO_AUTH_TOKEN'] = os.environ['TWILIO_AUTH_TOKEN']
+    app.config['GOOGLE_ACCOUNT_PATH'] = os.environ['GOOGLE_ACCOUNT_PATH']
     app.config['SCHEDULER_API_ENABLED'] = True
     app.config['TESTING'] = testing
     app.config.update(**security_config)
