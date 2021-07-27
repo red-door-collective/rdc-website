@@ -235,8 +235,6 @@ def register_extensions(app):
         scheduler.init_app(app)
         scheduler.start()
 
-    @app.before_first_request
-    def load_tasks():
         from eviction_tracker import tasks
 
     api.add_resource('/attorneys/', detainer_warrants.views.AttorneyListResource,
