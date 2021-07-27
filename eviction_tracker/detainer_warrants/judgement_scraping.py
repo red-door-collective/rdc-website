@@ -39,11 +39,14 @@ LOCATIONS = {
 }
 
 
-def create_defendant(defaults, listing):
+def create_defendant(defaults, docket_id, listing):
     if 'ALL OTHER OCCUPANTS' in listing['name']:
         return None
 
     name = HumanName(listing['name'].replace('OR ALL OCCUPANTS', ''))
+    if DetainerWarrant.query.filter(DetainerWarrant._defendants.any(first_name=name.first, last_name=name.last)).first():
+        return
+
     address = listing['address']
 
     defendant = None
@@ -84,7 +87,7 @@ def insert_warrant(defaults, docket_id, listing):
         courtroom, _ = get_or_create(
             db.session, Courtroom, name=listing['courtroom'], defaults=defaults)
 
-    defendants = [create_defendant(defaults, defendant)
+    defendants = [create_defendant(defaults, docket_id, defendant)
                   for defendant in listing['defendants']]
 
     dw_values = dict(docket_id=docket_id,
@@ -167,7 +170,7 @@ def scrape(courtroom, date):
         else:  # still in an existing docket entry
             detainers[cur_detainer_id]['defendants'].append({
                 'name': dw[DEFENDANT_INDEX:PLAINTIFF_ATTORNEY_INDEX].strip(),
-                'address': re.sub(r'[ ]{3,}', '', dw[DEFENDANT_ADDRESS_INDEX:]).strip()
+                'address': re.sub(r'[ ]{2,}', '', dw[DEFENDANT_ADDRESS_INDEX:]).strip()
             })
 
     defaults = district_defaults()

@@ -125,6 +125,10 @@ judgement_headers = ['Court Date', 'Docket #', 'Courtroom', 'Plaintiff', 'Pltf L
                      'Amount', '"Mediation Letter"', 'Notes (anything unusual on detainer or in', 'Judgement', 'Judge',	'Judgement Basis']
 
 
+def defendant_names_column(warrant):
+    return ' | '.join([defendant.name for defendant in warrant.defendants])
+
+
 def _to_judgement_row(judgement):
     return [dw if dw else '' for dw in
             [
@@ -133,8 +137,7 @@ def _to_judgement_row(judgement):
                 judgement.detainer_warrant.courtroom.name if judgement.detainer_warrant.courtroom else '',
                 judgement.plaintiff.name if judgement.plaintiff else '',
                 judgement.plaintiff_attorney.name if judgement.plaintiff_attorney else '',
-                judgement.detainer_warrant.defendants[0].name if len(
-                    judgement.detainer_warrant.defendants) > 0 else '',
+                defendant_names_column(judgement.detainer_warrant),
                 judgement.defendant_attorney.name if judgement.defendant_attorney else '',
                 judgement.detainer_warrant.defendants[0].address if len(
                     judgement.detainer_warrant.defendants) > 0 else '',

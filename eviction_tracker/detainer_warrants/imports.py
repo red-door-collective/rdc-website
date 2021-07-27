@@ -161,4 +161,4 @@ def from_workbook(workbook_name, limit=None, service_account_key=None):
 
     warrants = dw_rows(limit, wb)
 
-    from_workbook_help(warrants, defaults)
+    from_workbook_help(warrants)

@@ -12,7 +12,7 @@ import gspread
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.admin.models import User, user_datastore
 from eviction_tracker.database import db
-from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant
+from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant, District
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import uuid
@@ -166,7 +166,8 @@ def verify_phone(phone_number):
 @click.command()
 @with_appcontext
 def bootstrap():
-    district, _ = get_or_create(db.session, District, name="Davidson County")
+    district, _ = detainer_warrants.util.get_or_create(
+        db.session, District, name="Davidson County")
 
     db.session.add(district)
     db.session.commit()
