@@ -169,26 +169,28 @@ def to_judgement_sheet(workbook_name, service_account_key=None):
     wks.update(f'A2:O{total + 1}', rows)
 
 
-court_watch_headers = ['Court Date', 'Plaintiff', 'Plaintiff Attorney', 'Courtroom',
-                       'Address', 'Defendant',
-                       'Defendant 2', 'Defendant 3', 'Defendant 4', 'Notes', 'Docket #']
+court_watch_headers = ['Court Date', 'Docket #', 'Defendant',
+                       'Address', 'Defendant 2', 'Defendant 3', 'Defendant 4',
+                       'Plaintiff', 'Plaintiff Attorney', 'Courtroom', 'Notes']
 
 
 def _to_court_watch_row(warrant):
     return [dw if dw else '' for dw in list(chain.from_iterable([
         [
             date_str(warrant.court_date) if warrant.court_date else '',
-            warrant.plaintiff.name if warrant.plaintiff else '',
-            warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
-            warrant.courtroom.name if warrant.courtroom else '',
+            warrant.docket_id,
+            warrant.defendants[0].name if len(
+                warrant.defendants) > 0 else '',
             warrant.defendants[0].address if len(
                 warrant.defendants) > 0 else ''
         ],
         [defendant_name(safelist(warrant.defendants).get(index))
-         for index in range(4)],
+         for index in range(1, 4)],
         [
-            warrant.notes,
-            warrant.docket_id
+            warrant.plaintiff.name if warrant.plaintiff else '',
+            warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
+            warrant.courtroom.name if warrant.courtroom else '',
+            warrant.notes
         ]
     ]))]
 
@@ -198,13 +200,16 @@ def to_court_watch_sheet(workbook_name, service_account_key=None):
 
     warrants = DetainerWarrant.query.filter(
         DetainerWarrant.docket_id.ilike('%\G\T%'),
-        DetainerWarrant.court_date != None
-    ).order_by(DetainerWarrant.court_date.desc(), DetainerWarrant.plaintiff_id.desc())
+        DetainerWarrant.court_date != None,
+        DetainerWarrant.court_date >= date.today()
+    ).order_by(DetainerWarrant.plaintiff_id.desc(), DetainerWarrant.court_date.desc())
 
     total = warrants.count()
 
     wks = get_or_create_sheet(wb,
                               'Court Watch', rows=total + 1, cols=len(court_watch_headers))
+
+    wks.clear()
 
     wks.update('A1:K1', [court_watch_headers])
 
