@@ -199,7 +199,7 @@ def to_court_watch_sheet(workbook_name, service_account_key=None):
     warrants = DetainerWarrant.query.filter(
         DetainerWarrant.docket_id.ilike('%\G\T%'),
         DetainerWarrant.court_date != None
-    ).order_by(DetainerWarrant.court_date.desc())
+    ).order_by(DetainerWarrant.court_date.desc(), DetainerWarrant.plaintiff_id.desc())
 
     total = warrants.count()
 
