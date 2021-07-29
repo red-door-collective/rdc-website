@@ -24,8 +24,7 @@ class AllowDefendant(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
         return self.get_request_credentials()["user_id"]
 
     def filter_query(self, query, view):
-        # viewer = user_datastore.find_user(id=self.request_user_id)
-        if current_user.has_role('Superuser'):
+        if current_user.has_role('Superuser') or current_user.has_role('Admin') or current_user.has_role('Organizer'):
             return query
 
         try:
