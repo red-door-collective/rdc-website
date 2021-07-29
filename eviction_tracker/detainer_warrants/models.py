@@ -45,7 +45,8 @@ class Defendant(db.Model, Timestamped):
     verified_phone_id = Column(db.Integer, db.ForeignKey(
         'phone_number_verifications.id'))
 
-    db.UniqueConstraint('name', 'district_id')
+    db.UniqueConstraint('first_name', 'middle_name',
+                        'last_name', 'suffix', 'address', 'district_id', 'potential_phones')
 
     district = relationship('District', back_populates='defendants')
     detainer_warrants = relationship('DetainerWarrant',
