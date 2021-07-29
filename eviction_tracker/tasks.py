@@ -22,7 +22,7 @@ def import_warrants():
             judgement_wb, service_account_key=key)
 
 
-@scheduler.task(IntervalTrigger(minutes=65), id='export')
+@scheduler.task(IntervalTrigger(minutes=70), id='export')
 def export():
     print('Exporting to google sheets')
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
@@ -34,7 +34,7 @@ def export():
         detainer_warrants.exports.to_court_watch_sheet(workbook_name, key)
 
 
-@scheduler.task(IntervalTrigger(minutes=60), id='sync_with_sessions_site')
+@scheduler.task(IntervalTrigger(minutes=65), id='sync_with_sessions_site')
 def sync_with_sessions_site():
     print('Syncing with sessions site:')
     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
