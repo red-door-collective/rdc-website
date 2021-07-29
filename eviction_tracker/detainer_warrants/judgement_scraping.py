@@ -181,7 +181,7 @@ def scrape(courtroom, date):
 def scrape_entire_site():
     today = date.today()
     day_delta = timedelta(days=1)
-    week = [day_delta * num + today for num in range(4)]
+    week = [day_delta * num + today for num in range(7)]
     for day in week:
         date_str = datetime.strftime(day, '%m/%d/%Y')
         print(f'scraping court dates for {date_str}')
