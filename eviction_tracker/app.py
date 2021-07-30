@@ -108,8 +108,8 @@ def top_evictions_between_dates(start, end):
 
 def evictions_between_dates(start, end, plaintiff_id):
     return between_dates(start, end, db.session.query(Plaintiff))\
-        .filter_by(id=plaintiff_id)\
         .join(DetainerWarrant)\
+        .filter_by(plaintiff_id=plaintiff_id)\
         .count()
 
 
@@ -277,7 +277,7 @@ def register_extensions(app):
 
     @app.route('/api/v1/rollup/plaintiffs')
     def plaintiff_rollup_by_month():
-        start_dt = date(2020, 1, 1)
+        start_dt = date.today() - timedelta(weeks=52)
         end_dt = date.today()
         dates = [(dt, next_month(dt))
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
