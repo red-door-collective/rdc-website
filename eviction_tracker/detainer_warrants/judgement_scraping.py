@@ -39,31 +39,6 @@ LOCATIONS = {
 }
 
 
-def create_defendant(defaults, docket_id, listing):
-    if 'ALL OTHER OCCUPANTS' in listing['name']:
-        return None
-
-    name = HumanName(listing['name'].replace('OR ALL OCCUPANTS', ''))
-    if DetainerWarrant.query.filter(DetainerWarrant._defendants.any(first_name=name.first, last_name=name.last)).first():
-        return
-
-    address = listing['address']
-
-    defendant = None
-    if name.first:
-        defendant, _ = get_or_create(
-            db.session, Defendant,
-            first_name=name.first,
-            middle_name=name.middle,
-            last_name=name.last,
-            suffix=name.suffix,
-            address=address,
-            defaults=defaults
-        )
-
-    return defendant
-
-
 def link_defendant(docket_id, defendant):
     db.session.execute(insert(detainer_warrant_defendants)
                        .values(detainer_warrant_docket_id=docket_id, defendant_id=defendant.id))
@@ -87,9 +62,6 @@ def insert_warrant(defaults, docket_id, listing):
         courtroom, _ = get_or_create(
             db.session, Courtroom, name=listing['courtroom'], defaults=defaults)
 
-    defendants = [create_defendant(defaults, docket_id, defendant)
-                  for defendant in listing['defendants']]
-
     dw_values = dict(docket_id=docket_id,
                      plaintiff_id=plaintiff.id if plaintiff else None,
                      plaintiff_attorney_id=attorney.id if attorney else None,
@@ -108,16 +80,6 @@ def insert_warrant(defaults, docket_id, listing):
     )
 
     db.session.execute(do_update_stmt)
-    db.session.commit()
-
-    try:
-        for defendant in defendants:
-            if defendant:
-                link_defendant(docket_id, defendant)
-
-    except IntegrityError:
-        pass
-
     db.session.commit()
 
     if Judgement.query.filter_by(court_date=court_date, detainer_warrant_id=docket_id).first():
