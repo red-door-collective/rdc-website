@@ -4,7 +4,7 @@ import Api exposing (Cred)
 import Api.Endpoint as Endpoint exposing (Endpoint)
 import Color
 import Date
-import DetainerWarrant exposing (DetainerWarrant)
+import DetainerWarrant exposing (DetainerWarrant, Status(..))
 import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -49,6 +49,7 @@ type alias Model =
 type alias SearchFilters =
     { docketId : String
     , fileDate : String
+    , courtDate : String
     , plaintiff : String
     , plaintiffAttorney : String
     , defendant : String
@@ -67,6 +68,7 @@ searchFiltersInit : SearchFilters
 searchFiltersInit =
     { docketId = ""
     , fileDate = ""
+    , courtDate = ""
     , plaintiff = ""
     , plaintiffAttorney = ""
     , defendant = ""
@@ -153,6 +155,12 @@ toQueryArgs filters =
      else
         [ ( "file_date", filters.fileDate ) ]
     )
+        ++ (if filters.courtDate == "" then
+                []
+
+            else
+                [ ( "court_date", filters.courtDate ) ]
+           )
         ++ (if filters.plaintiff == "" then
                 []
 
@@ -169,7 +177,7 @@ toQueryArgs filters =
                 []
 
             else
-                [ ( "defendant", filters.defendant ) ]
+                [ ( "defendant_name", filters.defendant ) ]
            )
         ++ (if filters.address == "" then
                 []
@@ -182,6 +190,7 @@ toQueryArgs filters =
 type Msg
     = InputDocketId String
     | InputFileDate String
+    | InputCourtDate String
     | InputPlaintiff String
     | InputPlaintiffAttorney String
     | InputDefendant String
@@ -208,6 +217,9 @@ update msg model =
 
         InputFileDate query ->
             updateFilters (\filters -> { filters | fileDate = query }) model
+
+        InputCourtDate query ->
+            updateFilters (\filters -> { filters | courtDate = query }) model
 
         InputPlaintiff query ->
             updateFilters (\filters -> { filters | plaintiff = query }) model
@@ -350,6 +362,7 @@ searchFields : SearchFilters -> List SearchField
 searchFields searchFilters =
     [ { label = "Search by docket number", placeholder = "Docket #", onChange = InputDocketId, query = searchFilters.docketId }
     , { label = "Search by file date", placeholder = "File Date", onChange = InputFileDate, query = searchFilters.fileDate }
+    , { label = "Search by court date", placeholder = "Court Date", onChange = InputCourtDate, query = searchFilters.courtDate }
     , { label = "Search by plaintiff name", placeholder = "Plaintiff", onChange = InputPlaintiff, query = searchFilters.plaintiff }
     , { label = "Search by plaintiff attorney name", placeholder = "Plnt. Attorney", onChange = InputPlaintiffAttorney, query = searchFilters.plaintiffAttorney }
     , { label = "Search by defendant name", placeholder = "Defendant", onChange = InputDefendant, query = searchFilters.defendant }
@@ -579,6 +592,36 @@ viewDocketId hovered selected index warrant =
         ]
 
 
+viewStatusIcon : Maybe String -> Int -> DetainerWarrant -> Element Msg
+viewStatusIcon hovered index warrant =
+    let
+        icon ( letter, fontColor, backgroundColor ) =
+            Element.el
+                [ width (px 20)
+                , height (px 20)
+                , centerX
+                , Border.width 1
+                , Border.rounded 2
+                , Font.color fontColor
+                , Background.color backgroundColor
+                ]
+                (Element.el [ centerX, Element.centerY ]
+                    (text <| letter)
+                )
+    in
+    Element.row (tableCellAttrs (modBy 2 index == 0) hovered warrant)
+        [ case warrant.status of
+            Just Pending ->
+                icon ( "P", Palette.gold, Palette.white )
+
+            Just Closed ->
+                icon ( "C", Palette.purple, Palette.white )
+
+            Nothing ->
+                Element.none
+        ]
+
+
 viewWarrants : Model -> Element Msg
 viewWarrants model =
     let
@@ -594,17 +637,17 @@ viewWarrants model =
         ]
         { data = model.warrants
         , columns =
-            [ { header = viewHeaderCell "Docket #"
+            [ { header = Element.none -- viewHeaderCell "Status"
+              , view = viewStatusIcon model.hovered
+              , width = px 40
+              }
+            , { header = viewHeaderCell "Docket #"
               , view = viewDocketId model.hovered model.selected
               , width = Element.fill
               }
             , { header = viewHeaderCell "File Date"
               , view = cell (Maybe.withDefault "" << Maybe.map Date.toIsoString << .fileDate)
               , width = Element.fill
-              }
-            , { header = viewHeaderCell "Status"
-              , view = cell (Maybe.withDefault "" << Maybe.map DetainerWarrant.statusText << .status)
-              , width = fill
               }
             , { header = viewHeaderCell "Plaintiff"
               , view = cell (Maybe.withDefault "" << Maybe.map .name << .plaintiff)

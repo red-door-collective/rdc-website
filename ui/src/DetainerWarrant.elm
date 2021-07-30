@@ -84,7 +84,7 @@ type Conditions
 type alias Judgement =
     { id : Int
     , notes : Maybe String
-    , courtDate : Date
+    , courtDate : Maybe Date
     , enteredBy : Entrance
     , judge : Maybe Judge
     , conditions : Maybe Conditions
@@ -119,7 +119,7 @@ type alias JudgementEdit =
     { id : Maybe Int
     , notes : Maybe String
     , enteredBy : Maybe String
-    , courtDate : String
+    , courtDate : Maybe String
     , inFavorOf : Maybe String
     , judge : Maybe Judge
 
@@ -212,8 +212,7 @@ editFromForm today form =
             Just form.notes
     , courtDate =
         form.courtDate.date
-            |> Maybe.withDefault today
-            |> Date.toIsoString
+            |> Maybe.map Date.toIsoString
     , enteredBy = Just <| entranceText form.enteredBy
     , inFavorOf =
         Maybe.map
@@ -486,7 +485,7 @@ fromConditions conditions =
     Decode.succeed Judgement
         |> required "id" int
         |> required "notes" (nullable string)
-        |> required "court_date" dateDecoder
+        |> required "court_date" (nullable dateDecoder)
         |> required "entered_by" entranceDecoder
         |> required "judge" (nullable judgeDecoder)
         |> custom (Decode.succeed conditions)

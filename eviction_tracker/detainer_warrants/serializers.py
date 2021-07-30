@@ -125,7 +125,7 @@ class DetainerWarrantSchema(Schema):
     class Meta:
         fields = ("docket_id", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
                   "judgements", "last_edited_by", "plaintiff", "plaintiff_attorney", "courtroom", "presiding_judge", "defendants",
-                  "zip_code", "is_legacy", "is_cares", "nonpayment", "notes")
+                  "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "created_at", "updated_at")
 
 
 detainer_warrant_schema = DetainerWarrantSchema()

@@ -399,7 +399,7 @@ class DetainerWarrant(db.Model, Timestamped):
     @property
     def status(self):
         status_by_id = {v: k for k, v in DetainerWarrant.statuses.items()}
-        return status_by_id[self.status_id] if self.status_id else None
+        return status_by_id[self.status_id] if self.status_id is not None else None
 
     @status.setter
     def status(self, status_name):

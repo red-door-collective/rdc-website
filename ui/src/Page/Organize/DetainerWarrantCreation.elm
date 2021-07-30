@@ -243,8 +243,8 @@ initDefendantForm defendant =
     }
 
 
-editForm : DetainerWarrant -> Form
-editForm warrant =
+editForm : Date -> DetainerWarrant -> Form
+editForm today warrant =
     { docketId = warrant.docketId
     , fileDate = initDatePicker warrant.fileDate
     , status = warrant.status
@@ -265,7 +265,7 @@ editForm warrant =
     , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
     , address = Maybe.withDefault "" <| List.head <| List.map .address warrant.defendants
     , defendants = List.map (initDefendantForm << Just) warrant.defendants
-    , judgements = List.indexedMap (\index j -> judgementFormInit j.courtDate index (Just j)) warrant.judgements
+    , judgements = List.indexedMap (\index j -> judgementFormInit today index (Just j)) warrant.judgements
     , notes = Maybe.withDefault "" warrant.notes
     }
 
@@ -298,7 +298,11 @@ judgementFormInit today index existing =
                     { new
                         | id = Just judgement.id
                         , enteredBy = judgement.enteredBy
-                        , courtDate = { date = Just judgement.courtDate, dateText = Date.toIsoString judgement.courtDate, pickerModel = DatePicker.init |> DatePicker.setToday today }
+                        , courtDate =
+                            { date = judgement.courtDate
+                            , dateText = Maybe.withDefault new.courtDate.dateText <| Maybe.map Date.toIsoString judgement.courtDate
+                            , pickerModel = DatePicker.init |> DatePicker.setToday today
+                            }
                         , conditionsDropdown = Dropdown.init ("judgement-dropdown-" ++ String.fromInt judgement.id)
                         , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt judgement.id)
                         , judge =
@@ -376,7 +380,7 @@ initCreate =
 
 
 type FormStatus
-    = Initializing
+    = Initializing String
     | Ready Form
 
 
@@ -394,8 +398,8 @@ init maybeId session =
       , today = Nothing
       , form =
             case maybeId of
-                Just _ ->
-                    Initializing
+                Just id ->
+                    Initializing id
 
                 Nothing ->
                     Ready initCreate
@@ -406,12 +410,7 @@ init maybeId session =
       , saveState = Done
       , newFormOnSuccess = False
       }
-    , case maybeId of
-        Just id ->
-            getWarrant id maybeCred
-
-        Nothing ->
-            Task.perform GotToday Date.today
+    , Task.perform GotToday Date.today
     )
 
 
@@ -455,7 +454,7 @@ type Msg
     | AddDefendant
     | AddJudgement
     | RemoveJudgement Int
-    | ChangedJudgementFileDatePicker Int ChangeEvent
+    | ChangedJudgementCourtDatePicker Int ChangeEvent
     | PickedConditions Int (Maybe (Maybe ConditionOption))
     | ConditionsDropdownMsg Int (Dropdown.Msg (Maybe ConditionOption))
     | ChangedFeesAwarded Int String
@@ -493,7 +492,7 @@ updateForm transform model =
     ( { model
         | form =
             case model.form of
-                Initializing ->
+                Initializing _ ->
                     model.form
 
                 Ready oldForm ->
@@ -508,7 +507,7 @@ updateFormOnly transform model =
     { model
         | form =
             case model.form of
-                Initializing ->
+                Initializing _ ->
                     model.form
 
                 Ready oldForm ->
@@ -521,7 +520,7 @@ updateFormNarrow transform model =
     let
         ( newForm, cmd ) =
             case model.form of
-                Initializing ->
+                Initializing _ ->
                     ( model.form, Cmd.none )
 
                 Ready oldForm ->
@@ -555,17 +554,20 @@ update msg model =
     in
     case msg of
         GotDetainerWarrant result ->
-            case result of
-                Ok warrantPage ->
-                    ( { model | warrant = Just warrantPage.data, form = Ready (editForm warrantPage.data) }
-                    , Task.perform GotToday Date.today
-                    )
+            case model.today of
+                Just today ->
+                    case result of
+                        Ok warrantPage ->
+                            ( { model | warrant = Just warrantPage.data, form = Ready (editForm today warrantPage.data) }, Cmd.none )
 
-                Err errMsg ->
+                        Err errMsg ->
+                            ( model, Cmd.none )
+
+                Nothing ->
                     ( model, Cmd.none )
 
         GotToday today ->
-            updateForm
+            ( updateFormOnly
                 (\form ->
                     let
                         fileDate =
@@ -583,6 +585,13 @@ update msg model =
                     { form | fileDate = updatedFileDate, courtDate = updatedCourtDate }
                 )
                 { model | today = Just today }
+            , case model.form of
+                Initializing id ->
+                    getWarrant id maybeCred
+
+                _ ->
+                    Cmd.none
+            )
 
         ChangeTooltip selection ->
             ( { model
@@ -1079,7 +1088,7 @@ update msg model =
         RemoveJudgement selected ->
             updateForm (\form -> { form | judgements = List.removeAt selected form.judgements }) model
 
-        ChangedJudgementFileDatePicker selected changeEvent ->
+        ChangedJudgementCourtDatePicker selected changeEvent ->
             case changeEvent of
                 DateChanged date ->
                     updateForm
@@ -2994,7 +3003,7 @@ viewJudgement options index form =
                                 ]
                             )
                         )
-                        { onChange = ChangedJudgementFileDatePicker index
+                        { onChange = ChangedJudgementCourtDatePicker index
                         , selected = form.courtDate.date
                         , text = form.courtDate.dateText
                         , label =
@@ -3162,8 +3171,8 @@ submitButton =
 viewForm : FormOptions -> FormStatus -> Element Msg
 viewForm options formStatus =
     case formStatus of
-        Initializing ->
-            column [] [ text "Initializing" ]
+        Initializing id ->
+            column [] [ text ("Fetching docket " ++ id) ]
 
         Ready form ->
             column [ centerX, spacing 30 ]
@@ -3323,7 +3332,7 @@ view settings model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.form of
-        Initializing ->
+        Initializing _ ->
             Sub.none
 
         Ready form ->
@@ -3528,7 +3537,7 @@ fieldsToValidate defendants =
 validate : Date -> FormStatus -> Result (List Problem) TrimmedForm
 validate today formStatus =
     case formStatus of
-        Initializing ->
+        Initializing _ ->
             Err []
 
         Ready form ->
@@ -3914,10 +3923,10 @@ encodeJudgement : DetainerWarrantEdit -> JudgementEdit -> Encode.Value
 encodeJudgement warrant judgement =
     Encode.object
         ([ ( "interest", Encode.bool judgement.hasInterest )
-         , ( "court_date", Encode.string judgement.courtDate )
          , ( "detainer_warrant", Encode.object [ ( "docket_id", Encode.string warrant.docketId ) ] )
          ]
             ++ conditional "id" Encode.int judgement.id
+            ++ nullable "court_date" Encode.string judgement.courtDate
             ++ nullable "in_favor_of" Encode.string judgement.inFavorOf
             ++ nullable "notes" Encode.string judgement.notes
             ++ nullable "entered_by" Encode.string judgement.enteredBy

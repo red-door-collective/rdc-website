@@ -246,6 +246,11 @@ def filter_plaintiff_attorney_name(model, plaintiff_attorney_name):
     return model._plaintiff_attorney.has(Attorney.name.ilike(f'%{plaintiff_attorney_name}%'))
 
 
+@model_filter(fields.Date())
+def filter_court_date(model, court_date):
+    return model._judgements.any(Judgement.court_date == court_date)
+
+
 class DetainerWarrantResourceBase(GenericModelView):
     model = DetainerWarrant
     schema = detainer_warrant_schema
@@ -255,11 +260,12 @@ class DetainerWarrantResourceBase(GenericModelView):
     authorization = AllowDefendant()
 
     pagination = CursorPagination()
-    sorting = Sorting('file_date', default='-file_date')
+    sorting = Sorting('created_at', default='-created_at')
     filtering = Filtering(
         docket_id=ColumnFilter(operator.eq),
         defendant_name=filter_defendant_name,
         file_date=ColumnFilter(operator.eq),
+        court_date=filter_court_date,
         plaintiff=filter_plaintiff_name,
         plaintiff_attorney=filter_plaintiff_attorney_name,
         address=filter_address
