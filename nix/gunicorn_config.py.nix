@@ -7,4 +7,5 @@ bind = "${listen}"
 
 proc_name = "eviction-tracker"
 pythonpath = "${pythonpath}"
+timeout = 120
 ''
