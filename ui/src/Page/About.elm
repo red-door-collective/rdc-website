@@ -62,6 +62,10 @@ viewAbout =
             [ paragraph [ Font.center, Font.italic, Font.size 20 ] [ text "We as workers cannot rely on external assistance like governments, non-profits and charities. We must build power for ourselves, by ourselves by uniting to become more than ourselves. We are all we got, but WE are all we need, because together we can weather any storm." ]
             , paragraph [ Font.center, Font.italic, Font.size 20 ] [ text "As Dr. King said, \"We may have all come on different ships, but we are in the same boat now.\"" ]
             ]
+        , image [ width fill ]
+            { src = "/static/images/intrographic.png"
+            , description = "A printable infographic that introduces Red Door Collective."
+            }
         ]
 
 
