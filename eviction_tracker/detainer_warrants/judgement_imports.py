@@ -76,9 +76,10 @@ def _from_workbook(defaults, court_date, raw_judgement):
             db.session, Judge, name=judgement[JUDGE], defaults=defaults)
 
     defendant_address = judgement[DEFENDANT_ADDRESS]
-    if defendant_address and len(warrant.defendants) > 0 and warrant.defendants[0].address == None:
-        warrant.defendants[0].update(
-            id=warrant.defendants[0].id, address=defendant_address)
+    if defendant_address and len(warrant.defendants) > 0:
+        for defendant in warrant.defendants:
+            if defendant.address is None:
+                defendant.update(address=defendant_address)
 
     awards_possession, awards_fees, in_favor_of = None, None, None
     outcome = judgement[JUDGEMENT].lower() if judgement[JUDGEMENT] else None
