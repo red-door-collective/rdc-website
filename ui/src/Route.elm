@@ -2,7 +2,7 @@ module Route exposing (Route(..), fromUrl, href, replaceUrl)
 
 import Browser.Navigation as Nav
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, int, oneOf, s, string)
+import Url.Parser as Parser exposing ((</>), Parser, fragment, int, oneOf, s, string)
 
 
 
@@ -17,6 +17,7 @@ type Route
     | About
     | WarrantHelp
     | Actions
+    | Glossary (Maybe String)
     | OrganizerDashboard
     | CampaignOverview Int
     | Event Int Int
@@ -34,6 +35,7 @@ parser =
         , Parser.map About (s "about")
         , Parser.map WarrantHelp (s "warrant-help")
         , Parser.map Actions (s "actions")
+        , Parser.map Glossary (s "glossary" </> fragment identity)
         , Parser.map OrganizerDashboard (s "organize" </> s "dashboard")
         , Parser.map CampaignOverview (s "organize" </> s "campaigns" </> int)
         , Parser.map Event (s "organize" </> s "campaigns" </> int </> s "events" </> int)
@@ -88,6 +90,16 @@ routeToPieces page =
 
         About ->
             [ "about" ]
+
+        Glossary fragment ->
+            [ "glossary" ]
+                ++ (case fragment of
+                        Just termId ->
+                            [ termId ]
+
+                        Nothing ->
+                            []
+                   )
 
         WarrantHelp ->
             [ "warrant-help" ]

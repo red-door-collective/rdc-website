@@ -35,6 +35,7 @@ type Page
     | About
     | WarrantHelp
     | Actions
+    | Glossary
     | Login
     | ManageDetainerWarrants
     | OrganizerDashboard
@@ -156,6 +157,7 @@ links settings page =
       , isActive = page == About
       }
     , { url = Route.href Route.Actions, text = "Actions", isActive = page == Actions }
+    , { url = Route.href (Route.Glossary Nothing), text = "Glossary", isActive = page == Glossary }
     ]
         ++ (case settings.viewer of
                 Just _ ->

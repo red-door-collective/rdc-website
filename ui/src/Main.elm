@@ -13,6 +13,7 @@ import Page exposing (Page)
 import Page.About as About
 import Page.Actions as Actions
 import Page.Blank as Blank
+import Page.Glossary as Glossary
 import Page.Login as Login
 import Page.NotFound as NotFound
 import Page.Organize.CampaignOverview as CampaignOverview
@@ -37,6 +38,7 @@ type CurrentPage
     | WarrantHelp WarrantHelp.Model
     | About About.Model
     | Actions Actions.Model
+    | Glossary Glossary.Model
     | OrganizerDashboard OrganizerDashboard.Model
     | CampaignOverview Int CampaignOverview.Model
     | Event Int Int Event.Model
@@ -76,6 +78,7 @@ type Msg
     | GotAboutMsg About.Msg
     | GotWarrantHelpMsg WarrantHelp.Msg
     | GotActionsMsg Actions.Msg
+    | GotGlossaryMsg Glossary.Msg
     | GotOrganizerDashboardMsg OrganizerDashboard.Msg
     | GotCampaignOverviewMsg CampaignOverview.Msg
     | GotEventMsg Event.Msg
@@ -104,6 +107,9 @@ toSession model =
 
         About about ->
             About.toSession about
+
+        Glossary glossary ->
+            Glossary.toSession glossary
 
         WarrantHelp warrantHelp ->
             WarrantHelp.toSession warrantHelp
@@ -154,6 +160,10 @@ changeRouteTo maybeRoute model =
         Just Route.About ->
             About.init session
                 |> updateWith About GotAboutMsg model
+
+        Just (Route.Glossary fragment) ->
+            Glossary.init fragment session
+                |> updateWith Glossary GotGlossaryMsg model
 
         Just Route.WarrantHelp ->
             WarrantHelp.init session
@@ -226,6 +236,10 @@ update msg model =
         ( GotActionsMsg subMsg, Actions actions ) ->
             Actions.update subMsg actions
                 |> updateWith Actions GotActionsMsg model
+
+        ( GotGlossaryMsg subMsg, Glossary glossary ) ->
+            Glossary.update subMsg glossary
+                |> updateWith Glossary GotGlossaryMsg model
 
         ( GotOrganizerDashboardMsg subMsg, OrganizerDashboard dashboard ) ->
             OrganizerDashboard.update subMsg dashboard
@@ -340,6 +354,9 @@ view model =
         About about ->
             viewPage Page.About GotAboutMsg (About.view about)
 
+        Glossary glossary ->
+            viewPage Page.Glossary GotGlossaryMsg (Glossary.view glossary)
+
         WarrantHelp warrantHelp ->
             viewPage Page.WarrantHelp GotWarrantHelpMsg (WarrantHelp.view model.profile warrantHelp)
 
@@ -386,6 +403,9 @@ subscriptions model =
 
             Actions actions ->
                 Sub.map GotActionsMsg (Actions.subscriptions actions)
+
+            Glossary glossary ->
+                Sub.map GotGlossaryMsg (Glossary.subscriptions glossary)
 
             OrganizerDashboard dashboard ->
                 Sub.map GotOrganizerDashboardMsg (OrganizerDashboard.subscriptions dashboard)

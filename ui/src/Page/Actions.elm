@@ -1,6 +1,7 @@
 module Page.Actions exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
 import Color
+import Design
 import Element exposing (Element, centerX, el, fill, height, image, maximum, minimum, padding, paragraph, px, spacing, text, textColumn, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -85,19 +86,15 @@ phonebank =
     "https://www.youtube.com/embed/VwBXX4dYlwA"
 
 
-blueLink =
-    Element.newTabLink [ Font.color Palette.blueLight, Element.mouseOver [ Font.glow Palette.blueLight 1 ] ]
-
-
 joinRdc =
-    blueLink { url = "https://midtndsa.org/", label = paragraph [] [ text "Join us and help organize for tenants!" ] }
+    Design.link [] { url = "https://midtndsa.org/", label = paragraph [] [ text "Join us and help organize for tenants!" ] }
 
 
 weeklyMeetings =
     [ paragraph []
         [ text "We meet virtually on every Thursday at 6:30 PM CT. "
         ]
-    , blueLink { url = "https://bit.ly/RDCWeekly", label = paragraph [] [ text "Click this link to join our weekly meeting." ] }
+    , Design.link [] { url = "https://bit.ly/RDCWeekly", label = paragraph [] [ text "Click this link to join our weekly meeting." ] }
     ]
 
 
