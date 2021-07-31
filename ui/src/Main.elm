@@ -4,7 +4,7 @@ import Api
 import Browser exposing (Document)
 import Browser.Events
 import Browser.Navigation as Nav
-import Element exposing (Element)
+import Element exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Html
 import Http
 import Json.Decode as Decode exposing (Decoder, Value, list)
@@ -65,7 +65,7 @@ init { window, viewer } url navKey =
     in
     Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.currentUser maybeCred GotProfile User.userDecoder ])
         (changeRouteTo (Route.fromUrl url)
-            { window = window, page = Redirect session, profile = Nothing, hamburgerMenuOpen = False }
+            { window = Debug.log "window" window, page = Redirect session, profile = Nothing, hamburgerMenuOpen = False }
         )
 
 
@@ -302,6 +302,38 @@ updateWith toModel toMsg model ( subModel, subCmd ) =
 -- VIEW
 
 
+classifyDevice : { window | height : Int, width : Int } -> Device
+classifyDevice window =
+    -- Tested in this ellie:
+    -- https://ellie-app.com/68QM7wLW8b9a1
+    { class =
+        let
+            longSide =
+                max window.width window.height
+
+            shortSide =
+                min window.width window.height
+        in
+        if shortSide < 1000 then
+            Phone
+
+        else if longSide <= 1400 then
+            Tablet
+
+        else if longSide > 1200 && longSide <= 1920 then
+            Desktop
+
+        else
+            BigDesktop
+    , orientation =
+        if window.width < window.height then
+            Portrait
+
+        else
+            Landscape
+    }
+
+
 view : Model -> Browser.Document Msg
 view model =
     let
@@ -309,7 +341,7 @@ view model =
             Session.viewer (toSession model)
 
         device =
-            Element.classifyDevice model.window
+            classifyDevice model.window
 
         settings =
             { device = device
@@ -355,7 +387,7 @@ view model =
             viewPage Page.About GotAboutMsg (About.view about)
 
         Glossary glossary ->
-            viewPage Page.Glossary GotGlossaryMsg (Glossary.view glossary)
+            viewPage Page.Glossary GotGlossaryMsg (Glossary.view device glossary)
 
         WarrantHelp warrantHelp ->
             viewPage Page.WarrantHelp GotWarrantHelpMsg (WarrantHelp.view model.profile warrantHelp)

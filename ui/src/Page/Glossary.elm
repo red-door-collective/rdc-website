@@ -2,7 +2,7 @@ module Page.Glossary exposing (..)
 
 import Browser.Dom as Dom
 import Design
-import Element exposing (Element, centerX, fill, image, maximum, minimum, padding, paragraph, px, spacing, text, textColumn, width)
+import Element exposing (Device, DeviceClass(..), Element, centerX, fill, image, maximum, minimum, padding, paragraph, px, spacing, text, textColumn, width)
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
@@ -97,20 +97,25 @@ update msg model =
             ( model, Cmd.none )
 
 
-view : Model -> { title : String, content : Element Msg }
-view model =
-    { title = "Glossary", content = viewGlossary model }
+view : Device -> Model -> { title : String, content : Element Msg }
+view device model =
+    { title = "Glossary", content = viewGlossary device model }
 
 
 header =
     [ Font.size 24, Font.bold, Font.color Palette.blackLight ]
 
 
-viewTerm : Maybe Term -> Term -> List (Element Msg)
-viewTerm hoveredTerm ({ name, definition, link } as term) =
+viewTerm : Device -> Maybe Term -> Term -> List (Element Msg)
+viewTerm device hoveredTerm ({ name, definition, link } as term) =
     let
         hovering =
-            hoveredTerm == Just term
+            hoveredTerm
+                == Just term
+                || device.class
+                == Phone
+                || device.class
+                == Tablet
 
         hoveredAttrs =
             [ Events.onMouseEnter (MouseEnteredTerm term)
@@ -122,7 +127,7 @@ viewTerm hoveredTerm ({ name, definition, link } as term) =
                         [ Element.onLeft
                             (Design.headerLink
                                 [ Element.centerY
-                                , Element.paddingXY 2 0
+                                , Element.paddingXY 4 0
                                 ]
                                 { url = "#" ++ term.id
                                 , label =
@@ -158,10 +163,16 @@ viewTerm hoveredTerm ({ name, definition, link } as term) =
     ]
 
 
-viewGlossary : Model -> Element Msg
-viewGlossary model =
-    Element.textColumn [ centerX, width (fill |> maximum 675 |> minimum 400), spacing 20, Font.size 18, padding 20 ]
-        (List.concat (List.map (viewTerm model.showAnchor) terms))
+viewGlossary : Device -> Model -> Element Msg
+viewGlossary device model =
+    Element.textColumn
+        [ centerX
+        , width (fill |> maximum 850 |> minimum 400)
+        , spacing 20
+        , Font.size 18
+        , padding 20
+        ]
+        (List.concat (List.map (viewTerm device model.showAnchor) terms))
 
 
 subscriptions : Model -> Sub Msg
