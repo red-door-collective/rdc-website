@@ -33,6 +33,12 @@ let
     ${flask}/bin/flask sync "$@"
   '';
 
+  console = pkgs.writeShellScriptBin "console" ''
+    export PYTHONPATH=${pythonpath}
+    cd ${src}
+    ${flask}/bin/flask shell
+  '';
+
   verifyPhones = pkgs.writeShellScriptBin "verifyPhones" ''
     export PYTHONPATH=${pythonpath}
     cd ${src}
@@ -45,6 +51,7 @@ in pkgs.buildEnv {
     runGunicorn
     runMigrations
     runSync
+    console
     verifyPhones
   ];
 }
