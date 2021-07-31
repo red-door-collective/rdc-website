@@ -7,6 +7,7 @@ from decimal import Decimal
 from itertools import chain
 import gspread
 from datetime import datetime, date
+import usaddress
 
 DOCKET_ID = 'Docket #'
 FILE_DATE = 'File_date'
@@ -170,19 +171,42 @@ def to_judgement_sheet(workbook_name, service_account_key=None):
 
 
 court_watch_headers = ['Court Date', 'Docket #', 'Defendant',
-                       'Address', 'Defendant 2', 'Defendant 3', 'Defendant 4',
+                       'Address', 'Zipcode', 'Defendant 2', 'Defendant 3', 'Defendant 4',
                        'Plaintiff', 'Plaintiff Attorney', 'Courtroom', 'Notes']
 
 
+def format_address(pieces):
+    city = pieces.get('PlaceName', '')
+    if city:
+        city = ', ' + city
+    return ' '.join([address for piece, address in pieces.items()
+                     if piece not in ['ZipCode', 'StateName', 'PlaceName']]) + city
+
+
 def _to_court_watch_row(warrant):
+    full_address = warrant.defendants[0].address if len(
+        warrant.defendants) > 0 else ''
+    if full_address is None:
+        return
+    address, zip_code = '', ''
+    try:
+        pieces, label = usaddress.tag(full_address)
+        address = format_address(pieces)
+        zip_code = pieces.get('ZipCode', '')
+    except usaddress.RepeatedLabelError as e:
+        address = e.original_string
+        zip_code_potential = [
+            val for (val, iden) in e.parsed_string if iden == 'ZipCode']
+        zip_code = zip_code_potential[0] if len(zip_code_potential) > 0 else ''
+
     return [dw if dw else '' for dw in list(chain.from_iterable([
         [
             date_str(warrant.court_date) if warrant.court_date else '',
             warrant.docket_id,
             warrant.defendants[0].name if len(
                 warrant.defendants) > 0 else '',
-            warrant.defendants[0].address if len(
-                warrant.defendants) > 0 else ''
+            address,
+            zip_code
         ],
         [defendant_name(safelist(warrant.defendants).get(index))
          for index in range(1, 4)],
@@ -211,8 +235,8 @@ def to_court_watch_sheet(workbook_name, service_account_key=None):
 
     wks.clear()
 
-    wks.update('A1:K1', [court_watch_headers])
+    wks.update('A1:L1', [court_watch_headers])
 
     rows = [_to_court_watch_row(warrant) for warrant in warrants]
 
-    wks.update(f'A2:K{total + 1}', rows)
+    wks.update(f'A2:L{total + 1}', rows)

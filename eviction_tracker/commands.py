@@ -85,14 +85,25 @@ def scrape_sessions_week():
               help='Sheet name')
 @click.option('-k', '--service-account-key', default=None,
               help='Google Service Account filepath')
+@click.option('-o', '--only', default=None, help='Only run one sheet')
 @with_appcontext
-def export(workbook_name, service_account_key):
-    detainer_warrants.exports.to_spreadsheet(
-        workbook_name, service_account_key)
-    detainer_warrants.exports.to_judgement_sheet(
-        workbook_name, service_account_key)
-    detainer_warrants.exports.to_court_watch_sheet(
-        workbook_name, service_account_key)
+def export(workbook_name, service_account_key, only):
+    if only == 'Detainer Warrants':
+        detainer_warrants.exports.to_spreadsheet(
+            workbook_name, service_account_key)
+    elif only == 'Judgements':
+        detainer_warrants.exports.to_judgement_sheet(
+            workbook_name, service_account_key)
+    elif only == 'Court Watch':
+        detainer_warrants.exports.to_court_watch_sheet(
+            workbook_name, service_account_key)
+    else:
+        detainer_warrants.exports.to_spreadsheet(
+            workbook_name, service_account_key)
+        detainer_warrants.exports.to_judgement_sheet(
+            workbook_name, service_account_key)
+        detainer_warrants.exports.to_court_watch_sheet(
+            workbook_name, service_account_key)
 
 
 def validate_phone_number(client, app, phone_number):

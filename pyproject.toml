@@ -30,6 +30,7 @@ pyquery = "^1.4.3"
 nameparser = "^1.0.6"
 APScheduler = "^3.7.0"
 Flask-APScheduler = "1.12.1"
+usaddress = "^0.5.10"
 
 
 [tool.poetry.dev-dependencies]
