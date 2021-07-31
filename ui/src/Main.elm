@@ -65,7 +65,7 @@ init { window, viewer } url navKey =
     in
     Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.currentUser maybeCred GotProfile User.userDecoder ])
         (changeRouteTo (Route.fromUrl url)
-            { window = Debug.log "window" window, page = Redirect session, profile = Nothing, hamburgerMenuOpen = False }
+            { window = window, page = Redirect session, profile = Nothing, hamburgerMenuOpen = False }
         )
 
 
