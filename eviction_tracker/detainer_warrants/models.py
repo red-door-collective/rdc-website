@@ -174,7 +174,6 @@ class Judgement(db.Model, Timestamped):
     with_prejudice = Column(db.Boolean)
     court_date = Column(db.Date)
     mediation_letter = Column(db.Boolean)
-    defendant_address = Column(db.String(255))
     notes = Column(db.String(255))
 
     detainer_warrant_id = Column(
