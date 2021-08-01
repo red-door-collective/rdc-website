@@ -8,6 +8,15 @@ from itertools import chain
 import gspread
 from datetime import datetime, date
 import usaddress
+from eviction_tracker.monitoring import log_on_exception
+
+import logging
+import logging.config
+import traceback
+import eviction_tracker.config as config
+
+logging.config.dictConfig(config.LOGGING)
+logger = logging.getLogger(__name__)
 
 DOCKET_ID = 'Docket #'
 FILE_DATE = 'File_date'
@@ -104,6 +113,7 @@ def get_or_create_sheet(wb, name, rows=100, cols=25):
             title=name, rows=str(rows), cols=str(cols))
 
 
+@log_on_exception
 def to_spreadsheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
@@ -152,6 +162,7 @@ def _to_judgement_row(judgement):
             ]]
 
 
+@log_on_exception
 def to_judgement_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
@@ -183,6 +194,11 @@ def format_address(pieces):
                      if piece not in ['ZipCode', 'StateName', 'PlaceName']]) + city
 
 
+def bad_export_row(warrant):
+    return [warrant.docket_id if index == 1 else '' for index,
+            header in enumerate(court_watch_headers)]
+
+
 def _to_court_watch_row(warrant):
     full_address = warrant.defendants[0].address if len(
         warrant.defendants) > 0 else ''
@@ -195,6 +211,7 @@ def _to_court_watch_row(warrant):
         zip_code = pieces.get('ZipCode', '')
     except usaddress.RepeatedLabelError as e:
         address = e.original_string
+        logger.info('original ambiguous address', address)
         zip_code_potential = [
             val for (val, iden) in e.parsed_string if iden == 'ZipCode']
         zip_code = zip_code_potential[0] if len(zip_code_potential) > 0 else ''
@@ -219,6 +236,15 @@ def _to_court_watch_row(warrant):
     ]))]
 
 
+def _try_court_watch_row(warrant):
+    try:
+        return _to_court_watch_row(warrant)
+    except:
+        logger.error("uncaught exception: %s", traceback.format_exc())
+        return bad_export_row(warrant)
+
+
+@log_on_exception
 def to_court_watch_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
@@ -237,6 +263,6 @@ def to_court_watch_sheet(workbook_name, service_account_key=None):
 
     wks.update('A1:L1', [court_watch_headers])
 
-    rows = [_to_court_watch_row(warrant) for warrant in warrants]
+    rows = [_try_court_watch_row(warrant) for warrant in warrants]
 
     wks.update(f'A2:L{total + 1}', rows)

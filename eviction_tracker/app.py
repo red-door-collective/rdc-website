@@ -16,14 +16,17 @@ from collections import OrderedDict
 import flask_wtf
 from flask_security import current_user
 from flask_apscheduler import APScheduler
-
 from datadog import initialize, statsd
+import logging.config
+import eviction_tracker.config as config
+
+logging.config.dictConfig(config.LOGGING)
+logger = logging.getLogger(__name__)
 
 options = {
     'statsd_host': '127.0.0.1',
     'statsd_port': 8125
 }
-
 
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant

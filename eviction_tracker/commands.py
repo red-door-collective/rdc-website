@@ -16,6 +16,11 @@ from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, D
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import uuid
+import logging.config
+import eviction_tracker.config as config
+
+logging.config.dictConfig(config.LOGGING)
+logger = logging.getLogger(__name__)
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
@@ -71,12 +76,14 @@ def sync_judgements(workbook_name, limit, service_account_key, warrant_wb):
               help='Date')
 @with_appcontext
 def scrape_sessions_site(courtroom, date):
+    logger.info(f'Scraping Sessions site for courtroom: {courtroom} on {date}')
     detainer_warrants.judgement_scraping.scrape(courtroom, date)
 
 
 @click.command()
 @with_appcontext
 def scrape_sessions_week():
+    logger.info(f'Scraping Sessions site for the upcoming week')
     detainer_warrants.judgement_scraping.scrape_entire_site()
 
 
@@ -114,14 +121,14 @@ def validate_phone_number(client, app, phone_number):
         proper_phone_number = phonenumbers.format_number(
             proper_phone_number, phonenumbers.PhoneNumberFormat.E164)
     except phonenumbers.NumberParseException as e:
-        app.logger.info(f'Failed to parse {phone_number}: {e}')
+        logger.info(f'Failed to parse {phone_number}: {e}')
         return
 
     existing_number = db.session.query(PhoneNumberVerification).filter_by(
         phone_number=proper_phone_number).first()
 
     if existing_number is not None:
-        app.logger.info(f'number already validated: {existing_number}')
+        logger.info(f'number already validated: {existing_number}')
         return
 
     try:
@@ -130,7 +137,7 @@ def validate_phone_number(client, app, phone_number):
             .phone_numbers(proper_phone_number) \
             .fetch(type=['carrier', 'caller-name'])
     except TwilioRestException as e:
-        app.logger.info(f'Failed to fetch {proper_phone_number}: {e}')
+        logger.info(f'Failed to fetch {proper_phone_number}: {e}')
         entry = PhoneNumberVerification.create(
             phone_number=proper_phone_number)
         return entry
@@ -153,9 +160,10 @@ def twilio_client(app):
 @with_appcontext
 def verify_phones(limit):
     """Verify phone numbers listed on Detainer Warrants"""
-    client = twilio_client(current_app)
     numbers_to_validate = db.session.query(
         Defendant).filter(Defendant.potential_phones != None)
+    logger.info(f'Verifying {numbers_to_validate.count()} phone numbers')
+    client = twilio_client(current_app)
 
     if limit:
         numbers_to_validate = numbers_to_validate.limit(limit)

@@ -33,6 +33,7 @@ Flask-APScheduler = "1.12.1"
 usaddress = "^0.5.10"
 datadog = "^0.42.0"
 setproctitle = "^1.2.2"
+python-json-logger = "^2.0.2"
 
 
 [tool.poetry.dev-dependencies]
