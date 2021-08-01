@@ -33,12 +33,6 @@ let
     ${flask}/bin/flask sync "$@"
   '';
 
-  flask = pkgs.writeShellScriptBin "flask" ''
-    export PYTHONPATH=${pythonpath}
-    cd ${src}
-    ${flask}/bin/flask "$@"
-  '';
-
   console = pkgs.writeShellScriptBin "console" ''
     export PYTHONPATH=${pythonpath}
     cd ${src}
@@ -58,7 +52,6 @@ in pkgs.buildEnv {
     runMigrations
     runSync
     console
-    flask
     verifyPhones
   ];
 }
