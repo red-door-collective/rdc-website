@@ -10,6 +10,8 @@ class District(db.Model, Timestamped):
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
 
+    db.UniqueConstraint('name')
+
     attorneys = relationship('Attorney', back_populates='district')
     plaintiffs = relationship('Plaintiff', back_populates='district')
     defendants = relationship('Defendant', back_populates='district')

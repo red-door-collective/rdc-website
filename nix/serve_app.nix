@@ -45,12 +45,19 @@ let
     ${flask}/bin/flask verify-phones "$@"
   '';
 
+  runFlask = pkgs.writeShellScriptBin "flask" ''
+    export PYTHONPATH=${pythonpath}
+    cd ${src}
+    ${flask}/bin/flask "$@"
+  '';
+
 in pkgs.buildEnv {
   name = "eviction-tracker-serve-app";
   paths = [
     runGunicorn
     runMigrations
     runSync
+    runFlask
     console
     verifyPhones
   ];

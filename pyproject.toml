@@ -31,6 +31,8 @@ nameparser = "^1.0.6"
 APScheduler = "^3.7.0"
 Flask-APScheduler = "1.12.1"
 usaddress = "^0.5.10"
+datadog = "^0.42.0"
+setproctitle = "^1.2.2"
 
 
 [tool.poetry.dev-dependencies]
