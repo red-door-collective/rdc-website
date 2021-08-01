@@ -17,6 +17,13 @@ import flask_wtf
 from flask_security import current_user
 from flask_apscheduler import APScheduler
 
+from datadog import initialize, statsd
+
+options = {
+    'statsd_host': '127.0.0.1',
+    'statsd_port': 8125
+}
+
 
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
@@ -60,6 +67,8 @@ def create_app(testing=False):
     app.config['SCHEDULER_API_ENABLED'] = True
     app.config['TESTING'] = testing
     app.config.update(**security_config)
+    if app.config['ENV'] == 'production':
+        initialize(**options)
 
     register_extensions(app)
     register_shellcontext(app)
