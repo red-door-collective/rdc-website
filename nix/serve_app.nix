@@ -17,6 +17,7 @@ let
 
   runGunicorn = pkgs.writeShellScriptBin "run" ''
     ${lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
+    export PYTHONPATH=${pythonpath}
     ${gunicorn}/bin/gunicorn -c ${gunicornConf} \
       "eviction_tracker.app:create_app()"
   '';
