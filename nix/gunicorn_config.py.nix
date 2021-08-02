@@ -9,6 +9,8 @@ proc_name = "eviction-tracker"
 pythonpath = "${pythonpath}"
 timeout = 120
 statsd_host = "localhost:8125"
+user = "eviction-tracker"
+group = "within"
 
 def on_starting(server):
     print("Starting scheduler")
