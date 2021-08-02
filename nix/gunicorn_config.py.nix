@@ -12,6 +12,7 @@ timeout = 120
 statsd_host = "localhost:8125"
 user = "eviction-tracker"
 group = "within"
+preload = True
 
 def on_starting(server):
     print("Starting scheduler")
