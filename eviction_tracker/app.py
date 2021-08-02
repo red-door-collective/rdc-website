@@ -1,7 +1,7 @@
 import flask
 from flask import Flask, render_template, request, redirect
 from flask_security import hash_password, auth_token_required
-from eviction_tracker.extensions import assets, db, marshmallow, migrate, api, login_manager, security, scheduler
+from eviction_tracker.extensions import assets, db, marshmallow, migrate, api, login_manager, security
 from eviction_tracker.admin.models import User, user_datastore
 import yaml
 import os

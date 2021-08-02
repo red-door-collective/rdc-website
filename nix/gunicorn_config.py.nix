@@ -1,6 +1,7 @@
 { listen, pythonpath }:
 ''
 import multiprocessing
+from flask_apscheduler import APScheduler
 
 workers = multiprocessing.cpu_count() * 2 + 1
 bind = "${listen}"
@@ -15,6 +16,7 @@ group = "within"
 def on_starting(server):
     print("Starting scheduler")
     flask_app = server.app.wsgi()
+    scheduler = APScheduler()
     scheduler.init_app(flask_app)
     scheduler.start()
 
