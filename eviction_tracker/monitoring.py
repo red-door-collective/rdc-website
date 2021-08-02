@@ -7,9 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 def log_on_exception(func):
-    def inner():
+    def inner(*arg):
         try:
-            func()
+            res = func(*arg)
         except:
             logger.error("uncaught exception: %s", traceback.format_exc())
+        return res
     return inner

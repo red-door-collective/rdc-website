@@ -33,10 +33,15 @@ LOGGING = {
     'loggers': {
         '': {  # root logger
             'handlers': ['default'],
-            'level': 'WARNING',
+            'level': 'INFO',
             'propagate': False
         },
         'eviction_tracker.commands': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'eviction_tracker.tasks': {
             'handlers': ['file'],
             'level': 'INFO',
             'propagate': False

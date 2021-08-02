@@ -244,6 +244,7 @@ def register_extensions(app):
     security.init_app(app, user_datastore)
     flask_wtf.CSRFProtect(app)
     if app.config['TESTING'] == False:
+        logger.info('starting scheduler')
         scheduler.init_app(app)
         scheduler.start()
 

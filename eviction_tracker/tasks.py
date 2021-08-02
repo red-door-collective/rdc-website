@@ -31,7 +31,7 @@ def import_warrants():
             judgement_wb, service_account_key=key)
 
 
-@scheduler.task(IntervalTrigger(minutes=70), id='export')
+@scheduler.task(IntervalTrigger(seconds=10), id='export')
 @log_on_exception
 def export():
     with scheduler.app.app_context():
