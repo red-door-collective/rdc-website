@@ -1,7 +1,7 @@
 { listen, pythonpath }:
 ''
 import multiprocessing
-from flask_apscheduler import APScheduler
+from eviction_tracker.extensions import scheduler
 
 workers = multiprocessing.cpu_count() * 2 + 1
 bind = "${listen}"
@@ -17,7 +17,6 @@ preload = True
 def on_starting(server):
     print("Starting scheduler")
     flask_app = server.app.wsgi()
-    scheduler = APScheduler()
     scheduler.init_app(flask_app)
     scheduler.start()
 
