@@ -8,5 +8,5 @@ bind = "${listen}"
 proc_name = "eviction-tracker"
 pythonpath = "${pythonpath}"
 timeout = 120
-statsd-host = "localhost:8125"
+statsd_host = "localhost:8125"
 ''
