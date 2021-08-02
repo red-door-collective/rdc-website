@@ -243,12 +243,8 @@ def register_extensions(app):
     login_manager.login_view = None
     security.init_app(app, user_datastore)
     flask_wtf.CSRFProtect(app)
-    if app.config['TESTING'] == False:
-        logger.info('starting scheduler')
-        scheduler.init_app(app)
-        scheduler.start()
-
-        from eviction_tracker import tasks
+    # if app.config['TESTING'] == False:
+    #     logger.info('starting scheduler')
 
     api.add_resource('/attorneys/', detainer_warrants.views.AttorneyListResource,
                      detainer_warrants.views.AttorneyResource, app=app)
