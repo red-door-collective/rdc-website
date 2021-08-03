@@ -44,6 +44,7 @@ jobs:
         uses: craig-day/compute-tag@v13
         with:
           version_scheme: continuous
+          version_type: major
           github_token: ${{ github.token }}
       - uses: cachix/install-nix-action@v12
         with:
@@ -65,6 +66,7 @@ jobs:
           git add -f eviction_tracker/static
           git commit -m "Build application for $GITHUB_SHA"
           git push --force origin "HEAD:refs/heads/release"
+          git tag -a $NEXT_TAG -m "$NEXT_TAG"
           git push origin $NEXT_TAG
         env:
           NEXT_TAG: ${{ steps.compute_tag.outputs.next_tag }}
