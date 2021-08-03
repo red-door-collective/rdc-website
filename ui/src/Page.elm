@@ -200,6 +200,7 @@ menuLink { label, url, isActive } =
          , Background.color Palette.sred
          , centerY
          , Font.size 18
+         , Element.padding 10
          ]
             ++ (if isActive then
                     [ Border.width 1
