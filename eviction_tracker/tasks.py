@@ -45,6 +45,11 @@ def export():
         logger.info(
             f'Exporting upcoming court dates to workbook: {workbook_name}')
         detainer_warrants.exports.to_court_watch_sheet(workbook_name, key)
+        courtroom_entry_wb = f'{datetime.strftime(date.today(), "%B %Y")} Court Watch'
+        logger.info(
+            f'Exporting the week\'s to workbook: {courtroom_entry_wb}')
+        detainer_warrants.exports.weekly_courtroom_entry_workbook(
+            date.today(), key)
 
 
 @scheduler.task(IntervalTrigger(minutes=65), id='sync_with_sessions_site')

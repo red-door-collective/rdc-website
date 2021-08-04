@@ -39,6 +39,36 @@ LOCATIONS = {
 }
 
 
+def create_defendant(defaults, docket_id, listing):
+    if 'ALL OTHER OCCUPANTS' in listing['name']:
+        return None
+
+    name = HumanName(listing['name'].replace('OR ALL OCCUPANTS', ''))
+    print(name)
+    if DetainerWarrant.query.filter(
+        DetainerWarrant.docket_id == docket_id,
+        DetainerWarrant._defendants.any(
+            first_name=name.first, last_name=name.last)
+    ).first():
+        return
+
+    address = listing['address']
+
+    defendant = None
+    if name.first:
+        defendant, _ = get_or_create(
+            db.session, Defendant,
+            first_name=name.first,
+            middle_name=name.middle,
+            last_name=name.last,
+            suffix=name.suffix,
+            address=address,
+            defaults=defaults
+        )
+
+    return defendant
+
+
 def link_defendant(docket_id, defendant):
     db.session.execute(insert(detainer_warrant_defendants)
                        .values(detainer_warrant_docket_id=docket_id, defendant_id=defendant.id))
@@ -62,6 +92,9 @@ def insert_warrant(defaults, docket_id, listing):
         courtroom, _ = get_or_create(
             db.session, Courtroom, name=listing['courtroom'], defaults=defaults)
 
+    defendants = [create_defendant(defaults, docket_id, defendant)
+                  for defendant in listing['defendants']]
+
     dw_values = dict(docket_id=docket_id,
                      plaintiff_id=plaintiff.id if plaintiff else None,
                      plaintiff_attorney_id=attorney.id if attorney else None,
@@ -82,6 +115,16 @@ def insert_warrant(defaults, docket_id, listing):
     db.session.execute(do_update_stmt)
     db.session.commit()
 
+    try:
+        for defendant in defendants:
+            if defendant:
+                link_defendant(docket_id, defendant)
+
+    except IntegrityError:
+        pass
+
+    db.session.commit()
+
     if Judgement.query.filter_by(court_date=court_date, detainer_warrant_id=docket_id).first():
         return
 
@@ -90,7 +133,8 @@ def insert_warrant(defaults, docket_id, listing):
         detainer_warrant_id=docket_id,
         courtroom_id=courtroom.id if courtroom else None,
         plaintiff_id=plaintiff.id if plaintiff else None,
-        plaintiff_attorney_id=attorney.id if attorney else None
+        plaintiff_attorney_id=attorney.id if attorney else None,
+        court_order_number=listing['court_order_number']
     )
 
     db.session.commit()
@@ -113,6 +157,7 @@ def scrape(courtroom, date):
 
     cur_detainer_id = None
     detainers = {}
+    court_order_number = 0
     for dw in re.sub(r'\r\n', '', re.sub(r'-{4,}', '|', content)).split('|'):
         if dw[DOCKET_INDEX] != ' ':  # new docket
             attorney = dw[PLAINTIFF_ATTORNEY_INDEX:DEFENDANT_ADDRESS_INDEX].strip()
@@ -125,8 +170,10 @@ def scrape(courtroom, date):
                     'address': re.sub(r'[ ]{3,}', '', dw[DEFENDANT_ADDRESS_INDEX:]).strip()
                 }],
                 'court_date': date,
-                'courtroom': courtroom
+                'courtroom': courtroom,
+                'court_order_number': court_order_number
             }
+            court_order_number += 1
         elif 'GENERAL SESSIONS' in dw:
             continue
         else:  # still in an existing docket entry

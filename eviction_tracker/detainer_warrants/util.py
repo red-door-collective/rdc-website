@@ -18,12 +18,16 @@ def dw_rows(limit, workbook):
     return all_rows[:stop_index] if limit else all_rows
 
 
-def open_workbook(workbook_name, service_account_key):
+def get_gc(service_account_key):
     connect_kwargs = dict()
     if service_account_key:
         connect_kwargs['filename'] = service_account_key
 
-    return gspread.service_account(**connect_kwargs).open(workbook_name)
+    return gspread.service_account(**connect_kwargs)
+
+
+def open_workbook(workbook_name, service_account_key):
+    return get_gc(service_account_key).open(workbook_name)
 
 
 def get_or_create(session, model, defaults=None, **kwargs):

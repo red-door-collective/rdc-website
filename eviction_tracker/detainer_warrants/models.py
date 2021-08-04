@@ -63,7 +63,7 @@ class Defendant(db.Model, Timestamped):
 
     @property
     def name(self):
-        return ' '.join(filter(lambda s: s != None, [self.first_name, self.middle_name, self.last_name, self.suffix]))
+        return ' '.join([name for name in [self.first_name, self.middle_name, self.last_name, self.suffix] if name])
 
     def __repr__(self):
         return f"<Defendant(name='{self.name}', phones='{self.potential_phones}', address='{self.address}')>"
@@ -103,6 +103,7 @@ class Courtroom(db.Model, Timestamped):
 
     district = relationship('District', back_populates='courtrooms')
     cases = relationship('DetainerWarrant', back_populates='_courtroom')
+    _judgements = relationship('Judgement', back_populates='_courtroom')
 
     def __repr__(self):
         return "<Courtroom(name='%s')>" % (self.name)
@@ -176,6 +177,7 @@ class Judgement(db.Model, Timestamped):
     with_prejudice = Column(db.Boolean)
     court_date = Column(db.Date)
     mediation_letter = Column(db.Boolean)
+    court_order_number = Column(db.Integer)
     notes = Column(db.String(255))
 
     detainer_warrant_id = Column(
@@ -192,6 +194,9 @@ class Judgement(db.Model, Timestamped):
     ))
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
+    _courtroom = relationship(
+        'Courtroom', back_populates='_judgements'
+    )
     _detainer_warrant = relationship(
         'DetainerWarrant', back_populates='_judgements')
 
@@ -209,6 +214,18 @@ class Judgement(db.Model, Timestamped):
     last_edited_by = relationship(
         'User', back_populates='edited_judgements'
     )
+
+    @property
+    def courtroom(self):
+        return self._courtroom
+
+    @courtroom.setter
+    def courtroom(self, courtroom):
+        c_id = courtroom and courtroom.get('id')
+        if (c_id):
+            self._courtroom = db.session.query(Courtroom).get(c_id)
+        else:
+            self._courtroom = courtroom
 
     @property
     def in_favor_of(self):

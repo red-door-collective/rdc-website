@@ -1,12 +1,12 @@
 from .models import db
 from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Judgement, Plaintiff, detainer_warrant_defendants
-from .util import open_workbook
+from .util import open_workbook, get_gc
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
 from itertools import chain
 import gspread
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import usaddress
 from eviction_tracker.monitoring import log_on_exception
 
@@ -266,3 +266,71 @@ def to_court_watch_sheet(workbook_name, service_account_key=None):
     rows = [_try_court_watch_row(warrant) for warrant in warrants]
 
     wks.update(f'A2:L{total + 1}', rows)
+
+
+COURTROOM_DOCKET_HEADERS = ['Defendant Names', 'Is present',
+                            'Demographics', 'Plaintiff', 'Plaintiff Attorney', 'Docket #', 'Notes']
+
+
+def _courtroom_entry_row(docket):
+    return [
+        defendant_names_column(docket.detainer_warrant),
+        '',
+        '',
+        docket.plaintiff.name if docket.plaintiff else '',
+        docket.plaintiff_attorney.name if docket.plaintiff_attorney else '',
+        docket.detainer_warrant_id,
+        ''
+    ]
+
+
+def _to_courtroom_entry_sheet(wb, date, courtroom, judgements):
+    dockets = judgements.filter_by(courtroom_id=courtroom.id)
+    total = dockets.count()
+    if total == 0:
+        return
+
+    date_of_month = datetime.strftime(date, '%d')
+    wks = get_or_create_sheet(wb,
+                              f'{date_of_month} {courtroom.name}',
+                              rows=total + 1,
+                              cols=len(COURTROOM_DOCKET_HEADERS))
+
+    wks.update('A1:G1', [COURTROOM_DOCKET_HEADERS])
+
+    rows = [_courtroom_entry_row(docket) for docket in dockets]
+
+    wks.update(f'A2:G{total + 1}', rows)
+
+
+def to_courtroom_entry_workbook(date, service_account_key=None):
+    workbook_name = f'{datetime.strftime(date, "%B %Y")} Court Watch'
+    try:
+        wb = open_workbook(workbook_name, service_account_key)
+    except gspread.exceptions.SpreadsheetNotFound:
+        wb = get_gc(service_account_key).create(workbook_name)
+        wb.share('reddoormidtn@gmail.com', perm_type='user', role='owner')
+
+    courtroom_1a = Courtroom.query.filter_by(name='1A').first()
+    courtroom_1b = Courtroom.query.filter_by(name='1B').first()
+    if not courtroom_1a or not courtroom_1b:
+        logger.error('cannot find courtrooms for entry sheet generation!')
+        return
+
+    judgements = Judgement.query.filter(
+        Judgement.detainer_warrant_id.ilike('%\G\T%'),
+        Judgement.court_date != None,
+        Judgement.court_date == date,
+    ).order_by(Judgement.court_order_number)
+
+    _to_courtroom_entry_sheet(wb, date, courtroom_1a, judgements)
+    _to_courtroom_entry_sheet(wb, date, courtroom_1b, judgements)
+    logger.info(f'Exported courtroom sheets for 1A + 1B on {date_str(date)}')
+
+
+def weekly_courtroom_entry_workbook(date, service_account_key=None):
+    day_delta = timedelta(days=1)
+    week = [day_delta * num + date for num in range(7)]
+    for day in week:
+        to_courtroom_entry_workbook(
+            day, service_account_key=service_account_key)
