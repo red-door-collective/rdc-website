@@ -176,9 +176,9 @@ def twilio_client(app):
     return Client(account_sid, auth_token)
 
 
-@ click.command()
-@ click.option('-l', '--limit', default=None, help='Number of phone numbers to validate')
-@ with_appcontext
+@click.command()
+@click.option('-l', '--limit', default=None, help='Number of phone numbers to validate')
+@with_appcontext
 def verify_phones(limit):
     """Verify phone numbers listed on Detainer Warrants"""
     numbers_to_validate = db.session.query(
@@ -194,17 +194,17 @@ def verify_phones(limit):
             validate_phone_number(client, current_app, potential_phone)
 
 
-@ click.command()
-@ click.argument('phone_number')
-@ with_appcontext
+@click.command()
+@click.argument('phone_number')
+@with_appcontext
 def verify_phone(phone_number):
     """Verify an individual phone number"""
     client = twilio_client(current_app)
     validate_phone_number(client, current_app, phone_number)
 
 
-@ click.command()
-@ with_appcontext
+@click.command()
+@with_appcontext
 def bootstrap():
     district, _ = detainer_warrants.util.get_or_create(
         db.session, District, name="Davidson County")
