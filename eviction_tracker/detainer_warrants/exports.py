@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
 from itertools import chain
 import gspread
+from gspread_formatting import *
 from datetime import datetime, date, timedelta
 import usaddress
 from eviction_tracker.monitoring import log_on_exception
@@ -140,6 +141,10 @@ def defendant_names_column(warrant):
     return ' | '.join([defendant.name for defendant in warrant.defendants])
 
 
+def defendant_names_column_newline(warrant):
+    return '\n'.join([defendant.name for defendant in warrant.defendants])
+
+
 def _to_judgement_row(judgement):
     return [dw if dw else '' for dw in
             [
@@ -268,13 +273,13 @@ def to_court_watch_sheet(workbook_name, service_account_key=None):
     wks.update(f'A2:L{total + 1}', rows)
 
 
-COURTROOM_DOCKET_HEADERS = ['Defendant Names', 'Is present',
+COURTROOM_DOCKET_HEADERS = ['Defendant Names', 'Present?',
                             'Demographics', 'Plaintiff', 'Plaintiff Attorney', 'Docket #', 'Notes']
 
 
 def _courtroom_entry_row(docket):
     return [
-        defendant_names_column(docket.detainer_warrant),
+        defendant_names_column_newline(docket.detainer_warrant),
         '',
         '',
         docket.plaintiff.name if docket.plaintiff else '',
@@ -282,6 +287,14 @@ def _courtroom_entry_row(docket):
         docket.detainer_warrant_id,
         ''
     ]
+
+
+CELL_FORMAT = cellFormat(
+    backgroundColor=color(1, 1, 1),
+    textFormat=textFormat(foregroundColor=color(
+        0, 0, 0)),
+    wrapStrategy='WRAP'
+)
 
 
 def _to_courtroom_entry_sheet(wb, date, courtroom, judgements):
@@ -302,6 +315,19 @@ def _to_courtroom_entry_sheet(wb, date, courtroom, judgements):
 
     wks.update(f'A2:G{total + 1}', rows)
 
+    set_row_height(wks, f'1:{total + 1}', 80)
+    set_column_width(wks, 'A', 250)
+    set_column_width(wks, 'B', 75)
+    set_column_width(wks, 'C', 100)
+    set_column_width(wks, 'D', 250)
+    set_column_width(wks, 'E', 250)
+    set_column_width(wks, 'F', 100)
+    set_column_width(wks, 'G', 300)
+
+    format_cell_range(wks, f'A1:G1', cellFormat(
+        backgroundColor=color(0.925, 0.925, 0.925), textFormat=textFormat(bold=True)))
+    format_cell_range(wks, f'A2:G{total + 1}', CELL_FORMAT)
+
 
 def to_courtroom_entry_workbook(date, service_account_key=None):
     workbook_name = f'{datetime.strftime(date, "%B %Y")} Court Watch'
@@ -318,7 +344,6 @@ def to_courtroom_entry_workbook(date, service_account_key=None):
         return
 
     judgements = Judgement.query.filter(
-        Judgement.detainer_warrant_id.ilike('%\G\T%'),
         Judgement.court_date != None,
         Judgement.court_date == date,
     ).order_by(Judgement.court_order_number)
