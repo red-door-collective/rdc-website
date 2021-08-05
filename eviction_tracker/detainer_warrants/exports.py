@@ -10,6 +10,8 @@ from gspread_formatting import *
 from datetime import datetime, date, timedelta
 import usaddress
 from eviction_tracker.monitoring import log_on_exception
+import jellyfish
+import itertools
 
 import logging
 import logging.config
@@ -142,7 +144,12 @@ def defendant_names_column(warrant):
 
 
 def defendant_names_column_newline(warrant):
-    return '\n'.join([defendant.name for defendant in warrant.defendants])
+    names = [defendant.name for defendant in warrant.defendants]
+    dupes = [a for a, b in itertools.combinations(
+        list(names), 2) if jellyfish.damerau_levenshtein_distance(a, b) <= 1]
+    deduped = list(
+        set(list(names)) - set(dupes))
+    return '\n'.join(deduped)
 
 
 def _to_judgement_row(judgement):

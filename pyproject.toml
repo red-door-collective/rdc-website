@@ -35,6 +35,7 @@ datadog = "^0.42.0"
 setproctitle = "^1.2.2"
 python-json-logger = "^2.0.2"
 gspread-formatting = "^1.0.3"
+jellyfish = "^0.8.4"
 
 
 [tool.poetry.dev-dependencies]

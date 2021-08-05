@@ -654,6 +654,14 @@ qa = ["flake8 (3.7.9)"]
 testing = ["Django (<3.1)", "colorama", "docopt", "pytest (>=3.9.0,<5.0.0)"]
 
 [[package]]
+name = "jellyfish"
+version = "0.8.4"
+description = "a library for doing approximate and phonetic matching of strings."
+category = "main"
+optional = false
+python-versions = ">3.5"
+
+[[package]]
 name = "jinja2"
 version = "2.11.3"
 description = "A very fast and expressive template engine."
@@ -1625,7 +1633,7 @@ locale = ["Babel (>=1.3)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "d0c20e8c9b9fb45cb2771c17623945ad171ffd1bf2b8488789df795ab7fe7144"
+content-hash = "8cd52cda19003bce09e0e86ce0e0931ee4ea4ad16527b1aeb8e966386d82daac"
 
 [metadata.files]
 alembic = [
@@ -1925,6 +1933,18 @@ itsdangerous = [
 jedi = [
     {file = "jedi-0.17.2-py2.py3-none-any.whl", hash = "sha256:98cc583fa0f2f8304968199b01b6b4b94f469a1f4a74c1560506ca2a211378b5"},
     {file = "jedi-0.17.2.tar.gz", hash = "sha256:86ed7d9b750603e4ba582ea8edc678657fb4007894a12bcf6f4bb97892f31d20"},
+]
+jellyfish = [
+    {file = "jellyfish-0.8.4-cp36-cp36m-macosx_10_14_x86_64.whl", hash = "sha256:fb92ffbc994c46bbdcb960318372841de54d89097959fe8f54a6802558da9beb"},
+    {file = "jellyfish-0.8.4-cp36-cp36m-win_amd64.whl", hash = "sha256:4764714f050935ac88f899cd79600b5788bb22f1eeb1c26893229b42f6df589b"},
+    {file = "jellyfish-0.8.4-cp37-cp37m-macosx_10_14_x86_64.whl", hash = "sha256:2fe80bc7e3e7b025c0d8a9f4c9d83301cecad617fd3cfadf7e6197bccae4d635"},
+    {file = "jellyfish-0.8.4-cp37-cp37m-win_amd64.whl", hash = "sha256:b551182a1d4c0bf401deaee31b89dc230dddfb7a5114d735644921983cfbe703"},
+    {file = "jellyfish-0.8.4-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:0c96e591c805733dd3938765424bc1278fec4d4c00fea51962935e397ca56830"},
+    {file = "jellyfish-0.8.4-cp38-cp38-win_amd64.whl", hash = "sha256:a649ff9324d38ea77421e481b706e24e8c203312313dc945aa21bee82455bbba"},
+    {file = "jellyfish-0.8.4-cp39-cp39-macosx_10_14_x86_64.whl", hash = "sha256:7bb576403cd46211ec188d0f578beb988263d88cb3298db10c904f9f7c810b06"},
+    {file = "jellyfish-0.8.4-cp39-cp39-win_amd64.whl", hash = "sha256:d5a6becffd143544fe4ace753653eb2ebc9d3210b843fb5a7d68a335b4094330"},
+    {file = "jellyfish-0.8.4-py3-none-any.whl", hash = "sha256:01f0ff6b9c9e967a0f6b075b2bc38512024809792d89a2c853ca20c6afec37c1"},
+    {file = "jellyfish-0.8.4.tar.gz", hash = "sha256:e07c9346c6e82f7de83b983910617a82d1a993f8f93c232a60142b5bcb85c1cc"},
 ]
 jinja2 = [
     {file = "Jinja2-2.11.3-py2.py3-none-any.whl", hash = "sha256:03e47ad063331dd6a3f04a43eddca8a966a26ba0c5b7207a9a9e4e08f1b29419"},
