@@ -334,6 +334,7 @@ def _to_courtroom_entry_sheet(wb, date, courtroom, judgements):
     format_cell_range(wks, f'A1:G1', cellFormat(
         backgroundColor=color(0.925, 0.925, 0.925), textFormat=textFormat(bold=True)))
     format_cell_range(wks, f'A2:G{total + 1}', CELL_FORMAT)
+    set_frozen(wks, rows=1)
 
 
 def to_courtroom_entry_workbook(date, service_account_key=None):
