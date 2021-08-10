@@ -69,7 +69,15 @@ view maybeUrl sharedModel static =
     , body =
         let
             author =
-                Author.jack
+                case static.data.metadata.author of
+                    "Greg Ziegan" ->
+                        Author.greg
+
+                    "Jack Marr" ->
+                        Author.jack
+
+                    _ ->
+                        Author.redDoor
         in
         [ Element.row [ Element.width Element.fill ]
             [ Element.column [ Element.width (Element.px 642), Element.centerX ]
@@ -248,6 +256,7 @@ data route =
 type alias ArticleMetadata =
     { title : String
     , description : String
+    , author : String
     , published : Date
     , image : Pages.Url.Url
     , draft : Bool
@@ -256,9 +265,10 @@ type alias ArticleMetadata =
 
 frontmatterDecoder : OptimizedDecoder.Decoder ArticleMetadata
 frontmatterDecoder =
-    OptimizedDecoder.map5 ArticleMetadata
+    OptimizedDecoder.map6 ArticleMetadata
         (OptimizedDecoder.field "title" OptimizedDecoder.string)
         (OptimizedDecoder.field "description" OptimizedDecoder.string)
+        (OptimizedDecoder.field "author" OptimizedDecoder.string)
         (OptimizedDecoder.field "published"
             (OptimizedDecoder.string
                 |> OptimizedDecoder.andThen

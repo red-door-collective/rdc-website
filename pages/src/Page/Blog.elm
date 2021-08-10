@@ -119,7 +119,7 @@ view maybeUrl sharedModel staticPayload =
                                         ]
                                     ]
                                 ]
-                                [ text "Blog" ]
+                                [ text "Red Door Collective" ]
                             , p
                                 [ css
                                     [ Tw.mt_3
@@ -270,4 +270,4 @@ blogCard ( route, info ) =
 
 blogDescription : String
 blogDescription =
-    "The latest elm-pages news and articles."
+    "Unionizing Nashville tenants"

@@ -1,4 +1,4 @@
-module Data.Author exposing (Author, all, decoder, greg, jack)
+module Data.Author exposing (Author, all, decoder, greg, jack, redDoor)
 
 import Cloudinary
 import Json.Decode as Decode exposing (Decoder)
@@ -33,6 +33,14 @@ jack =
     { name = "Jack Marr"
     , avatar = Cloudinary.url "v1602899672/reddoorcollective/jack-profile.jpg" Nothing 140
     , bio = "Organizer in Red Door Collective. Data expert."
+    }
+
+
+redDoor : Author
+redDoor =
+    { name = "Red Door Collective"
+    , avatar = Cloudinary.url "v2344343/reddoorcollective/red-door-avatar.jpg" Nothing 140
+    , bio = "A grassroots groups helping tenants to organize for dignified housing."
     }
 
 
