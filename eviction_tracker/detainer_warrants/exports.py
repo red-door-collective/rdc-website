@@ -179,7 +179,8 @@ def to_judgement_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
     judgements = Judgement.query.filter(
-        Judgement.detainer_warrant_id.ilike('%\G\T%'))
+        Judgement.detainer_warrant_id.ilike('%\G\T%')
+    ).order_by(Judgement.court_date)
 
     total = judgements.count()
 

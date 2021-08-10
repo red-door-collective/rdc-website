@@ -44,7 +44,6 @@ def create_defendant(defaults, docket_id, listing):
         return None
 
     name = HumanName(listing['name'].replace('OR ALL OCCUPANTS', ''))
-    print(name)
     if DetainerWarrant.query.filter(
         DetainerWarrant.docket_id == docket_id,
         DetainerWarrant._defendants.any(

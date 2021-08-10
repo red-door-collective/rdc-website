@@ -159,7 +159,6 @@ def _from_dw_wb_row(raw_warrant):
     dw = db.session.query(DetainerWarrant).get(warrant["Docket #"])
 
     if not dw:
-        print('no existing detainer warrant')
         return
 
     outcome = warrant['Judgement'].lower() if warrant['Judgement'] else None
