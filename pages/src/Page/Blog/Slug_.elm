@@ -71,53 +71,57 @@ view maybeUrl sharedModel static =
             author =
                 Author.jack
         in
-        [ Element.html
-            (Html.Styled.toUnstyled
-                (div
-                    [ css
-                        [ Tw.min_h_screen
-                        , Tw.w_full
-                        , Tw.relative
-                        ]
-                    ]
-                    [ div
-                        [ css
-                            [ Tw.pt_16
-                            , Tw.pb_16
-                            , Tw.px_8
-                            , Tw.flex
-                            , Tw.flex_col
-                            ]
-                        ]
-                        [ div
+        [ Element.row [ Element.width Element.fill ]
+            [ Element.column [ Element.width (Element.px 642), Element.centerX ]
+                [ Element.html
+                    (Html.Styled.toUnstyled
+                        (div
                             [ css
-                                [ Bp.md [ Tw.mx_auto ]
+                                [ Tw.min_h_screen
+                                , Tw.w_full
+                                , Tw.relative
                                 ]
                             ]
-                            [ h1
+                            [ div
                                 [ css
-                                    [ Tw.text_center
-                                    , Tw.text_4xl
-                                    , Tw.font_bold
-                                    , Tw.tracking_tight
-                                    , Tw.mt_2
-                                    , Tw.mb_8
+                                    [ Tw.pt_16
+                                    , Tw.pb_16
+                                    , Tw.px_8
+                                    , Tw.flex
+                                    , Tw.flex_col
                                     ]
                                 ]
-                                [ text static.data.metadata.title
-                                ]
-                            , authorView author static.data
-                            , div
-                                [ css
-                                    [ Tw.prose
+                                [ div
+                                    [ css
+                                        [ Bp.md [ Tw.mx_auto ]
+                                        ]
+                                    ]
+                                    [ h1
+                                        [ css
+                                            [ Tw.text_center
+                                            , Tw.text_4xl
+                                            , Tw.font_bold
+                                            , Tw.tracking_tight
+                                            , Tw.mt_2
+                                            , Tw.mb_8
+                                            ]
+                                        ]
+                                        [ text static.data.metadata.title
+                                        ]
+                                    , authorView author static.data
+                                    , div
+                                        [ css
+                                            [ Tw.prose
+                                            ]
+                                        ]
+                                        static.data.body
                                     ]
                                 ]
-                                static.data.body
                             ]
-                        ]
-                    ]
-                )
-            )
+                        )
+                    )
+                ]
+            ]
         ]
     }
 
@@ -198,7 +202,7 @@ head static =
             , mainEntityOfPage =
                 StructuredData.softwareSourceCode
                     { codeRepositoryUrl = "https://github.com/thebritican/eviction-tracker"
-                    , description = "A statically typed site generator for Elm."
+                    , description = "A free website that keeps the people informed about housing and evictions."
                     , author = "Greg Ziegan"
                     , programmingLanguage = StructuredData.elmLang
                     }

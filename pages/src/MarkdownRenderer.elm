@@ -1,8 +1,9 @@
-module MarkdownRenderer exposing (..)
+module MarkdownRenderer exposing (renderer)
 
+import Css
 import Html.Styled as Html
 import Html.Styled.Attributes as Attr exposing (css)
-import Markdown.Block as Block exposing (ListItem(..), Task(..))
+import Markdown.Block as Block
 import Markdown.Html
 import Markdown.Renderer
 import SyntaxHighlight
@@ -12,7 +13,7 @@ import Tailwind.Utilities as Tw
 renderer : Markdown.Renderer.Renderer (Html.Html msg)
 renderer =
     { heading = heading
-    , paragraph = Html.p []
+    , paragraph = Html.p [ css [ Tw.break_words, Tw.whitespace_normal ] ]
     , thematicBreak = Html.hr [] []
     , text = Html.text
     , strong = \content -> Html.strong [ css [ Tw.font_bold ] ] content
@@ -24,6 +25,7 @@ renderer =
                 [ css
                     [ Tw.font_semibold
                     , Tw.font_medium
+                    , Css.color (Css.rgb 226 0 124) |> Css.important
                     ]
                 ]
                 [ Html.text content ]
@@ -116,7 +118,22 @@ renderer =
     --            [ Html.text body
     --            ]
     --        ]
-    , table = Html.table []
+    , table =
+        Html.table
+            [ {-
+                 table-layout: auto;
+                     text-align: left;
+                     width: 100%;
+                     margin-top: 2em;
+                     margin-bottom: 2em;
+              -}
+              css
+                [--Tw.table_auto
+                 --, Tw.w_full
+                 --, Tw.mt_4
+                 --, Tw.mb_4
+                ]
+            ]
     , tableHeader = Html.thead []
     , tableBody = Html.tbody []
     , tableRow = Html.tr []
@@ -179,35 +196,80 @@ rawTextToId rawText =
 
 heading : { level : Block.HeadingLevel, rawText : String, children : List (Html.Html msg) } -> Html.Html msg
 heading { level, rawText, children } =
-    (case level of
+    case level of
         Block.H1 ->
             Html.h1
+                [ css
+                    [ Tw.text_4xl
+                    , Tw.font_bold
+                    , Tw.tracking_tight
+                    , Tw.mt_2
+                    , Tw.mb_4
+                    ]
+                ]
+                children
 
         Block.H2 ->
             Html.h2
+                [ Attr.id (rawTextToId rawText)
+                , Attr.attribute "name" (rawTextToId rawText)
+                , css
+                    [ Tw.text_3xl
+                    , Tw.font_semibold
+                    , Tw.tracking_tight
+                    , Tw.mt_10
+                    , Tw.pb_1
+                    , Tw.border_b
+                    ]
+                ]
+                [ Html.a
+                    [ Attr.href <| "#" ++ rawTextToId rawText
+                    , css
+                        [ Tw.no_underline |> Css.important
+                        ]
+                    ]
+                    (children
+                        ++ [ Html.span
+                                [ Attr.class "anchor-icon"
+                                , css
+                                    [ Tw.ml_2
+                                    , Tw.text_gray_500
+                                    , Tw.select_none
+                                    ]
+                                ]
+                                [ Html.text "#" ]
+                           ]
+                    )
+                ]
 
-        Block.H3 ->
-            Html.h3
+        _ ->
+            (case level of
+                Block.H1 ->
+                    Html.h1
 
-        Block.H4 ->
-            Html.h4
+                Block.H2 ->
+                    Html.h2
 
-        Block.H5 ->
-            Html.h5
+                Block.H3 ->
+                    Html.h3
 
-        Block.H6 ->
-            Html.h6
-    )
-        [ Attr.id (rawTextToId rawText)
-        , Attr.attribute "name" (rawTextToId rawText)
-        , css
-            [ Tw.font_bold
-            , Tw.text_2xl
-            , Tw.mt_8
-            , Tw.mb_4
-            ]
-        ]
-        children
+                Block.H4 ->
+                    Html.h4
+
+                Block.H5 ->
+                    Html.h5
+
+                Block.H6 ->
+                    Html.h6
+            )
+                [ css
+                    [ Tw.font_bold
+                    , Tw.text_lg
+                    , Tw.mt_8
+                    , Tw.mb_4
+                    ]
+                ]
+                children
 
 
 
