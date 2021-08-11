@@ -63,13 +63,14 @@ type alias ArticleMetadata =
     , description : String
     , published : Date
     , image : Url
+    , author : String
     , draft : Bool
     }
 
 
 frontmatterDecoder : OptimizedDecoder.Decoder ArticleMetadata
 frontmatterDecoder =
-    OptimizedDecoder.map5 ArticleMetadata
+    OptimizedDecoder.map6 ArticleMetadata
         (OptimizedDecoder.field "title" OptimizedDecoder.string)
         (OptimizedDecoder.field "description" OptimizedDecoder.string)
         (OptimizedDecoder.field "published"
@@ -86,6 +87,7 @@ frontmatterDecoder =
             )
         )
         (OptimizedDecoder.field "image" imageDecoder)
+        (OptimizedDecoder.field "author" OptimizedDecoder.string)
         (OptimizedDecoder.field "draft" OptimizedDecoder.bool
             |> OptimizedDecoder.maybe
             |> OptimizedDecoder.map (Maybe.withDefault False)
@@ -95,4 +97,4 @@ frontmatterDecoder =
 imageDecoder : OptimizedDecoder.Decoder Url
 imageDecoder =
     OptimizedDecoder.string
-        |> OptimizedDecoder.map (\cloudinaryAsset -> Cloudinary.urlTint cloudinaryAsset Nothing 465 300)
+        |> OptimizedDecoder.map (\cloudinaryAsset -> Cloudinary.url cloudinaryAsset Nothing 400 300)

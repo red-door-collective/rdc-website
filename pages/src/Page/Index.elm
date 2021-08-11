@@ -8,6 +8,7 @@ import MimeType exposing (MimeType)
 import Page exposing (Page, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
+import Path exposing (Path)
 import Shared
 import View exposing (View)
 
@@ -46,7 +47,7 @@ head static =
         { canonicalUrlOverride = Nothing
         , siteName = "reddoormidtn"
         , image =
-            { url = Cloudinary.url "avatars/red-door-logo.png" Nothing 300
+            { url = [ "images", "red-door-logo.png" ] |> Path.join |> Pages.Url.fromPath
             , alt = "Red Door Collective logo"
             , dimensions = Just { width = 300, height = 300 }
             , mimeType = Just "png"

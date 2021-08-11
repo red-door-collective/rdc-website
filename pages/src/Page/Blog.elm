@@ -3,7 +3,7 @@ module Page.Blog exposing (Data, Model, Msg, page)
 import Article
 import DataSource
 import Date
-import Element exposing (Color, Element, alignBottom, alignLeft, alignRight, centerX, column, fill, height, image, maximum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, textColumn, width)
+import Element exposing (Color, Element, alignBottom, alignLeft, alignRight, centerX, column, fill, height, image, maximum, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
@@ -70,27 +70,24 @@ type alias Model =
     { hoveringOn : Maybe String }
 
 
-cardRow =
-    row
-        [ centerX
-        , width fill
-        , spacing 60
-        , width fill
-        , height fill
-        ]
+
+-- cardRow =
+--     row
+--         [ centerX
+--         , width fill
+--         , spacing 60
+--         , width fill
+--         , height fill
+--         ]
 
 
 blogGrid model articles =
-    let
-        rows =
-            List.map (cardRow << List.map (blogCard model)) (List.Extra.greedyGroupsOf 2 <| List.reverse articles)
-    in
-    column
+    wrappedRow
         [ centerX
-        , width fill
-        , spacing 50
+        , width (fill |> minimum 950 |> maximum 1260)
+        , spacingXY 0 60
         ]
-        rows
+        (List.indexedMap (blogCard model) (List.reverse articles))
 
 
 red =
@@ -122,7 +119,12 @@ view maybeUrl sharedModel model staticPayload =
             ]
             [ row [ centerX ]
                 [ textColumn [ spacing 20 ]
-                    [ paragraph [ Font.size 30, Font.bold, Font.center ] [ text "Red Door Collective" ]
+                    [ paragraph
+                        [ Font.size 30
+                        , Font.bold
+                        , Font.center
+                        ]
+                        [ text "Red Door Collective" ]
                     , paragraph [ Font.center, Font.size 20 ] [ text blogDescription ]
                     ]
                 ]
@@ -162,20 +164,17 @@ link route attrs children =
         route
 
 
-blogCard : Model -> ( Route, Article.ArticleMetadata ) -> Element Msg
-blogCard model ( route, info ) =
+blogCard : Model -> Int -> ( Route, Article.ArticleMetadata ) -> Element Msg
+blogCard model index ( route, info ) =
     let
         absPath =
             route |> Route.toPath |> Path.toAbsolute |> Pages.Url.toAbsoluteUrl
     in
-    link route
+    column
         ([ centerX
-         , width (px 465)
-         , height (px 300)
-         , Element.Events.onMouseEnter (MouseEnteredPost info.title)
-         , Element.Events.onMouseLeave MouseLeftPost
-
-         -- , padding 10
+         , width (fill |> minimum 300 |> maximum 420)
+         , height (fill |> minimum 255 |> maximum 600)
+         , paddingXY 10 0
          ]
             ++ (if model.hoveringOn == Just info.title then
                     [ Element.htmlAttribute (Attr.style "filter" "brightness(1.25)") ]
@@ -183,44 +182,52 @@ blogCard model ( route, info ) =
                 else
                     []
                )
-        )
-        { url = route |> Route.toPath |> Path.toAbsolute
-        , label =
-            column
-                [ spacing 10
-                , Font.center
-                , width fill
-                , height fill
-                ]
-                [ image
-                    [ width fill
-                    , Element.inFront
-                        (column [ height fill ]
-                            [ row
-                                [ Font.size 14
-                                , Font.color (Element.rgb255 255 255 255)
-                                , alignRight
-                                ]
-                                [ paragraph [ padding 10, alignRight ]
-                                    [ text (info.published |> Date.format "MMMM ddd, yyyy") ]
-                                ]
-                            , paragraph
-                                [ Font.color (rgb255 255 255 255)
-                                , Font.size 32
-                                , Font.bold
-                                , Font.alignLeft
-                                , alignBottom
-                                , paddingXY 20 20
-                                ]
-                                [ text info.title ]
-                            ]
-                        )
+            ++ (if modBy 3 (index + 2) == 0 then
+                    [ Border.widthXY 1 0
+                    , Border.color (rgb255 235 235 235)
                     ]
-                    { src = absPath info.image
-                    , description = "Article thumbnail"
-                    }
+
+                else
+                    []
+               )
+        )
+        [ row
+            [ width fill
+            ]
+            [ link route
+                [ width fill ]
+                { url = route |> Route.toPath |> Path.toAbsolute
+                , label =
+                    image
+                        [ width fill
+                        , Element.Events.onMouseEnter (MouseEnteredPost info.title)
+                        , Element.Events.onMouseLeave MouseLeftPost
+                        ]
+                        { src = absPath info.image
+                        , description = "Article thumbnail"
+                        }
+                }
+            ]
+        , row
+            [ width fill
+            , padding 10
+            ]
+            [ textColumn [ width fill, spacing 20 ]
+                [ paragraph
+                    [ Font.size 22
+                    , Font.bold
+                    ]
+                    [ link route [] { url = route |> Route.toPath |> Path.toAbsolute, label = text info.title } ]
+                , paragraph
+                    [ Font.size 17 ]
+                    [ text info.description ]
+                , paragraph
+                    [ Font.size 14
+                    ]
+                    [ text (info.author ++ " - " ++ (info.published |> Date.format "MMMM ddd, yyyy")) ]
                 ]
-        }
+            ]
+        ]
 
 
 blogDescription : String
