@@ -1,8 +1,10 @@
 module Page.Index exposing (Data, Model, Msg, page)
 
+import Cloudinary
 import DataSource exposing (DataSource)
 import Head
 import Head.Seo as Seo
+import MimeType exposing (MimeType)
 import Page exposing (Page, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
@@ -42,16 +44,16 @@ head :
 head static =
     Seo.summary
         { canonicalUrlOverride = Nothing
-        , siteName = "elm-pages"
+        , siteName = "reddoormidtn"
         , image =
-            { url = Pages.Url.external "TODO"
-            , alt = "elm-pages logo"
-            , dimensions = Nothing
-            , mimeType = Nothing
+            { url = Cloudinary.url "avatars/red-door-logo.png" Nothing 300
+            , alt = "Red Door Collective logo"
+            , dimensions = Just { width = 300, height = 300 }
+            , mimeType = Just "png"
             }
-        , description = "TODO"
-        , locale = Nothing
-        , title = "TODO title" -- metadata.title -- TODO
+        , description = "Join the fight for dignified housing in Nashville!"
+        , locale = Just "en-us"
+        , title = "Red Door Collective"
         }
         |> Seo.website
 

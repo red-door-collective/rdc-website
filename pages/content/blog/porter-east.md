@@ -3,7 +3,7 @@
   "author": "Greg Ziegan",
   "title": "Broken Promises - Porter East Apartments",
   "description": "How low-income residents have been severly underserved.",
-  "image": "v1603304397/red-door-collective/article-covers/porter-east-intro.jpg",
+  "image": "article-covers/porter-east-mold.jpg",
   "published": "2021-08-05",
 }
 ---

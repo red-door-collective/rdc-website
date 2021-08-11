@@ -3,36 +3,54 @@ module Page.Blog exposing (Data, Model, Msg, page)
 import Article
 import DataSource
 import Date
-import Element
+import Element exposing (Color, Element, alignBottom, alignLeft, alignRight, centerX, column, fill, height, image, maximum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, textColumn, width)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Events
+import Element.Font as Font
 import Head
 import Head.Seo as Seo
 import Html
-import Html.Styled exposing (..)
-import Html.Styled.Attributes as Attr exposing (css)
+import Html.Attributes as Attr
+import List.Extra
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
 import Path
 import Route exposing (Route)
 import Shared
-import Tailwind.Breakpoints as Bp
-import Tailwind.Utilities as Tw
 import View exposing (View)
 
 
-type alias Msg =
-    Never
+type Msg
+    = MouseEnteredPost String
+    | MouseLeftPost
 
 
-page : Page RouteParams Data
+page : Page.PageWithState RouteParams Data Model Msg
 page =
     Page.single
         { head = head
         , data = data
         }
-        |> Page.buildNoState
+        |> Page.buildWithLocalState
             { view = view
+            , init = \_ _ staticPayload -> ( { hoveringOn = Nothing }, Cmd.none )
+            , update = update
+            , subscriptions =
+                \maybePageUrl routeParams path model ->
+                    Sub.none
             }
+
+
+update : a -> b -> c -> d -> Msg -> Model -> ( Model, Cmd msg )
+update _ maybeNavigationKey sharedModel static msg model =
+    case msg of
+        MouseEnteredPost title ->
+            ( { model | hoveringOn = Just title }, Cmd.none )
+
+        MouseLeftPost ->
+            ( { model | hoveringOn = Nothing }, Cmd.none )
 
 
 data : DataSource.DataSource Data
@@ -49,114 +67,68 @@ type alias RouteParams =
 
 
 type alias Model =
-    ()
+    { hoveringOn : Maybe String }
+
+
+cardRow =
+    row
+        [ centerX
+        , width fill
+        , spacing 60
+        , width fill
+        , height fill
+        ]
+
+
+blogGrid model articles =
+    let
+        rows =
+            List.map (cardRow << List.map (blogCard model)) (List.Extra.greedyGroupsOf 2 <| List.reverse articles)
+    in
+    column
+        [ centerX
+        , width fill
+        , spacing 50
+        ]
+        rows
+
+
+red =
+    rgb255 236 31 39
+
+
+sortByPublished articles =
+    List.sortWith (\( _, a ) ( _, b ) -> Date.compare a.published b.published) articles
 
 
 view :
     Maybe PageUrl
     -> Shared.Model
-    -> StaticPayload Data {}
-    -> View msg
-view maybeUrl sharedModel staticPayload =
-    { title = "elm-pages blog"
+    -> Model
+    -> StaticPayload Data RouteParams
+    -> View Msg
+view maybeUrl sharedModel model staticPayload =
+    { title = "Red Door Collective Blog"
     , body =
-        [ Element.html
-            (Html.Styled.toUnstyled
-                (div
-                    [ css
-                        [ Tw.relative
-                        , Tw.bg_gray_100
-                        , Tw.min_h_screen
-                        , Tw.pt_16
-                        , Tw.pb_20
-                        , Tw.px_4
-                        , Bp.lg
-                            [ Tw.pt_16
-                            , Tw.pb_28
-                            , Tw.px_8
-                            ]
-                        , Bp.sm
-                            [ Tw.px_6
-                            ]
-                        ]
+        [ column
+            [ width fill
+            , padding 40
+            , spacing 60
+            , Font.color (rgb255 50 50 50)
+            , Font.family
+                [ Font.typeface "styrene b"
+                , Font.sansSerif
+                ]
+            ]
+            [ row [ centerX ]
+                [ textColumn [ spacing 20 ]
+                    [ paragraph [ Font.size 30, Font.bold, Font.center ] [ text "Red Door Collective" ]
+                    , paragraph [ Font.center, Font.size 20 ] [ text blogDescription ]
                     ]
-                    [ div
-                        [ css
-                            [ Tw.absolute
-                            , Tw.inset_0
-                            ]
-                        ]
-                        [ div
-                            [ css
-                                [ Tw.h_1over3
-                                , Bp.sm
-                                    [ Tw.h_2over3
-                                    ]
-                                ]
-                            ]
-                            []
-                        ]
-                    , div
-                        [ css
-                            [ Tw.relative
-                            , Tw.max_w_7xl
-                            , Tw.mx_auto
-                            ]
-                        ]
-                        [ div
-                            [ css
-                                [ Tw.text_center
-                                ]
-                            ]
-                            [ h2
-                                [ css
-                                    [ Tw.text_3xl
-                                    , Tw.tracking_tight
-                                    , Tw.font_extrabold
-                                    , Tw.text_gray_900
-                                    , Bp.sm
-                                        [ Tw.text_4xl
-                                        ]
-                                    ]
-                                ]
-                                [ text "Red Door Collective" ]
-                            , p
-                                [ css
-                                    [ Tw.mt_3
-                                    , Tw.max_w_2xl
-                                    , Tw.mx_auto
-                                    , Tw.text_xl
-                                    , Tw.text_gray_500
-                                    , Bp.sm
-                                        [ Tw.mt_4
-                                        ]
-                                    ]
-                                ]
-                                [ text blogDescription ]
-                            ]
-                        , div
-                            [ css
-                                [ Tw.mt_12
-                                , Tw.max_w_lg
-                                , Tw.mx_auto
-                                , Tw.grid
-                                , Tw.gap_5
-                                , Bp.lg
-                                    [ Tw.grid_cols_3
-                                    , Tw.max_w_none
-                                    ]
-                                ]
-                            ]
-                            (staticPayload.data
-                                |> List.map
-                                    (\articleInfo ->
-                                        blogCard articleInfo
-                                    )
-                            )
-                        ]
-                    ]
-                )
-            )
+                ]
+            , row [ width fill, centerX ]
+                [ blogGrid model (sortByPublished staticPayload.data) ]
+            ]
         ]
     }
 
@@ -165,107 +137,90 @@ head : StaticPayload Data {} -> List Head.Tag
 head staticPayload =
     Seo.summary
         { canonicalUrlOverride = Nothing
-        , siteName = "elm-pages"
+        , siteName = "reddoormidtn"
         , image =
-            { url = [ "images", "icon-png.png" ] |> Path.join |> Pages.Url.fromPath
-            , alt = "elm-pages logo"
-            , dimensions = Nothing
-            , mimeType = Nothing
+            { url = [ "images", "red-door-logo.png" ] |> Path.join |> Pages.Url.fromPath
+            , alt = "Red Door Collective logo"
+            , dimensions = Just { width = 300, height = 300 }
+            , mimeType = Just "png"
             }
         , description = blogDescription
-        , locale = Nothing
-        , title = "elm-pages blog"
+        , locale = Just "en-us"
+        , title = "Red Door Collective Blog"
         }
         |> Seo.website
 
 
-link : Route.Route -> List (Attribute msg) -> List (Html msg) -> Html msg
+link : Route.Route -> List (Element.Attribute msg) -> { url : String, label : Element msg } -> Element msg
 link route attrs children =
     Route.toLink
         (\anchorAttrs ->
-            a
-                (List.map Attr.fromUnstyled anchorAttrs ++ attrs)
+            Element.link
+                (List.map Element.htmlAttribute anchorAttrs ++ attrs)
                 children
         )
         route
 
 
-blogCard : ( Route, Article.ArticleMetadata ) -> Html msg
-blogCard ( route, info ) =
+blogCard : Model -> ( Route, Article.ArticleMetadata ) -> Element Msg
+blogCard model ( route, info ) =
+    let
+        absPath =
+            route |> Route.toPath |> Path.toAbsolute |> Pages.Url.toAbsoluteUrl
+    in
     link route
-        [ css
-            [ Tw.flex
-            , Tw.flex_col
-            , Tw.rounded_lg
-            , Tw.shadow_lg
-            , Tw.overflow_hidden
-            ]
-        ]
-        [ div
-            [ css
-                [ Tw.flex_1
-                , Tw.bg_white
-                , Tw.p_6
-                , Tw.flex
-                , Tw.flex_col
-                , Tw.justify_between
-                ]
-            ]
-            [ div
-                [ css
-                    [ Tw.flex_1
-                    ]
-                ]
-                [ span
-                    [ css
-                        [ Tw.block
-                        , Tw.mt_2
-                        ]
-                    ]
-                    [ p
-                        [ css
-                            [ Tw.text_xl
-                            , Tw.font_semibold
-                            , Tw.text_gray_900
-                            ]
-                        ]
-                        [ text info.title ]
-                    , p
-                        [ css
-                            [ Tw.mt_3
-                            , Tw.text_base
-                            , Tw.text_gray_500
-                            ]
-                        ]
-                        [ text info.description ]
-                    ]
-                ]
-            , div
-                [ css
-                    [ Tw.mt_6
-                    , Tw.flex
-                    , Tw.items_center
-                    ]
-                ]
-                [ div
+        ([ centerX
+         , width (px 465)
+         , height (px 300)
+         , Element.Events.onMouseEnter (MouseEnteredPost info.title)
+         , Element.Events.onMouseLeave MouseLeftPost
+
+         -- , padding 10
+         ]
+            ++ (if model.hoveringOn == Just info.title then
+                    [ Element.htmlAttribute (Attr.style "filter" "brightness(1.25)") ]
+
+                else
                     []
-                    [ div
-                        [ css
-                            [ Tw.flex
-                            , Tw.space_x_1
-                            , Tw.text_sm
-                            , Tw.text_gray_400
-                            ]
-                        ]
-                        [ time
-                            [ Attr.datetime "2020-03-16"
-                            ]
-                            [ text (info.published |> Date.format "MMMM ddd, yyyy") ]
-                        ]
-                    ]
+               )
+        )
+        { url = route |> Route.toPath |> Path.toAbsolute
+        , label =
+            column
+                [ spacing 10
+                , Font.center
+                , width fill
+                , height fill
                 ]
-            ]
-        ]
+                [ image
+                    [ width fill
+                    , Element.inFront
+                        (column [ height fill ]
+                            [ row
+                                [ Font.size 14
+                                , Font.color (Element.rgb255 255 255 255)
+                                , alignRight
+                                ]
+                                [ paragraph [ padding 10, alignRight ]
+                                    [ text (info.published |> Date.format "MMMM ddd, yyyy") ]
+                                ]
+                            , paragraph
+                                [ Font.color (rgb255 255 255 255)
+                                , Font.size 32
+                                , Font.bold
+                                , Font.alignLeft
+                                , alignBottom
+                                , paddingXY 20 20
+                                ]
+                                [ text info.title ]
+                            ]
+                        )
+                    ]
+                    { src = absPath info.image
+                    , description = "Article thumbnail"
+                    }
+                ]
+        }
 
 
 blogDescription : String

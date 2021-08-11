@@ -288,4 +288,4 @@ frontmatterDecoder =
 imageDecoder : OptimizedDecoder.Decoder Pages.Url.Url
 imageDecoder =
     OptimizedDecoder.string
-        |> OptimizedDecoder.map (\asset -> Cloudinary.url asset Nothing 800)
+        |> OptimizedDecoder.map (\asset -> Cloudinary.urlTint asset Nothing 465 300)

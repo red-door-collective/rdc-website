@@ -3,8 +3,8 @@
   "author": "Jack Marr",
   "title": "Eviction Report - First Half 2021",
   "description": "A summary of the evictions happening in Davidson County.",
-  "image": "v1603304397/red-door-collective/article-covers/eviction-report.jpg",
-  "published": "2021-08-05",
+  "image": "article-covers/landlord-hate-bridge.jpg",
+  "published": "2021-08-16",
 }
 ---
 

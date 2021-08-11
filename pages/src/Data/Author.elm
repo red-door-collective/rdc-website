@@ -23,7 +23,7 @@ all =
 greg : Author
 greg =
     { name = "Greg Ziegan"
-    , avatar = Cloudinary.url "v1602899672/reddoorcollective/greg-profile.jpg" Nothing 140
+    , avatar = Cloudinary.url "avatars/greg-profile.jpg" Nothing 140
     , bio = "Organizer in Red Door Collective. Website guy."
     }
 
@@ -31,7 +31,7 @@ greg =
 jack : Author
 jack =
     { name = "Jack Marr"
-    , avatar = Cloudinary.url "v1602899672/reddoorcollective/jack-profile.jpg" Nothing 140
+    , avatar = Cloudinary.url "avatars/jack-profile.jpg" Nothing 140
     , bio = "Organizer in Red Door Collective. Data expert."
     }
 
@@ -39,7 +39,7 @@ jack =
 redDoor : Author
 redDoor =
     { name = "Red Door Collective"
-    , avatar = Cloudinary.url "v2344343/reddoorcollective/red-door-avatar.jpg" Nothing 140
+    , avatar = Cloudinary.url "avatars/red-door-logo.png" Nothing 140
     , bio = "A grassroots groups helping tenants to organize for dignified housing."
     }
 
