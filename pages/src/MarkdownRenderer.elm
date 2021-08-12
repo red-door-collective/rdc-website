@@ -1,57 +1,46 @@
 module MarkdownRenderer exposing (renderer)
 
 import Css
+import Element exposing (Element, el, height, link, paragraph, rgb255, table, width)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input
 import Html.Styled as Html
 import Html.Styled.Attributes as Attr exposing (css)
 import Markdown.Block as Block
 import Markdown.Html
 import Markdown.Renderer
 import SyntaxHighlight
-import Tailwind.Utilities as Tw
 
 
-renderer : Markdown.Renderer.Renderer (Html.Html msg)
+renderer : Markdown.Renderer.Renderer (Element msg)
 renderer =
     { heading = heading
-    , paragraph = Html.p [ css [ Tw.break_words, Tw.whitespace_normal ] ]
+    , paragraph = paragraph [] []
     , thematicBreak = Html.hr [] []
     , text = Html.text
-    , strong = \content -> Html.strong [ css [ Tw.font_bold ] ] content
-    , emphasis = \content -> Html.em [ css [ Tw.italic ] ] content
-    , blockQuote = Html.blockquote []
-    , codeSpan =
-        \content ->
-            Html.code
-                [ css
-                    [ Tw.font_semibold
-                    , Tw.font_medium
-                    , Css.color (Css.rgb 226 0 124) |> Css.important
-                    ]
-                ]
-                [ Html.text content ]
-
-    --, codeSpan = code
+    , strong = \content -> el [ Font.bold ] content
+    , emphasis = \content -> el [ Font.italic ] content
+    , blockQuote = paragraph [] []
+    , codeSpan = code
     , link =
         \{ destination } body ->
-            Html.a
-                [ Attr.href destination
-                , css
-                    [ Tw.underline
-                    ]
-                ]
-                body
-    , hardLineBreak = Html.br [] []
+            link
+                []
+                { url = destination, label = text body }
+    , hardLineBreak = paragraph [] [ text "\n" ]
     , image =
         \image ->
             case image.title of
                 Just _ ->
-                    Html.img [ Attr.src image.src, Attr.alt image.alt ] []
+                    image [] { src = image.src, label = image.alt }
 
                 Nothing ->
-                    Html.img [ Attr.src image.src, Attr.alt image.alt ] []
+                    image [] { src = image.src, label = image.alt }
     , unorderedList =
         \items ->
-            Html.ul []
+            column []
                 (items
                     |> List.map
                         (\item ->
@@ -61,25 +50,27 @@ renderer =
                                         checkbox =
                                             case task of
                                                 Block.NoTask ->
-                                                    Html.text ""
+                                                    text ""
 
                                                 Block.IncompleteTask ->
-                                                    Html.input
-                                                        [ Attr.disabled True
-                                                        , Attr.checked False
-                                                        , Attr.type_ "checkbox"
-                                                        ]
+                                                    Element.Input.checkbox
                                                         []
+                                                        { checked = False
+                                                        , label = text ""
+                                                        , onChange = Nothing
+                                                        , icon = Element.Input.defaultCheckbox
+                                                        }
 
                                                 Block.CompletedTask ->
-                                                    Html.input
-                                                        [ Attr.disabled True
-                                                        , Attr.checked True
-                                                        , Attr.type_ "checkbox"
-                                                        ]
+                                                    Element.Input.checkbox
                                                         []
+                                                        { checked = False
+                                                        , label = text ""
+                                                        , onChange = Nothing
+                                                        , icon = Element.Input.defaultCheckbox
+                                                        }
                                     in
-                                    Html.li [] (checkbox :: children)
+                                    row [] (checkbox :: children)
                         )
                 )
     , orderedList =
@@ -118,27 +109,12 @@ renderer =
     --            [ Html.text body
     --            ]
     --        ]
-    , table =
-        Html.table
-            [ {-
-                 table-layout: auto;
-                     text-align: left;
-                     width: 100%;
-                     margin-top: 2em;
-                     margin-bottom: 2em;
-              -}
-              css
-                [--Tw.table_auto
-                 --, Tw.w_full
-                 --, Tw.mt_4
-                 --, Tw.mb_4
-                ]
-            ]
-    , tableHeader = Html.thead []
-    , tableBody = Html.tbody []
-    , tableRow = Html.tr []
+    , table = table []
+    , tableHeader = row [] []
+    , tableBody = table
+    , tableRow = row [] []
     , strikethrough =
-        \children -> Html.del [] children
+        \children -> paragraph [ Font.strike ] children
     , tableHeaderCell =
         \maybeAlignment ->
             let
@@ -194,97 +170,69 @@ rawTextToId rawText =
         |> String.toLower
 
 
-heading : { level : Block.HeadingLevel, rawText : String, children : List (Html.Html msg) } -> Html.Html msg
+heading : { level : Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
 heading { level, rawText, children } =
     case level of
         Block.H1 ->
-            Html.h1
-                [ css
-                    [ Tw.text_4xl
-                    , Tw.font_bold
-                    , Tw.tracking_tight
-                    , Tw.mt_2
-                    , Tw.mb_4
-                    ]
+            paragraph
+                [ Font.size 36
                 ]
                 children
 
         Block.H2 ->
-            Html.h2
-                [ Attr.id (rawTextToId rawText)
-                , Attr.attribute "name" (rawTextToId rawText)
-                , css
-                    [ Tw.text_3xl
-                    , Tw.font_semibold
-                    , Tw.tracking_tight
-                    , Tw.mt_10
-                    , Tw.pb_1
-                    , Tw.border_b
-                    ]
+            paragraph
+                [ Element.htmlAttribute <| Attr.id (rawTextToId rawText)
+                , Element.htmlAttribute <| "name" (rawTextToId rawText)
+                , Font.size 32
                 ]
-                [ Html.a
-                    [ Attr.href <| "#" ++ rawTextToId rawText
-                    , css
-                        [ Tw.no_underline |> Css.important
-                        ]
-                    ]
-                    (children
-                        ++ [ Html.span
-                                [ Attr.class "anchor-icon"
-                                , css
-                                    [ Tw.ml_2
-                                    , Tw.text_gray_500
-                                    , Tw.select_none
-                                    ]
-                                ]
-                                [ Html.text "#" ]
-                           ]
-                    )
+                [ link
+                    []
+                    { url = "#" ++ rawTextToId rawText
+                    , label =
+                        paragraph []
+                            (children
+                                ++ [ el
+                                        []
+                                        [ Html.text "#" ]
+                                   ]
+                            )
+                    }
                 ]
 
         _ ->
             (case level of
                 Block.H1 ->
-                    Html.h1
+                    paragraph []
 
                 Block.H2 ->
-                    Html.h2
+                    paragraph []
 
                 Block.H3 ->
-                    Html.h3
+                    paragraph []
 
                 Block.H4 ->
-                    Html.h4
+                    paragraph []
 
                 Block.H5 ->
-                    Html.h5
+                    paragraph []
 
                 Block.H6 ->
-                    Html.h6
+                    paragraph []
             )
-                [ css
-                    [ Tw.font_bold
-                    , Tw.text_lg
-                    , Tw.mt_8
-                    , Tw.mb_4
-                    ]
-                ]
+                []
                 children
 
 
-
---code : String -> Element msg
---code snippet =
---    Element.el
---        [ Element.Background.color
---            (Element.rgba255 50 50 50 0.07)
---        , Element.Border.rounded 2
---        , Element.paddingXY 5 3
---        , Font.family [ Font.typeface "Roboto Mono", Font.monospace ]
---        ]
---        (Element.text snippet)
---
---
+code : String -> Element msg
+code snippet =
+    Element.el
+        [ Background.color
+            (Element.rgba255 50 50 50 0.07)
+        , Border.rounded 2
+        , Element.paddingXY 5 3
+        , Font.family [ Font.typeface "Roboto Mono", Font.monospace ]
+        ]
+        (Element.text snippet)
 
 
 codeBlock : { body : String, language : Maybe String } -> Html.Html msg
