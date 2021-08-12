@@ -132,7 +132,7 @@ def to_spreadsheet(workbook_name, service_account_key=None):
 
     rows = [_to_spreadsheet_row(warrant) for warrant in warrants]
 
-    wks.update(f'A2:AP{total + 1}', rows)
+    wks.update(f'A2:AP{total + 1}', rows, value_input_option='USER_ENTERED')
 
 
 judgement_headers = ['Court Date', 'Docket #', 'Courtroom', 'Plaintiff', 'Pltf Lawyer', 'Defendant', 'Def Lawyer', 'Def. Address', 'Reason',
@@ -191,7 +191,7 @@ def to_judgement_sheet(workbook_name, service_account_key=None):
 
     rows = [_to_judgement_row(judgement) for judgement in judgements]
 
-    wks.update(f'A2:O{total + 1}', rows)
+    wks.update(f'A2:O{total + 1}', rows, value_input_option='USER_ENTERED')
 
 
 court_watch_headers = ['Court Date', 'Docket #', 'Defendant',
@@ -278,7 +278,7 @@ def to_court_watch_sheet(workbook_name, service_account_key=None):
 
     rows = [_try_court_watch_row(warrant) for warrant in warrants]
 
-    wks.update(f'A2:L{total + 1}', rows)
+    wks.update(f'A2:L{total + 1}', rows, value_input_option='USER_ENTERED')
 
 
 COURTROOM_DOCKET_HEADERS = ['Defendant Names', 'Present?',
@@ -321,7 +321,7 @@ def _to_courtroom_entry_sheet(wb, date, courtroom, judgements):
 
     rows = [_courtroom_entry_row(docket) for docket in dockets]
 
-    wks.update(f'A2:G{total + 1}', rows)
+    wks.update(f'A2:G{total + 1}', rows, value_input_option='USER_ENTERED')
 
     set_row_height(wks, f'1:{total + 1}', 80)
     set_column_width(wks, 'A', 250)
