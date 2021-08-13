@@ -9,8 +9,8 @@ instance/
 serve_app
 
 *.db
-eviction_tracker/static
-!eviction_tracker/static/images/*.png
+eviction_tracker/static/*
+!eviction_tracker/static/images/
 result
 
 ui/index.html # accidental default gen
