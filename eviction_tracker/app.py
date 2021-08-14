@@ -80,7 +80,8 @@ def create_app(testing=False):
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def index(path):
-        return render_template('index.html')
+        return render_template('index.html', env=app.config['ENV'],
+                               rollbar_token=os.environ['ROLLBAR_CLIENT_TOKEN'])
 
     return app
 

@@ -16,6 +16,7 @@ import Http exposing (Body, Error, Expect)
 import Json.Decode as Decode exposing (Decoder, Value, bool, decodeString, field, int, list, nullable, string)
 import Json.Decode.Pipeline as Pipeline exposing (optional, required)
 import Json.Encode as Encode
+import Runtime exposing (Runtime)
 import Time
 import Url exposing (Url)
 import User exposing (User)
@@ -121,7 +122,7 @@ type alias Window =
 
 
 type alias Flags viewer =
-    { window : Window, viewer : Maybe viewer }
+    { window : Window, viewer : Maybe viewer, runtime : Runtime }
 
 
 windowDecoder : Decoder Window
@@ -155,8 +156,13 @@ application viewerDecoder config =
                     Decode.decodeValue (Decode.field "viewer" string) flags
                         |> Result.andThen (Decode.decodeString (storageDecoder viewerDecoder))
                         |> Result.toMaybe
+
+                runtime =
+                    flags
+                        |> Decode.decodeValue (Decode.field "runtime" Runtime.decode)
+                        |> Result.withDefault Runtime.default
             in
-            config.init { window = window, viewer = maybeViewer } url navKey
+            config.init { window = window, viewer = maybeViewer, runtime = runtime } url navKey
     in
     Browser.application
         { init = init
@@ -268,8 +274,8 @@ post url maybeCred body toMsg decoder =
         }
 
 
-delete : Endpoint -> Maybe Cred ->  (Result Error () -> msg) -> Cmd msg
-delete url maybeCred  toMsg =
+delete : Endpoint -> Maybe Cred -> (Result Error () -> msg) -> Cmd msg
+delete url maybeCred toMsg =
     Endpoint.request
         { method = "DELETE"
         , url = url

@@ -5,6 +5,7 @@ import Api.Endpoint as Endpoint exposing (Endpoint)
 import Color
 import Date
 import DetainerWarrant exposing (DetainerWarrant, Status(..))
+import Dict
 import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -18,8 +19,11 @@ import Http
 import InfiniteScroll
 import Json.Decode as Decode
 import Loader
+import Log
 import Palette
+import Rollbar exposing (Rollbar)
 import Route
+import Runtime exposing (Runtime)
 import Session exposing (Session)
 import Settings exposing (Settings)
 import Url.Builder exposing (QueryParameter)
@@ -36,6 +40,7 @@ type Cursor
 
 type alias Model =
     { session : Session
+    , runtime : Runtime
     , warrants : List DetainerWarrant
     , searchFilters : SearchFilters
     , cursor : Cursor
@@ -76,8 +81,8 @@ searchFiltersInit =
     }
 
 
-init : Session -> ( Model, Cmd Msg )
-init session =
+init : Runtime -> Session -> ( Model, Cmd Msg )
+init runtime session =
     let
         maybeCred =
             Session.cred session
@@ -89,6 +94,7 @@ init session =
             { filters = searchFilters, cursor = NewSearch, previous = Nothing }
     in
     ( { session = session
+      , runtime = runtime
       , warrants = []
       , searchFilters = searchFilters
       , cursor = search.cursor
@@ -202,6 +208,7 @@ type Msg
     | GotWarrants (Result Http.Error (Api.Collection DetainerWarrant))
     | ChangedSorting String
     | InfiniteScrollMsg InfiniteScroll.Msg
+    | NoOp
 
 
 updateFilters : (SearchFilters -> SearchFilters) -> Model -> ( Model, Cmd Msg )
@@ -211,6 +218,13 @@ updateFilters transform model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        runtime =
+            model.runtime
+
+        rollbar =
+            Log.reporting runtime.rollbarToken runtime.environment
+    in
     case msg of
         InputDocketId query ->
             updateFilters (\filters -> { filters | docketId = query }) model
@@ -264,8 +278,8 @@ update msg model =
             , Cmd.none
             )
 
-        GotWarrant (Err errMsg) ->
-            ( model, Cmd.none )
+        GotWarrant (Err httpError) ->
+            ( model, error rollbar (Log.httpErrorMessage httpError) )
 
         GotWarrants (Ok detainerWarrantsPage) ->
             let
@@ -318,6 +332,14 @@ update msg model =
                             InfiniteScroll.update InfiniteScrollMsg subMsg model.infiniteScroll
                     in
                     ( { model | infiniteScroll = infiniteScroll }, cmd )
+
+        NoOp ->
+            ( model, Cmd.none )
+
+
+error : Rollbar -> String -> Cmd Msg
+error rollbar report =
+    Log.error rollbar (\_ -> NoOp) report
 
 
 onEnter : msg -> Element.Attribute msg
