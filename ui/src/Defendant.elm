@@ -1,7 +1,7 @@
 module Defendant exposing (Defendant, decoder)
 
 import Json.Decode as Decode exposing (Decoder, int, nullable, string)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required)
 
 
 type alias VerifiedPhone =
@@ -37,10 +37,10 @@ decoder =
     Decode.succeed Defendant
         |> required "id" int
         |> required "name" string
-        |> required "first_name" string
+        |> optional "first_name" string ""
         |> required "middle_name" (nullable string)
-        |> required "last_name" string
+        |> optional "last_name" string ""
         |> required "suffix" (nullable string)
-        |> required "address" string
+        |> optional "address" string ""
         |> required "potential_phones" (nullable string)
         |> required "verified_phone" (nullable verifiedPhoneDecoder)
