@@ -200,7 +200,7 @@ changeRouteTo maybeRoute model =
                 |> updateWith ManageDetainerWarrants GotManageDetainerWarrantsMsg model
 
         Just (Route.DetainerWarrantCreation maybeId) ->
-            DetainerWarrantCreation.init maybeId session
+            DetainerWarrantCreation.init maybeId runtime session
                 |> updateWith (DetainerWarrantCreation maybeId) GotDetainerWarrantCreationMsg model
 
 

@@ -1,4 +1,4 @@
-module Log exposing (error, httpErrorMessage, reporting)
+module Log exposing (error, httpErrorMessage, info, reporting)
 
 import Dict
 import Http exposing (Error(..))
@@ -34,6 +34,11 @@ reporting token environment =
         (Rollbar.codeVersion "0.0.1")
         (Rollbar.environment (Runtime.environment environment))
         "eviction-tracker"
+
+
+info : Rollbar -> (Result Error Uuid -> msg) -> String -> Cmd msg
+info rollbar toMsg report =
+    Task.attempt toMsg (rollbar.info report Dict.empty)
 
 
 error : Rollbar -> (Result Error Uuid -> msg) -> String -> Cmd msg
