@@ -70,3 +70,12 @@ jobs:
           git push origin $NEXT_TAG
         env:
           NEXT_TAG: ${{ steps.compute_tag.outputs.next_tag }}
+      - uses: actions/checkout@v2.3.4
+        with:
+          ref: ${{ steps.compute_tag.outputs.next_tag }}
+      - name: Release
+        uses: fnkr/github-action-ghr@v1
+        env:
+          GHR_COMPRESS: xz
+          GHR_PATH: eviction_tracker/static
+          GITHUB_TOKEN: ${{ github.token }}
