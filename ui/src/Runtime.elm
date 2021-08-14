@@ -1,6 +1,9 @@
 module Runtime exposing (Environment, RollbarToken, Runtime, codeVersion, decode, default, environment, rollbarToken)
 
+import Date exposing (Date)
 import Json.Decode as Decode exposing (Decoder, field)
+import Result
+import Time exposing (Month(..))
 
 
 type Environment
@@ -44,6 +47,7 @@ type alias Runtime =
     { environment : Environment
     , rollbarToken : RollbarToken
     , codeVersion : CodeVersion
+    , today : Date
     }
 
 
@@ -52,6 +56,7 @@ default =
     { environment = Production
     , rollbarToken = RollbarToken "missing"
     , codeVersion = CodeVersion "missing"
+    , today = Date.fromCalendarDate 2021 Jan 1
     }
 
 
@@ -86,9 +91,22 @@ decodeCodeVersion =
     Decode.string |> Decode.andThen (\str -> Decode.succeed (CodeVersion str))
 
 
+decodeDate : Decoder Date
+decodeDate =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                str
+                    |> Date.fromIsoString
+                    |> Result.map Decode.succeed
+                    |> Result.withDefault (Decode.succeed default.today)
+            )
+
+
 decode : Decoder Runtime
 decode =
-    Decode.map3 Runtime
+    Decode.map4 Runtime
         (field "environment" decodeEnvironment)
         (field "rollbarToken" decodeToken)
         (field "codeVersion" decodeCodeVersion)
+        (field "today" decodeDate)

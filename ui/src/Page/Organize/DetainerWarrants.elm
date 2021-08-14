@@ -3,8 +3,9 @@ module Page.Organize.DetainerWarrants exposing (Model, Msg, init, subscriptions,
 import Api exposing (Cred)
 import Api.Endpoint as Endpoint exposing (Endpoint)
 import Color
-import Date
-import DetainerWarrant exposing (DetainerWarrant, Status(..))
+import Date exposing (Date)
+import DatePicker exposing (ChangeEvent(..))
+import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..))
 import Dict
 import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
@@ -20,6 +21,7 @@ import InfiniteScroll
 import Json.Decode as Decode
 import Loader
 import Log
+import Maybe.Extra
 import Palette
 import Rollbar exposing (Rollbar)
 import Route
@@ -36,6 +38,8 @@ import Widget.Icon
 type alias Model =
     { session : Session
     , runtime : Runtime
+    , fileDate : DatePickerState
+    , courtDate : DatePickerState
     , warrants : List DetainerWarrant
     , searchFilters : Search.DetainerWarrants
     , cursor : Cursor
@@ -57,6 +61,8 @@ init filters runtime session =
     in
     ( { session = session
       , runtime = runtime
+      , fileDate = initDatePicker runtime.today filters.fileDate
+      , courtDate = initDatePicker runtime.today filters.courtDate
       , warrants = []
       , searchFilters = search.filters
       , cursor = search.cursor
@@ -126,8 +132,8 @@ queryArgsWithPagination search =
 
 type Msg
     = InputDocketId (Maybe String)
-    | InputFileDate (Maybe String)
-    | InputCourtDate (Maybe String)
+    | ChangedFileDate ChangeEvent
+    | ChangedCourtDate ChangeEvent
     | InputPlaintiff (Maybe String)
     | InputPlaintiffAttorney (Maybe String)
     | InputDefendant (Maybe String)
@@ -163,11 +169,87 @@ update msg model =
         InputDocketId query ->
             updateFilters (\filters -> { filters | docketId = query }) model
 
-        InputFileDate query ->
-            updateFilters (\filters -> { filters | fileDate = query }) model
+        ChangedFileDate changeEvent ->
+            case changeEvent of
+                DateChanged date ->
+                    let
+                        fileDate =
+                            model.fileDate
 
-        InputCourtDate query ->
-            updateFilters (\filters -> { filters | courtDate = query }) model
+                        updatedFileDate =
+                            { fileDate | date = Just date, dateText = Date.toIsoString date }
+                    in
+                    ( { model | fileDate = updatedFileDate }, Cmd.none )
+
+                TextChanged text ->
+                    ( let
+                        fileDate =
+                            model.fileDate
+
+                        updatedFileDate =
+                            { fileDate
+                                | date =
+                                    Date.fromIsoString text
+                                        |> Result.toMaybe
+                                , dateText = text
+                            }
+                      in
+                      { model | fileDate = updatedFileDate }
+                    , Cmd.none
+                    )
+
+                PickerChanged subMsg ->
+                    let
+                        fileDate =
+                            model.fileDate
+
+                        updatedFileDate =
+                            { fileDate | pickerModel = fileDate.pickerModel |> DatePicker.update subMsg }
+                    in
+                    ( { model | fileDate = updatedFileDate }
+                    , Cmd.none
+                    )
+
+        ChangedCourtDate changeEvent ->
+            case changeEvent of
+                DateChanged date ->
+                    let
+                        courtDate =
+                            model.courtDate
+
+                        updatedCourtDate =
+                            { courtDate | date = Just date, dateText = Date.toIsoString date }
+                    in
+                    ( { model | courtDate = updatedCourtDate }, Cmd.none )
+
+                TextChanged text ->
+                    ( let
+                        courtDate =
+                            model.courtDate
+
+                        updatedCourtDate =
+                            { courtDate
+                                | date =
+                                    Date.fromIsoString text
+                                        |> Result.toMaybe
+                                , dateText = text
+                            }
+                      in
+                      { model | courtDate = updatedCourtDate }
+                    , Cmd.none
+                    )
+
+                PickerChanged subMsg ->
+                    let
+                        courtDate =
+                            model.courtDate
+
+                        updatedCourtDate =
+                            { courtDate | pickerModel = courtDate.pickerModel |> DatePicker.update subMsg }
+                    in
+                    ( { model | courtDate = updatedCourtDate }
+                    , Cmd.none
+                    )
 
         InputPlaintiff query ->
             updateFilters (\filters -> { filters | plaintiff = query }) model
@@ -188,8 +270,20 @@ update msg model =
             ( { model | hovered = Just docketId }, Cmd.none )
 
         SearchWarrants ->
-            ( model
-            , Route.replaceUrl (Session.navKey model.session) (Route.ManageDetainerWarrants model.searchFilters)
+            let
+                updatedModel =
+                    updateFilters
+                        (\filters ->
+                            { filters
+                                | fileDate = model.fileDate.date
+                                , courtDate = model.courtDate.date
+                            }
+                        )
+                        model
+                        |> Tuple.first
+            in
+            ( updatedModel
+            , Route.replaceUrl (Session.navKey updatedModel.session) (Route.ManageDetainerWarrants updatedModel.searchFilters)
             )
 
         GotWarrant (Ok detainerWarrant) ->
@@ -225,7 +319,10 @@ update msg model =
                     }
 
                 search =
-                    { filters = model.searchFilters, cursor = updatedModel.cursor, previous = updatedModel.previousSearch }
+                    { filters = model.searchFilters
+                    , cursor = updatedModel.cursor
+                    , previous = updatedModel.previousSearch
+                    }
             in
             if model.previousSearch == Just model.searchFilters then
                 ( { updatedModel
@@ -291,7 +388,7 @@ onEnter msg =
         )
 
 
-type alias SearchField =
+type alias SearchInputField =
     { label : String
     , placeholder : String
     , onChange : Maybe String -> Msg
@@ -299,28 +396,73 @@ type alias SearchField =
     }
 
 
-searchField : SearchField -> Element Msg
-searchField { label, placeholder, query, onChange } =
+type alias DateSearchField =
+    { label : String
+    , onChange : ChangeEvent -> Msg
+    , state : DatePickerState
+    , today : Date
+    }
+
+
+type SearchField
+    = DateSearch DateSearchField
+    | TextSearch SearchInputField
+
+
+initDatePicker : Date -> Maybe Date -> DatePickerState
+initDatePicker today date =
+    { date = date
+    , dateText = Maybe.withDefault "" <| Maybe.map Date.toIsoString date
+    , pickerModel = DatePicker.init |> DatePicker.setToday today
+    }
+
+
+textSearch : SearchInputField -> Element Msg
+textSearch { label, placeholder, query, onChange } =
     Input.search
         [ Element.width (fill |> Element.maximum 400)
         , onEnter SearchWarrants
         ]
         { onChange = onChange << Just
         , text = Maybe.withDefault "" query
-        , placeholder = Just (Input.placeholder [] (Element.text placeholder))
-        , label = Input.labelHidden label
+        , placeholder = Nothing
+        , label = Input.labelAbove [] (text label)
         }
 
 
-searchFields : Search.DetainerWarrants -> List SearchField
-searchFields searchFilters =
-    [ { label = "Search by docket number", placeholder = "Docket #", onChange = InputDocketId, query = searchFilters.docketId }
-    , { label = "Search by file date", placeholder = "File Date", onChange = InputFileDate, query = searchFilters.fileDate }
-    , { label = "Search by court date", placeholder = "Court Date", onChange = InputCourtDate, query = searchFilters.courtDate }
-    , { label = "Search by plaintiff name", placeholder = "Plaintiff", onChange = InputPlaintiff, query = searchFilters.plaintiff }
-    , { label = "Search by plaintiff attorney name", placeholder = "Plnt. Attorney", onChange = InputPlaintiffAttorney, query = searchFilters.plaintiffAttorney }
-    , { label = "Search by defendant name", placeholder = "Defendant", onChange = InputDefendant, query = searchFilters.defendant }
-    , { label = "Search by address", placeholder = "Address", onChange = InputAddress, query = searchFilters.address }
+dateSearch : DateSearchField -> Element Msg
+dateSearch { label, onChange, state, today } =
+    DatePicker.input []
+        { onChange = onChange
+        , selected = state.date
+        , text = state.dateText
+        , label =
+            Input.labelAbove [] (text label)
+        , placeholder = Nothing
+        , settings = DatePicker.defaultSettings
+        , model = state.pickerModel
+        }
+
+
+searchField : SearchField -> Element Msg
+searchField field =
+    case field of
+        DateSearch dateField ->
+            dateSearch dateField
+
+        TextSearch inputField ->
+            textSearch inputField
+
+
+searchFields : Model -> Search.DetainerWarrants -> List SearchField
+searchFields model searchFilters =
+    [ TextSearch { label = "Docket #", placeholder = "", onChange = InputDocketId, query = searchFilters.docketId }
+    , DateSearch { label = "File date", onChange = ChangedFileDate, state = model.fileDate, today = model.runtime.today }
+    , DateSearch { label = "Court date", onChange = ChangedCourtDate, state = model.courtDate, today = model.runtime.today }
+    , TextSearch { label = "Plaintiff", placeholder = "", onChange = InputPlaintiff, query = searchFilters.plaintiff }
+    , TextSearch { label = "Plnt. attorney", placeholder = "", onChange = InputPlaintiffAttorney, query = searchFilters.plaintiffAttorney }
+    , TextSearch { label = "Defendant", placeholder = "", onChange = InputDefendant, query = searchFilters.defendant }
+    , TextSearch { label = "Address", placeholder = "", onChange = InputAddress, query = searchFilters.address }
     ]
 
 
@@ -333,7 +475,7 @@ viewSearchBar model =
         , Element.centerY
         , Element.centerX
         ]
-        (List.map searchField (searchFields model.searchFilters)
+        (List.map searchField (searchFields model model.searchFilters)
             ++ [ Input.button
                     [ Element.centerY
                     , Background.color Palette.redLight
@@ -358,6 +500,38 @@ createNewWarrant =
         ]
 
 
+viewFilter filters =
+    let
+        ifNonEmpty prefix fn filter =
+            case filter of
+                Just value ->
+                    [ paragraph [ centerX, Font.center ] [ text (prefix ++ fn value) ] ]
+
+                Nothing ->
+                    []
+    in
+    List.concat
+        [ ifNonEmpty "docket number is " identity filters.docketId
+        , ifNonEmpty "file date is " Date.toIsoString filters.fileDate
+        , ifNonEmpty "court date is " Date.toIsoString filters.courtDate
+        , ifNonEmpty "plaintiff is " identity filters.plaintiff
+        , ifNonEmpty "plaintiff attorney is " identity filters.plaintiffAttorney
+        , ifNonEmpty "defendant is " identity filters.defendant
+        , ifNonEmpty "address is " identity filters.address
+        ]
+
+
+viewEmptyResults filters =
+    textColumn [ centerX, spacing 10 ]
+        ([ paragraph [ Font.center, centerX, Font.size 24 ]
+            [ text "No detainer warrants exist matching your search criteria:" ]
+         , paragraph [ centerX, Font.italic, Font.center ]
+            [ text "where..." ]
+         ]
+            ++ (List.intersperse (paragraph [ centerX, Font.center ] [ text "&" ]) <| viewFilter filters)
+        )
+
+
 view : Settings -> Model -> { title : String, content : Element Msg }
 view settings model =
     { title = "Organize - Detainer Warrants"
@@ -370,7 +544,16 @@ view settings model =
                 ]
                 [ createNewWarrant
                 , viewSearchBar model
-                , viewWarrants model
+                , case model.previousSearch of
+                    Just previousSearch ->
+                        if List.isEmpty model.warrants then
+                            viewEmptyResults previousSearch
+
+                        else
+                            viewWarrants model
+
+                    Nothing ->
+                        text "Loading..."
                 ]
             ]
     }

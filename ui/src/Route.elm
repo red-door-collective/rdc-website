@@ -1,6 +1,7 @@
 module Route exposing (Route(..), fromUrl, href, replaceUrl)
 
 import Browser.Navigation as Nav
+import Date
 import Search
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), (<?>), Parser, fragment, int, oneOf, query, s, string)
@@ -30,8 +31,8 @@ type Route
 searchWarrantsParser =
     Query.map7 Search.DetainerWarrants
         (Query.string "docket_id")
-        (Query.string "file_date")
-        (Query.string "court_date")
+        (Query.map (Result.toMaybe << Date.fromIsoString << Maybe.withDefault "") (Query.string "file_date"))
+        (Query.map (Result.toMaybe << Date.fromIsoString << Maybe.withDefault "") (Query.string "court_date"))
         (Query.string "plaintiff")
         (Query.string "plaintiff_attorney")
         (Query.string "defendant_name")

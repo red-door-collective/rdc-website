@@ -1,6 +1,7 @@
 module Search exposing (Cursor(..), DetainerWarrants, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsQuery)
 
 import Api.Endpoint exposing (toQueryArgs)
+import Date exposing (Date)
 import Url.Builder
 
 
@@ -12,8 +13,8 @@ type Cursor
 
 type alias DetainerWarrants =
     { docketId : Maybe String
-    , fileDate : Maybe String
-    , courtDate : Maybe String
+    , fileDate : Maybe Date
+    , courtDate : Maybe Date
     , plaintiff : Maybe String
     , plaintiffAttorney : Maybe String
     , defendant : Maybe String
@@ -56,8 +57,8 @@ detainerWarrantsArgs filters =
                     []
     in
     toPair "docket_id" filters.docketId
-        ++ toPair "file_date" filters.fileDate
-        ++ toPair "court_date" filters.courtDate
+        ++ toPair "file_date" (Maybe.map Date.toIsoString filters.fileDate)
+        ++ toPair "court_date" (Maybe.map Date.toIsoString filters.courtDate)
         ++ toPair "plaintiff" filters.plaintiff
         ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
         ++ toPair "defendant_name" filters.defendant
