@@ -1,0 +1,16 @@
+on:  
+  push:
+    tags:
+      - '*'
+name: Release on tags
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release
+        uses: fnkr/github-action-ghr@v1
+        env:
+          GHR_COMPRESS: xz
+          GHR_PATH: eviction_tracker/static
+          GITHUB_TOKEN: ${{ github.token }}
