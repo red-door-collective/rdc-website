@@ -26,12 +26,15 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import LineChart.Axis.Values exposing (Amount)
 import List.Extra as List
+import Log
 import Mask
 import Maybe.Extra
 import Palette
 import PhoneNumber
 import PhoneNumber.Countries exposing (countryUS)
+import Rollbar exposing (Rollbar)
 import Route
+import Runtime exposing (Runtime)
 import SearchBox
 import Session exposing (Session)
 import Set
@@ -173,6 +176,7 @@ type SaveState
 
 type alias Model =
     { session : Session
+    , runtime : Runtime
     , warrant : Maybe DetainerWarrant
     , docketId : Maybe String
     , today : Maybe Date
@@ -384,13 +388,14 @@ type FormStatus
     | Ready Form
 
 
-init : Maybe String -> Session -> ( Model, Cmd Msg )
-init maybeId session =
+init : Maybe String -> Runtime -> Session -> ( Model, Cmd Msg )
+init maybeId runtime session =
     let
         maybeCred =
             Session.cred session
     in
     ( { session = session
+      , runtime = runtime
       , warrant = Nothing
       , docketId = maybeId
       , tooltip = Nothing
@@ -538,7 +543,7 @@ updateFormNarrow transform model =
 
 
 savingError : Http.Error -> Model -> Model
-savingError error model =
+savingError httpError model =
     let
         problems =
             [ ServerError "Error saving detainer warrant" ]
@@ -551,6 +556,13 @@ update msg model =
     let
         maybeCred =
             Session.cred model.session
+
+
+        rollbar =
+            Log.reporting model.runtime
+
+        logHttpError =
+            error rollbar << Log.httpErrorMessage
     in
     case msg of
         GotDetainerWarrant result ->
@@ -560,8 +572,8 @@ update msg model =
                         Ok warrantPage ->
                             ( { model | warrant = Just warrantPage.data, form = Ready (editForm today warrantPage.data) }, Cmd.none )
 
-                        Err errMsg ->
-                            ( model, Cmd.none )
+                        Err httpError ->
+                            ( model, logHttpError httpError )
 
                 Nothing ->
                     ( model, Cmd.none )
@@ -1515,8 +1527,8 @@ update msg model =
                     }
                 )
 
-        UpsertedPlaintiff (Err errors) ->
-            ( model, Cmd.none )
+        UpsertedPlaintiff (Err httpError) ->
+            ( model, logHttpError httpError )
 
         UpsertedCourtroom (Ok courtroomItem) ->
             nextStepSave
@@ -1533,8 +1545,8 @@ update msg model =
                     }
                 )
 
-        UpsertedCourtroom (Err errors) ->
-            ( model, Cmd.none )
+        UpsertedCourtroom (Err httpError) ->
+            ( model, logHttpError httpError )
 
         UpsertedJudge (Ok judgeItem) ->
             nextStepSave
@@ -1551,8 +1563,8 @@ update msg model =
                     }
                 )
 
-        UpsertedJudge (Err errors) ->
-            ( model, Cmd.none )
+        UpsertedJudge (Err httpError) ->
+            ( model, logHttpError httpError )
 
         UpsertedDefendant index (Ok defendant) ->
             nextStepSave
@@ -1582,8 +1594,8 @@ update msg model =
                     }
                 )
 
-        UpsertedDefendant _ (Err errors) ->
-            ( model, Cmd.none )
+        UpsertedDefendant _ (Err httpError) ->
+            ( model, logHttpError httpError )
 
         UpsertedJudgement index (Ok judgement) ->
             case model.today of
@@ -1618,14 +1630,14 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
-        UpsertedJudgement _ (Err errors) ->
-            ( model, Cmd.none )
+        UpsertedJudgement _ (Err httpError) ->
+            ( model, logHttpError httpError )
 
         DeletedJudgement _ (Ok _) ->
             nextStepSave model
 
-        DeletedJudgement _ (Err errors) ->
-            ( model, Cmd.none )
+        DeletedJudgement _ (Err httpError) ->
+            ( model, logHttpError httpError )
 
         UpsertedAttorney (Ok attorney) ->
             nextStepSave
@@ -1642,8 +1654,8 @@ update msg model =
                     }
                 )
 
-        UpsertedAttorney (Err errors) ->
-            ( model, Cmd.none )
+        UpsertedAttorney (Err httpError) ->
+            ( model, logHttpError httpError )
 
         CreatedDetainerWarrant (Ok detainerWarrantItem) ->
             nextStepSave
@@ -1651,35 +1663,40 @@ update msg model =
                     | warrant = Just detainerWarrantItem.data
                 }
 
-        CreatedDetainerWarrant (Err errors) ->
-            ( savingError errors model, Cmd.none )
+        CreatedDetainerWarrant (Err httpError) ->
+            ( savingError httpError model, logHttpError httpError )
 
         GotPlaintiffs (Ok plaintiffsPage) ->
             ( { model | plaintiffs = plaintiffsPage.data }, Cmd.none )
 
-        GotPlaintiffs (Err problems) ->
-            ( model, Cmd.none )
+        GotPlaintiffs (Err httpError) ->
+            ( model, logHttpError httpError )
 
         GotAttorneys (Ok attorneysPage) ->
             ( { model | attorneys = attorneysPage.data }, Cmd.none )
 
-        GotAttorneys (Err problems) ->
-            ( model, Cmd.none )
+        GotAttorneys (Err httpError) ->
+            ( model, logHttpError httpError )
 
         GotJudges (Ok judgesPage) ->
             ( { model | judges = judgesPage.data }, Cmd.none )
 
-        GotJudges (Err problems) ->
-            ( model, Cmd.none )
+        GotJudges (Err httpError) ->
+            ( model, logHttpError httpError )
 
         GotCourtrooms (Ok courtroomsPage) ->
             ( { model | courtrooms = courtroomsPage.data }, Cmd.none )
 
-        GotCourtrooms (Err problems) ->
-            ( model, Cmd.none )
+        GotCourtrooms (Err httpError) ->
+            ( model, logHttpError httpError )
 
         NoOp ->
             ( model, Cmd.none )
+
+
+error : Rollbar -> String -> Cmd Msg
+error rollbar report =
+    Log.error rollbar (\_ -> NoOp) report
 
 
 updateJudgement : Int -> (JudgementForm -> JudgementForm) -> Form -> Form
@@ -3246,7 +3263,7 @@ viewProblem problem =
                 Element.none
 
             ServerError err ->
-                text ("something went wrong: " ++ err)
+                text ("Something went wrong: " ++ err)
         ]
 
 

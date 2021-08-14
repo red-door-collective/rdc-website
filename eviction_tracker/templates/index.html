@@ -11,6 +11,9 @@
 
 <body>
     <script>
+        var env = "{{ env }}";
+        var rollbarToken = "{{ rollbar_token }}";
+        var codeVersion = "{{ code_version }}"
         var storageKey = "store";
         var dimensions = { 'width': window.innerWidth, 'height': window.innerHeight };
         var urlParams = new URLSearchParams(window.location.search);
@@ -18,7 +21,8 @@
         if (auth_token) {
             localStorage.setItem(storageKey, JSON.stringify({ 'user': { 'authentication_token': auth_token } }));
         }
-        var flags = { 'window': dimensions, 'viewer': localStorage.getItem(storageKey) };
+        var runtime = { 'environment': env, 'rollbarToken': rollbarToken, 'codeVersion': codeVersion };
+        var flags = { 'window': dimensions, 'viewer': localStorage.getItem(storageKey), 'runtime': runtime };
         var app = Elm.Main.init({ flags: flags });
 
         app.ports.storeCache.subscribe(function (val) {

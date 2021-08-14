@@ -24,6 +24,7 @@ import Page.Organize.Event as Event
 import Page.Trends as Trends
 import Page.WarrantHelp as WarrantHelp
 import Route exposing (Route)
+import Runtime exposing (Runtime)
 import Session exposing (Session)
 import Url exposing (Url)
 import User exposing (User)
@@ -51,11 +52,12 @@ type alias Model =
     , profile : Maybe User
     , hamburgerMenuOpen : Bool
     , page : CurrentPage
+    , runtime : Runtime
     }
 
 
 init : Api.Flags Viewer -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init { window, viewer } url navKey =
+init { window, viewer, runtime } url navKey =
     let
         session =
             Session.fromViewer navKey viewer
@@ -65,7 +67,12 @@ init { window, viewer } url navKey =
     in
     Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Api.currentUser maybeCred GotProfile User.userDecoder ])
         (changeRouteTo (Route.fromUrl url)
-            { window = window, page = Redirect session, profile = Nothing, hamburgerMenuOpen = False }
+            { window = window
+            , page = Redirect session
+            , profile = Nothing
+            , hamburgerMenuOpen = False
+            , runtime = runtime
+            }
         )
 
 
@@ -138,6 +145,9 @@ changeRouteTo maybeRoute model =
     let
         session =
             toSession model
+
+        runtime =
+            model.runtime
     in
     case maybeRoute of
         Nothing ->
@@ -154,7 +164,7 @@ changeRouteTo maybeRoute model =
             ( model, Api.logout (Session.cred session) GotLogoutMsg )
 
         Just Route.Trends ->
-            Trends.init session
+            Trends.init runtime session
                 |> updateWith Trends GotTrendsMsg model
 
         Just Route.About ->
@@ -186,11 +196,11 @@ changeRouteTo maybeRoute model =
                 |> updateWith OrganizerDashboard GotOrganizerDashboardMsg model
 
         Just Route.ManageDetainerWarrants ->
-            ManageDetainerWarrants.init session
+            ManageDetainerWarrants.init runtime session
                 |> updateWith ManageDetainerWarrants GotManageDetainerWarrantsMsg model
 
         Just (Route.DetainerWarrantCreation maybeId) ->
-            DetainerWarrantCreation.init maybeId session
+            DetainerWarrantCreation.init maybeId runtime session
                 |> updateWith (DetainerWarrantCreation maybeId) GotDetainerWarrantCreationMsg model
 
 
