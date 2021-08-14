@@ -15,6 +15,7 @@ import List
 import Logo
 import Palette
 import Route
+import Search
 import Settings exposing (Settings)
 import User exposing (Permissions(..))
 import Viewer exposing (Viewer(..))
@@ -226,7 +227,7 @@ dashboard page =
 
 
 detainerWarrants page =
-    { url = Route.href Route.ManageDetainerWarrants, label = "Detainer Warrants", isActive = page == ManageDetainerWarrants }
+    { url = Route.href (Route.ManageDetainerWarrants Search.detainerWarrantsDefault), label = "Detainer Warrants", isActive = page == ManageDetainerWarrants }
 
 
 adminOptions settings page =
@@ -419,7 +420,7 @@ detainerWarrantLink maybeId =
 
 
 detainerWarrantsLink =
-    breadCrumbLink Route.ManageDetainerWarrants "Manage Detainer Warrants"
+    breadCrumbLink (Route.ManageDetainerWarrants Search.detainerWarrantsDefault) "Manage Detainer Warrants"
 
 
 viewBreadcrumbsHelp breadcrumbs =

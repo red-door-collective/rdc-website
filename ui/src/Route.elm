@@ -1,8 +1,10 @@
 module Route exposing (Route(..), fromUrl, href, replaceUrl)
 
 import Browser.Navigation as Nav
+import Search
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, fragment, int, oneOf, s, string)
+import Url.Parser as Parser exposing ((</>), (<?>), Parser, fragment, int, oneOf, query, s, string)
+import Url.Parser.Query as Query
 
 
 
@@ -21,8 +23,19 @@ type Route
     | OrganizerDashboard
     | CampaignOverview Int
     | Event Int Int
-    | ManageDetainerWarrants
+    | ManageDetainerWarrants Search.DetainerWarrants
     | DetainerWarrantCreation (Maybe String)
+
+
+searchWarrantsParser =
+    Query.map7 Search.DetainerWarrants
+        (Query.string "docket_id")
+        (Query.string "file_date")
+        (Query.string "court_date")
+        (Query.string "plaintiff")
+        (Query.string "plaintiff_attorney")
+        (Query.string "defendant_name")
+        (Query.string "address")
 
 
 parser : Parser (Route -> a) a
@@ -39,7 +52,7 @@ parser =
         , Parser.map OrganizerDashboard (s "organize" </> s "dashboard")
         , Parser.map CampaignOverview (s "organize" </> s "campaigns" </> int)
         , Parser.map Event (s "organize" </> s "campaigns" </> int </> s "events" </> int)
-        , Parser.map ManageDetainerWarrants (s "organize" </> s "detainer-warrants")
+        , Parser.map ManageDetainerWarrants (s "organize" </> s "detainer-warrants" <?> searchWarrantsParser)
         , Parser.map (DetainerWarrantCreation Nothing) (s "organize" </> s "detainer-warrants" </> s "edit")
         , Parser.map (DetainerWarrantCreation << Just) (s "organize" </> s "detainer-warrants" </> s "edit" </> string)
         ]
@@ -116,8 +129,8 @@ routeToPieces page =
         Event campaignId eventId ->
             [ "organize", "campaigns", String.fromInt campaignId, "events", String.fromInt eventId ]
 
-        ManageDetainerWarrants ->
-            [ "organize", "detainer-warrants" ]
+        ManageDetainerWarrants filters ->
+            [ "organize", "detainer-warrants" ++ Search.detainerWarrantsQuery filters ]
 
         DetainerWarrantCreation maybeId ->
             [ "organize", "detainer-warrants", "edit" ]

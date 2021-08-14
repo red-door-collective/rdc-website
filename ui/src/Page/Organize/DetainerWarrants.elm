@@ -24,6 +24,7 @@ import Palette
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)
+import Search exposing (Cursor(..), Search)
 import Session exposing (Session)
 import Settings exposing (Settings)
 import Url.Builder exposing (QueryParameter)
@@ -32,71 +33,32 @@ import Widget
 import Widget.Icon
 
 
-type Cursor
-    = NewSearch
-    | After String
-    | End
-
-
 type alias Model =
     { session : Session
     , runtime : Runtime
     , warrants : List DetainerWarrant
-    , searchFilters : SearchFilters
+    , searchFilters : Search.DetainerWarrants
     , cursor : Cursor
     , selected : Maybe String
     , hovered : Maybe String
-    , previousSearch : Maybe SearchFilters
+    , previousSearch : Maybe Search.DetainerWarrants
     , infiniteScroll : InfiniteScroll.Model Msg
     }
 
 
-type alias SearchFilters =
-    { docketId : String
-    , fileDate : String
-    , courtDate : String
-    , plaintiff : String
-    , plaintiffAttorney : String
-    , defendant : String
-    , address : String
-    }
-
-
-type alias Search =
-    { filters : SearchFilters
-    , cursor : Cursor
-    , previous : Maybe SearchFilters
-    }
-
-
-searchFiltersInit : SearchFilters
-searchFiltersInit =
-    { docketId = ""
-    , fileDate = ""
-    , courtDate = ""
-    , plaintiff = ""
-    , plaintiffAttorney = ""
-    , defendant = ""
-    , address = ""
-    }
-
-
-init : Runtime -> Session -> ( Model, Cmd Msg )
-init runtime session =
+init : Search.DetainerWarrants -> Runtime -> Session -> ( Model, Cmd Msg )
+init filters runtime session =
     let
         maybeCred =
             Session.cred session
 
-        searchFilters =
-            searchFiltersInit
-
         search =
-            { filters = searchFilters, cursor = NewSearch, previous = Nothing }
+            { filters = filters, cursor = NewSearch, previous = Nothing }
     in
     ( { session = session
       , runtime = runtime
       , warrants = []
-      , searchFilters = searchFilters
+      , searchFilters = search.filters
       , cursor = search.cursor
       , previousSearch = search.previous
       , selected = Nothing
@@ -107,16 +69,25 @@ init runtime session =
     )
 
 
-searchWarrants : Maybe Cred -> Search -> Cmd Msg
+searchWarrants : Maybe Cred -> Search Search.DetainerWarrants -> Cmd Msg
 searchWarrants maybeCred search =
-    if search.filters.docketId /= "" then
-        Api.get (Endpoint.detainerWarrant search.filters.docketId) maybeCred GotWarrant (Api.itemDecoder DetainerWarrant.decoder)
+    let
+        multipleWarrants =
+            Api.get (Endpoint.detainerWarrantsSearch (queryArgsWithPagination search)) maybeCred GotWarrants Api.detainerWarrantApiDecoder
+    in
+    case search.filters.docketId of
+        Just docketId ->
+            if docketId /= "" then
+                Api.get (Endpoint.detainerWarrant docketId) maybeCred GotWarrant (Api.itemDecoder DetainerWarrant.decoder)
 
-    else
-        Api.get (Endpoint.detainerWarrantsSearch (queryArgsWithPagination search)) maybeCred GotWarrants Api.detainerWarrantApiDecoder
+            else
+                multipleWarrants
+
+        Nothing ->
+            multipleWarrants
 
 
-loadMore : Maybe Cred -> Search -> InfiniteScroll.Direction -> Cmd Msg
+loadMore : Maybe Cred -> Search Search.DetainerWarrants -> InfiniteScroll.Direction -> Cmd Msg
 loadMore maybeCred search dir =
     case search.cursor of
         NewSearch ->
@@ -129,14 +100,14 @@ loadMore maybeCred search dir =
             Cmd.none
 
 
-queryArgsWithPagination : Search -> List ( String, String )
+queryArgsWithPagination : Search Search.DetainerWarrants -> List ( String, String )
 queryArgsWithPagination search =
     let
         filters =
             search.filters
 
         queryArgs =
-            toQueryArgs filters
+            Search.detainerWarrantsArgs filters
     in
     if Just search.filters == search.previous then
         case search.cursor of
@@ -153,54 +124,14 @@ queryArgsWithPagination search =
         queryArgs
 
 
-toQueryArgs : SearchFilters -> List ( String, String )
-toQueryArgs filters =
-    (if filters.fileDate == "" then
-        []
-
-     else
-        [ ( "file_date", filters.fileDate ) ]
-    )
-        ++ (if filters.courtDate == "" then
-                []
-
-            else
-                [ ( "court_date", filters.courtDate ) ]
-           )
-        ++ (if filters.plaintiff == "" then
-                []
-
-            else
-                [ ( "plaintiff", filters.plaintiff ) ]
-           )
-        ++ (if filters.plaintiffAttorney == "" then
-                []
-
-            else
-                [ ( "plaintiff_attorney", filters.plaintiffAttorney ) ]
-           )
-        ++ (if filters.defendant == "" then
-                []
-
-            else
-                [ ( "defendant_name", filters.defendant ) ]
-           )
-        ++ (if filters.address == "" then
-                []
-
-            else
-                [ ( "address", filters.address ) ]
-           )
-
-
 type Msg
-    = InputDocketId String
-    | InputFileDate String
-    | InputCourtDate String
-    | InputPlaintiff String
-    | InputPlaintiffAttorney String
-    | InputDefendant String
-    | InputAddress String
+    = InputDocketId (Maybe String)
+    | InputFileDate (Maybe String)
+    | InputCourtDate (Maybe String)
+    | InputPlaintiff (Maybe String)
+    | InputPlaintiffAttorney (Maybe String)
+    | InputDefendant (Maybe String)
+    | InputAddress (Maybe String)
     | SelectWarrant String
     | HoverWarrant String
     | SearchWarrants
@@ -211,7 +142,10 @@ type Msg
     | NoOp
 
 
-updateFilters : (SearchFilters -> SearchFilters) -> Model -> ( Model, Cmd Msg )
+updateFilters :
+    (Search.DetainerWarrants -> Search.DetainerWarrants)
+    -> Model
+    -> ( Model, Cmd Msg )
 updateFilters transform model =
     ( { model | searchFilters = transform model.searchFilters }, Cmd.none )
 
@@ -254,11 +188,9 @@ update msg model =
             ( { model | hovered = Just docketId }, Cmd.none )
 
         SearchWarrants ->
-            let
-                maybeCred =
-                    Session.cred model.session
-            in
-            ( model, searchWarrants maybeCred { filters = model.searchFilters, cursor = model.cursor, previous = model.previousSearch } )
+            ( model
+            , Route.replaceUrl (Session.navKey model.session) (Route.ManageDetainerWarrants model.searchFilters)
+            )
 
         GotWarrant (Ok detainerWarrant) ->
             let
@@ -362,8 +294,8 @@ onEnter msg =
 type alias SearchField =
     { label : String
     , placeholder : String
-    , onChange : String -> Msg
-    , query : String
+    , onChange : Maybe String -> Msg
+    , query : Maybe String
     }
 
 
@@ -373,14 +305,14 @@ searchField { label, placeholder, query, onChange } =
         [ Element.width (fill |> Element.maximum 400)
         , onEnter SearchWarrants
         ]
-        { onChange = onChange
-        , text = query
+        { onChange = onChange << Just
+        , text = Maybe.withDefault "" query
         , placeholder = Just (Input.placeholder [] (Element.text placeholder))
         , label = Input.labelHidden label
         }
 
 
-searchFields : SearchFilters -> List SearchField
+searchFields : Search.DetainerWarrants -> List SearchField
 searchFields searchFilters =
     [ { label = "Search by docket number", placeholder = "Docket #", onChange = InputDocketId, query = searchFilters.docketId }
     , { label = "Search by file date", placeholder = "File Date", onChange = InputFileDate, query = searchFilters.fileDate }

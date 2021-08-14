@@ -195,8 +195,8 @@ changeRouteTo maybeRoute model =
             OrganizerDashboard.init session
                 |> updateWith OrganizerDashboard GotOrganizerDashboardMsg model
 
-        Just Route.ManageDetainerWarrants ->
-            ManageDetainerWarrants.init runtime session
+        Just (Route.ManageDetainerWarrants filters) ->
+            ManageDetainerWarrants.init filters runtime session
                 |> updateWith ManageDetainerWarrants GotManageDetainerWarrantsMsg model
 
         Just (Route.DetainerWarrantCreation maybeId) ->
