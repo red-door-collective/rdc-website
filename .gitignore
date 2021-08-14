@@ -16,3 +16,4 @@ result
 ui/index.html # accidental default gen
 *.log
 .env.dev
+.elm-pages
