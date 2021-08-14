@@ -3,7 +3,7 @@ module Log exposing (error, httpErrorMessage, info, reporting)
 import Dict
 import Http exposing (Error(..))
 import Rollbar exposing (Rollbar)
-import Runtime exposing (Environment, RollbarToken)
+import Runtime exposing (Runtime)
 import Task
 import Uuid exposing (Uuid)
 
@@ -27,11 +27,11 @@ httpErrorMessage httpError =
             "Bad HTTP Body: " ++ badBody
 
 
-reporting : RollbarToken -> Environment -> Rollbar
-reporting token environment =
+reporting : Runtime -> Rollbar
+reporting { rollbarToken, environment, codeVersion } =
     Rollbar.scoped
-        (Rollbar.token (Runtime.rollbarToken token))
-        (Rollbar.codeVersion "0.0.1")
+        (Rollbar.token (Runtime.rollbarToken rollbarToken))
+        (Rollbar.codeVersion (Runtime.codeVersion codeVersion))
         (Rollbar.environment (Runtime.environment environment))
         "eviction-tracker"
 

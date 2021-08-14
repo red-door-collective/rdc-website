@@ -31,8 +31,11 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
+import Log
 import Palette
 import Path
+import Rollbar exposing (Rollbar)
+import Runtime exposing (Runtime)
 import Scale exposing (BandConfig, BandScale, ContinuousScale, defaultBandConfig)
 import Session exposing (Session)
 import Shape exposing (defaultPieConfig)
@@ -49,6 +52,7 @@ import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), e
 
 type alias Model =
     { session : Session
+    , runtime : Runtime
     , topEvictors : List TopEvictor
     , hovering : List EvictionHistory
     , warrantsPerMonth : List DetainerWarrantsPerMonth
@@ -89,9 +93,10 @@ getApiMetadata =
         }
 
 
-init : Session -> ( Model, Cmd Msg )
-init session =
+init : Runtime -> Session -> ( Model, Cmd Msg )
+init runtime session =
     ( { session = session
+      , runtime = runtime
       , topEvictors = []
       , hovering = []
       , warrantsPerMonth = []
@@ -113,45 +118,61 @@ type Msg
     | GotPlaintiffAttorneyWarrantCount (Result Http.Error (List PlaintiffAttorneyWarrantCount))
     | GotApiMeta (Result Http.Error Api.RollupMetadata)
     | Hover (List EvictionHistory)
+    | NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        rollbar =
+            Log.reporting model.runtime
+
+        logHttpError =
+            error rollbar << Log.httpErrorMessage
+    in
     case msg of
         GotEvictionData result ->
             case result of
                 Ok topEvictors ->
                     ( { model | topEvictors = topEvictors }, Cmd.none )
 
-                Err errMsg ->
-                    ( model, Cmd.none )
+                Err httpError ->
+                    ( model, logHttpError httpError )
 
         GotDetainerWarrantData result ->
             case result of
                 Ok warrantsPerMonth ->
                     ( { model | warrantsPerMonth = warrantsPerMonth }, Cmd.none )
 
-                Err errMsg ->
-                    ( model, Cmd.none )
+                Err httpError ->
+                    ( model, logHttpError httpError )
 
         GotPlaintiffAttorneyWarrantCount result ->
             case result of
                 Ok counts ->
                     ( { model | plaintiffAttorneyWarrantCounts = counts }, Cmd.none )
 
-                Err errMsg ->
-                    ( model, Cmd.none )
+                Err httpError ->
+                    ( model, logHttpError httpError )
 
         GotApiMeta result ->
             case result of
                 Ok rollupMeta ->
                     ( { model | rollupMeta = Just rollupMeta }, Cmd.none )
 
-                Err errMsg ->
-                    ( model, Cmd.none )
+                Err httpError ->
+                    ( model, logHttpError httpError )
 
         Hover hovering ->
             ( { model | hovering = hovering }, Cmd.none )
+
+        NoOp ->
+            ( model, Cmd.none )
+
+
+error : Rollbar -> String -> Cmd Msg
+error rollbar report =
+    Log.error rollbar (\_ -> NoOp) report
 
 
 view : Device -> Model -> { title : String, content : Element Msg }

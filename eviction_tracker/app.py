@@ -67,6 +67,8 @@ def create_app(testing=False):
     app.config['TWILIO_ACCOUNT_SID'] = os.environ['TWILIO_ACCOUNT_SID']
     app.config['TWILIO_AUTH_TOKEN'] = os.environ['TWILIO_AUTH_TOKEN']
     app.config['GOOGLE_ACCOUNT_PATH'] = os.environ['GOOGLE_ACCOUNT_PATH']
+    app.config['ROLLBAR_CLIENT_TOKEN'] = os.environ['ROLLBAR_CLIENT_TOKEN']
+    app.config['VERSION'] = os.environ['VERSION']
     app.config['SCHEDULER_API_ENABLED'] = True
     app.config['TESTING'] = testing
     app.config.update(**security_config)
@@ -81,7 +83,9 @@ def create_app(testing=False):
     @app.route('/<path:path>')
     def index(path):
         return render_template('index.html', env=app.config['ENV'],
-                               rollbar_token=os.environ['ROLLBAR_CLIENT_TOKEN'])
+                               rollbar_token=app.config['ROLLBAR_CLIENT_TOKEN'],
+                               code_version=app.config['VERSION']
+                               )
 
     return app
 

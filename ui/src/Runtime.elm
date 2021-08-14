@@ -1,4 +1,4 @@
-module Runtime exposing (Environment, RollbarToken, Runtime, decode, default, environment, rollbarToken)
+module Runtime exposing (Environment, RollbarToken, Runtime, codeVersion, decode, default, environment, rollbarToken)
 
 import Json.Decode as Decode exposing (Decoder, field)
 
@@ -31,16 +31,27 @@ rollbarToken (RollbarToken tokenStr) =
     tokenStr
 
 
+type CodeVersion
+    = CodeVersion String
+
+
+codeVersion : CodeVersion -> String
+codeVersion (CodeVersion version) =
+    version
+
+
 type alias Runtime =
     { environment : Environment
     , rollbarToken : RollbarToken
+    , codeVersion : CodeVersion
     }
 
 
 default : Runtime
 default =
     { environment = Production
-    , rollbarToken = RollbarToken "jibberish"
+    , rollbarToken = RollbarToken "missing"
+    , codeVersion = CodeVersion "missing"
     }
 
 
@@ -70,6 +81,14 @@ decodeToken =
     Decode.string |> Decode.andThen (\str -> Decode.succeed (RollbarToken str))
 
 
+decodeCodeVersion : Decoder CodeVersion
+decodeCodeVersion =
+    Decode.string |> Decode.andThen (\str -> Decode.succeed (CodeVersion str))
+
+
 decode : Decoder Runtime
 decode =
-    Decode.map2 Runtime (field "environment" decodeEnvironment) (field "rollbarToken" decodeToken)
+    Decode.map3 Runtime
+        (field "environment" decodeEnvironment)
+        (field "rollbarToken" decodeToken)
+        (field "codeVersion" decodeCodeVersion)

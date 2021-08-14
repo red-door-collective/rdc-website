@@ -219,11 +219,8 @@ updateFilters transform model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        runtime =
-            model.runtime
-
         rollbar =
-            Log.reporting runtime.rollbarToken runtime.environment
+            Log.reporting model.runtime
 
         logHttpError =
             error rollbar << Log.httpErrorMessage

@@ -557,11 +557,9 @@ update msg model =
         maybeCred =
             Session.cred model.session
 
-        runtime =
-            model.runtime
 
         rollbar =
-            Log.reporting runtime.rollbarToken runtime.environment
+            Log.reporting model.runtime
 
         logHttpError =
             error rollbar << Log.httpErrorMessage

@@ -164,7 +164,7 @@ changeRouteTo maybeRoute model =
             ( model, Api.logout (Session.cred session) GotLogoutMsg )
 
         Just Route.Trends ->
-            Trends.init session
+            Trends.init runtime session
                 |> updateWith Trends GotTrendsMsg model
 
         Just Route.About ->
