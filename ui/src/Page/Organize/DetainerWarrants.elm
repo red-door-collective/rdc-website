@@ -224,6 +224,9 @@ update msg model =
 
         rollbar =
             Log.reporting runtime.rollbarToken runtime.environment
+
+        logHttpError =
+            error rollbar << Log.httpErrorMessage
     in
     case msg of
         InputDocketId query ->
@@ -279,7 +282,7 @@ update msg model =
             )
 
         GotWarrant (Err httpError) ->
-            ( model, error rollbar (Log.httpErrorMessage httpError) )
+            ( model, logHttpError httpError )
 
         GotWarrants (Ok detainerWarrantsPage) ->
             let
@@ -315,8 +318,8 @@ update msg model =
                 , Cmd.none
                 )
 
-        GotWarrants (Err errMsg) ->
-            ( model, Cmd.none )
+        GotWarrants (Err httpError) ->
+            ( model, logHttpError httpError )
 
         ChangedSorting _ ->
             ( model, Cmd.none )
