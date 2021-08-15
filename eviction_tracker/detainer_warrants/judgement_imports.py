@@ -4,7 +4,8 @@ from .util import get_or_create, normalize, open_workbook, dw_rows, district_def
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
+from dateutil.rrule import rrule, MONTHLY
 
 COURT_DATE = "Court Date"
 DOCKET_ID = "Docket #"
@@ -135,8 +136,10 @@ def _from_workbook(defaults, court_date, raw_judgement):
 def from_workbook(workbook_name, limit=None, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    worksheets = [wb.worksheet(ws) for ws in [
-        "March 2021", "May 2021", "April 2021", "June 2021", "July 2021"]]
+    start_dt = date(2021, 3, 1)
+    end_dt = date.today()
+    worksheets = [wb.worksheet(datetime.strftime(dt, '%B %Y'))
+                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
 
     defaults = district_defaults()
 
