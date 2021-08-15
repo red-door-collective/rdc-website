@@ -36,8 +36,8 @@ def extract_dismissal_basis(outcome, basis):
             return None
 
 
-def judgement_exists(court_date, docket_id):
-    return bool(Judgement.query.filter_by(detainer_warrant_id=docket_id, court_date=court_date).first())
+def get_existing_judgement(court_date, docket_id):
+    return Judgement.query.filter_by(detainer_warrant_id=docket_id, court_date=court_date)
 
 
 def _from_workbook(defaults, court_date, raw_judgement):
@@ -45,7 +45,7 @@ def _from_workbook(defaults, court_date, raw_judgement):
 
     docket_id = judgement[DOCKET_ID]
 
-    if not bool(docket_id) or judgement_exists(court_date, docket_id):
+    if not bool(docket_id):
         return
 
     warrant, _ = get_or_create(db.session, DetainerWarrant,
@@ -119,6 +119,13 @@ def _from_workbook(defaults, court_date, raw_judgement):
         notes=notes,
         last_edited_by_id=-1
     )
+
+    existing_judgement = get_existing_judgement(court_date, docket_id)
+
+    if (existing_judgement.count() > 0):
+        existing_judgement.update(judgement_values)
+        db.session.commit()
+        return
 
     insert_stmt = insert(Judgement).values(
         **judgement_values

@@ -227,7 +227,7 @@ def pending_scheduled_case_count(start, end):
 
 
 def amount_awarded_between(start, end):
-    return db.session.query(func.sum(Judgement.awards_fees))\
+    amount = db.session.query(func.sum(Judgement.awards_fees))\
         .filter(
             and_(
                 Judgement.detainer_warrant_id.ilike('%\\G\\T%'),
@@ -235,6 +235,10 @@ def amount_awarded_between(start, end):
                 func.date(Judgement.court_date) < end
             )
     ).scalar()
+    if amount is None:
+        return 0
+    else:
+        return amount
 
 
 def round_dec(dec):
@@ -391,16 +395,16 @@ def register_extensions(app):
         start_of_month = date.today().replace(day=1)
         end_of_month = (date.today().replace(day=1) +
                         timedelta(days=32)).replace(day=1)
-        return flask.jsonify({'amount_awarded': amount_awarded_between(start_of_month, end_of_month)})
+        return flask.jsonify({'amount_awarded': round_dec(amount_awarded_between(start_of_month, end_of_month))})
 
     @app.route('/api/v1/rollup/amount_awarded/history')
     def amount_awarded_history():
-        start_dt = date.today() - timedelta(weeks=52)
+        start_dt = date(2021, 3, 1)
         end_dt = date.today()
         dates = [(dt, next_month(dt))
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
-        awards = [{'time': millisTimestamp(start), 'total_amount': amount_awarded_between(
-            start, end)} for start, end in dates]
+        awards = [{'time': millisTimestamp(start), 'total_amount': round_dec(amount_awarded_between(
+            start, end))} for start, end in dates]
         return flask.jsonify({'amounts_awarded': awards})
 
     @app.route('/api/v1/rollup/meta')
