@@ -1,4 +1,4 @@
-port module Api exposing (Collection, Cred, Flags, Item, PageMeta, RollupMetadata, Window, addServerError, application, campaignApiDecoder, collectionDecoder, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, onStoreChange, pageMetaDecoder, patch, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, userApiDecoder, users, viewerChanges)
+port module Api exposing (Collection, Cred, Flags, Item, PageMeta, RollupMetadata, UnpaginatedCollection, Window, addServerError, application, campaignApiDecoder, collectionDecoder, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, onStoreChange, pageMetaDecoder, patch, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, unpaginatedCollectionDecoder, userApiDecoder, users, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -373,6 +373,10 @@ type alias Collection data =
     }
 
 
+type alias UnpaginatedCollection data =
+    { data : List data }
+
+
 type alias ItemMeta =
     { cursor : String }
 
@@ -424,6 +428,12 @@ userApiDecoder =
     Decode.succeed Collection
         |> required "data" (list User.userDecoder)
         |> required "meta" pageMetaDecoder
+
+
+unpaginatedCollectionDecoder : Decoder a -> Decoder (UnpaginatedCollection a)
+unpaginatedCollectionDecoder dataDecoder =
+    Decode.succeed UnpaginatedCollection
+        |> required "data" (list dataDecoder)
 
 
 collectionDecoder : Decoder a -> Decoder (Collection a)

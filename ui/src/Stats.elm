@@ -1,8 +1,10 @@
 module Stats exposing
-    ( DetainerWarrantsPerMonth
+    ( AmountAwardedMonth
+    , DetainerWarrantsPerMonth
     , EvictionHistory
     , PlaintiffAttorneyWarrantCount
     , TopEvictor
+    , amountAwardedMonthDecoder
     , detainerWarrantsPerMonthDecoder
     , evictionHistoryDecoder
     , plaintiffAttorneyWarrantCountDecoder
@@ -41,6 +43,12 @@ type alias PlaintiffAttorneyWarrantCount =
     }
 
 
+type alias AmountAwardedMonth =
+    { time : Time.Posix
+    , totalAmount : Int
+    }
+
+
 evictionHistoryDecoder : Decoder EvictionHistory
 evictionHistoryDecoder =
     Decode.succeed EvictionHistory
@@ -69,3 +77,10 @@ plaintiffAttorneyWarrantCountDecoder =
         |> required "plaintiff_attorney_name" string
         |> required "start_date" posix
         |> required "end_date" posix
+
+
+amountAwardedMonthDecoder : Decoder AmountAwardedMonth
+amountAwardedMonthDecoder =
+    Decode.succeed AmountAwardedMonth
+        |> required "time" posix
+        |> required "total_amount" int

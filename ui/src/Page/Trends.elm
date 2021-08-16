@@ -1,6 +1,7 @@
 module Page.Trends exposing (Model, Msg, init, subscriptions, toSession, update, view)
 
 import Api
+import Api.Endpoint as Endpoint
 import Array exposing (Array)
 import Axis
 import Color
@@ -10,6 +11,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
+import FormatNumber
+import FormatNumber.Locales exposing (usLocale)
 import Html exposing (Html)
 import Http
 import Json.Decode as Decode exposing (list)
@@ -39,7 +42,7 @@ import Runtime exposing (Runtime)
 import Scale exposing (BandConfig, BandScale, ContinuousScale, defaultBandConfig)
 import Session exposing (Session)
 import Shape exposing (defaultPieConfig)
-import Stats exposing (DetainerWarrantsPerMonth, EvictionHistory, PlaintiffAttorneyWarrantCount, TopEvictor)
+import Stats exposing (AmountAwardedMonth, DetainerWarrantsPerMonth, EvictionHistory, PlaintiffAttorneyWarrantCount, TopEvictor)
 import Svg exposing (Svg)
 import Time exposing (Month(..))
 import Time.Extra as Time exposing (Parts, partsToPosix)
@@ -55,9 +58,11 @@ type alias Model =
     , runtime : Runtime
     , topEvictors : List TopEvictor
     , hovering : List EvictionHistory
+    , hoveringAmounts : List AmountAwardedMonth
     , warrantsPerMonth : List DetainerWarrantsPerMonth
     , plaintiffAttorneyWarrantCounts : List PlaintiffAttorneyWarrantCount
     , rollupMeta : Maybe Api.RollupMetadata
+    , amountAwardedHistory : Maybe (List Stats.AmountAwardedMonth)
     }
 
 
@@ -93,21 +98,29 @@ getApiMetadata =
         }
 
 
+getAmountAwardedHistory : Cmd Msg
+getAmountAwardedHistory =
+    Api.get Endpoint.amountAwardedHistory Nothing GotAmountAwardedHistory (Api.unpaginatedCollectionDecoder Stats.amountAwardedMonthDecoder)
+
+
 init : Runtime -> Session -> ( Model, Cmd Msg )
 init runtime session =
     ( { session = session
       , runtime = runtime
       , topEvictors = []
       , hovering = []
+      , hoveringAmounts = []
       , warrantsPerMonth = []
       , plaintiffAttorneyWarrantCounts = []
       , rollupMeta = Nothing
+      , amountAwardedHistory = Nothing
       }
     , Cmd.batch
         [ getEvictionData
         , getDetainerWarrantsPerMonth
         , getPlaintiffAttorneyWarrantCountPerMonth
         , getApiMetadata
+        , getAmountAwardedHistory
         ]
     )
 
@@ -117,7 +130,9 @@ type Msg
     | GotDetainerWarrantData (Result Http.Error (List DetainerWarrantsPerMonth))
     | GotPlaintiffAttorneyWarrantCount (Result Http.Error (List PlaintiffAttorneyWarrantCount))
     | GotApiMeta (Result Http.Error Api.RollupMetadata)
+    | GotAmountAwardedHistory (Result Http.Error (Api.UnpaginatedCollection Stats.AmountAwardedMonth))
     | Hover (List EvictionHistory)
+    | HoverAmounts (List AmountAwardedMonth)
     | NoOp
 
 
@@ -163,8 +178,17 @@ update msg model =
                 Err httpError ->
                     ( model, logHttpError httpError )
 
+        GotAmountAwardedHistory (Ok collection) ->
+            ( { model | amountAwardedHistory = Just collection.data }, Cmd.none )
+
+        GotAmountAwardedHistory (Err httpError) ->
+            ( model, logHttpError httpError )
+
         Hover hovering ->
             ( { model | hovering = hovering }, Cmd.none )
+
+        HoverAmounts hovering ->
+            ( { model | hoveringAmounts = hovering }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
@@ -198,6 +222,14 @@ view device model =
                 , Element.row [ Element.width fill ]
                     [ viewPlaintiffAttorneyChart model.plaintiffAttorneyWarrantCounts ]
                 , Element.row [ Element.height (Element.px 30) ] []
+                , case model.amountAwardedHistory of
+                    Just amountAwardedHistory ->
+                        Element.row []
+                            [ amountAwardedChart model amountAwardedHistory
+                            ]
+
+                    Nothing ->
+                        Element.none
                 , case model.rollupMeta of
                     Just rollupMeta ->
                         Element.row [ Element.centerX ]
@@ -259,6 +291,75 @@ chart model =
         ]
 
 
+viewAmountAwardedLine : (String -> List AmountAwardedMonth -> LineChart.Series AmountAwardedMonth) -> List AmountAwardedMonth -> LineChart.Series AmountAwardedMonth
+viewAmountAwardedLine toLine amounts =
+    toLine "Amount awarded" amounts
+
+
+amountAwardedLines : List AmountAwardedMonth -> List (LineChart.Series AmountAwardedMonth)
+amountAwardedLines amounts =
+    let
+        colors =
+            [ Color.lightGreen ]
+
+        shapes =
+            [ Dots.triangle, Dots.circle, Dots.diamond, Dots.square ]
+
+        color =
+            \index -> List.drop index colors |> List.head |> Maybe.withDefault Color.red
+
+        shape =
+            \index -> List.drop index shapes |> List.head |> Maybe.withDefault Dots.triangle
+    in
+    [ viewAmountAwardedLine (LineChart.line (color 0) (shape 0)) amounts ]
+
+
+amountAwardedChart : Model -> List AmountAwardedMonth -> Element Msg
+amountAwardedChart model amountAwardedHistory =
+    Element.column [ Element.centerX ]
+        [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Amount awarded in fees to plaintiffs" ]
+        , Element.row []
+            [ Element.html
+                (LineChart.viewCustom
+                    { y =
+                        Axis.custom
+                            { title = Title.default "Awards"
+                            , variable = Just << toFloat << .totalAmount
+                            , pixels = 600
+                            , range = Range.padded 20 20
+                            , axisLine = AxisLine.full Color.black
+                            , ticks =
+                                Ticks.floatCustom 7
+                                    (\number ->
+                                        Tick.custom
+                                            { position = number
+                                            , color = Color.black
+                                            , width = 1
+                                            , length = 7
+                                            , grid = True
+                                            , direction = Tick.positive
+                                            , label = Just (Junk.label Color.black (formatDollars number))
+                                            }
+                                    )
+                            }
+                    , x = amountsXAxisConfig --Axis.time Time.utc 2000 "Date" .date
+                    , container = Container.styled "line-chart-2" [ ( "font-family", "monospace" ) ]
+                    , interpolation = Interpolation.default
+                    , intersection = Intersection.default
+                    , legends = Legends.groupedCustom 30 viewLegends
+                    , events = Events.hoverMany HoverAmounts
+                    , junk = Junk.hoverMany model.hoveringAmounts formatXAmounts formatYAmounts
+                    , grid = Grid.default
+                    , area = Area.default
+                    , line = Line.default
+                    , dots = Dots.hoverMany model.hoveringAmounts
+                    }
+                    (amountAwardedLines amountAwardedHistory)
+                )
+            ]
+        ]
+
+
 viewLegends : Coordinate.System -> List (Legends.Legend msg) -> Svg.Svg msg
 viewLegends system legends =
     Svg.g
@@ -287,6 +388,20 @@ viewLabel label =
 formatX : EvictionHistory -> String
 formatX info =
     "Month: " ++ dateFormat (Time.millisToPosix (round info.date))
+
+
+formatXAmounts : AmountAwardedMonth -> String
+formatXAmounts info =
+    "Month: " ++ dateFormat info.time
+
+
+formatYAmounts : AmountAwardedMonth -> String
+formatYAmounts info =
+    formatDollars (toFloat info.totalAmount)
+
+
+formatDollars number =
+    "$" ++ FormatNumber.format usLocale number
 
 
 dateFormat : Time.Posix -> String
@@ -350,6 +465,18 @@ xAxisConfig =
         }
 
 
+amountsXAxisConfig : Axis.Config AmountAwardedMonth msg
+amountsXAxisConfig =
+    Axis.custom
+        { title = Title.default "Month"
+        , variable = Just << toFloat << Time.posixToMillis << .time
+        , pixels = 1000
+        , range = Range.padded 20 20
+        , axisLine = AxisLine.full Color.black
+        , ticks = ticksConfig
+        }
+
+
 
 -- BAR CHART
 
@@ -367,9 +494,13 @@ padding =
     30
 
 
-xScale : List DetainerWarrantsPerMonth -> BandScale Time.Posix
-xScale warrants =
-    List.map .time warrants
+type alias Datum =
+    { time : Time.Posix, total : Int }
+
+
+xScale : List Datum -> BandScale Time.Posix
+xScale times =
+    List.map .time times
         |> Scale.band { defaultBandConfig | paddingInner = 0.1, paddingOuter = 0.2 } ( 0, w - 2 * padding )
 
 
@@ -383,9 +514,9 @@ barDateFormat =
     DateFormat.format [ DateFormat.monthNameAbbreviated, DateFormat.text " ", DateFormat.yearNumberLastTwo ] Time.utc
 
 
-xAxis : List DetainerWarrantsPerMonth -> Svg msg
-xAxis warrants =
-    Axis.bottom [] (Scale.toRenderable barDateFormat (xScale warrants))
+xAxis : List Datum -> Svg msg
+xAxis times =
+    Axis.bottom [] (Scale.toRenderable barDateFormat (xScale times))
 
 
 yAxis : Svg msg
@@ -393,27 +524,62 @@ yAxis =
     Axis.left [ Axis.tickCount 5 ] yScale
 
 
-column : BandScale Time.Posix -> DetainerWarrantsPerMonth -> Svg msg
-column scale { time, totalWarrants } =
+column : BandScale Time.Posix -> { time : Time.Posix, total : Int } -> Svg msg
+column scale { time, total } =
     g [ class [ "column" ] ]
         [ rect
             [ x <| Scale.convert scale time
-            , y <| Scale.convert yScale (toFloat totalWarrants)
+            , y <| Scale.convert yScale (toFloat total)
             , width <| Scale.bandwidth scale
-            , height <| h - Scale.convert yScale (toFloat totalWarrants) - 2 * padding
+            , height <| h - Scale.convert yScale (toFloat total) - 2 * padding
             ]
             []
         , text_
             [ x <| Scale.convert (Scale.toRenderable barDateFormat scale) time
-            , y <| Scale.convert yScale (toFloat totalWarrants) - 5
+            , y <| Scale.convert yScale (toFloat total) - 5
             , textAnchor AnchorMiddle
             ]
-            [ text <| String.fromInt totalWarrants ]
+            [ text <| String.fromInt total ]
+        ]
+
+
+viewAmountAwardedHistory : List AmountAwardedMonth -> Element msg
+viewAmountAwardedHistory amounts =
+    let
+        series =
+            List.map (\s -> { time = s.time, total = s.totalAmount }) amounts
+    in
+    Element.column [ Element.padding 20, Element.spacing 20, Element.centerX, Element.width fill ]
+        [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Number of detainer warrants in Davidson Co. TN by month" ]
+        , Element.row [ Element.paddingXY 35 0 ]
+            [ Element.column [ Element.width (Element.shrink |> Element.minimum w), Element.height (Element.px h) ]
+                [ Element.html
+                    (svg [ viewBox 0 0 w h ]
+                        [ style [] [ text """
+            .column rect { fill: rgba(12, 84, 228, 0.8); }
+            .column text { display: none; }
+            .column:hover rect { fill: rgb(129, 169, 248); }
+            .column:hover text { display: inline; }
+          """ ]
+                        , g [ transform [ Translate (padding - 1) (h - padding) ] ]
+                            [ xAxis series ]
+                        , g [ transform [ Translate (padding - 1) padding ] ]
+                            [ yAxis ]
+                        , g [ transform [ Translate padding padding ], class [ "series" ] ] <|
+                            List.map (column (xScale series)) series
+                        ]
+                    )
+                ]
+            ]
         ]
 
 
 viewDetainerWarrantsHistory : List DetainerWarrantsPerMonth -> Element msg
-viewDetainerWarrantsHistory series =
+viewDetainerWarrantsHistory warrants =
+    let
+        series =
+            List.map (\s -> { time = s.time, total = s.totalWarrants }) warrants
+    in
     Element.column [ Element.padding 20, Element.spacing 20, Element.centerX, Element.width fill ]
         [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Number of detainer warrants in Davidson Co. TN by month" ]
         , Element.row [ Element.paddingXY 35 0 ]

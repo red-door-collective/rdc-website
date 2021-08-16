@@ -390,14 +390,14 @@ def register_extensions(app):
 
         return flask.jsonify({'pending_scheduled_case_count': pending_scheduled_case_count(start_of_month, end_of_month)})
 
-    @app.route('/api/v1/rollup/amount_awarded')
+    @app.route('/api/v1/rollup/amount-awarded')
     def amount_awarded():
         start_of_month = date.today().replace(day=1)
         end_of_month = (date.today().replace(day=1) +
                         timedelta(days=32)).replace(day=1)
-        return flask.jsonify({'amount_awarded': round_dec(amount_awarded_between(start_of_month, end_of_month))})
+        return flask.jsonify({'data': round_dec(amount_awarded_between(start_of_month, end_of_month))})
 
-    @app.route('/api/v1/rollup/amount_awarded/history')
+    @app.route('/api/v1/rollup/amount-awarded/history')
     def amount_awarded_history():
         start_dt = date(2021, 3, 1)
         end_dt = date.today()
@@ -405,7 +405,7 @@ def register_extensions(app):
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
         awards = [{'time': millisTimestamp(start), 'total_amount': round_dec(amount_awarded_between(
             start, end))} for start, end in dates]
-        return flask.jsonify({'amounts_awarded': awards})
+        return flask.jsonify({'data': awards})
 
     @app.route('/api/v1/rollup/meta')
     def data_meta():
