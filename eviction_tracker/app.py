@@ -300,7 +300,7 @@ def register_extensions(app):
         end_dt = date.today()
         dates = [(dt, next_month(dt))
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
-        counts = [{'time': millisTimestamp(start), 'totalWarrants': count_between_dates(
+        counts = [{'time': millisTimestamp(start), 'total_warrants': count_between_dates(
             start, end)} for start, end in dates]
 
         return flask.jsonify(counts)

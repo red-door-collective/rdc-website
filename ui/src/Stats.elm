@@ -67,7 +67,7 @@ detainerWarrantsPerMonthDecoder : Decoder DetainerWarrantsPerMonth
 detainerWarrantsPerMonthDecoder =
     Decode.succeed DetainerWarrantsPerMonth
         |> required "time" posix
-        |> required "totalWarrants" int
+        |> required "total_warrants" int
 
 
 plaintiffAttorneyWarrantCountDecoder : Decoder PlaintiffAttorneyWarrantCount
