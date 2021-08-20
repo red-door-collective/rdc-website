@@ -41,11 +41,9 @@ type alias Model =
     , fileDate : DatePickerState
     , courtDate : DatePickerState
     , warrants : List DetainerWarrant
-    , searchFilters : Search.DetainerWarrants
-    , cursor : Cursor
     , selected : Maybe String
     , hovered : Maybe String
-    , previousSearch : Maybe Search.DetainerWarrants
+    , search : Search Search.DetainerWarrants
     , infiniteScroll : InfiniteScroll.Model Msg
     }
 
@@ -57,16 +55,14 @@ init filters runtime session =
             Session.cred session
 
         search =
-            { filters = filters, cursor = NewSearch, previous = Nothing }
+            { filters = filters, cursor = NewSearch, previous = Just filters }
     in
     ( { session = session
       , runtime = runtime
       , fileDate = initDatePicker runtime.today filters.fileDate
       , courtDate = initDatePicker runtime.today filters.courtDate
       , warrants = []
-      , searchFilters = search.filters
-      , cursor = search.cursor
-      , previousSearch = search.previous
+      , search = search
       , selected = Nothing
       , hovered = Nothing
       , infiniteScroll = InfiniteScroll.init (loadMore maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
@@ -153,7 +149,11 @@ updateFilters :
     -> Model
     -> ( Model, Cmd Msg )
 updateFilters transform model =
-    ( { model | searchFilters = transform model.searchFilters }, Cmd.none )
+    let
+        search =
+            model.search
+    in
+    ( { model | search = { search | filters = transform search.filters } }, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -283,7 +283,7 @@ update msg model =
                         |> Tuple.first
             in
             ( updatedModel
-            , Route.replaceUrl (Session.navKey updatedModel.session) (Route.ManageDetainerWarrants updatedModel.searchFilters)
+            , Route.replaceUrl (Session.navKey updatedModel.session) (Route.ManageDetainerWarrants updatedModel.search.filters)
             )
 
         GotWarrant (Ok detainerWarrant) ->
@@ -292,14 +292,15 @@ update msg model =
                     Session.cred model.session
 
                 search =
-                    { filters = model.searchFilters, cursor = End, previous = model.previousSearch }
+                    { filters = model.search.filters, cursor = End, previous = Just model.search.filters }
             in
             ( { model
                 | warrants = [ detainerWarrant.data ]
                 , infiniteScroll =
                     InfiniteScroll.stopLoading model.infiniteScroll
-                        |> InfiniteScroll.loadMoreCmd (loadMore maybeCred search)
-                , cursor = search.cursor
+
+                -- |> InfiniteScroll.loadMoreCmd (loadMore maybeCred search)
+                , search = search
               }
             , Cmd.none
             )
@@ -312,19 +313,16 @@ update msg model =
                 maybeCred =
                     Session.cred model.session
 
-                updatedModel =
-                    { model
-                        | cursor = Maybe.withDefault End <| Maybe.map After detainerWarrantsPage.meta.afterCursor
-                        , previousSearch = Just model.searchFilters
+                search =
+                    { filters = model.search.filters
+                    , cursor = Maybe.withDefault End <| Maybe.map After detainerWarrantsPage.meta.afterCursor
+                    , previous = Just model.search.filters
                     }
 
-                search =
-                    { filters = model.searchFilters
-                    , cursor = updatedModel.cursor
-                    , previous = updatedModel.previousSearch
-                    }
+                updatedModel =
+                    { model | search = search }
             in
-            if model.previousSearch == Just model.searchFilters then
+            if model.search.previous == Just model.search.filters then
                 ( { updatedModel
                     | warrants = model.warrants ++ detainerWarrantsPage.data
                     , infiniteScroll =
@@ -351,7 +349,7 @@ update msg model =
             ( model, Cmd.none )
 
         InfiniteScrollMsg subMsg ->
-            case model.cursor of
+            case model.search.cursor of
                 End ->
                     ( model, Cmd.none )
 
@@ -455,14 +453,14 @@ searchField field =
 
 
 searchFields : Model -> Search.DetainerWarrants -> List SearchField
-searchFields model searchFilters =
-    [ TextSearch { label = "Docket #", placeholder = "", onChange = InputDocketId, query = searchFilters.docketId }
+searchFields model filters =
+    [ TextSearch { label = "Docket #", placeholder = "", onChange = InputDocketId, query = filters.docketId }
     , DateSearch { label = "File date", onChange = ChangedFileDate, state = model.fileDate, today = model.runtime.today }
     , DateSearch { label = "Court date", onChange = ChangedCourtDate, state = model.courtDate, today = model.runtime.today }
-    , TextSearch { label = "Plaintiff", placeholder = "", onChange = InputPlaintiff, query = searchFilters.plaintiff }
-    , TextSearch { label = "Plnt. attorney", placeholder = "", onChange = InputPlaintiffAttorney, query = searchFilters.plaintiffAttorney }
-    , TextSearch { label = "Defendant", placeholder = "", onChange = InputDefendant, query = searchFilters.defendant }
-    , TextSearch { label = "Address", placeholder = "", onChange = InputAddress, query = searchFilters.address }
+    , TextSearch { label = "Plaintiff", placeholder = "", onChange = InputPlaintiff, query = filters.plaintiff }
+    , TextSearch { label = "Plnt. attorney", placeholder = "", onChange = InputPlaintiffAttorney, query = filters.plaintiffAttorney }
+    , TextSearch { label = "Defendant", placeholder = "", onChange = InputDefendant, query = filters.defendant }
+    , TextSearch { label = "Address", placeholder = "", onChange = InputAddress, query = filters.address }
     ]
 
 
@@ -475,7 +473,7 @@ viewSearchBar model =
         , Element.centerY
         , Element.centerX
         ]
-        (List.map searchField (searchFields model model.searchFilters)
+        (List.map searchField (searchFields model model.search.filters)
             ++ [ Input.button
                     [ Element.centerY
                     , Background.color Palette.redLight
@@ -544,7 +542,7 @@ view settings model =
                 ]
                 [ createNewWarrant
                 , viewSearchBar model
-                , case model.previousSearch of
+                , case model.search.previous of
                     Just previousSearch ->
                         if List.isEmpty model.warrants then
                             viewEmptyResults previousSearch
