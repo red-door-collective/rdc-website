@@ -31,15 +31,15 @@ type AmountClaimedCategory
 
 
 type alias Judge =
-    { id : Int, name : String }
+    { id : Int, name : String, aliases : List String }
 
 
 type alias Attorney =
-    { id : Int, name : String }
+    { id : Int, name : String, aliases : List String }
 
 
 type alias Plaintiff =
-    { id : Int, name : String }
+    { id : Int, name : String, aliases : List String }
 
 
 type alias Courtroom =
@@ -514,6 +514,7 @@ attorneyDecoder =
     Decode.succeed Attorney
         |> required "id" int
         |> required "name" string
+        |> required "aliases" (list string)
 
 
 courtroomDecoder : Decoder Courtroom
@@ -528,6 +529,7 @@ judgeDecoder =
     Decode.succeed Judge
         |> required "id" int
         |> required "name" string
+        |> required "aliases" (list string)
 
 
 plaintiffDecoder : Decoder Plaintiff
@@ -535,6 +537,7 @@ plaintiffDecoder =
     Decode.succeed Plaintiff
         |> required "id" int
         |> required "name" string
+        |> required "aliases" (list string)
 
 
 dateDecoder : Decoder Date

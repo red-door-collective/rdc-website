@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import func, text
 from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class District(db.Model, Timestamped):
@@ -39,6 +40,8 @@ class Defendant(db.Model, Timestamped):
     middle_name = Column(db.String(50))
     last_name = Column(db.String(50))
     suffix = Column(db.String(20))
+    aliases = Column(db.ARRAY(db.String(255)),
+                     nullable=False, server_default='{}')
     potential_phones = Column(db.String(255))
     address = Column(db.String(255))
 
@@ -73,6 +76,8 @@ class Attorney(db.Model, Timestamped):
     __tablename__ = 'attorneys'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
+    aliases = Column(db.ARRAY(db.String(255)),
+                     nullable=False, server_default='{}')
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
 
@@ -113,6 +118,8 @@ class Plaintiff(db.Model, Timestamped):
     __tablename__ = 'plaintiffs'
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
+    aliases = Column(db.ARRAY(db.String(255)),
+                     nullable=False, server_default='{}')
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
 
@@ -133,6 +140,8 @@ class Judge(db.Model, Timestamped):
     __tablename__ = "judges"
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
+    aliases = Column(db.ARRAY(db.String(255)),
+                     nullable=False, server_default='{}')
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
 

@@ -13,7 +13,7 @@ districts_schema = DistrictSchema(many=True)
 
 class AttorneySchema(Schema):
     class Meta:
-        fields = ("id", "name", "district_id")
+        fields = ("id", "name", "aliases", "district_id")
 
 
 attorney_schema = AttorneySchema()
@@ -35,8 +35,8 @@ class DefendantSchema(Schema):
         PhoneNumberVerificationSchema)
 
     class Meta:
-        fields = ("id", "name", "first_name", "middle_name", "last_name", "suffix", "address",
-                  "verified_phone", "potential_phones", "district_id")
+        fields = ("id", "name", "first_name", "middle_name", "last_name", "suffix", "aliases",
+                  "address", "verified_phone", "potential_phones", "district_id")
 
 
 defendant_schema = DefendantSchema()
@@ -54,7 +54,7 @@ courtrooms_schema = CourtroomSchema(many=True)
 
 class PlaintiffSchema(Schema):
     class Meta:
-        fields = ("id", "name", "district_id")
+        fields = ("id", "name", "aliases", "district_id")
 
 
 plaintiff_schema = PlaintiffSchema()
@@ -63,7 +63,7 @@ plaintiffs_schema = PlaintiffSchema(many=True)
 
 class JudgeSchema(Schema):
     class Meta:
-        fields = ("id", "name", "district_id")
+        fields = ("id", "name", "aliases", "district_id")
 
 
 judge_schema = JudgeSchema()

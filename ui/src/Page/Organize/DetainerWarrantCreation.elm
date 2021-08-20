@@ -557,7 +557,6 @@ update msg model =
         maybeCred =
             Session.cred model.session
 
-
         rollbar =
             Log.reporting model.runtime
 
@@ -2229,7 +2228,7 @@ viewPlaintiffSearch options form =
                     { onChange = ChangedPlaintiffSearchBox
                     , text = form.plaintiff.text
                     , selected = form.plaintiff.person
-                    , options = Just ({ id = -1, name = form.plaintiff.text } :: options.plaintiffs)
+                    , options = Just ({ id = -1, name = form.plaintiff.text, aliases = [] } :: options.plaintiffs)
                     , label = Input.labelAbove [] (text "Plaintiff")
                     , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff")
                     , toLabel = \person -> person.name
@@ -2260,7 +2259,7 @@ viewPlaintiffAttorneySearch options form =
                     { onChange = ChangedPlaintiffAttorneySearchBox
                     , text = form.plaintiffAttorney.text
                     , selected = form.plaintiffAttorney.person
-                    , options = Just ({ id = -1, name = form.plaintiffAttorney.text } :: options.attorneys)
+                    , options = Just ({ id = -1, name = form.plaintiffAttorney.text, aliases = [] } :: options.attorneys)
                     , label = Input.labelAbove [] (text "Plaintiff Attorney")
                     , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff attorney")
                     , toLabel = \person -> person.name
@@ -2353,7 +2352,7 @@ viewPresidingJudgeSearch options form =
                     { onChange = ChangedJudgeSearchBox
                     , text = form.presidingJudge.text
                     , selected = form.presidingJudge.person
-                    , options = Just ({ id = -1, name = form.presidingJudge.text } :: options.judges)
+                    , options = Just ({ id = -1, name = form.presidingJudge.text, aliases = [] } :: options.judges)
                     , label = Input.labelAbove [] (text "Presiding Judge")
                     , placeholder = Just <| Input.placeholder [] (text "Search for judge")
                     , toLabel = \person -> person.name
@@ -2953,7 +2952,7 @@ viewJudgeSearch options index form =
                     { onChange = ChangedJudgementJudgeSearchBox index
                     , text = form.judge.text
                     , selected = form.judge.person
-                    , options = Just ({ id = -1, name = form.judge.text } :: options.judges)
+                    , options = Just ({ id = -1, name = form.judge.text, aliases = [] } :: options.judges)
                     , label = Input.labelAbove [] (text "Judge")
                     , placeholder = Just <| Input.placeholder [] (text "Search for judge")
                     , toLabel = \person -> person.name
@@ -3702,6 +3701,8 @@ toDefendantData address defendant =
 
         else
             Just defendant.suffix
+    , aliases =
+        []
     , address = address
     , potentialPhones =
         if List.isEmpty defendant.potentialPhones || defendant.potentialPhones == [ "" ] then
