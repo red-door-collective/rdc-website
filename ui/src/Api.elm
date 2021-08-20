@@ -364,6 +364,7 @@ credStorageKey =
 type alias PageMeta =
     { afterCursor : Maybe String
     , hasNextPage : Bool
+    , totalMatches : Int
     }
 
 
@@ -407,6 +408,7 @@ pageMetaDecoder =
     Decode.succeed PageMeta
         |> required "after_cursor" (nullable string)
         |> required "has_next_page" bool
+        |> required "total_matches" int
 
 
 detainerWarrantApiDecoder : Decoder (Collection DetainerWarrant)

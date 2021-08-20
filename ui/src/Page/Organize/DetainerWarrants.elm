@@ -14,9 +14,11 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import FormatNumber
+import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Html.Attributes
 import Html.Events
-import Http
+import Http exposing (Error(..))
 import InfiniteScroll
 import Json.Decode as Decode
 import Loader
@@ -55,7 +57,7 @@ init filters runtime session =
             Session.cred session
 
         search =
-            { filters = filters, cursor = NewSearch, previous = Just filters }
+            { filters = filters, cursor = NewSearch, previous = Just filters, totalMatches = Nothing }
     in
     ( { session = session
       , runtime = runtime
@@ -292,7 +294,7 @@ update msg model =
                     Session.cred model.session
 
                 search =
-                    { filters = model.search.filters, cursor = End, previous = Just model.search.filters }
+                    { filters = model.search.filters, cursor = End, previous = Just model.search.filters, totalMatches = Just 1 }
             in
             ( { model
                 | warrants = [ detainerWarrant.data ]
@@ -306,7 +308,21 @@ update msg model =
             )
 
         GotWarrant (Err httpError) ->
-            ( model, logHttpError httpError )
+            let
+                search =
+                    model.search
+            in
+            case httpError of
+                BadStatus code ->
+                    case code of
+                        404 ->
+                            ( { model | search = { search | totalMatches = Just 0 } }, Cmd.none )
+
+                        _ ->
+                            ( model, logHttpError httpError )
+
+                _ ->
+                    ( model, logHttpError httpError )
 
         GotWarrants (Ok detainerWarrantsPage) ->
             let
@@ -317,6 +333,7 @@ update msg model =
                     { filters = model.search.filters
                     , cursor = Maybe.withDefault End <| Maybe.map After detainerWarrantsPage.meta.afterCursor
                     , previous = Just model.search.filters
+                    , totalMatches = Just detainerWarrantsPage.meta.totalMatches
                     }
 
                 updatedModel =
@@ -542,24 +559,29 @@ view settings model =
                 ]
                 [ createNewWarrant
                 , viewSearchBar model
-                , case model.search.previous of
-                    Just previousSearch ->
-                        if List.isEmpty model.warrants then
-                            viewEmptyResults previousSearch
+                , case model.search.totalMatches of
+                    Just total ->
+                        if total > 1 then
+                            paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " detainer warrants matched your search.") ]
 
                         else
-                            viewWarrants model
+                            Element.none
 
                     Nothing ->
-                        text "Loading..."
+                        Element.none
+                , if model.search.totalMatches == Just 0 then
+                    Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
+
+                  else
+                    viewWarrants model
                 ]
             ]
     }
 
 
 loader : Model -> Element Msg
-loader { infiniteScroll } =
-    if InfiniteScroll.isLoading infiniteScroll then
+loader { infiniteScroll, search } =
+    if InfiniteScroll.isLoading infiniteScroll || search.totalMatches == Nothing then
         row
             [ width fill
             , Element.alignBottom

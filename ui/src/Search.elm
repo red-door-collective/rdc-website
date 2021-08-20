@@ -26,6 +26,7 @@ type alias Search filters =
     { filters : filters
     , cursor : Cursor
     , previous : Maybe filters
+    , totalMatches : Maybe Int
     }
 
 

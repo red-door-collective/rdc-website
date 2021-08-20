@@ -86,4 +86,6 @@ class CursorPagination(RelayCursorPagination):
                 items[-1], view, super().get_field_orderings(view))
 
         meta.update_response_meta({"after_cursor": after_cursor})
+        meta.update_response_meta({"total_matches": query.count()})
+
         return items
