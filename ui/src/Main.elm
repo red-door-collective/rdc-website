@@ -21,6 +21,8 @@ import Page.Organize.Dashboard as OrganizerDashboard
 import Page.Organize.DetainerWarrantCreation as DetainerWarrantCreation
 import Page.Organize.DetainerWarrants as ManageDetainerWarrants
 import Page.Organize.Event as Event
+import Page.Organize.PlaintiffCreation as PlaintiffCreation
+import Page.Organize.Plaintiffs as ManagePlaintiffs
 import Page.Trends as Trends
 import Page.WarrantHelp as WarrantHelp
 import Route exposing (Route)
@@ -45,6 +47,8 @@ type CurrentPage
     | Event Int Int Event.Model
     | ManageDetainerWarrants ManageDetainerWarrants.Model
     | DetainerWarrantCreation (Maybe String) DetainerWarrantCreation.Model
+    | ManagePlaintiffs ManagePlaintiffs.Model
+    | PlaintiffCreation (Maybe Int) PlaintiffCreation.Model
 
 
 type alias Model =
@@ -91,6 +95,8 @@ type Msg
     | GotEventMsg Event.Msg
     | GotManageDetainerWarrantsMsg ManageDetainerWarrants.Msg
     | GotDetainerWarrantCreationMsg DetainerWarrantCreation.Msg
+    | GotManagePlaintiffsMsg ManagePlaintiffs.Msg
+    | GotPlaintiffCreationMsg PlaintiffCreation.Msg
     | GotSession Session
     | GotHamburgerMenuPress
     | GotProfile (Result Http.Error User)
@@ -138,6 +144,12 @@ toSession model =
 
         DetainerWarrantCreation _ dwc ->
             DetainerWarrantCreation.toSession dwc
+
+        ManagePlaintiffs plaintiffs ->
+            ManagePlaintiffs.toSession plaintiffs
+
+        PlaintiffCreation _ plaintiff ->
+            PlaintiffCreation.toSession plaintiff
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -202,6 +214,14 @@ changeRouteTo maybeRoute model =
         Just (Route.DetainerWarrantCreation maybeId) ->
             DetainerWarrantCreation.init maybeId runtime session
                 |> updateWith (DetainerWarrantCreation maybeId) GotDetainerWarrantCreationMsg model
+
+        Just (Route.ManagePlaintiffs filters) ->
+            ManagePlaintiffs.init filters runtime session
+                |> updateWith ManagePlaintiffs GotManagePlaintiffsMsg model
+
+        Just (Route.PlaintiffCreation maybeId) ->
+            PlaintiffCreation.init maybeId runtime session
+                |> updateWith (PlaintiffCreation maybeId) GotPlaintiffCreationMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -270,6 +290,14 @@ update msg model =
         ( GotDetainerWarrantCreationMsg subMsg, DetainerWarrantCreation maybeId dwc ) ->
             DetainerWarrantCreation.update subMsg dwc
                 |> updateWith (DetainerWarrantCreation maybeId) GotDetainerWarrantCreationMsg model
+
+        ( GotManagePlaintiffsMsg subMsg, ManagePlaintiffs plaintiffs ) ->
+            ManagePlaintiffs.update subMsg plaintiffs
+                |> updateWith ManagePlaintiffs GotManagePlaintiffsMsg model
+
+        ( GotPlaintiffCreationMsg subMsg, PlaintiffCreation maybeId dwc ) ->
+            PlaintiffCreation.update subMsg dwc
+                |> updateWith (PlaintiffCreation maybeId) GotPlaintiffCreationMsg model
 
         ( GotHamburgerMenuPress, _ ) ->
             ( { model | hamburgerMenuOpen = not model.hamburgerMenuOpen }, Cmd.none )
@@ -420,6 +448,12 @@ view model =
         DetainerWarrantCreation maybeId dwc ->
             viewPage (Page.DetainerWarrantCreation maybeId) GotDetainerWarrantCreationMsg (DetainerWarrantCreation.view settings dwc)
 
+        ManagePlaintiffs plaintiffs ->
+            viewPage Page.ManagePlaintiffs GotManagePlaintiffsMsg (ManagePlaintiffs.view settings plaintiffs)
+
+        PlaintiffCreation maybeId plaintiff ->
+            viewPage (Page.PlaintiffCreation maybeId) GotPlaintiffCreationMsg (PlaintiffCreation.view settings plaintiff)
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -463,6 +497,13 @@ subscriptions model =
 
             DetainerWarrantCreation _ dwc ->
                 Sub.map GotDetainerWarrantCreationMsg (DetainerWarrantCreation.subscriptions dwc)
+
+            ManagePlaintiffs dw ->
+                Sub.map GotManagePlaintiffsMsg (ManagePlaintiffs.subscriptions dw)
+
+            PlaintiffCreation _ dwc ->
+                Sub.map GotPlaintiffCreationMsg (PlaintiffCreation.subscriptions dwc)
+        , Browser.Events.onResize OnResize
         , Browser.Events.onResize OnResize
         , Session.changes GotSession (Session.navKey (toSession model))
         ]

@@ -6,7 +6,6 @@ import Color
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..))
-import Dict
 import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -75,20 +74,7 @@ init filters runtime session =
 
 searchWarrants : Maybe Cred -> Search Search.DetainerWarrants -> Cmd Msg
 searchWarrants maybeCred search =
-    let
-        multipleWarrants =
-            Api.get (Endpoint.detainerWarrantsSearch (queryArgsWithPagination search)) maybeCred GotWarrants Api.detainerWarrantApiDecoder
-    in
-    case search.filters.docketId of
-        Just docketId ->
-            if docketId /= "" then
-                Api.get (Endpoint.detainerWarrant docketId) maybeCred GotWarrant (Api.itemDecoder DetainerWarrant.decoder)
-
-            else
-                multipleWarrants
-
-        Nothing ->
-            multipleWarrants
+    Api.get (Endpoint.detainerWarrantsSearch (queryArgsWithPagination search)) maybeCred GotWarrants Api.detainerWarrantApiDecoder
 
 
 loadMore : Maybe Cred -> Search Search.DetainerWarrants -> InfiniteScroll.Direction -> Cmd Msg
@@ -139,7 +125,6 @@ type Msg
     | SelectWarrant String
     | HoverWarrant String
     | SearchWarrants
-    | GotWarrant (Result Http.Error (Api.Item DetainerWarrant))
     | GotWarrants (Result Http.Error (Api.Collection DetainerWarrant))
     | ChangedSorting String
     | InfiniteScrollMsg InfiniteScroll.Msg
@@ -287,42 +272,6 @@ update msg model =
             ( updatedModel
             , Route.replaceUrl (Session.navKey updatedModel.session) (Route.ManageDetainerWarrants updatedModel.search.filters)
             )
-
-        GotWarrant (Ok detainerWarrant) ->
-            let
-                maybeCred =
-                    Session.cred model.session
-
-                search =
-                    { filters = model.search.filters, cursor = End, previous = Just model.search.filters, totalMatches = Just 1 }
-            in
-            ( { model
-                | warrants = [ detainerWarrant.data ]
-                , infiniteScroll =
-                    InfiniteScroll.stopLoading model.infiniteScroll
-
-                -- |> InfiniteScroll.loadMoreCmd (loadMore maybeCred search)
-                , search = search
-              }
-            , Cmd.none
-            )
-
-        GotWarrant (Err httpError) ->
-            let
-                search =
-                    model.search
-            in
-            case httpError of
-                BadStatus code ->
-                    case code of
-                        404 ->
-                            ( { model | search = { search | totalMatches = Just 0 } }, Cmd.none )
-
-                        _ ->
-                            ( model, logHttpError httpError )
-
-                _ ->
-                    ( model, logHttpError httpError )
 
         GotWarrants (Ok detainerWarrantsPage) ->
             let
@@ -492,13 +441,14 @@ viewSearchBar model =
         ]
         (List.map searchField (searchFields model model.search.filters)
             ++ [ Input.button
-                    [ Element.centerY
+                    [ Element.alignBottom
                     , Background.color Palette.redLight
                     , Element.focused [ Background.color Palette.red ]
                     , Element.height fill
                     , Font.color (Element.rgb 255 255 255)
                     , Element.padding 10
                     , Border.rounded 5
+                    , height (px 50)
                     ]
                     { onPress = Just SearchWarrants, label = Element.text "Search" }
                ]
@@ -520,19 +470,19 @@ viewFilter filters =
         ifNonEmpty prefix fn filter =
             case filter of
                 Just value ->
-                    [ paragraph [ centerX, Font.center ] [ text (prefix ++ fn value) ] ]
+                    [ paragraph [ centerX, Font.center ] [ text (prefix ++ "\"" ++ fn value ++ "\"") ] ]
 
                 Nothing ->
                     []
     in
     List.concat
-        [ ifNonEmpty "docket number is " identity filters.docketId
+        [ ifNonEmpty "docket number contains " identity filters.docketId
         , ifNonEmpty "file date is " Date.toIsoString filters.fileDate
         , ifNonEmpty "court date is " Date.toIsoString filters.courtDate
-        , ifNonEmpty "plaintiff is " identity filters.plaintiff
-        , ifNonEmpty "plaintiff attorney is " identity filters.plaintiffAttorney
-        , ifNonEmpty "defendant is " identity filters.defendant
-        , ifNonEmpty "address is " identity filters.address
+        , ifNonEmpty "plaintiff contains " identity filters.plaintiff
+        , ifNonEmpty "plaintiff attorney contains " identity filters.plaintiffAttorney
+        , ifNonEmpty "defendant contains " identity filters.defendant
+        , ifNonEmpty "address contains " identity filters.address
         ]
 
 
