@@ -38,11 +38,13 @@ type Page
     | Actions
     | Glossary
     | Login
-    | ManageDetainerWarrants
     | OrganizerDashboard
     | CampaignOverview Int
     | Event Int Int
+    | ManageDetainerWarrants
     | DetainerWarrantCreation (Maybe String)
+    | ManagePlaintiffs
+    | PlaintiffCreation (Maybe Int)
 
 
 type alias NavBar msg =
@@ -230,15 +232,21 @@ detainerWarrants page =
     { url = Route.href (Route.ManageDetainerWarrants Search.detainerWarrantsDefault), label = "Detainer Warrants", isActive = page == ManageDetainerWarrants }
 
 
+plaintiffs page =
+    { url = Route.href (Route.ManagePlaintiffs Search.plaintiffsDefault), label = "Plaintiffs", isActive = page == ManagePlaintiffs }
+
+
 adminOptions settings page =
     [ dashboard page
     , detainerWarrants page
+    , plaintiffs page
     ]
 
 
 organizerOptions settings page =
     [ dashboard page
     , detainerWarrants page
+    , plaintiffs page
     ]
 
 

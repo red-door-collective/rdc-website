@@ -10,7 +10,7 @@ import Date exposing (Date)
 import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
-import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status, amountClaimedCategoryText)
+import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
 import Dropdown
 import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, inFront, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Background as Background
@@ -32,6 +32,7 @@ import Maybe.Extra
 import Palette
 import PhoneNumber
 import PhoneNumber.Countries exposing (countryUS)
+import Plaintiff exposing (Plaintiff)
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)
@@ -477,7 +478,7 @@ type Msg
     | ChangedNotes String
     | SubmitForm
     | SubmitAndAddAnother
-    | UpsertedPlaintiff (Result Http.Error (Api.Item DetainerWarrant.Plaintiff))
+    | UpsertedPlaintiff (Result Http.Error (Api.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Api.Item DetainerWarrant.Attorney))
     | UpsertedCourtroom (Result Http.Error (Api.Item DetainerWarrant.Courtroom))
     | UpsertedJudge (Result Http.Error (Api.Item DetainerWarrant.Judge))
@@ -755,7 +756,7 @@ update msg model =
                             { form | plaintiff = updatedPlaintiff }
                         )
                         model
-                    , Api.get (Endpoint.plaintiffs [ ( "name", text ) ]) maybeCred GotPlaintiffs (Api.collectionDecoder DetainerWarrant.plaintiffDecoder)
+                    , Api.get (Endpoint.plaintiffs [ ( "name", text ) ]) maybeCred GotPlaintiffs (Api.collectionDecoder Plaintiff.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -3912,7 +3913,7 @@ upsertPlaintiff : Maybe Cred -> Plaintiff -> Cmd Msg
 upsertPlaintiff maybeCred plaintiff =
     let
         decoder =
-            Api.itemDecoder DetainerWarrant.plaintiffDecoder
+            Api.itemDecoder Plaintiff.decoder
 
         data =
             Encode.object

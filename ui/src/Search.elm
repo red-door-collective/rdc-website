@@ -1,4 +1,4 @@
-module Search exposing (Cursor(..), DetainerWarrants, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsQuery)
+module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsQuery, plaintiffsArgs, plaintiffsDefault, plaintiffsQuery, toPair)
 
 import Api.Endpoint exposing (toQueryArgs)
 import Date exposing (Date)
@@ -22,6 +22,10 @@ type alias DetainerWarrants =
     }
 
 
+type alias Plaintiffs =
+    { name : Maybe String }
+
+
 type alias Search filters =
     { filters : filters
     , cursor : Cursor
@@ -42,21 +46,27 @@ detainerWarrantsDefault =
     }
 
 
+plaintiffsDefault : Plaintiffs
+plaintiffsDefault =
+    { name = Nothing }
+
+
+toPair : a -> Maybe String -> List ( a, String )
+toPair key field =
+    case field of
+        Just value ->
+            if value /= "" then
+                [ ( key, value ) ]
+
+            else
+                []
+
+        Nothing ->
+            []
+
+
 detainerWarrantsArgs : DetainerWarrants -> List ( String, String )
 detainerWarrantsArgs filters =
-    let
-        toPair key field =
-            case field of
-                Just value ->
-                    if value /= "" then
-                        [ ( key, value ) ]
-
-                    else
-                        []
-
-                Nothing ->
-                    []
-    in
     toPair "docket_id" filters.docketId
         ++ toPair "file_date" (Maybe.map Date.toIsoString filters.fileDate)
         ++ toPair "court_date" (Maybe.map Date.toIsoString filters.courtDate)
@@ -69,3 +79,13 @@ detainerWarrantsArgs filters =
 detainerWarrantsQuery : DetainerWarrants -> String
 detainerWarrantsQuery filters =
     Url.Builder.toQuery (toQueryArgs (detainerWarrantsArgs filters))
+
+
+plaintiffsArgs : Plaintiffs -> List ( String, String )
+plaintiffsArgs filters =
+    toPair "name" filters.name
+
+
+plaintiffsQuery : Plaintiffs -> String
+plaintiffsQuery filters =
+    Url.Builder.toQuery (toQueryArgs (plaintiffsArgs filters))

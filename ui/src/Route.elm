@@ -26,6 +26,8 @@ type Route
     | Event Int Int
     | ManageDetainerWarrants Search.DetainerWarrants
     | DetainerWarrantCreation (Maybe String)
+    | ManagePlaintiffs Search.Plaintiffs
+    | PlaintiffCreation (Maybe Int)
 
 
 searchWarrantsParser =
@@ -37,6 +39,11 @@ searchWarrantsParser =
         (Query.string "plaintiff_attorney")
         (Query.string "defendant_name")
         (Query.string "address")
+
+
+searchPlaintiffsParser =
+    Query.map Search.Plaintiffs
+        (Query.string "name")
 
 
 parser : Parser (Route -> a) a
@@ -56,6 +63,9 @@ parser =
         , Parser.map ManageDetainerWarrants (s "organize" </> s "detainer-warrants" <?> searchWarrantsParser)
         , Parser.map (DetainerWarrantCreation Nothing) (s "organize" </> s "detainer-warrants" </> s "edit")
         , Parser.map (DetainerWarrantCreation << Just) (s "organize" </> s "detainer-warrants" </> s "edit" </> string)
+        , Parser.map ManagePlaintiffs (s "organize" </> s "plaintiffs" <?> searchPlaintiffsParser)
+        , Parser.map (PlaintiffCreation Nothing) (s "organize" </> s "plaintiffs" </> s "edit")
+        , Parser.map (PlaintiffCreation << Just) (s "organize" </> s "plaintiffs" </> s "edit" </> int)
         ]
 
 
@@ -138,6 +148,19 @@ routeToPieces page =
                 ++ (case maybeId of
                         Just id ->
                             [ id ]
+
+                        Nothing ->
+                            []
+                   )
+
+        ManagePlaintiffs filters ->
+            [ "organize", "plaintiffs" ++ Search.plaintiffsQuery filters ]
+
+        PlaintiffCreation maybeId ->
+            [ "organize", "plaintiffs", "edit" ]
+                ++ (case maybeId of
+                        Just id ->
+                            [ String.fromInt id ]
 
                         Nothing ->
                             []

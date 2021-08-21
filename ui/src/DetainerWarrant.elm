@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Plaintiff, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, judgementDecoder, plaintiffDecoder, statusOptions, statusText, ternaryOptions)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, judgementDecoder, statusOptions, statusText, ternaryOptions)
 
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
@@ -6,6 +6,7 @@ import Defendant exposing (Defendant)
 import Dropdown
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
+import Plaintiff exposing (Plaintiff)
 import SearchBox
 import String.Extra
 import Time exposing (Month(..))
@@ -35,10 +36,6 @@ type alias Judge =
 
 
 type alias Attorney =
-    { id : Int, name : String, aliases : List String }
-
-
-type alias Plaintiff =
     { id : Int, name : String, aliases : List String }
 
 
@@ -532,14 +529,6 @@ judgeDecoder =
         |> required "aliases" (list string)
 
 
-plaintiffDecoder : Decoder Plaintiff
-plaintiffDecoder =
-    Decode.succeed Plaintiff
-        |> required "id" int
-        |> required "name" string
-        |> required "aliases" (list string)
-
-
 dateDecoder : Decoder Date
 dateDecoder =
     Decode.map (Maybe.withDefault (Date.fromCalendarDate 2021 Jan 1) << Result.toMaybe << Date.fromIsoString) Decode.string
@@ -551,7 +540,7 @@ decoder =
         |> required "docket_id" string
         |> required "file_date" (nullable dateDecoder)
         |> required "status" (nullable statusDecoder)
-        |> required "plaintiff" (nullable plaintiffDecoder)
+        |> required "plaintiff" (nullable Plaintiff.decoder)
         |> required "plaintiff_attorney" (nullable attorneyDecoder)
         |> required "court_date" (nullable dateDecoder)
         |> required "courtroom" (nullable courtroomDecoder)

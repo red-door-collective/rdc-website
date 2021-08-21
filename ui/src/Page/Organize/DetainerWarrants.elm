@@ -6,7 +6,6 @@ import Color
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..))
-import Dict
 import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
 import Element.Border as Border
