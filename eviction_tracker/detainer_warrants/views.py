@@ -227,6 +227,11 @@ class JudgementResource(JudgementResourceBase):
 
 
 @model_filter(fields.String())
+def filter_docket_id(model, id):
+    return model.docket_id.ilike(f'%{id}%')
+
+
+@model_filter(fields.String())
 def filter_defendant_name(model, defendant_name):
     return model._defendants.any(Defendant.first_name.ilike(f'%{defendant_name}%'))
 
@@ -262,7 +267,7 @@ class DetainerWarrantResourceBase(GenericModelView):
     pagination = CursorPagination()
     sorting = Sorting('created_at', default='-created_at')
     filtering = Filtering(
-        docket_id=ColumnFilter(operator.eq),
+        docket_id=filter_docket_id,
         defendant_name=filter_defendant_name,
         file_date=ColumnFilter(operator.eq),
         court_date=filter_court_date,

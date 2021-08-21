@@ -308,7 +308,7 @@ submitForm model =
     case validate model.form of
         Ok validForm ->
             let
-                apiForms =
+                plaintiff =
                     toPlaintiff model.id validForm
             in
             ( { model
@@ -316,7 +316,7 @@ submitForm model =
                 , problems = []
                 , saveState = SavingPlaintiff
               }
-            , Cmd.none
+            , updatePlaintiff maybeCred model plaintiff
             )
 
         Err problems ->
@@ -520,7 +520,7 @@ requiredLabel labelFn str =
 
 viewName : FormOptions -> Form -> Element Msg
 viewName options form =
-    column [ width fill, height fill, paddingXY 0 10 ]
+    column [ width (fill |> minimum 600), height fill, paddingXY 0 10 ]
         [ viewField
             { tooltip = Just NameInfo
             , description = "This is the unique id for a detainer warrant. Please take care when entering this."
@@ -707,7 +707,7 @@ view settings model =
                            , Element.alignTop
                            , Events.onLoseFocus CloseTooltip
                            ]
-                        ++ withTooltip PlaintiffInfo model.tooltip "The person suing a tenant for possession or fees."
+                        ++ withTooltip PlaintiffInfo model.tooltip "The person sueing a tenant for possession or fees."
                     )
                     { onPress = Just (ChangeTooltip PlaintiffInfo), label = text "What is a Plaintiff?" }
                 )

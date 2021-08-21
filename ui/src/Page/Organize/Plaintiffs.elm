@@ -142,7 +142,7 @@ update msg model =
         logHttpError =
             error rollbar << Log.httpErrorMessage
     in
-    case Debug.log "msg" msg of
+    case msg of
         InputName query ->
             updateFilters (\filters -> { filters | name = query }) model
 
@@ -265,26 +265,31 @@ searchFields model filters =
 
 viewSearchBar : Model -> Element Msg
 viewSearchBar model =
-    Element.wrappedRow
+    Element.row
         [ Element.width (fill |> maximum 1200)
         , Element.spacing 10
         , Element.padding 10
         , Element.centerY
         , Element.centerX
         ]
-        (List.map textSearch (searchFields model model.search.filters)
-            ++ [ Input.button
-                    [ Element.centerY
-                    , Background.color Palette.redLight
-                    , Element.focused [ Background.color Palette.red ]
-                    , Element.height fill
-                    , Font.color (Element.rgb 255 255 255)
-                    , Element.padding 10
-                    , Border.rounded 5
-                    ]
-                    { onPress = Just SearchPlaintiffs, label = Element.text "Search" }
-               ]
-        )
+        [ column [ centerX ]
+            [ row [ spacing 10 ]
+                (List.map textSearch (searchFields model model.search.filters)
+                    ++ [ Input.button
+                            [ Element.alignBottom
+                            , Background.color Palette.redLight
+                            , Element.focused [ Background.color Palette.red ]
+                            , Element.height fill
+                            , Font.color (Element.rgb 255 255 255)
+                            , Element.padding 10
+                            , Border.rounded 5
+                            , height (px 50)
+                            ]
+                            { onPress = Just SearchPlaintiffs, label = Element.text "Search" }
+                       ]
+                )
+            ]
+        ]
 
 
 createNewPlaintiff : Element Msg
@@ -315,7 +320,7 @@ viewFilter filters =
 viewEmptyResults filters =
     textColumn [ centerX, spacing 10 ]
         ([ paragraph [ Font.center, centerX, Font.size 24 ]
-            [ text "No detainer plaintiffs exist matching your search criteria:" ]
+            [ text "No plaintiffs exist matching your search criteria:" ]
          , paragraph [ centerX, Font.italic, Font.center ]
             [ text "where..." ]
          ]
@@ -338,7 +343,7 @@ view settings model =
                 , case model.search.totalMatches of
                     Just total ->
                         if total > 1 then
-                            paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " detainer plaintiffs matched your search.") ]
+                            paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " plaintiffs matched your search.") ]
 
                         else
                             Element.none
@@ -440,9 +445,11 @@ viewEditButton hovered index plaintiff =
 
 tableCellAttrs : Bool -> Maybe String -> Plaintiff -> List (Element.Attribute Msg)
 tableCellAttrs striped hovered plaintiff =
-    [ Element.width (Element.shrink |> maximum 200)
+    [ Element.width (Element.shrink |> maximum 400)
     , height (px 60)
-    , Element.clipX
+    , Element.scrollbarX
+
+    --, Element.clipX
     , Element.padding 10
     , Border.solid
     , Border.color Palette.grayLight
@@ -479,52 +486,6 @@ viewTextRow hovered toText index plaintiff =
         [ Element.text (toText plaintiff) ]
 
 
-viewDocketId : Maybe String -> Maybe String -> Int -> Plaintiff -> Element Msg
-viewDocketId hovered selected index plaintiff =
-    let
-        striped =
-            modBy 2 index == 0
-
-        attrs =
-            [ width (Element.shrink |> maximum 200)
-            , height (px 60)
-            , Border.widthEach { bottom = 0, top = 0, right = 0, left = 4 }
-            , Border.color Palette.transparent
-            ]
-    in
-    row
-        (attrs
-            ++ (if selected == Just plaintiff.name then
-                    [ Border.color Palette.sred
-                    ]
-
-                else
-                    []
-               )
-            ++ (if hovered == Just plaintiff.name then
-                    [ Background.color Palette.redLightest
-                    ]
-
-                else if striped then
-                    [ Background.color Palette.grayBack ]
-
-                else
-                    []
-               )
-        )
-        [ column
-            [ width fill
-            , height (px 60)
-            , padding 10
-            , Border.solid
-            , Border.color Palette.grayLight
-            , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-            ]
-            [ Element.el [ Element.centerY ] (text plaintiff.name)
-            ]
-        ]
-
-
 viewPlaintiffs : Model -> Element Msg
 viewPlaintiffs model =
     let
@@ -540,8 +501,12 @@ viewPlaintiffs model =
         ]
         { data = model.plaintiffs
         , columns =
-            [ { header = viewHeaderCell "Plaintiff Name"
-              , view = viewDocketId model.hovered model.selected
+            [ { header = viewHeaderCell "Name"
+              , view = cell <| .name
+              , width = Element.fill
+              }
+            , { header = viewHeaderCell "Aliases"
+              , view = cell <| String.join "," << .aliases
               , width = Element.fill
               }
             , { header = viewHeaderCell "Edit"
