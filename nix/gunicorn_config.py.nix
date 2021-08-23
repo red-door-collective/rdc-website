@@ -17,7 +17,7 @@ preload = True
 
 def on_starting(server):
     flask_app = server.app.wsgi()
-    run_jobs = os.environ.get('RUN_JOBS') 
+    run_jobs = os.environ.get('RUN_JOBS', 'true')
     print(f'will run jobs: ${run_jobs}')
     if run_jobs == 'true':
         print('Starting scheduler')
