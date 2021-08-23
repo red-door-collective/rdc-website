@@ -591,15 +591,18 @@ viewAliases options form =
                 ]
             , currentTooltip = options.tooltip
             , children =
-                [ MultiInput.view
-                    -- (withValidation Aliases options.problems [ Input.focusedOnLoad ])
-                    { toOuterMsg = ChangedAliases
-                    , placeholder = "Enter alias here"
-                    , isValid = matches "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-                    }
-                    []
-                    form.aliases
-                    form.aliasesState
+                [ column [ width fill, spacing 2 ]
+                    [ paragraph [] [ text "Aliases" ]
+                    , MultiInput.view
+                        -- (withValidation Aliases options.problems [ Input.focusedOnLoad ])
+                        { toOuterMsg = ChangedAliases
+                        , placeholder = "Enter alias here"
+                        , isValid = matches "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                        }
+                        []
+                        form.aliases
+                        form.aliasesState
+                    ]
                 ]
             }
         ]
