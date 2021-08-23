@@ -27,10 +27,12 @@ import List.Extra as List
 import Log
 import Mask
 import Maybe.Extra
+import MultiInput
 import Palette
 import PhoneNumber
 import PhoneNumber.Countries exposing (countryUS)
 import Plaintiff exposing (Plaintiff)
+import Regex exposing (Regex)
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)
@@ -58,6 +60,7 @@ type alias Form =
     { name : String
     , displayName : String
     , aliases : List String
+    , aliasesState : MultiInput.State
     , notes : String
     }
 
@@ -70,6 +73,7 @@ type Problem
 type Tooltip
     = PlaintiffInfo
     | NameInfo
+    | AliasesInfo
     | NotesInfo
 
 
@@ -91,11 +95,16 @@ type alias Model =
     }
 
 
+aliasesId =
+    "aliases-input"
+
+
 editForm : Plaintiff -> Form
 editForm plaintiff =
     { name = plaintiff.name
     , displayName = ""
     , aliases = plaintiff.aliases
+    , aliasesState = MultiInput.init aliasesId
     , notes = ""
     }
 
@@ -105,6 +114,7 @@ initCreate =
     { name = ""
     , displayName = ""
     , aliases = []
+    , aliasesState = MultiInput.init aliasesId
     , notes = ""
     }
 
@@ -155,6 +165,7 @@ type Msg
     | ChangeTooltip Tooltip
     | CloseTooltip
     | ChangedName String
+    | ChangedAliases MultiInput.Msg
     | ChangedNotes String
     | SubmitForm
     | SubmitAndAddAnother
@@ -221,6 +232,15 @@ savingError httpError model =
     { model | problems = problems }
 
 
+defaultSeparators : List String
+defaultSeparators =
+    [ "\n", "\t" ]
+
+
+multiInputUpdateConfig =
+    { separators = defaultSeparators }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
@@ -264,6 +284,17 @@ update msg model =
 
         ChangedName name ->
             updateForm (\form -> { form | name = name }) model
+
+        ChangedAliases multiMsg ->
+            updateFormNarrow
+                (\form ->
+                    let
+                        ( nextState, nextItems, nextCmd ) =
+                            MultiInput.update multiInputUpdateConfig multiMsg form.aliasesState form.aliases
+                    in
+                    ( { form | aliases = nextItems, aliasesState = nextState }, Cmd.map ChangedAliases nextCmd )
+                )
+                model
 
         ChangedNotes notes ->
             updateForm
@@ -430,7 +461,7 @@ helpButton tooltip =
 
 type alias Field =
     { tooltip : Maybe Tooltip
-    , description : String
+    , description : List (Element Msg)
     , children : List (Element Msg)
     , currentTooltip : Maybe Tooltip
     }
@@ -523,7 +554,7 @@ viewName options form =
     column [ width (fill |> minimum 600), height fill, paddingXY 0 10 ]
         [ viewField
             { tooltip = Just NameInfo
-            , description = "This is the unique id for a detainer warrant. Please take care when entering this."
+            , description = [ paragraph [] [ text "This name is how we uniquely identify a Plaintiff." ] ]
             , currentTooltip = options.tooltip
             , children =
                 [ textInput
@@ -533,6 +564,45 @@ viewName options form =
                     , placeholder = Nothing
                     , label = requiredLabel Input.labelAbove "Name"
                     }
+                ]
+            }
+        ]
+
+
+matches : String -> String -> Bool
+matches regex =
+    let
+        validRegex =
+            Regex.fromString regex
+                |> Maybe.withDefault Regex.never
+    in
+    Regex.findAtMost 1 validRegex >> List.isEmpty >> not
+
+
+viewAliases : FormOptions -> Form -> Element Msg
+viewAliases options form =
+    column [ width (fill |> minimum 600), height fill, paddingXY 0 10 ]
+        [ viewField
+            { tooltip = Just AliasesInfo
+            , description =
+                [ paragraph []
+                    [ text "These are other names that are used to refer to the same plaintiff." ]
+                , paragraph [] [ text "Tip: press tab or enter to add another alias." ]
+                ]
+            , currentTooltip = options.tooltip
+            , children =
+                [ column [ width fill, spacing 2 ]
+                    [ paragraph [] [ text "Aliases" ]
+                    , MultiInput.view
+                        -- (withValidation Aliases options.problems [ Input.focusedOnLoad ])
+                        { toOuterMsg = ChangedAliases
+                        , placeholder = "Enter alias here"
+                        , isValid = matches "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                        }
+                        []
+                        form.aliases
+                        form.aliasesState
+                    ]
                 ]
             }
         ]
@@ -552,7 +622,12 @@ viewNotes options form =
         [ viewField
             { tooltip = Just NotesInfo
             , currentTooltip = options.tooltip
-            , description = "Any additional notes you have about this case go here! This is a great place to leave feedback for the form as well, perhaps there's another field or field option we need to provide."
+            , description =
+                [ paragraph []
+                    [ text "Any additional notes you have about this case go here!"
+                    , text "This is a great place to leave feedback for the form as well, perhaps there's another field or field option we need to provide."
+                    ]
+                ]
             , children =
                 [ Input.multiline (withChanges False [])
                     { onChange = ChangedNotes
@@ -627,11 +702,14 @@ viewForm options formStatus =
             column [] [ text ("Fetching plaintiff " ++ String.fromInt id) ]
 
         Ready form ->
-            column [ centerX, spacing 30 ]
+            column [ centerX, spacing 30, width (fill |> maximum 1200) ]
                 [ tile
                     [ paragraph [ Font.center, centerX ] [ text "Plaintiff" ]
                     , formGroup
                         [ viewName options form
+                        ]
+                    , formGroup
+                        [ viewAliases options form
                         ]
                     ]
                 , row [ Element.alignRight, spacing 10 ]
@@ -666,8 +744,8 @@ viewProblems problems =
     row [] [ column [] (List.map viewProblem problems) ]
 
 
-viewTooltip : String -> Element Msg
-viewTooltip str =
+viewTooltip : List (Element Msg) -> Element Msg
+viewTooltip content =
     textColumn
         [ width (fill |> maximum 600)
         , padding 10
@@ -678,13 +756,13 @@ viewTooltip str =
         , Border.shadow
             { offset = ( 0, 3 ), blur = 6, size = 0, color = Element.rgba 0 0 0 0.32 }
         ]
-        [ paragraph [] [ text str ] ]
+        content
 
 
-withTooltip : Tooltip -> Maybe Tooltip -> String -> List (Element.Attribute Msg)
-withTooltip candidate active str =
+withTooltip : Tooltip -> Maybe Tooltip -> List (Element Msg) -> List (Element.Attribute Msg)
+withTooltip candidate active content =
     if Just candidate == active then
-        [ below (viewTooltip str) ]
+        [ below (viewTooltip content) ]
 
     else
         []
@@ -707,9 +785,11 @@ view settings model =
                            , Element.alignTop
                            , Events.onLoseFocus CloseTooltip
                            ]
-                        ++ withTooltip PlaintiffInfo model.tooltip "The person sueing a tenant for possession or fees."
+                        ++ withTooltip PlaintiffInfo model.tooltip [ paragraph [] [ text "The person sueing a tenant for possession or fees." ] ]
                     )
-                    { onPress = Just (ChangeTooltip PlaintiffInfo), label = text "What is a Plaintiff?" }
+                    { onPress = Just (ChangeTooltip PlaintiffInfo)
+                    , label = text "What is a Plaintiff?"
+                    }
                 )
             ]
             [ column [ centerX, spacing 10 ]
@@ -748,7 +828,13 @@ subscriptions model =
 
         Ready form ->
             Sub.batch
-                (Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip))
+                (List.concat
+                    [ [ MultiInput.subscriptions form.aliasesState
+                            |> Sub.map ChangedAliases
+                      ]
+                    , Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip)
+                    ]
+                )
 
 
 isOutsideTooltip : String -> Decode.Decoder Bool
@@ -795,6 +881,9 @@ tooltipToString tip =
         NameInfo ->
             "name-info"
 
+        AliasesInfo ->
+            "aliases-info"
+
         NotesInfo ->
             "notes-info"
 
@@ -823,11 +912,13 @@ type TrimmedForm
 -}
 type ValidatedField
     = Name
+    | Aliases
 
 
 fieldsToValidate : List ValidatedField
 fieldsToValidate =
     [ Name
+    , Aliases
     ]
 
 
@@ -863,6 +954,13 @@ validateField (Trimmed form) field =
                 else
                     []
 
+            Aliases ->
+                if String.isEmpty form.name then
+                    []
+
+                else
+                    []
+
 
 {-| Don't trim while the user is typing! That would be super annoying.
 Instead, trim only on submit.
@@ -873,6 +971,7 @@ trimFields form =
         { form
             | name = String.trim form.name
             , aliases = List.map String.trim form.aliases
+            , notes = String.trim form.notes
         }
 
 
