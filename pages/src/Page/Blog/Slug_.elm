@@ -5,7 +5,7 @@ import Cloudinary
 import Data.Author as Author exposing (Author)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
-import Element
+import Element exposing (Element)
 import Head
 import Head.Seo as Seo
 import Html
@@ -81,54 +81,7 @@ view maybeUrl sharedModel static =
         in
         [ Element.row [ Element.width Element.fill ]
             [ Element.column [ Element.width (Element.px 642), Element.centerX ]
-                [ Element.html
-                    (Html.Styled.toUnstyled
-                        (div
-                            [ css
-                                [ Tw.min_h_screen
-                                , Tw.w_full
-                                , Tw.relative
-                                ]
-                            ]
-                            [ div
-                                [ css
-                                    [ Tw.pt_16
-                                    , Tw.pb_16
-                                    , Tw.px_8
-                                    , Tw.flex
-                                    , Tw.flex_col
-                                    ]
-                                ]
-                                [ div
-                                    [ css
-                                        [ Bp.md [ Tw.mx_auto ]
-                                        ]
-                                    ]
-                                    [ h1
-                                        [ css
-                                            [ Tw.text_center
-                                            , Tw.text_4xl
-                                            , Tw.font_bold
-                                            , Tw.tracking_tight
-                                            , Tw.mt_2
-                                            , Tw.mb_8
-                                            ]
-                                        ]
-                                        [ text static.data.metadata.title
-                                        ]
-                                    , authorView author static.data
-                                    , div
-                                        [ css
-                                            [ Tw.prose
-                                            ]
-                                        ]
-                                        static.data.body
-                                    ]
-                                ]
-                            ]
-                        )
-                    )
-                ]
+                static.data.body
             ]
         ]
     }
@@ -241,7 +194,7 @@ head static =
 
 type alias Data =
     { metadata : ArticleMetadata
-    , body : List (Html Msg)
+    , body : List (Element Msg)
     }
 
 

@@ -1,165 +1,214 @@
 module MarkdownRenderer exposing (renderer)
 
-import Css
-import Element exposing (Element, el, height, link, paragraph, rgb255, table, width)
+import Element
+    exposing
+        ( Element
+        , alignTop
+        , column
+        , el
+        , fill
+        , height
+        , link
+        , newTabLink
+        , padding
+        , paddingXY
+        , paragraph
+        , rgb255
+        , rgba
+        , row
+        , spacing
+        , table
+        , text
+        , width
+        )
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input
-import Html.Styled as Html
-import Html.Styled.Attributes as Attr exposing (css)
-import Markdown.Block as Block
+import Element.Input as Input
+import Element.Region as Region
+import Html exposing (Attribute, Html)
+import Html.Attributes
+import Markdown.Block as Block exposing (Block, Inline, ListItem(..), Task(..))
 import Markdown.Html
+import Markdown.Parser
 import Markdown.Renderer
 import SyntaxHighlight
+
+
+buildToc : List Block -> TableOfContents
+buildToc blocks =
+    let
+        headings =
+            gatherHeadings blocks
+    in
+    headings
+        |> List.map Tuple.second
+        |> List.map
+            (\styledList ->
+                { anchorId = styledList |> inlinesToId
+                , name = styledToString styledList
+                , level = 1
+                }
+            )
+
+
+styledToString : List Inline -> String
+styledToString inlines =
+    --List.map .string list
+    --|> String.join "-"
+    -- TODO do I need to hyphenate?
+    inlines
+        |> Block.extractInlineText
+
+
+inlinesToId : List Inline -> String
+inlinesToId list =
+    list
+        |> Block.extractInlineText
+        |> String.split " "
+        |> String.join "-"
+
+
+gatherHeadings : List Block -> List ( Block.HeadingLevel, List Inline )
+gatherHeadings blocks =
+    List.filterMap
+        (\block ->
+            case block of
+                Block.Heading level content ->
+                    Just ( level, content )
+
+                _ ->
+                    Nothing
+        )
+        blocks
+
+
+type alias TableOfContents =
+    List { anchorId : String, name : String, level : Int }
+
+
+view : String -> Result String (List (Element msg))
+view markdown =
+    markdown
+        |> Markdown.Parser.parse
+        |> Result.mapError (\error -> error |> List.map Markdown.Parser.deadEndToString |> String.join "\n")
+        |> Result.andThen (Markdown.Renderer.render renderer)
 
 
 renderer : Markdown.Renderer.Renderer (Element msg)
 renderer =
     { heading = heading
-    , paragraph = paragraph [] []
-    , thematicBreak = Html.hr [] []
-    , text = Html.text
-    , strong = \content -> el [ Font.bold ] content
-    , emphasis = \content -> el [ Font.italic ] content
-    , blockQuote = paragraph [] []
+    , paragraph =
+        paragraph
+            [ spacing 15 ]
+    , thematicBreak = Element.none
+    , text = \value -> paragraph [] [ text value ]
+    , strong = \content -> paragraph [ Font.bold ] content
+    , emphasis = \content -> paragraph [ Font.italic ] content
+    , strikethrough = \content -> paragraph [ Font.strike ] content
     , codeSpan = code
     , link =
-        \{ destination } body ->
-            link
-                []
-                { url = destination, label = text body }
-    , hardLineBreak = paragraph [] [ text "\n" ]
+        \{ title, destination } body ->
+            Element.newTabLink []
+                { url = destination
+                , label =
+                    paragraph
+                        [ Font.color (rgb255 0 0 255)
+                        , Element.htmlAttribute (Html.Attributes.style "overflow-wrap" "break-word")
+                        , Element.htmlAttribute (Html.Attributes.style "word-break" "break-word")
+                        ]
+                        body
+                }
+    , hardLineBreak = Html.br [] [] |> Element.html
     , image =
         \image ->
             case image.title of
-                Just _ ->
-                    image [] { src = image.src, label = image.alt }
+                Just title ->
+                    Element.image [ width fill ] { src = image.src, description = image.alt }
 
                 Nothing ->
-                    image [] { src = image.src, label = image.alt }
+                    Element.image [ width fill ] { src = image.src, description = image.alt }
+    , blockQuote =
+        \children ->
+            paragraph
+                [ Border.widthEach { top = 0, right = 0, bottom = 0, left = 10 }
+                , padding 10
+                , Border.color (rgb255 145 145 145)
+                , Background.color (rgb255 245 245 245)
+                ]
+                children
     , unorderedList =
         \items ->
-            column []
+            column [ spacing 15 ]
                 (items
                     |> List.map
-                        (\item ->
-                            case item of
-                                Block.ListItem task children ->
-                                    let
-                                        checkbox =
-                                            case task of
-                                                Block.NoTask ->
-                                                    text ""
+                        (\(ListItem task children) ->
+                            paragraph [ spacing 5 ]
+                                [ paragraph
+                                    [ alignTop ]
+                                    ((case task of
+                                        IncompleteTask ->
+                                            Input.defaultCheckbox False
 
-                                                Block.IncompleteTask ->
-                                                    Element.Input.checkbox
-                                                        []
-                                                        { checked = False
-                                                        , label = text ""
-                                                        , onChange = Nothing
-                                                        , icon = Element.Input.defaultCheckbox
-                                                        }
+                                        CompletedTask ->
+                                            Input.defaultCheckbox True
 
-                                                Block.CompletedTask ->
-                                                    Element.Input.checkbox
-                                                        []
-                                                        { checked = False
-                                                        , label = text ""
-                                                        , onChange = Nothing
-                                                        , icon = Element.Input.defaultCheckbox
-                                                        }
-                                    in
-                                    row [] (checkbox :: children)
+                                        NoTask ->
+                                            text "•"
+                                     )
+                                        :: text " "
+                                        :: children
+                                    )
+                                ]
                         )
                 )
     , orderedList =
         \startingIndex items ->
-            Html.ol
-                (case startingIndex of
-                    1 ->
-                        [ Attr.start startingIndex ]
-
-                    _ ->
-                        []
-                )
+            column [ spacing 15 ]
                 (items
-                    |> List.map
-                        (\itemBlocks ->
-                            Html.li []
-                                itemBlocks
+                    |> List.indexedMap
+                        (\index itemBlocks ->
+                            paragraph [ spacing 5 ]
+                                [ paragraph [ alignTop ]
+                                    (text (String.fromInt (index + startingIndex) ++ " ") :: itemBlocks)
+                                ]
                         )
                 )
-    , html = Markdown.Html.oneOf []
     , codeBlock = codeBlock
-
-    --\{ body, language } ->
-    --    let
-    --        classes =
-    --            -- Only the first word is used in the class
-    --            case Maybe.map String.words language of
-    --                Just (actualLanguage :: _) ->
-    --                    [ Attr.class <| "language-" ++ actualLanguage ]
-    --
-    --                _ ->
-    --                    []
-    --    in
-    --    Html.pre []
-    --        [ Html.code classes
-    --            [ Html.text body
-    --            ]
-    --        ]
-    , table = table []
-    , tableHeader = row [] []
-    , tableBody = table
-    , tableRow = row [] []
-    , strikethrough =
-        \children -> paragraph [ Font.strike ] children
+    , table = column []
+    , tableHeader =
+        column
+            [ Font.bold
+            , width fill
+            , Font.center
+            ]
+    , tableBody = column []
+    , tableRow = row [ height fill, width fill ]
     , tableHeaderCell =
-        \maybeAlignment ->
-            let
-                attrs =
-                    maybeAlignment
-                        |> Maybe.map
-                            (\alignment ->
-                                case alignment of
-                                    Block.AlignLeft ->
-                                        "left"
-
-                                    Block.AlignCenter ->
-                                        "center"
-
-                                    Block.AlignRight ->
-                                        "right"
-                            )
-                        |> Maybe.map Attr.align
-                        |> Maybe.map List.singleton
-                        |> Maybe.withDefault []
-            in
-            Html.th attrs
+        \maybeAlignment children ->
+            paragraph
+                tableBorder
+                children
     , tableCell =
-        \maybeAlignment ->
-            let
-                attrs =
-                    maybeAlignment
-                        |> Maybe.map
-                            (\alignment ->
-                                case alignment of
-                                    Block.AlignLeft ->
-                                        "left"
-
-                                    Block.AlignCenter ->
-                                        "center"
-
-                                    Block.AlignRight ->
-                                        "right"
-                            )
-                        |> Maybe.map Attr.align
-                        |> Maybe.map List.singleton
-                        |> Maybe.withDefault []
-            in
-            Html.td attrs
+        \maybeAlignment children ->
+            paragraph
+                tableBorder
+                children
+    , html = Markdown.Html.oneOf []
     }
+
+
+alternateTableRowBackground =
+    rgb255 245 247 249
+
+
+tableBorder =
+    [ Border.color (rgb255 223 226 229)
+    , Border.width 1
+    , Border.solid
+    , paddingXY 6 13
+    , height fill
+    ]
 
 
 rawTextToId : String -> String
@@ -172,72 +221,59 @@ rawTextToId rawText =
 
 heading : { level : Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
 heading { level, rawText, children } =
-    case level of
-        Block.H1 ->
-            paragraph
-                [ Font.size 36
-                ]
-                children
-
-        Block.H2 ->
-            paragraph
-                [ Element.htmlAttribute <| Attr.id (rawTextToId rawText)
-                , Element.htmlAttribute <| "name" (rawTextToId rawText)
-                , Font.size 32
-                ]
-                [ link
-                    []
-                    { url = "#" ++ rawTextToId rawText
-                    , label =
-                        paragraph []
-                            (children
-                                ++ [ el
-                                        []
-                                        [ Html.text "#" ]
-                                   ]
-                            )
-                    }
-                ]
-
-        _ ->
+    paragraph
+        [ Font.size
             (case level of
                 Block.H1 ->
-                    paragraph []
+                    36
 
                 Block.H2 ->
-                    paragraph []
+                    24
 
-                Block.H3 ->
-                    paragraph []
-
-                Block.H4 ->
-                    paragraph []
-
-                Block.H5 ->
-                    paragraph []
-
-                Block.H6 ->
-                    paragraph []
+                _ ->
+                    20
             )
-                []
-                children
+        , Font.bold
+        , Font.family [ Font.typeface "Montserrat" ]
+        , Region.heading (Block.headingLevelToInt level)
+        , Element.htmlAttribute
+            (Html.Attributes.attribute "name" (rawTextToId rawText))
+        , Element.htmlAttribute
+            (Html.Attributes.id (rawTextToId rawText))
+        ]
+        children
 
 
 code : String -> Element msg
 code snippet =
-    Element.el
+    el
         [ Background.color
-            (Element.rgba255 50 50 50 0.07)
+            (rgba 0 0 0 0.04)
         , Border.rounded 2
-        , Element.paddingXY 5 3
-        , Font.family [ Font.typeface "Roboto Mono", Font.monospace ]
+        , paddingXY 5 3
+        , Font.family
+            [ Font.external
+                { url = "https://fonts.googleapis.com/css?family=Source+Code+Pro"
+                , name = "Source Code Pro"
+                }
+            ]
         ]
-        (Element.text snippet)
+        (text snippet)
 
 
-codeBlock : { body : String, language : Maybe String } -> Html.Html msg
+codeBlock : { body : String, language : Maybe String } -> Element msg
 codeBlock details =
-    SyntaxHighlight.elm details.body
-        |> Result.map (SyntaxHighlight.toBlockHtml (Just 1))
-        |> Result.map Html.fromUnstyled
-        |> Result.withDefault (Html.pre [] [ Html.code [] [ Html.text details.body ] ])
+    paragraph
+        [ Background.color (rgba 0 0 0 0.03)
+        , Element.htmlAttribute (Html.Attributes.style "white-space" "pre")
+        , Element.htmlAttribute (Html.Attributes.style "overflow-wrap" "break-word")
+        , Element.htmlAttribute (Html.Attributes.style "word-break" "break-word")
+        , padding 20
+        , Font.family
+            [ Font.external
+                { url = "https://fonts.googleapis.com/css?family=Source+Code+Pro"
+                , name = "Source Code Pro"
+                }
+            ]
+        ]
+        [ text details.body ]
