@@ -15,11 +15,11 @@ user = "eviction-tracker"
 group = "within"
 preload = True
 
+
 def on_starting(server):
     flask_app = server.app.wsgi()
-    run_jobs = os.environ.get('RUN_JOBS', 'true')
-    print(f'will run jobs: ${run_jobs}')
-    if run_jobs == 'true':
+    print(f'will run jobs: ${os.environ.get("RUN_JOBS", "true")}')
+    if os.environ.get('RUN_JOBS', 'true') == 'true':
         print('Starting scheduler')
         scheduler.init_app(flask_app)
         scheduler.start()
