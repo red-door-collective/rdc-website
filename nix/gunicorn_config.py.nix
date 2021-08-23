@@ -17,8 +17,10 @@ preload = True
 def on_starting(server):
     print("Starting scheduler")
     flask_app = server.app.wsgi()
-    scheduler.init_app(flask_app)
-    scheduler.start()
+    if os.environ.get('RUN_JOBS') == 'true':
+        print('running background jobs')
+        scheduler.init_app(flask_app)
+        scheduler.start()
 
-    from eviction_tracker import tasks
+        from eviction_tracker import tasks
 ''
