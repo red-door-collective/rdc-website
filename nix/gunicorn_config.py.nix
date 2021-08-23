@@ -1,6 +1,7 @@
 { listen, pythonpath }:
 ''
 import multiprocessing
+import os
 from eviction_tracker.extensions import scheduler
 
 workers = multiprocessing.cpu_count() * 2 + 1
