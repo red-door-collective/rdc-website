@@ -16,10 +16,11 @@ group = "within"
 preload = True
 
 def on_starting(server):
-    print("Starting scheduler")
     flask_app = server.app.wsgi()
-    if os.environ.get('RUN_JOBS') == 'true':
-        print('running background jobs')
+    run_jobs = os.environ.get('RUN_JOBS') 
+    print(f'will run jobs: ${run_jobs}')
+    if run_jobs == 'true':
+        print('Starting scheduler')
         scheduler.init_app(flask_app)
         scheduler.start()
 
