@@ -109,7 +109,6 @@ in rec {
     pkgs.elmPackages.elm-optimize-level-2
   ];
 
-
   # Needed for a development nix shell
   shellInputs =
     linters ++
