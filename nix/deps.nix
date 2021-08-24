@@ -106,6 +106,7 @@ in rec {
     pkgs.elmPackages.elm
     pkgs.elmPackages.elm-test
     pkgs.elmPackages.elm-format
+    pkgs.elmPackages.elm-optimize-level-2
   ];
 
 
