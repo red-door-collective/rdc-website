@@ -1,2 +1,5 @@
 cd ui && elm make --optimize --output=../eviction_tracker/static/js/main.js src/Main.elm
 cd .. && flask assets build
+mkdir -p ./eviction_tracker/static_pages
+cd pages && npx elm-pages build --base '/blog'
+cd .. && cp -R pages/dist/. ./eviction_tracker/static_pages

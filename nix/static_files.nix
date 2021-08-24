@@ -12,6 +12,5 @@ pkgs.runCommand "eviction-tracker-static-${version}" {
   src = ../eviction_tracker;
 } ''
   mkdir -p $out
-  cp -r $src/static/ $out
-  ls -la $out
+  cp -r $src/static_pages/ $out
 ''

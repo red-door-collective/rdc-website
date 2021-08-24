@@ -14,10 +14,10 @@ http {
         server_name ${serverName};
         client_body_buffer_size 1m;
         client_max_body_size    1m;
-        location /static {
+        location /blog {
             add_header Access-Control-Allow-Origin *;
             add_header Cache-Control public;
-            alias ${staticFiles};
+            alias ${staticFiles}/static_pages/;
         }
     }
 }
