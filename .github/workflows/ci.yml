@@ -95,7 +95,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{ needs.commit_assets.outputs.git_branch }}
-          fetch-depth: 2
 
       - name: Build release message
         id: release_message
