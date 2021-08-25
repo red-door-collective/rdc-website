@@ -40,7 +40,7 @@ jobs:
       release_tag: ${{ steps.compute_tag.outputs.next_tag }}
       last_release_tag: ${{ steps.compute_tag.outputs.previous_tag }}
     steps:
-      - uses: github/checkout@v2
+      - uses: actions/checkout@v2
 
       - name: Compute release tag
         id: compute_tag
@@ -92,7 +92,7 @@ jobs:
       - compute_tags
     steps:
       # Checkout the ref that contains artifacts
-      - uses: github/checkout@v2
+      - uses: actions/checkout@v2
         with:
           ref: ${{ needs.commit_assets.outputs.git_branch }}
           fetch-depth: 3
@@ -115,7 +115,7 @@ jobs:
 
       - name: Create release
         id: create_release
-        uses: github/create-release@v1
+        uses: actions/create-release@v1
         with:
           tag_name: ${{ needs.compute_tags.outputs.release_tag }}
           release_name: ${{ needs.compute_tags.outputs.release_tag }}
