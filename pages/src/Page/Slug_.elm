@@ -1,4 +1,4 @@
-module Page.Blog.Slug_ exposing (Data, Model, Msg, page)
+module Page.Slug_ exposing (Data, Model, Msg, page)
 
 import Article
 import Cloudinary

@@ -35,7 +35,7 @@ allMetadata =
                     |> List.map
                         (\{ filePath, slug } ->
                             DataSource.map2 Tuple.pair
-                                (DataSource.succeed <| Route.Blog__Slug_ { slug = slug })
+                                (DataSource.succeed <| Route.Slug_ { slug = slug })
                                 (File.onlyFrontmatter frontmatterDecoder filePath)
                         )
             )
