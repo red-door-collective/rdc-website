@@ -7,8 +7,6 @@ events {
 http {
     include ${mimeTypeFile};
     sendfile off;
-    error_log /dev/stderr;
-    access_log /dev/stdout;
     server {
         listen ${listen};
         server_name ${serverName};
