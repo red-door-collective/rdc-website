@@ -97,6 +97,10 @@ jobs:
           ref: ${{ needs.commit_assets.outputs.git_branch }}
           fetch-depth: 3
 
+      # Cleanup the branch now that we have the files locally
+      - name: Cleanup intermediate git branch
+        run: git push origin --delete ${{ needs.commit_assets.outputs.git_branch }}
+
       - name: Build release message
         id: release_message
         run: echo "::set-output name=message::$(git log --format=%B -n 1 ${{ github.sha }})"
@@ -105,6 +109,8 @@ jobs:
         run: |
           git config user.name "Release Bot"
           git config user.email "not.real@example.com"
+          git add -f eviction_tracker/static eviction_tracker/static_pages
+          git commit -m "Generate artifacts for $TAG"
           git push origin "HEAD:refs/tags/$TAG"
         env:
           TAG: ${{ needs.compute_tags.outputs.release_tag }}
