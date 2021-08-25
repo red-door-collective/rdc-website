@@ -5,12 +5,10 @@ import Cloudinary
 import Data.Author as Author exposing (Author)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
-import Element exposing (Element)
+import Element exposing (Element, centerX, column, fill, paragraph, px, row, text, width)
 import Head
 import Head.Seo as Seo
 import Html
-import Html.Styled exposing (..)
-import Html.Styled.Attributes as Attr exposing (css)
 import MarkdownCodec
 import MarkdownRenderer
 import OptimizedDecoder
@@ -79,68 +77,20 @@ view maybeUrl sharedModel static =
                     _ ->
                         Author.redDoor
         in
-        [ Element.row [ Element.width Element.fill ]
-            [ Element.column [ Element.width (Element.px 642), Element.centerX ]
-                static.data.body
+        [ row [ width fill ]
+            [ column [ width (px 642), centerX ]
+                [ authorView author static.data
+                , column [ width fill ] static.data.body
+                ]
             ]
         ]
     }
 
 
-authorView : Author -> Data -> Html msg
+authorView : Author -> Data -> Element msg
 authorView author static =
-    div
-        [ css
-            [ Tw.flex
-            , Tw.mb_16
-
-            --, Tw.flex_shrink_0
-            ]
-        ]
-        [ img
-            [ Attr.src (author.avatar |> Pages.Url.toString)
-            , css
-                [ Tw.rounded_full
-                , Tw.h_10
-                , Tw.w_10
-                ]
-            ]
-            []
-        , div
-            [ css [ Tw.ml_3 ]
-            ]
-            [ div
-                [ css
-                    []
-                ]
-                [ p
-                    [ css
-                        [ Tw.text_sm
-                        , Tw.font_medium
-                        , Tw.text_gray_900
-                        ]
-                    ]
-                    [ span
-                        []
-                        [ text author.name ]
-                    ]
-                ]
-            , div
-                [ css
-                    [ Tw.flex
-                    , Tw.space_x_1
-                    , Tw.text_sm
-                    , Tw.text_gray_500
-                    , Tw.text_gray_400
-                    ]
-                ]
-                [ time
-                    [ Attr.datetime "2020-03-16"
-                    ]
-                    [ text (static.metadata.published |> Date.format "MMMM ddd, yyyy") ]
-                ]
-            ]
-        ]
+    column []
+        [ paragraph [] [ text author.name ] ]
 
 
 head :
