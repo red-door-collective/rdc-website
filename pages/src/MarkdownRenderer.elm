@@ -11,6 +11,7 @@ import Element
         , link
         , newTabLink
         , padding
+        , paddingEach
         , paddingXY
         , paragraph
         , rgb255
@@ -100,7 +101,7 @@ renderer =
     { heading = heading
     , paragraph =
         paragraph
-            [ spacing 15 ]
+            [ spacing 10, paddingXY 0 10 ]
     , thematicBreak = Element.none
     , text = \value -> paragraph [] [ text value ]
     , strong = \content -> paragraph [ Font.bold ] content
@@ -124,7 +125,10 @@ renderer =
         \image ->
             case image.title of
                 Just title ->
-                    Element.image [ width fill ] { src = image.src, description = image.alt }
+                    column [ width fill ]
+                        [ paragraph [ Font.bold, Font.center, Font.color grayFont ] [ text title ]
+                        , Element.image [ width fill ] { src = image.src, description = image.alt }
+                        ]
 
                 Nothing ->
                     Element.image [ width fill ] { src = image.src, description = image.alt }
@@ -139,7 +143,7 @@ renderer =
                 children
     , unorderedList =
         \items ->
-            column [ spacing 15 ]
+            column [ spacing 10 ]
                 (items
                     |> List.map
                         (\(ListItem task children) ->
@@ -164,7 +168,7 @@ renderer =
                 )
     , orderedList =
         \startingIndex items ->
-            column [ spacing 15 ]
+            column [ spacing 10 ]
                 (items
                     |> List.indexedMap
                         (\index itemBlocks ->
@@ -208,7 +212,16 @@ tableBorder =
     , Border.solid
     , paddingXY 6 13
     , height fill
+    , Font.color grayFont
     ]
+
+
+redFont =
+    rgb255 220 47 54
+
+
+grayFont =
+    rgb255 75 75 75
 
 
 rawTextToId : String -> String
@@ -221,27 +234,45 @@ rawTextToId rawText =
 
 heading : { level : Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
 heading { level, rawText, children } =
-    paragraph
-        [ Font.size
-            (case level of
-                Block.H1 ->
-                    36
+    column [ width fill, paddingEach { top = 15, bottom = 0, left = 0, right = 0 } ]
+        [ paragraph
+            ([ Font.size
+                (case level of
+                    Block.H1 ->
+                        42
 
-                Block.H2 ->
-                    24
+                    Block.H2 ->
+                        36
 
-                _ ->
-                    20
+                    Block.H3 ->
+                        28
+
+                    _ ->
+                        20
+                )
+             , Font.bold
+             , Font.family [ Font.typeface "system" ]
+             , Region.heading (Block.headingLevelToInt level)
+             , Element.htmlAttribute
+                (Html.Attributes.attribute "name" (rawTextToId rawText))
+             , Element.htmlAttribute
+                (Html.Attributes.id (rawTextToId rawText))
+             , paddingXY 0 15
+             , Font.color redFont
+             ]
+                ++ (case level of
+                        Block.H2 ->
+                            [ Background.color (rgb255 255 87 87)
+                            , Font.color (rgb255 255 255 255)
+                            , paddingXY 10 15
+                            ]
+
+                        _ ->
+                            []
+                   )
             )
-        , Font.bold
-        , Font.family [ Font.typeface "Montserrat" ]
-        , Region.heading (Block.headingLevelToInt level)
-        , Element.htmlAttribute
-            (Html.Attributes.attribute "name" (rawTextToId rawText))
-        , Element.htmlAttribute
-            (Html.Attributes.id (rawTextToId rawText))
+            children
         ]
-        children
 
 
 code : String -> Element msg

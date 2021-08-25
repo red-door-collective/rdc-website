@@ -1,16 +1,19 @@
 ---
 {
   "author": "Jack Marr",
-  "title": "Eviction Report - First Half 2021",
+  "title": "Nashville Eviction Report - August 2021",
   "description": "A summary of the evictions happening in Davidson County.",
-  "image": "article-covers/landlord-hate-bridge.jpg",
-  "published": "2021-08-16",
+  "image": "article-covers/zipcode-heat-map-2020-2021.png",
+  "published": "2021-08-25",
 }
 ---
 
+![Cover](/images/eviction-report-h1-2021/cover.png)
+
 ## Summary
 
-![A house with a red front door left open with roses in the foreground.](/images/eviction-report-h1-2021/roses-artwork.png)
+<row>
+  <column portion="2">
 
 ### Red Door Collective
 
@@ -27,6 +30,17 @@ The number and rate of detainer warrants issued in Davidson Co. increased betwee
 ### Future of Housing
 
 A collective effort of Nashvillians is needed to make substantial change. We at Red Door Collective understand the urgent need for comprehensive rent relief, new affordable housing, and additional protections for renters.
+  </column>
+  <column portion="1">
+  <sized-image
+  alt="A house with a red front door left open with roses in the foreground."
+  src="/images/eviction-report-h1-2021/roses-artwork.png"
+/>
+  </column>
+</row>
+
+
+
 
 ## Notes
 
@@ -112,11 +126,22 @@ A consistent group of eviction attorneys are responsible for representing the ma
 
 insert table 2 here
 
-![Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgements-pie-chart.png)
+<row>
+<column portion="1">
+
+![Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgments-pie-chart.png "Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee")
+
+</column>
+<column portion="1">
 
 Judgement data was manually entered from CaseLink. To reduce the workload of determining frequency of judgement outcomes for historical data, we used a random number generator to sample 5% (574) of DWs from 2019. While the below data does not include all cases, we believe it can provide insight into historical trends.
 
-Figure 2 shows that over half of cases sampled resulted in repossession of property. Approximately 1 in 5 resulted in a non-suit. The category non-suit is used when cases are settled outside of court and could mean any outcome for the tenant. Cases with "other" judgements typically did not have a judgement listed despite being closed. For the 221 cases with monetary damages ("possession and fees"), approximately $750,000 total was awarded to plaintiffs with an average of $3,434 per case. The median financial award was $2,443 per case.
+Figure 2 shows that over half of cases sampled resulted in repossession of property. Approximately 1 in 5 resulted in a non-suit. The category non-suit is used when cases are settled outside of court and could mean any outcome for the tenant. Cases with "other" judgements typically did not have a judgement listed despite being closed.
+
+</column>
+</row>
+
+For the 221 cases with monetary damages ("possession and fees"), approximately $750,000 total was awarded to plaintiffs with an average of $3,434 per case. The median financial award was $2,443 per case.
 
 ## Eviction Data 2020-2021
 
@@ -137,10 +162,14 @@ insert table 3 here
 
 ## Number of defendants and case judgements, 2020-2021
 
-![Figure 5. Number of detainer warrants and named defendants by month, October to December 2020, Davidson Co. Tennessee](/images/eviction-report-h1-2021/defendants-bar-chart.png)
-
-![Figure 6. Judgements of closed cases, October to December 2020, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgements-pie-chart2.png)
-
+<row>
+<column portion="1">
+![Figure 5. Number of detainer warrants and named defendants by month, October to December 2020, Davidson Co. Tennessee](/images/eviction-report-h1-2021/defendants-bar-chart.png "Figure 5. Number of detainer warrants and named defendants by month, October to December 2020, Davidson Co. Tennessee")
+</column>
+<column portion="1">
+![Figure 6. Judgements of closed cases, October to December 2020, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgments-pie-chart2.png "Figure 6. Judgements of closed cases, October to December 2020, Davidson Co. Tennessee")
+</column>
+</row>
 On average, for every five DWs submitted between October 2020 and March 2021, at least six people are listed as defendants (Figure 5). We know that this number largely underestimates the total number of people at risk of being evicted; DWs are not required to list all defendants, including children living inside the home. 
 
 We began collecting judgements consistently in October 2020. Approximately 1,711 DWs were filed between October 1 and December 31, 2020. By April 21, 2021 988 of those cases were closed. Figure 6 shows that the majority of cases in this time period resulted in non-suits. Only 22% of the cases we sampled from 2019 resulted in a non-suit judgement (Figure 2). Over 40% of closed cases resulted in repossession of property by the landlord. The majority of cases were decided in favor of the plaintiff by default or absence of the defendant in court. Only 4.7% of cases ended in dismissal. We have noted that since these data were collected, some landlords have returned to court to seek monetary damages after winning possession. Due to these additional judgements and illegal evictions occurring outside of the judicial process, we assume the rate of eviction and owing monetary damages following a DW is much higher than documented here.
@@ -148,10 +177,11 @@ We began collecting judgements consistently in October 2020. Approximately 1,711
 Of the 141 cases that noted both possession and financial damages, over $877,000 was awarded to plaintiffs or an average of $6,177. The median financial award was $5,386.
 
 ## Mapping Detainer Warrants and Evictions, 2017-2021
+![Heat map legend](/images/eviction-report-h1-2021/heat-map-legend.png)
 
-![Figure 7. Rate of detainer warrants issued per month by zip code, January 2017 to December 2019, Davidson Co. Tennessee](/images/eviction-report-h1-2021/zipcode-heat-map.png)
-
-![Figure 8. Rate of detainer warrants issued per month by zip code, January 2020 to March 2021, Davidson Co. Tennessee](/images/eviction-report-h1-2021/zipcode-heat-map.png)
+| Figure 7. Rate of detainer warrants issued per month by zip code, January 2017 to December 2019, Davidson Co. Tennessee | Figure 8. Rate of detainer warrants issued per month by zip code, January 2020 to March 2021, Davidson Co. Tennessee |
+|----------|:-------------:|
+| ![Figure 7. Rate of detainer warrants issued per month by zip code, January 2017 to December 2019, Davidson Co. Tennessee](/images/eviction-report-h1-2021/zipcode-heat-map-2017-2019.png) | ![Figure 8. Rate of detainer warrants issued per month by zip code, January 2020 to March 2021, Davidson Co. Tennessee](/images/eviction-report-h1-2021/zipcode-heat-map-2020-2021.png) |
 
 The number of DWs filed per month differed by ZIP code across time. To account for population differences between ZIP codes, we calculated rates with 2019 population estimates. The monthly rates were split into four equal groups called "quartiles" to compare highest and lowest rates of DWs issued across Davidson Co. Becase ZIP codes cross county lines, rates for some ZIP codes (i.e. 37027, 37135) are likely underestimated. Rates are calculated per 10,000 persons.
 
@@ -202,32 +232,11 @@ Red Door Collective (2021). NASHVILLE EVICTION REPORT. Red Door Collective. http
 
 ### Additional Resources
 
-Legal Aid Society of Middle Tennessee & The Cumberlands
-
-* web: [las.org](https://las.org)
-* phone: (615) 244-6610
-
-Workers' Dignity
-
-* web: [workersdignity.org](https://workersdignity.org)
-* phone: (615) 669-6679
-
-Nashville Conflict Resolution Center
-
-* web: [nashvilleconflict.org](https://nashvilleconflict.org)
-* phone: (615) 333-8400
-
-Open Table Nashville
-
-* web: [opentablenashville.org](https://opentablenashville.org)
-* phone: (615) 415-0141
-
-People's Alliance for Transit, Housing, and Employment
-
-* web: [pathenashville.org](https://pathenashville.org)
-* phone: (615) 696-9776
-
-ElMahaba Center Nashville
-
-* web: elmahabacenter.com
-* phone: (615) 567-3215
+| Organization                                            | Website                                                  | Phone          |
+|---------------------------------------------------------|----------------------------------------------------------|----------------|
+| Legal Aid Society of Middle Tennessee & The Cumberlands | [las.org](https://las.org)                               | (615) 244-6610 |
+| Workers' Dignity                                        | [workersdignity.org](https://workersdignity.org)         | (615) 669-6679 |
+| Nashville Conflict Resolution Center                    | [nashvilleconflict.org](https://nashvilleconflict.org)   | (615) 333-8400 |
+| Open Table Nashville                                    | [opentablenashville.org](https://opentablenashville.org) | (615) 415-0141 |
+| People's Alliance for Transit, Housing, and Employment  | [pathenashville.org](https://pathenashville.org)         | (615) 696-9776 |
+| Elmahaba Center Nashville                               | [elmahabacenter.com](https://elmahabacenter.com)         | (615) 567-3215 |

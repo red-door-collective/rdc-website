@@ -232,4 +232,4 @@ blogCard model index ( route, info ) =
 
 blogDescription : String
 blogDescription =
-    "Unionizing Nashville tenants"
+    "Stories from the tenant organizing front."

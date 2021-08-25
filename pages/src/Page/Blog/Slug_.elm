@@ -5,16 +5,22 @@ import Cloudinary
 import Data.Author as Author exposing (Author)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
-import Element exposing (Element, centerX, column, fill, paragraph, px, row, text, width)
+import Element exposing (Element, alignTop, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingXY, paragraph, px, row, spacing, text, textColumn, width)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
 import Head
 import Head.Seo as Seo
 import Html
+import Html.Styled exposing (..)
+import Html.Styled.Attributes as Attr exposing (css)
+import Markdown.Html
 import MarkdownCodec
 import MarkdownRenderer
 import OptimizedDecoder
 import Page exposing (Page, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
+import Pages.Url exposing (Url)
 import Path
 import Shared
 import Site
@@ -78,19 +84,111 @@ view maybeUrl sharedModel static =
                         Author.redDoor
         in
         [ row [ width fill ]
-            [ column [ width (px 642), centerX ]
-                [ authorView author static.data
-                , column [ width fill ] static.data.body
+            [ column [ width (px 800), centerX, spacing 10, paddingXY 0 10 ]
+                [ row [ width fill, padding 10, spacing 10 ]
+                    [ column [ centerX ] [ Element.html <| Html.Styled.toUnstyled <| authorView author static.data ]
+                    ]
+                , row [ width fill ]
+                    [ column [ width fill ] static.data.body
+                    ]
                 ]
             ]
         ]
     }
 
 
-authorView : Author -> Data -> Element msg
+absPath url =
+    Pages.Url.toString url
+
+
+authorView : Author -> Data -> Html msg
 authorView author static =
-    column []
-        [ paragraph [] [ text author.name ] ]
+    div
+        [ css
+            [ Tw.flex
+            , Tw.mb_16
+
+            --, Tw.flex_shrink_0
+            ]
+        ]
+        [ img
+            [ Attr.src (author.avatar |> Pages.Url.toString)
+            , css
+                [ Tw.rounded_full
+                , Tw.h_20
+                , Tw.w_20
+                ]
+            ]
+            []
+        , div
+            [ css [ Tw.ml_3 ]
+            ]
+            [ div
+                [ css
+                    []
+                ]
+                [ p
+                    [ css
+                        [ Tw.font_medium
+                        , Tw.text_gray_900
+                        ]
+                    ]
+                    [ span
+                        []
+                        [ Html.Styled.text author.name ]
+                    ]
+                ]
+            , div
+                [ css
+                    [ Tw.flex
+                    , Tw.space_x_1
+                    , Tw.text_sm
+                    , Tw.text_gray_500
+                    , Tw.text_gray_400
+                    ]
+                ]
+                [ time
+                    [ Attr.datetime "2020-03-16"
+                    ]
+                    [ Html.Styled.text (static.metadata.published |> Date.format "MMMM ddd, yyyy") ]
+                ]
+            ]
+        ]
+
+
+
+-- avatarView : Url -> Element msg
+-- avatarView src =
+--     Element.el
+--         [ width (px 200)
+--         , height (px 200)
+--         , Background.color (Element.rgb255 255 255 255)
+--         , Border.rounded 100
+--         , Border.width 1
+--         , Element.behindContent
+--             (Element.image
+--                 [ width (px 200)
+--                 , height (px 200)
+--                 , Element.inFront
+--                     (el
+--                         [ Border.rounded 100
+--                         , Border.width 10
+--                         , width (px 200)
+--                         , height (px 200)
+--                         ]
+--                         Element.none
+--                     )
+--                 ]
+--                 { src = absPath src, description = "Headshot of the author, Jack Marr" }
+--             )
+--         ]
+--         Element.none
+-- authorView : Author -> Data -> Element msg
+-- authorView author static =
+--     column [ padding 10, spacing 10 ]
+--         [ avatarView author.avatar
+--         , paragraph [] [ text author.name ]
+--         ]
 
 
 head :
@@ -148,11 +246,124 @@ type alias Data =
     }
 
 
+elmUiRenderer =
+    MarkdownRenderer.renderer
+
+
+viewTextColumn : List (Element msg) -> Element msg
+viewTextColumn renderedChildren =
+    textColumn [ width fill, Element.spacing 10 ] renderedChildren
+
+
+viewRow : List (Element msg) -> Element msg
+viewRow renderedChildren =
+    row [ width fill, Element.spacing 10, alignTop ] renderedChildren
+
+
+viewColumn : String -> List (Element msg) -> Element msg
+viewColumn portion renderedChildren =
+    let
+        fillAttr =
+            width <|
+                case String.toInt portion of
+                    Nothing ->
+                        fill
+
+                    Just number ->
+                        fillPortion number
+    in
+    column [ alignTop, fillAttr ] renderedChildren
+
+
+viewSizedImage : Maybe String -> Maybe String -> Maybe String -> String -> String -> Element msg
+viewSizedImage title widthInPx heightInPx src alt =
+    let
+        ( w, h ) =
+            ( Maybe.andThen String.toInt widthInPx
+            , Maybe.andThen String.toInt heightInPx
+            )
+
+        widthAttr =
+            case w of
+                Just number ->
+                    width (px number)
+
+                Nothing ->
+                    width fill
+
+        heightAttr =
+            case h of
+                Just number ->
+                    height (px number)
+
+                Nothing ->
+                    height fill
+    in
+    case title of
+        Just _ ->
+            Element.image [ widthAttr, heightAttr ] { src = src, description = alt }
+
+        Nothing ->
+            Element.image [ alignTop, widthAttr, heightAttr ] { src = src, description = alt }
+
+
+viewLegend : String -> Element msg
+viewLegend title =
+    column
+        [ Element.padding 20
+        , Element.spacing 30
+        , Element.centerX
+        ]
+        [ Element.row [ Element.spacing 20 ]
+            [ Element.el
+                [ Font.bold
+                , Font.size 30
+                ]
+                (Element.text title)
+            ]
+        ]
+
+
+blogRenderer =
+    { elmUiRenderer
+        | html =
+            Markdown.Html.oneOf
+                [ Markdown.Html.tag "legend"
+                    (\title renderedChildren ->
+                        viewLegend title
+                    )
+                    |> Markdown.Html.withAttribute "title"
+                , Markdown.Html.tag "sized-image"
+                    (\title widthInPx heightInPx src alt renderedChildren ->
+                        viewSizedImage title widthInPx heightInPx src alt
+                    )
+                    |> Markdown.Html.withOptionalAttribute "title"
+                    |> Markdown.Html.withOptionalAttribute "width"
+                    |> Markdown.Html.withOptionalAttribute "height"
+                    |> Markdown.Html.withAttribute "src"
+                    |> Markdown.Html.withAttribute "alt"
+                , Markdown.Html.tag "column"
+                    (\portion renderedChildren ->
+                        viewColumn portion renderedChildren
+                    )
+                    |> Markdown.Html.withAttribute "portion"
+                , Markdown.Html.tag "text-column"
+                    (\renderedChildren ->
+                        viewTextColumn renderedChildren
+                    )
+                , Markdown.Html.tag "row"
+                    (\renderedChildren ->
+                        viewRow renderedChildren
+                    )
+                ]
+    }
+
+
 data : RouteParams -> DataSource Data
 data route =
     MarkdownCodec.withFrontmatter Data
         frontmatterDecoder
-        MarkdownRenderer.renderer
+        blogRenderer
         ("content/blog/" ++ route.slug ++ ".md")
 
 

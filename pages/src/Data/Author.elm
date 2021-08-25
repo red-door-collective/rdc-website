@@ -31,7 +31,7 @@ greg =
 jack : Author
 jack =
     { name = "Jack Marr"
-    , avatar = Cloudinary.urlSquare "avatars/jack-profile.jpg" Nothing 140
+    , avatar = Cloudinary.urlSquare "avatars/jack-avatar.jpg" Nothing 140
     , bio = "Organizer in Red Door Collective. Data expert."
     }
 
