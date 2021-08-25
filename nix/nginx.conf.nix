@@ -7,6 +7,8 @@ events {
 http {
     include ${mimeTypeFile};
     sendfile off;
+    error_log /var/log/nginx/error.log;
+    access_log /var/log/nginx/access.log;
     server {
         listen ${listen};
         server_name ${serverName};
