@@ -94,7 +94,7 @@ jobs:
       # Checkout the ref that contains artifacts
       - uses: actions/checkout@v2
         with:
-          ref: ${{ needs.commit_assets.outputs.git_branch }}
+          ref: main-deploy
 
       - name: Build release message
         id: release_message
