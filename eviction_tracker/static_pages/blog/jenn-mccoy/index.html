@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <link rel="stylesheet" href="/blog/style.css">
+    
+    <link rel="preload" href="/blog/elm.js" as="script">
+    <link rel="modulepreload" href="/blog/index.js">
+    
+    <script defer="defer" src="/blog/elm.js" type="text/javascript"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <script type="module">
+import userInit from"/blog/index.js";
+let prefetchedPages=[window.location.pathname],initialLocationHash=document.location.hash.replace(/^#/,"");function loadContentAndInitializeApp(){let a=window.location.pathname.replace(/(w)$/,"$1/");a.endsWith("/")||(a+="/");const b=Elm.TemplateModulesBeta.init({flags:{secrets:null,baseUrl:document.baseURI,isPrerendering:!1,isDevServer:!1,isElmDebugMode:!1,contentJson:JSON.parse(document.getElementById("__ELM_PAGES_DATA__").innerHTML),userFlags:userInit.flags()}});return b.ports.toJsPort.subscribe(()=>{loadNamedAnchor()}),b}function loadNamedAnchor(){if(""!==initialLocationHash){const a=document.querySelector(`[name=${initialLocationHash}]`);a&&a.scrollIntoView()}}function prefetchIfNeeded(a){if(a.host===window.location.host&&!prefetchedPages.includes(a.pathname)){prefetchedPages.push(a.pathname),console.log("Preloading...",a.pathname);const b=document.createElement("link");b.setAttribute("as","fetch"),b.setAttribute("rel","prefetch"),b.setAttribute("href",origin+a.pathname+"/content.json"),document.head.appendChild(b)}}const appPromise=new Promise(function(a){document.addEventListener("DOMContentLoaded",()=>{a(loadContentAndInitializeApp())})});userInit.load(appPromise),"function"==typeof connect&&connect(function(a){appPromise.then(b=>{b.ports.fromJsPort.send({contentJson:a})})});const trigger_prefetch=b=>{const c=find_anchor(b.target);c&&c.href&&c.hasAttribute("elm-pages:prefetch")&&prefetchIfNeeded(c)};let mousemove_timeout;const handle_mousemove=a=>{clearTimeout(mousemove_timeout),mousemove_timeout=setTimeout(()=>{trigger_prefetch(a)},20)};addEventListener("touchstart",trigger_prefetch),addEventListener("mousemove",handle_mousemove);function find_anchor(a){for(;a&&"A"!==a.nodeName.toUpperCase();)a=a.parentNode;return a}
+    </script>
+    <title>Jennifer Mccoy: The Slumlord's muscle</title>
+    <meta name="generator" content="elm-pages v2.1.7">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script type="application/ld+json">
+{"@context":"http://schema.org/","@type":"Article","headline":"Jennifer Mccoy: The Slumlord's muscle","description":"The star mercenary in the war on Nashville tenants.","image":"https://res.cloudinary.com/red-door-collective/image/upload/c_pad,c_fill,w_400,h_300,q_auto,f_auto/article-covers/jennifer-mccoy.jpg","author":{"@type":"Person","name":"Jack Marr"},"publisher":{"@type":"Person","name":"Jack Marr"},"url":"https://reddoorcollective.org/blog/jenn-mccoy","datePublished":"2021-08-10","mainEntityOfPage":{"@type":"SoftwareSourceCode","codeRepository":"https://github.com/thebritican/eviction-tracker","description":"A free website that keeps the people informed about housing and evictions.","author":"Greg Ziegan","programmingLanguage":{"@type":"ComputerLanguage","url":"http://elm-lang.org/","name":"Elm","image":"http://elm-lang.org/","identifier":"http://elm-lang.org/"}}}
+</script>    <link rel="canonical" href="https://reddoorcollective.org/blog/jenn-mccoy" />    <meta name="description" content="The star mercenary in the war on Nashville tenants." />    <meta property="og:image" content="https://res.cloudinary.com/red-door-collective/image/upload/c_pad,c_fill,w_400,h_300,q_auto,f_auto/article-covers/jennifer-mccoy.jpg" />    <meta property="og:image:secure_url" content="https://res.cloudinary.com/red-door-collective/image/upload/c_pad,c_fill,w_400,h_300,q_auto,f_auto/article-covers/jennifer-mccoy.jpg" />    <meta property="og:image:alt" content="The star mercenary in the war on Nashville tenants." />    <meta property="og:title" content="Jennifer Mccoy: The Slumlord's muscle" />    <meta property="og:url" content="https://reddoorcollective.org/blog/jenn-mccoy" />    <meta property="og:description" content="The star mercenary in the war on Nashville tenants." />    <meta property="og:site_name" content="elm-pages" />    <meta property="twitter:card" content="summary_large_image" />    <meta property="twitter:title" content="Jennifer Mccoy: The Slumlord's muscle" />    <meta property="twitter:description" content="The star mercenary in the war on Nashville tenants." />    <meta property="twitter:image" content="https://res.cloudinary.com/red-door-collective/image/upload/c_pad,c_fill,w_400,h_300,q_auto,f_auto/article-covers/jennifer-mccoy.jpg" />    <meta property="twitter:image:alt" content="The star mercenary in the war on Nashville tenants." />    <meta property="og:type" content="article" />    <meta property="article:published_time" content="2021-08-10" />    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <script id="__ELM_PAGES_DATA__" type="application/json">{"staticData":{"2203277916":"{\"parsedFrontmatter\":{\"author\":\"Dylan Lancaster\",\"title\":\"Jennifer Mccoy: The Slumlord's muscle\",\"description\":\"The star mercenary in the war on Nashville tenants.\",\"image\":\"article-covers/jennifer-mccoy.jpg\",\"published\":\"2021-08-10\"}}","markdown-blocks-content/blog/jenn-mccoy.md":"[1,[[6,[[8,\"Who makes money off evictions? The landlord, of course after throwing out their tenants they are able to jack up the rent for the next person searching for shelter. But the landlord needs to pay a lawyer to protect them and to help squeeze money out of the tenants they are kicking to the curb. Who do most Nashville landlords hire to do their dirty work? Who is getting paid the big bucks to help evict those hit hardest by the global pandemic? There are a handful of lawyers who specialize in this work but there is one name in town that is seen on more detainer warrants than any other, Jennifer McCoy.\"]]],[5,[1],[[8,\"Mom and pop\"]]],[6,[[8,\"McCoy is not a mom and pop lawyer helping an elderly landlord sue her frat boy tenants for trashing her property during a rowdy rager. She’s the corporate management company’s nuclear option, she’s the big gun in their arsenal. McCoy’s entire practice is dedicated to helping big money landlords wield their power over the working classes. Her own website boasts, “The Law Office of Jennifer McCoy is a multi-state, full-service evictions law firm representing landlords and property managers in all matters pertaining to landlord/tenant law . . . our policy is to evict and/or collect in a timely fashion using diplomacy, assertiveness, and persistence so as to motivate individuals and businesses to honor the obligations owed to our clients.” It’s impossible to misconstrue McCoy’s own language here, you get thrown out on the street and she lines her pockets. If that wasn’t enough she also has published an article in the Greater Nashville Apartment Association newsletter on how landlords can more effectively evict our neighbors during the global pandemic. These people are like vampires who feast on the destitution of our most vulnerable communities which are disproportionately minority, immigrant, and working-class, collective action can be our stake through the heart.\"]]],[6,[[8,\"A very shallow argument could be made that sending tenants to almost certain devastation is just how McCoy pays her own bills in our unjust capitalist system. How does one then excuse the numerous demeaning social media posts of McCoy making fun of these people she is sentencing to ruination? It would seem that she takes pleasure in destroying the lives of others and publicly posting about it! She has now made her accounts private, however we managed to get screenshots.\"]]],[5,[1],[[8,\"Funding eviction violence\"]]],[6,[[8,\"One of McCoy’s biggest clients is Bridge Property Management who controls the operations of five apartment complexes in Nashville. $112,050,000 has been spent to acquire these five properties over a four-year period. One of these properties is Hickory Highlands in Antioch. Local organizers monitoring detainer warrants noticed an extremely high number being issued at this complex, forty-eight in October alone. Canvassers were dispatched to talk to tenants about their experiences at Hickory Highlands and provide resources. The ultimate goal was to build collective power and help tenants fight back against the violence being perpetrated against them and their neighbors. This idea unsettled Bridge Property Management and they sent in McCoy to intimidate folks. She sent letters to residents we spoke to declaring they had thirty days to vacate claiming lease violations. The violation was simply speaking to organizers who they referred to as “banned individuals.” This is repression at the highest level. In a city where’s already an affordable housing crisis people at this complex are forced to sign a thirty-plus page lease that surrenders what few rights they have in the state of Tennessee. It would appear freedom is an illusion at Hickory Highlands.\"]]],[5,[1],[[8,\"Housing is a human right\"]]],[6,[[8,\"As a socialist, I believe that people who commodify a person’s right to live are the lowest form of scum. These working-class people don’t speak up for fear of retaliation and their overlords know that alone the individual is weak. It’s why they force them to live in homes with black mold, make them drink poison water, and make them live in constant fear of losing the leaky roof over their heads. They make tenants feel alone and that their problems are their fault and their fault alone.  The slumlord’s biggest fear is collective action from the tenants, it’s why they keep expensive lawyers like McCoy on speed dial to protect their interests. The tenants we spoke to at Hickory Highlands are fed up, they are ready to push back. Many of them know McCoy is a paper tiger, the law may be on her side but the true power always lies with the tenants.\"]]]]]"},"is404":false,"path":"blog/jenn-mccoy"}</script>
+    </head>
+    <body>
+      <div data-url="" display="none"></div>
+      <div class="bg-255-255-255-0 fc-0-0-0-255 font-size-20 font-open-sanshelveticaverdanasans-serif s e ui s e"><div><style>@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {.s.r > .s { flex-basis: auto !important; } .s.r > .s.ctr { flex-basis: auto !important; }}
+input[type="search"],
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance:none;
+}
+
+input[type=range] {
+  -webkit-appearance: none; 
+  background: transparent;
+  position:absolute;
+  left:0;
+  top:0;
+  z-index:10;
+  width: 100%;
+  outline: dashed 1px;
+  height: 100%;
+  opacity: 0;
+}
+
+input[type=range]::-moz-range-track {
+    background: transparent;
+    cursor: pointer;
+}
+input[type=range]::-ms-track {
+    background: transparent;
+    cursor: pointer;
+}
+input[type=range]::-webkit-slider-runnable-track {
+    background: transparent;
+    cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    opacity: 0.5;
+    width: 80px;
+    height: 80px;
+    background-color: black;
+    border:none;
+    border-radius: 5px;
+}
+input[type=range]::-moz-range-thumb {
+    opacity: 0.5;
+    width: 80px;
+    height: 80px;
+    background-color: black;
+    border:none;
+    border-radius: 5px;
+}
+input[type=range]::-ms-thumb {
+    opacity: 0.5;
+    width: 80px;
+    height: 80px;
+    background-color: black;
+    border:none;
+    border-radius: 5px;
+}
+input[type=range][orient=vertical]{
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical;  /* WebKit */
+}
+
+.explain {
+    border: 6px solid rgb(174, 121, 15) !important;
+}
+.explain > .s {
+    border: 4px dashed rgb(0, 151, 167) !important;
+}
+
+.ctr {
+    border: none !important;
+}
+.explain > .ctr > .s {
+    border: 4px dashed rgb(0, 151, 167) !important;
+}
+
+html,body{height:100%;padding:0;margin:0;}.s.e.ic{display:block;}.s.e.ic.hf > img{max-height:100%;object-fit:cover;}.s.e.ic.wf > img{max-width:100%;object-fit:cover;}.s:focus{outline:none;}.ui{width:100%;height:auto;min-height:100%;z-index:0;}.ui.s.hf{height:100%;}.ui.s.hf > .hf{height:100%;}.ui > .fr.nb{position:fixed;z-index:20;}.nb{position:relative;border:none;display:flex;flex-direction:row;flex-basis:auto;}.nb.e{display:flex;flex-direction:column;white-space:pre;}.nb.e.hbh{z-index:0;}.nb.e.hbh > .bh{z-index:-1;}.nb.e.sbt > .t.hf{flex-grow:0;}.nb.e.sbt > .t.wf{align-self:auto !important;}.nb.e > .hc{height:auto;}.nb.e > .hf{flex-grow:100000;}.nb.e > .wf{width:100%;}.nb.e > .wfp{width:100%;}.nb.e > .wc{align-self:flex-start;}.nb.e.ct{justify-content:flex-start;}.nb.e > .s.at{margin-bottom:auto !important;margin-top:0 !important;}.nb.e.cb{justify-content:flex-end;}.nb.e > .s.ab{margin-top:auto !important;margin-bottom:0 !important;}.nb.e.cr{align-items:flex-end;}.nb.e > .s.ar{align-self:flex-end;}.nb.e.cl{align-items:flex-start;}.nb.e > .s.al{align-self:flex-start;}.nb.e.ccx{align-items:center;}.nb.e > .s.cx{align-self:center;}.nb.e.ccy > .s{margin-top:auto;margin-bottom:auto;}.nb.e > .s.cy{margin-top:auto !important;margin-bottom:auto !important;}.nb.a{position:absolute;bottom:100%;left:0;width:100%;z-index:20;margin:0 !important;pointer-events:none;}.nb.a > .hf{height:auto;}.nb.a > .wf{width:100%;}.nb.a > *{pointer-events:auto;}.nb.b{position:absolute;bottom:0;left:0;height:0;width:100%;z-index:20;margin:0 !important;pointer-events:none;}.nb.b > *{pointer-events:auto;}.nb.b > .hf{height:auto;}.nb.or{position:absolute;left:100%;top:0;height:100%;margin:0 !important;z-index:20;pointer-events:none;}.nb.or > *{pointer-events:auto;}.nb.ol{position:absolute;right:100%;top:0;height:100%;margin:0 !important;z-index:20;pointer-events:none;}.nb.ol > *{pointer-events:auto;}.nb.fr{position:absolute;width:100%;height:100%;left:0;top:0;margin:0 !important;pointer-events:none;}.nb.fr > *{pointer-events:auto;}.nb.bh{position:absolute;width:100%;height:100%;left:0;top:0;margin:0 !important;z-index:0;pointer-events:none;}.nb.bh > *{pointer-events:auto;}.s{position:relative;border:none;flex-shrink:0;display:flex;flex-direction:row;flex-basis:auto;resize:none;font-feature-settings:inherit;box-sizing:border-box;margin:0;padding:0;border-width:0;border-style:solid;font-size:inherit;color:inherit;font-family:inherit;line-height:1;font-weight:inherit;text-decoration:none;font-style:inherit;}.s.wrp{flex-wrap:wrap;}.s.notxt{-moz-user-select:none;-webkit-user-select:none;-ms-user-select:none;user-select:none;}.s.cptr{cursor:pointer;}.s.ctxt{cursor:text;}.s.ppe{pointer-events:none !important;}.s.cpe{pointer-events:auto !important;}.s.clr{opacity:0;}.s.oq{opacity:1;}.s.hvclr:hover{opacity:0;}.s.hvoq:hover{opacity:1;}.s.fcsclr:focus{opacity:0;}.s.fcsoq:focus{opacity:1;}.s.atvclr:active{opacity:0;}.s.atvoq:active{opacity:1;}.s.ts{transition:transform 160ms, opacity 160ms, filter 160ms, background-color 160ms, color 160ms, font-size 160ms;}.s.sb{overflow:auto;flex-shrink:1;}.s.sbx{overflow-x:auto;}.s.sbx.r{flex-shrink:1;}.s.sby{overflow-y:auto;}.s.sby.c{flex-shrink:1;}.s.sby.e{flex-shrink:1;}.s.cp{overflow:hidden;}.s.cpx{overflow-x:hidden;}.s.cpy{overflow-y:hidden;}.s.wc{width:auto;}.s.bn{border-width:0;}.s.bd{border-style:dashed;}.s.bdt{border-style:dotted;}.s.bs{border-style:solid;}.s.t{white-space:pre;display:inline-block;}.s.it{line-height:1.05;background:transparent;text-align:inherit;}.s.e{display:flex;flex-direction:column;white-space:pre;}.s.e.hbh{z-index:0;}.s.e.hbh > .bh{z-index:-1;}.s.e.sbt > .t.hf{flex-grow:0;}.s.e.sbt > .t.wf{align-self:auto !important;}.s.e > .hc{height:auto;}.s.e > .hf{flex-grow:100000;}.s.e > .wf{width:100%;}.s.e > .wfp{width:100%;}.s.e > .wc{align-self:flex-start;}.s.e.ct{justify-content:flex-start;}.s.e > .s.at{margin-bottom:auto !important;margin-top:0 !important;}.s.e.cb{justify-content:flex-end;}.s.e > .s.ab{margin-top:auto !important;margin-bottom:0 !important;}.s.e.cr{align-items:flex-end;}.s.e > .s.ar{align-self:flex-end;}.s.e.cl{align-items:flex-start;}.s.e > .s.al{align-self:flex-start;}.s.e.ccx{align-items:center;}.s.e > .s.cx{align-self:center;}.s.e.ccy > .s{margin-top:auto;margin-bottom:auto;}.s.e > .s.cy{margin-top:auto !important;margin-bottom:auto !important;}.s.r{display:flex;flex-direction:row;}.s.r > .s{flex-basis:0%;}.s.r > .s.we{flex-basis:auto;}.s.r > .s.lnk{flex-basis:auto;}.s.r > .hf{align-self:stretch !important;}.s.r > .hfp{align-self:stretch !important;}.s.r > .wf{flex-grow:100000;}.s.r > .ctr{flex-grow:0;flex-basis:auto;align-self:stretch;}.s.r > u:first-of-type.acr{flex-grow:1;}.s.r > s:first-of-type.accx{flex-grow:1;}.s.r > s:first-of-type.accx > .cx{margin-left:auto !important;}.s.r > s:last-of-type.accx{flex-grow:1;}.s.r > s:last-of-type.accx > .cx{margin-right:auto !important;}.s.r > s:only-of-type.accx{flex-grow:1;}.s.r > s:only-of-type.accx > .cy{margin-top:auto !important;margin-bottom:auto !important;}.s.r > s:last-of-type.accx ~ u{flex-grow:0;}.s.r > u:first-of-type.acr ~ s.accx{flex-grow:0;}.s.r.ct{align-items:flex-start;}.s.r > .s.at{align-self:flex-start;}.s.r.cb{align-items:flex-end;}.s.r > .s.ab{align-self:flex-end;}.s.r.cr{justify-content:flex-end;}.s.r.cl{justify-content:flex-start;}.s.r.ccx{justify-content:center;}.s.r.ccy{align-items:center;}.s.r > .s.cy{align-self:center;}.s.r.sev{justify-content:space-between;}.s.r.lbl{align-items:baseline;}.s.c{display:flex;flex-direction:column;}.s.c > .s{flex-basis:0px;min-height:min-content;}.s.c > .s.he{flex-basis:auto;}.s.c > .hf{flex-grow:100000;}.s.c > .wf{width:100%;}.s.c > .wfp{width:100%;}.s.c > .wc{align-self:flex-start;}.s.c > u:first-of-type.acb{flex-grow:1;}.s.c > s:first-of-type.accy{flex-grow:1;}.s.c > s:first-of-type.accy > .cy{margin-top:auto !important;margin-bottom:0 !important;}.s.c > s:last-of-type.accy{flex-grow:1;}.s.c > s:last-of-type.accy > .cy{margin-bottom:auto !important;margin-top:0 !important;}.s.c > s:only-of-type.accy{flex-grow:1;}.s.c > s:only-of-type.accy > .cy{margin-top:auto !important;margin-bottom:auto !important;}.s.c > s:last-of-type.accy ~ u{flex-grow:0;}.s.c > u:first-of-type.acb ~ s.accy{flex-grow:0;}.s.c.ct{justify-content:flex-start;}.s.c > .s.at{margin-bottom:auto;}.s.c.cb{justify-content:flex-end;}.s.c > .s.ab{margin-top:auto;}.s.c.cr{align-items:flex-end;}.s.c > .s.ar{align-self:flex-end;}.s.c.cl{align-items:flex-start;}.s.c > .s.al{align-self:flex-start;}.s.c.ccx{align-items:center;}.s.c > .s.cx{align-self:center;}.s.c.ccy{justify-content:center;}.s.c > .ctr{flex-grow:0;flex-basis:auto;width:100%;align-self:stretch !important;}.s.c.sev{justify-content:space-between;}.s.g{display:-ms-grid;}.s.g > .gp > .s{width:100%;}@supports (display:grid) {.s.g{display:grid;
+}}.s.g > .s.at{justify-content:flex-start;}.s.g > .s.ab{justify-content:flex-end;}.s.g > .s.ar{align-items:flex-end;}.s.g > .s.al{align-items:flex-start;}.s.g > .s.cx{align-items:center;}.s.g > .s.cy{justify-content:center;}.s.pg{display:block;}.s.pg > .s:first-child{margin:0 !important;}.s.pg > .s.al:first-child + .s{margin:0 !important;}.s.pg > .s.ar:first-child + .s{margin:0 !important;}.s.pg > .s.ar{float:right;}.s.pg > .s.ar::after{content:"";display:table;clear:both;}.s.pg > .s.al{float:left;}.s.pg > .s.al::after{content:"";display:table;clear:both;}.s.iml{white-space:pre-wrap !important;height:100%;width:100%;background-color:transparent;}.s.implw.e{flex-basis:auto;}.s.imlp{white-space:pre-wrap !important;cursor:text;}.s.imlp > .imlf{white-space:pre-wrap !important;color:transparent;}.s.p{display:block;white-space:normal;overflow-wrap:break-word;}.s.p.hbh{z-index:0;}.s.p.hbh > .bh{z-index:-1;}.s.p .t{display:inline;white-space:normal;}.s.p .p{display:inline;}.s.p .p::after{content:none;}.s.p .p::before{content:none;}.s.p .e{display:inline;white-space:normal;}.s.p .e.we{display:inline-block;}.s.p .e.fr{display:flex;}.s.p .e.bh{display:flex;}.s.p .e.a{display:flex;}.s.p .e.b{display:flex;}.s.p .e.or{display:flex;}.s.p .e.ol{display:flex;}.s.p .e > .t{display:inline;white-space:normal;}.s.p > .r{display:inline;}.s.p > .c{display:inline-flex;}.s.p > .g{display:inline-grid;}.s.p > .s.ar{float:right;}.s.p > .s.al{float:left;}.s.hidden{display:none;}.s.w1{font-weight:100;}.s.w2{font-weight:200;}.s.w3{font-weight:300;}.s.w4{font-weight:400;}.s.w5{font-weight:500;}.s.w6{font-weight:600;}.s.w7{font-weight:700;}.s.w8{font-weight:800;}.s.w9{font-weight:900;}.s.i{font-style:italic;}.s.sk{text-decoration:line-through;}.s.u{text-decoration:underline;text-decoration-skip-ink:auto;text-decoration-skip:ink;}.s.u.sk{text-decoration:line-through underline;text-decoration-skip-ink:auto;text-decoration-skip:ink;}.s.tun{font-style:normal;}.s.tj{text-align:justify;}.s.tja{text-align:justify-all;}.s.tc{text-align:center;}.s.tr{text-align:right;}.s.tl{text-align:left;}.s.modal{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;}.border-0{border-width:0px;}.border-1{border-width:1px;}.border-2{border-width:2px;}.border-3{border-width:3px;}.border-4{border-width:4px;}.border-5{border-width:5px;}.border-6{border-width:6px;}.font-size-8{font-size:8px;}.font-size-9{font-size:9px;}.font-size-10{font-size:10px;}.font-size-11{font-size:11px;}.font-size-12{font-size:12px;}.font-size-13{font-size:13px;}.font-size-14{font-size:14px;}.font-size-15{font-size:15px;}.font-size-16{font-size:16px;}.font-size-17{font-size:17px;}.font-size-18{font-size:18px;}.font-size-19{font-size:19px;}.font-size-20{font-size:20px;}.font-size-21{font-size:21px;}.font-size-22{font-size:22px;}.font-size-23{font-size:23px;}.font-size-24{font-size:24px;}.font-size-25{font-size:25px;}.font-size-26{font-size:26px;}.font-size-27{font-size:27px;}.font-size-28{font-size:28px;}.font-size-29{font-size:29px;}.font-size-30{font-size:30px;}.font-size-31{font-size:31px;}.font-size-32{font-size:32px;}.p-0{padding:0px;}.p-1{padding:1px;}.p-2{padding:2px;}.p-3{padding:3px;}.p-4{padding:4px;}.p-5{padding:5px;}.p-6{padding:6px;}.p-7{padding:7px;}.p-8{padding:8px;}.p-9{padding:9px;}.p-10{padding:10px;}.p-11{padding:11px;}.p-12{padding:12px;}.p-13{padding:13px;}.p-14{padding:14px;}.p-15{padding:15px;}.p-16{padding:16px;}.p-17{padding:17px;}.p-18{padding:18px;}.p-19{padding:19px;}.p-20{padding:20px;}.p-21{padding:21px;}.p-22{padding:22px;}.p-23{padding:23px;}.p-24{padding:24px;}.v-smcp{font-variant:small-caps;}.v-smcp-off{font-variant:normal;}.v-zero{font-feature-settings:"zero";}.v-zero-off{font-feature-settings:"zero" 0;}.v-onum{font-feature-settings:"onum";}.v-onum-off{font-feature-settings:"onum" 0;}.v-liga{font-feature-settings:"liga";}.v-liga-off{font-feature-settings:"liga" 0;}.v-dlig{font-feature-settings:"dlig";}.v-dlig-off{font-feature-settings:"dlig" 0;}.v-ordn{font-feature-settings:"ordn";}.v-ordn-off{font-feature-settings:"ordn" 0;}.v-tnum{font-feature-settings:"tnum";}.v-tnum-off{font-feature-settings:"tnum" 0;}.v-afrc{font-feature-settings:"afrc";}.v-afrc-off{font-feature-settings:"afrc" 0;}.v-frac{font-feature-settings:"frac";}.v-frac-off{font-feature-settings:"frac" 0;}</style></div><div><style>
+.font-open-sanshelveticaverdanasans-serif.cap, .font-open-sanshelveticaverdanasans-serif .cap {line-height: 1;} .font-open-sanshelveticaverdanasans-serif.cap> .t, .font-open-sanshelveticaverdanasans-serif .cap > .t {vertical-align: 0;line-height: 1;}.ff-montserrat .font-open-sanshelveticaverdanasans-serif.cap, .ff-montserrat .font-open-sanshelveticaverdanasans-serif .cap {line-height: 1;} .ff-montserrat .font-open-sanshelveticaverdanasans-serif.cap> .t, .ff-montserrat .font-open-sanshelveticaverdanasans-serif .cap > .t {vertical-align: 0;line-height: 1;}
+.font-open-sanshelveticaverdanasans-serif .ff-montserrat.cap, .font-open-sanshelveticaverdanasans-serif .ff-montserrat .cap {line-height: 1;} .font-open-sanshelveticaverdanasans-serif .ff-montserrat.cap> .t, .font-open-sanshelveticaverdanasans-serif .ff-montserrat .cap > .t {vertical-align: 0;line-height: 1;}.ff-montserrat.cap, .ff-montserrat .cap {line-height: 1;} .ff-montserrat.cap> .t, .ff-montserrat .cap > .t {vertical-align: 0;line-height: 1;}.ff-montserrat{
+  font-family: "Montserrat";
+  font-feature-settings: ;
+  font-variant: normal;
+}.spacing-5-5.r > .s + .s{
+  margin-left: 5px;
+}.spacing-5-5.wrp.r > .s{
+  margin: 2.5px 2.5px;
+}.spacing-5-5.c > .s + .s{
+  margin-top: 5px;
+}.spacing-5-5.pg > .s + .s{
+  margin-top: 5px;
+}.spacing-5-5.pg > .al{
+  margin-right: 5px;
+}.spacing-5-5.pg > .ar{
+  margin-left: 5px;
+}.spacing-5-5.p{
+  line-height: calc(1em + 5px);
+}textarea.s.spacing-5-5{
+  line-height: calc(1em + 5px);
+  height: calc(100% + 5px);
+}.spacing-5-5.p > .al{
+  margin-right: 5px;
+}.spacing-5-5.p > .ar{
+  margin-left: 5px;
+}.spacing-5-5.p::after{
+  content: '';
+  display: block;
+  height: 0;
+  width: 0;
+  margin-top: -2px;
+}.spacing-5-5.p::before{
+  content: '';
+  display: block;
+  height: 0;
+  width: 0;
+  margin-bottom: -2px;
+}.spacing-15-15.r > .s + .s{
+  margin-left: 15px;
+}.spacing-15-15.wrp.r > .s{
+  margin: 7.5px 7.5px;
+}.spacing-15-15.c > .s + .s{
+  margin-top: 15px;
+}.spacing-15-15.pg > .s + .s{
+  margin-top: 15px;
+}.spacing-15-15.pg > .al{
+  margin-right: 15px;
+}.spacing-15-15.pg > .ar{
+  margin-left: 15px;
+}.spacing-15-15.p{
+  line-height: calc(1em + 15px);
+}textarea.s.spacing-15-15{
+  line-height: calc(1em + 15px);
+  height: calc(100% + 15px);
+}.spacing-15-15.p > .al{
+  margin-right: 15px;
+}.spacing-15-15.p > .ar{
+  margin-left: 15px;
+}.spacing-15-15.p::after{
+  content: '';
+  display: block;
+  height: 0;
+  width: 0;
+  margin-top: -7px;
+}.spacing-15-15.p::before{
+  content: '';
+  display: block;
+  height: 0;
+  width: 0;
+  margin-bottom: -7px;
+}.width-px-642{
+  width: 642px;
+}.font-open-sanshelveticaverdanasans-serif{
+  font-family: "Open Sans", "Helvetica", "Verdana", sans-serif;
+  font-feature-settings: ;
+  font-variant: normal;
+}.fc-0-0-0-255{
+  color: rgba(0,0,0,1);
+}.bg-255-255-255-0{
+  background-color: rgba(255,255,255,0);
+}.focus-within:focus-within{
+  box-shadow: 0px 0px 0px 3px rgba(155,203,255,1);
+  outline: none;
+}.s:focus .focusable, .s.focusable:focus, .ui-slide-bar:focus + .s .focusable-thumb{
+  box-shadow: 0px 0px 0px 3px rgba(155,203,255,1);
+  outline: none;
+}</style></div><div class="hc s c wf ct cl"><div class="hc s r wf cl ccy"><s class="s e ctr ccy accx"><div class="hc we width-px-642 ah cx s c ct cl"><div class="spacing-15-15 s p wf"><div class="spacing-5-5 s p wf"><div class="s t wc hc">Who makes money off evictions? The landlord, of course after throwing out their tenants they are able to jack up the rent for the next person searching for shelter. But the landlord needs to pay a lawyer to protect them and to help squeeze money out of the tenants they are kicking to the curb. Who do most Nashville landlords hire to do their dirty work? Who is getting paid the big bucks to help evict those hit hardest by the global pandemic? There are a handful of lawyers who specialize in this work but there is one name in town that is seen on more detainer warrants than any other, Jennifer McCoy.</div></div></div><h2 class="spacing-5-5 font-size-24 w7 ff-montserrat s p wf" id="mom-and-pop" name="mom-and-pop"><div class="spacing-5-5 s p wf"><div class="s t wc hc">Mom and pop</div></div></h2><div class="spacing-15-15 s p wf"><div class="spacing-5-5 s p wf"><div class="s t wc hc">McCoy is not a mom and pop lawyer helping an elderly landlord sue her frat boy tenants for trashing her property during a rowdy rager. She’s the corporate management company’s nuclear option, she’s the big gun in their arsenal. McCoy’s entire practice is dedicated to helping big money landlords wield their power over the working classes. Her own website boasts, “The Law Office of Jennifer McCoy is a multi-state, full-service evictions law firm representing landlords and property managers in all matters pertaining to landlord/tenant law . . . our policy is to evict and/or collect in a timely fashion using diplomacy, assertiveness, and persistence so as to motivate individuals and businesses to honor the obligations owed to our clients.” It’s impossible to misconstrue McCoy’s own language here, you get thrown out on the street and she lines her pockets. If that wasn’t enough she also has published an article in the Greater Nashville Apartment Association newsletter on how landlords can more effectively evict our neighbors during the global pandemic. These people are like vampires who feast on the destitution of our most vulnerable communities which are disproportionately minority, immigrant, and working-class, collective action can be our stake through the heart.</div></div></div><div class="spacing-15-15 s p wf"><div class="spacing-5-5 s p wf"><div class="s t wc hc">A very shallow argument could be made that sending tenants to almost certain devastation is just how McCoy pays her own bills in our unjust capitalist system. How does one then excuse the numerous demeaning social media posts of McCoy making fun of these people she is sentencing to ruination? It would seem that she takes pleasure in destroying the lives of others and publicly posting about it! She has now made her accounts private, however we managed to get screenshots.</div></div></div><h2 class="spacing-5-5 font-size-24 w7 ff-montserrat s p wf" id="funding-eviction-violence" name="funding-eviction-violence"><div class="spacing-5-5 s p wf"><div class="s t wc hc">Funding eviction violence</div></div></h2><div class="spacing-15-15 s p wf"><div class="spacing-5-5 s p wf"><div class="s t wc hc">One of McCoy’s biggest clients is Bridge Property Management who controls the operations of five apartment complexes in Nashville. $112,050,000 has been spent to acquire these five properties over a four-year period. One of these properties is Hickory Highlands in Antioch. Local organizers monitoring detainer warrants noticed an extremely high number being issued at this complex, forty-eight in October alone. Canvassers were dispatched to talk to tenants about their experiences at Hickory Highlands and provide resources. The ultimate goal was to build collective power and help tenants fight back against the violence being perpetrated against them and their neighbors. This idea unsettled Bridge Property Management and they sent in McCoy to intimidate folks. She sent letters to residents we spoke to declaring they had thirty days to vacate claiming lease violations. The violation was simply speaking to organizers who they referred to as “banned individuals.” This is repression at the highest level. In a city where’s already an affordable housing crisis people at this complex are forced to sign a thirty-plus page lease that surrenders what few rights they have in the state of Tennessee. It would appear freedom is an illusion at Hickory Highlands.</div></div></div><h2 class="spacing-5-5 font-size-24 w7 ff-montserrat s p wf" id="housing-is-a-human-right" name="housing-is-a-human-right"><div class="spacing-5-5 s p wf"><div class="s t wc hc">Housing is a human right</div></div></h2><div class="spacing-15-15 s p wf"><div class="spacing-5-5 s p wf"><div class="s t wc hc">As a socialist, I believe that people who commodify a person’s right to live are the lowest form of scum. These working-class people don’t speak up for fear of retaliation and their overlords know that alone the individual is weak. It’s why they force them to live in homes with black mold, make them drink poison water, and make them live in constant fear of losing the leaky roof over their heads. They make tenants feel alone and that their problems are their fault and their fault alone.  The slumlord’s biggest fear is collective action from the tenants, it’s why they keep expensive lawyers like McCoy on speed dial to protect their interests. The tenants we spoke to at Hickory Highlands are fed up, they are ready to push back. Many of them know McCoy is a paper tiger, the law may be on her side but the true power always lies with the tenants.</div></div></div></div></s></div></div></div>
+    </body>
+  </html>
+  
