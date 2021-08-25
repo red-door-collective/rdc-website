@@ -20,7 +20,7 @@ blogPostsGlob : DataSource.DataSource (List { filePath : String, slug : String }
 blogPostsGlob =
     Glob.succeed BlogPost
         |> Glob.captureFilePath
-        |> Glob.match (Glob.literal "content/blog/")
+        |> Glob.match (Glob.literal "content/")
         |> Glob.capture Glob.wildcard
         |> Glob.match (Glob.literal ".md")
         |> Glob.toDataSource

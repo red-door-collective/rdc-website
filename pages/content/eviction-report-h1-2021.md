@@ -10,6 +10,8 @@
 
 ![Cover](/images/eviction-report-h1-2021/cover.png)
 
+[Printable report available here](./reports/RDC-Nashville-Eviction-Report-Aug-2021.pdf)
+
 ## Summary
 
 <row>

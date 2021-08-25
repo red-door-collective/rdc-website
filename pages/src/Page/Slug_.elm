@@ -364,7 +364,7 @@ data route =
     MarkdownCodec.withFrontmatter Data
         frontmatterDecoder
         blogRenderer
-        ("content/blog/" ++ route.slug ++ ".md")
+        ("content/" ++ route.slug ++ ".md")
 
 
 type alias ArticleMetadata =
