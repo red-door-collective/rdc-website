@@ -109,7 +109,7 @@ After the COVID-19 pandemic, Judge Rachel Bell founded the LEGACY diversionary c
 
 While eviction hearings were delayed by COVID restrictions and the CDC eviction moratorium, nearly 2,000 cases were yet to be heard in Spring 2021 [\[7\]](https://www.wsmv.com/video/legal-aid-reports-cases-of-landlords-using-illegal-tactics-to-remove-tenants/video_0a4e1138-f5fa-5123-b17d-286adf48095b.html#:~:text=Legal%20Aid%20reports%20cases%20of%20landlords%20using%20illegal,illegal%20tactics%20to%20get%20financially%20strapped%20renters%20out.). Community advocates noted that many residents were being illegaly scared out of their residences illegally by landlords and property managers.
 
-# Eviction Data, 2017-2019
+# EVICTION DATA, 2017-2019
 
 Between January 1, 2017 and December 31, 2019, over 31,000 detainer warrants (DWs) were filed. A detainer warrant is the document that informs a tenant or renter of their upcoming eviction proceeding. The number filed per year increased 20% over the three-year period, with approximately 9,358 detainer warrants filed in 2017, 10,543 in 2018, and 11,471 in 2019. While the population of Davidson Co. increased in this time frame, the rate of detainer warrants filed per year also increased from 14.2 DWs issued per 10,000 persons in 2017 to 16.8 in 2019. The number of DWs issued per month varied widely and seasonal trends are inconsistent between years.
 
