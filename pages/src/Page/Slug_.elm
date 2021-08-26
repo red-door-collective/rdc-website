@@ -80,29 +80,25 @@ view maybeUrl sharedModel static =
                     _ ->
                         Author.redDoor
         in
-        -- [ row
-        --     [ width fill
-        --     ]
         [ column
             [ width (fill |> minimum 300 |> maximum 750)
             , centerX
             , spacing 10
             , paddingXY 0 10
             ]
-            [ -- row
-              -- [ width fill
-              -- , padding 10
-              -- , spacing 10
-              -- ]
-              -- [ column [ centerX ] [ authorView author static.data ]
-              -- ]
-              row [ width fill ]
+            [ row
+                [ width fill
+                , padding 10
+                , spacing 10
+                ]
+                [ column [ centerX ] [ authorView author static.data ]
+                ]
+            , row
+                [ width fill ]
                 [ textColumn [ width fill ] static.data.body
                 ]
             ]
         ]
-
-    -- ]
     }
 
 
@@ -125,41 +121,6 @@ authorView author static =
             , paragraph [ Font.color (rgb255 75 75 75) ] [ text (static.metadata.published |> Date.format "MMMM ddd, yyyy") ]
             ]
         ]
-
-
-
--- avatarView : Url -> Element msg
--- avatarView src =
---     Element.el
---         [ width (px 200)
---         , height (px 200)
---         , Background.color (Element.rgb255 255 255 255)
---         , Border.rounded 100
---         , Border.width 1
---         , Element.behindContent
---             (Element.image
---                 [ width (px 200)
---                 , height (px 200)
---                 , Element.inFront
---                     (el
---                         [ Border.rounded 100
---                         , Border.width 10
---                         , width (px 200)
---                         , height (px 200)
---                         ]
---                         Element.none
---                     )
---                 ]
---                 { src = absPath src, description = "Headshot of the author, Jack Marr" }
---             )
---         ]
---         Element.none
--- authorView : Author -> Data -> Element msg
--- authorView author static =
---     column [ padding 10, spacing 10 ]
---         [ avatarView author.avatar
---         , paragraph [] [ text author.name ]
---         ]
 
 
 head :
