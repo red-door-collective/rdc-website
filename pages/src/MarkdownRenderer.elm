@@ -267,55 +267,70 @@ rawTextToId rawText =
 
 heading : { level : Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
 heading { level, rawText, children } =
-    column [ width fill, paddingEach { top = 15, bottom = 0, left = 0, right = 0 } ]
-        [ paragraph
-            ([ Font.size
-                (case level of
-                    Block.H1 ->
-                        42
-
-                    Block.H2 ->
-                        36
-
-                    Block.H3 ->
-                        28
-
-                    _ ->
-                        20
-                )
-             , Font.bold
-             , Font.family [ Font.typeface "system" ]
-             , Region.heading (Block.headingLevelToInt level)
-             , Element.htmlAttribute
+    let
+        attrs =
+            [ Font.size 20
+            , Font.bold
+            , Font.family [ Font.typeface "system" ]
+            , Region.heading (Block.headingLevelToInt level)
+            , Element.htmlAttribute
                 (Html.Attributes.attribute "name" (rawTextToId rawText))
-             , Element.htmlAttribute
+            , Element.htmlAttribute
                 (Html.Attributes.id (rawTextToId rawText))
-             , paddingXY 0 15
-             , Font.color redFont
-             ]
-                ++ (case level of
-                        Block.H1 ->
-                            [ Background.color grayFont
-                            , Font.color (rgb255 255 87 87)
-                            , Font.center
-                            , centerX
-                            , centerY
-                            ]
+            , paddingXY 0 15
+            , Font.color redFont
+            ]
+    in
+    column [ width fill, paddingEach { top = 15, bottom = 0, left = 0, right = 0 } ]
+        [ case level of
+            Block.H1 ->
+                paragraph
+                    (attrs
+                        ++ [ Background.color grayFont
+                           , Font.color (rgb255 255 87 87)
+                           , Font.center
+                           , centerX
+                           , centerY
+                           , Font.size 42
+                           ]
+                    )
+                    [ link
+                        [ width fill ]
+                        { url = "#" ++ rawTextToId rawText
+                        , label = paragraph [ width fill ] children
+                        }
+                    ]
 
-                        Block.H2 ->
-                            [ Background.color (rgb255 255 87 87)
-                            , Font.color (rgb255 255 255 255)
-                            , paddingXY 10 15
-                            ]
+            Block.H2 ->
+                paragraph
+                    (attrs
+                        ++ [ Background.color (rgb255 255 87 87)
+                           , Font.color (rgb255 255 255 255)
+                           , paddingXY 10 15
+                           , Font.size 36
+                           ]
+                    )
+                    [ link
+                        [ width fill ]
+                        { url = "#" ++ rawTextToId rawText
+                        , label = paragraph [ width fill ] children
+                        }
+                    ]
 
-                        Block.H4 ->
-                            [ Font.color grayFont ]
+            Block.H3 ->
+                paragraph (attrs ++ [ Font.size 28 ])
+                    [ link
+                        [ width fill ]
+                        { url = "#" ++ rawTextToId rawText
+                        , label = paragraph [ width fill ] children
+                        }
+                    ]
 
-                        _ ->
-                            []
-                   )
-            )
-            children
+            Block.H4 ->
+                paragraph (attrs ++ [ Font.color grayFont ]) children
+
+            _ ->
+                paragraph attrs children
         ]
 
 
