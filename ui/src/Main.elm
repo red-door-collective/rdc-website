@@ -230,16 +230,20 @@ update msg model =
         ( ClickedLink urlRequest, _ ) ->
             case urlRequest of
                 Browser.Internal url ->
-                    case url.fragment of
-                        Nothing ->
-                            ( model
-                            , Nav.pushUrl (Session.navKey (toSession model)) (Url.toString url)
-                            )
+                    if String.startsWith "/blog" url.path then
+                        ( model, Nav.load (Url.toString url) )
 
-                        Just _ ->
-                            ( model
-                            , Nav.pushUrl (Session.navKey (toSession model)) (Url.toString url)
-                            )
+                    else
+                        case url.fragment of
+                            Nothing ->
+                                ( model
+                                , Nav.pushUrl (Session.navKey (toSession model)) (Url.toString url)
+                                )
+
+                            Just _ ->
+                                ( model
+                                , Nav.pushUrl (Session.navKey (toSession model)) (Url.toString url)
+                                )
 
                 Browser.External href ->
                     ( model, Nav.load href )
