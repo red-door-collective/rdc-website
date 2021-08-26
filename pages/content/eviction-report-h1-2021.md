@@ -98,7 +98,7 @@ In recent years the cost of living in Nashville has skyrocketed with few options
 
 Immediately prior to the COVID-19 pandemic, Davidson Co. was hit by a deadly tornado on the night of March 2 and into the morning of March 3, 2020 [\[5\]](https://www.arkansasonline.com/news/2020/mar/03/tornado-hits-downtown-nashville-least-7-die-tennes/). Following natural disasters such as the catastrophic flooding in May 2010, many homeowners are suddenly bombarded with offers to buy their now damaged homes. Increased gentrification has been significant in historically neglected and oppressed areas of Nashville impacted by severe weather events such as East and North Nashville; this gentrification has resulted in further displacement of longstanding communities.
 
-![Scenes of destruction in Nashville after the 2020 tornado.](/images/eviction-report-h1-2021/destruction.png)
+![Scenes of destruction in Nashville after the 2020 tornado.](/images/eviction-report-h1-2021/destruction.jpg)
 
 ### Affects of COVID-19
 
