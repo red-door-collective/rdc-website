@@ -15,7 +15,7 @@
 ## SUMMARY
 
 <row>
-  <column portion="2">
+<column portion="2">
 
 ### RED DOOR COLLECTIVE
 
@@ -25,6 +25,15 @@ Red Door Collective was created to support and defend renters through collective
 
 Nashville is located in Davidson County, Tennessee. The city has historically been racially segregated with black communities being disproportionately displaced by development. In the past decade there has been unsustainable growth with insufficient investment into affordable housing and renter protections. Many properties have been snatched up by a handful of property owners, particularly following natural disasters.
 
+</column>
+<column portion="1"> 
+  <sized-image
+  alt="A house with a red front door left open with roses in the foreground."
+  src="../images/eviction-report-h1-2021/roses-artwork.png"
+  />
+</column>
+</row>
+
 ### PAST AND PRESENT
 
 The number and rate of detainer warrants issued in Davidson Co. increased between 2017 and 2019. At least 67% of the cases in 2019 resulted in an eviction. Between April 2020 and March 2021, 7,904 detainer warrants were issued. Between October and December 2020, at least 42% of closed cases ended in eviction. A few landlords and an even smaller number of attorneys are associated with the majority of eviction cases in Davidson Co.
@@ -32,14 +41,6 @@ The number and rate of detainer warrants issued in Davidson Co. increased betwee
 ### FUTURE OF HOUSING
 
 A collective effort of Nashvillians is needed to make substantial change. We at Red Door Collective understand the urgent need for comprehensive rent relief, new affordable housing, and additional protections for renters.
-  </column>
-  <column portion="1">
-  <sized-image
-  alt="A house with a red front door left open with roses in the foreground."
-  src="../images/eviction-report-h1-2021/roses-artwork.png"
-/>
-  </column>
-</row>
 
 ## NOTES
 
@@ -116,7 +117,7 @@ Between January 1, 2017 and December 31, 2019, over 31,000 detainer warrants (DW
 ![Figure 1. Number of detainer warrants issued by month 2017-2019, Davidson Co. Tennessee](../images/eviction-report-h1-2021/eviction-bar-chart.png "Figure 1. Number of detainer warrants issued by month 2017-2019, Davidson Co. Tennessee")
 
 <row>
-<column portion="2">
+<text-column portion="2">
 
 #### Table 1. Ten most common plaintiffs by number of detainer warrants, 2017-2019, Davidson Co. Tennessee]
 
@@ -133,11 +134,11 @@ Between January 1, 2017 and December 31, 2019, over 31,000 detainer warrants (DW
 | Overlook Apartments                         | 255   |
 | Hickory Chase Apartments                    | 245   |
 | Freeman Webb Company Realtors               | 244   |
-</column>
-<column portion="1">
-Ten plaintiffs represent nearly one-third of DWs in Nashvilleduring this time period (Table 1). At least 4,000 unique plaintiff names account for the other two-thirds of DWs.Because plaintiff names change and are inconsistently listed on detainer warrants, the number of cases shown are an approximation. Between 2017 and 2019, the Metropolitan Development and Housing Agency (MDHA) alone accounts for approximately 1 of every 5 DWs issued between 2017 and 2019.
-</column>
+</text-column>
+
 </row>
+
+Ten plaintiffs represent nearly one-third of DWs in Nashvilleduring this time period (Table 1). At least 4,000 unique plaintiff names account for the other two-thirds of DWs.Because plaintiff names change and are inconsistently listed on detainer warrants, the number of cases shown are an approximation. Between 2017 and 2019, the Metropolitan Development and Housing Agency (MDHA) alone accounts for approximately 1 of every 5 DWs issued between 2017 and 2019.
 
 # PLAINTIFF ATTORNEYS AND JUDGEMENTS, 2017-2019
 
@@ -152,24 +153,19 @@ A consistent group of eviction attorneys are responsible for representing the ma
 | M. Wesley Hall III          	| 1,492      	| 15.9%        	| 1,549      	| 14.7%        	| 1,786      	| 15.6%        	|
 | Jennifer Jo McCoy           	| 591        	| 6.3%         	| 1,531      	| 14.5%        	| 2,163      	| 18.9%        	|
 | Robert Joseph Hill          	| 440        	| 4.7%         	| 418        	| 4.0%         	| 363        	| 3.2%         	|
-| Plaintiff rep. self 	| 1,199      	| 12.8%        	| 1,167      	| 11.1%        	| 1,125      	| 9.8%         	|
+| Plaintiff representing self 	| 1,199      	| 12.8%        	| 1,167      	| 11.1%        	| 1,125      	| 9.8%         	|
 | Other attorney              	| 2,081      	| 22.2%        	| 1,910      	| 18.1%        	| 1,849      	| 16.1%        	|
 | **TOTAL**                       	| **9,358**      	| **100.0%**       	| **10,543**     	| **100.0%**       	| **11,471**     	| **100.0%**       	|
 
-<row>
-<column portion="1">
+<text-column>
 
 ![Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee](../images/eviction-report-h1-2021/judgments-pie-chart.png "Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee")
-
-</column>
-<column portion="1">
 
 Judgement data was manually entered from CaseLink. To reduce the workload of determining frequency of judgement outcomes for historical data, we used a random number generator to sample 5% (574) of DWs from 2019. While the below data does not include all cases, we believe it can provide insight into historical trends.
 
 Figure 2 shows that over half of cases sampled resulted in repossession of property. Approximately 1 in 5 resulted in a non-suit. The category non-suit is used when cases are settled outside of court and could mean any outcome for the tenant. Cases with "other" judgements typically did not have a judgement listed despite being closed.
 
-</column>
-</row>
+</text-column>
 
 For the 221 cases with monetary damages ("possession and fees"), approximately $750,000 total was awarded to plaintiffs with an average of $3,434 per case. The median financial award was $2,443 per case.
 
@@ -276,7 +272,7 @@ We would like to thank the following groups and people for their contributions t
 * TN4SafeHomes Coalition Members
 * Nashville Conflict Resolution Center
 * Middle TN Chapter of Democratic Socialists of America
-
+<!-- 
 ### ADDITIONAL RESOURCES
 
 | Organization                                            | Website                                                  | Phone          |
@@ -286,4 +282,4 @@ We would like to thank the following groups and people for their contributions t
 | Nashville Conflict Resolution Center                    | [nashvilleconflict.org](https://nashvilleconflict.org)   | (615) 333-8400 |
 | Open Table Nashville                                    | [opentablenashville.org](https://opentablenashville.org) | (615) 415-0141 |
 | People's Alliance for Transit, Housing, and Employment  | [pathenashville.org](https://pathenashville.org)         | (615) 696-9776 |
-| Elmahaba Center Nashville                               | [elmahabacenter.com](https://elmahabacenter.com)         | (615) 567-3215 |
+| Elmahaba Center Nashville                               | [elmahabacenter.com](https://elmahabacenter.com)         | (615) 567-3215 | -->

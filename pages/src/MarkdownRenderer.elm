@@ -6,11 +6,16 @@ import Element
         , alignTop
         , centerX
         , centerY
+        , clip
+        , clipX
+        , clipY
         , column
         , el
         , fill
         , height
         , link
+        , maximum
+        , minimum
         , newTabLink
         , padding
         , paddingEach
@@ -20,6 +25,7 @@ import Element
         , rgba
         , row
         , spacing
+        , spacingXY
         , table
         , text
         , width
@@ -57,7 +63,10 @@ buildToc blocks =
 
 tocView : TableOfContents -> Element msg
 tocView toc =
-    Element.column [ Element.alignTop, Element.spacing 20 ]
+    Element.column
+        [ Element.alignTop
+        , Element.spacing 20
+        ]
         [ Element.el [ Font.bold, Font.size 22 ] (Element.text "Table of Contents")
         , Element.column [ Element.spacing 10 ]
             (toc
@@ -130,12 +139,15 @@ renderer =
     { heading = heading
     , paragraph =
         paragraph
-            [ spacing 10, paddingXY 0 10 ]
+            [ width fill
+            , spacingXY 0 10
+            , padding 10
+            ]
     , thematicBreak = Element.none
-    , text = \value -> paragraph [] [ text value ]
-    , strong = \content -> paragraph [ Font.bold, Font.color grayFont ] content
-    , emphasis = \content -> paragraph [ Font.italic ] content
-    , strikethrough = \content -> paragraph [ Font.strike ] content
+    , text = \value -> paragraph [ width fill ] [ text value ]
+    , strong = \content -> paragraph [ width fill, Font.bold, Font.color grayFont ] content
+    , emphasis = \content -> paragraph [ width fill, Font.italic ] content
+    , strikethrough = \content -> paragraph [ width fill, Font.strike ] content
     , codeSpan = code
     , link =
         \{ title, destination } body ->
@@ -168,11 +180,12 @@ renderer =
                 , padding 10
                 , Border.color (rgb255 145 145 145)
                 , Background.color (rgb255 245 245 245)
+                , width fill
                 ]
                 children
     , unorderedList =
         \items ->
-            column [ spacing 10, paddingXY 0 10 ]
+            column [ spacingXY 0 10, width fill, paddingXY 0 10 ]
                 (items
                     |> List.map
                         (\(ListItem task children) ->
@@ -197,7 +210,7 @@ renderer =
                 )
     , orderedList =
         \startingIndex items ->
-            column [ spacing 10 ]
+            column [ spacingXY 0 10, width fill ]
                 (items
                     |> List.indexedMap
                         (\index itemBlocks ->
@@ -208,7 +221,7 @@ renderer =
                         )
                 )
     , codeBlock = codeBlock
-    , table = column []
+    , table = column [ width fill ]
     , tableHeader =
         column
             [ Font.bold
@@ -246,6 +259,8 @@ tableBorder =
     , paddingXY 6 13
     , height fill
     , Font.color grayFont
+    , Font.size 8
+    , clip
     ]
 
 
@@ -277,11 +292,15 @@ heading { level, rawText, children } =
                 (Html.Attributes.attribute "name" (rawTextToId rawText))
             , Element.htmlAttribute
                 (Html.Attributes.id (rawTextToId rawText))
-            , paddingXY 0 15
+            , paddingXY 10 15
             , Font.color redFont
+            , width fill
             ]
     in
-    column [ width fill, paddingEach { top = 15, bottom = 0, left = 0, right = 0 } ]
+    column
+        [ width fill
+        , paddingEach { top = 15, bottom = 0, left = 0, right = 0 }
+        ]
         [ case level of
             Block.H1 ->
                 paragraph
@@ -291,7 +310,7 @@ heading { level, rawText, children } =
                            , Font.center
                            , centerX
                            , centerY
-                           , Font.size 42
+                           , Font.size 40
                            ]
                     )
                     [ link
@@ -318,7 +337,7 @@ heading { level, rawText, children } =
                     ]
 
             Block.H3 ->
-                paragraph (attrs ++ [ Font.size 28 ])
+                paragraph (attrs ++ [ Font.size 26 ])
                     [ link
                         [ width fill ]
                         { url = "#" ++ rawTextToId rawText

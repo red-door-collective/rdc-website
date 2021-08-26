@@ -110,7 +110,7 @@ view tableOfContents page model toMsg pageView =
         (View.Header.view ToggleMobileMenu page.path
             |> Element.map toMsg
         )
-            :: TableOfContents.view model.showMobileMenu False Nothing tableOfContents
+            --     -- :: TableOfContents.view model.showMobileMenu False Nothing tableOfContents
             :: pageView.body
             |> Element.column
                 [ width fill

@@ -5,15 +5,14 @@ import Cloudinary
 import Data.Author as Author exposing (Author)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
-import Element exposing (Element, alignTop, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingXY, paragraph, px, row, spacing, text, textColumn, width)
+import Element exposing (Element, alignTop, centerX, centerY, column, el, fill, fillPortion, height, maximum, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, textColumn, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Head
 import Head.Seo as Seo
 import Html
-import Html.Styled exposing (..)
-import Html.Styled.Attributes as Attr exposing (css)
+import Html.Attributes as Attr
 import Markdown.Html
 import MarkdownCodec
 import MarkdownRenderer
@@ -25,8 +24,6 @@ import Path
 import Shared
 import Site
 import StructuredData
-import Tailwind.Breakpoints as Bp
-import Tailwind.Utilities as Tw
 import View exposing (View)
 
 
@@ -83,17 +80,29 @@ view maybeUrl sharedModel static =
                     _ ->
                         Author.redDoor
         in
-        [ row [ width fill ]
-            [ column [ width (px 800), centerX, spacing 10, paddingXY 0 10 ]
-                [ row [ width fill, padding 10, spacing 10 ]
-                    [ column [ centerX ] [ Element.html <| Html.Styled.toUnstyled <| authorView author static.data ]
-                    ]
-                , row [ width fill ]
-                    [ column [ width fill ] static.data.body
-                    ]
+        -- [ row
+        --     [ width fill
+        --     ]
+        [ column
+            [ width (fill |> minimum 300 |> maximum 750)
+            , centerX
+            , spacing 10
+            , paddingXY 0 10
+            ]
+            [ -- row
+              -- [ width fill
+              -- , padding 10
+              -- , spacing 10
+              -- ]
+              -- [ column [ centerX ] [ authorView author static.data ]
+              -- ]
+              row [ width fill ]
+                [ textColumn [ width fill ] static.data.body
                 ]
             ]
         ]
+
+    -- ]
     }
 
 
@@ -101,57 +110,19 @@ absPath url =
     Pages.Url.toString url
 
 
-authorView : Author -> Data -> Html msg
 authorView author static =
-    div
-        [ css
-            [ Tw.flex
-            , Tw.mb_16
-
-            --, Tw.flex_shrink_0
-            ]
-        ]
-        [ img
+    row [ width fill, spacing 10 ]
+        [ Html.img
             [ Attr.src (author.avatar |> Pages.Url.toString)
-            , css
-                [ Tw.rounded_full
-                , Tw.h_20
-                , Tw.w_20
-                ]
+            , Attr.style "border-radius" "50%"
+            , Attr.style "max-width" "75px"
             ]
             []
-        , div
-            [ css [ Tw.ml_3 ]
-            ]
-            [ div
-                [ css
-                    []
-                ]
-                [ p
-                    [ css
-                        [ Tw.font_medium
-                        , Tw.text_gray_900
-                        ]
-                    ]
-                    [ span
-                        []
-                        [ Html.Styled.text author.name ]
-                    ]
-                ]
-            , div
-                [ css
-                    [ Tw.flex
-                    , Tw.space_x_1
-                    , Tw.text_sm
-                    , Tw.text_gray_500
-                    , Tw.text_gray_400
-                    ]
-                ]
-                [ time
-                    [ Attr.datetime "2020-03-16"
-                    ]
-                    [ Html.Styled.text (static.metadata.published |> Date.format "MMMM ddd, yyyy") ]
-                ]
+            |> Element.html
+            |> Element.el []
+        , textColumn [ width fill, spacing 10 ]
+            [ paragraph [ Font.bold ] [ text author.name ]
+            , paragraph [ Font.color (rgb255 75 75 75) ] [ text (static.metadata.published |> Date.format "MMMM ddd, yyyy") ]
             ]
         ]
 
@@ -252,12 +223,21 @@ elmUiRenderer =
 
 viewTextColumn : List (Element msg) -> Element msg
 viewTextColumn renderedChildren =
-    textColumn [ width fill, Element.spacing 10 ] renderedChildren
+    textColumn
+        [ width fill
+        , Element.spacingXY 0 10
+        ]
+        renderedChildren
 
 
 viewRow : List (Element msg) -> Element msg
 viewRow renderedChildren =
-    row [ width fill, Element.spacing 10, alignTop ] renderedChildren
+    wrappedRow
+        [ width fill
+        , Element.spacingXY 0 10
+        , alignTop
+        ]
+        renderedChildren
 
 
 viewColumn : String -> List (Element msg) -> Element msg
@@ -304,7 +284,7 @@ viewSizedImage title widthInPx heightInPx src alt =
             Element.image [ widthAttr, heightAttr ] { src = src, description = alt }
 
         Nothing ->
-            Element.image [ alignTop, widthAttr, heightAttr ] { src = src, description = alt }
+            Element.image [ Element.alignRight, alignTop, widthAttr, heightAttr ] { src = src, description = alt }
 
 
 viewLegend : String -> Element msg
