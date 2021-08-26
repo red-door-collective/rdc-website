@@ -4,6 +4,7 @@ import BlogSection
 import Browser.Navigation
 import DataSource
 import Element exposing (Element, fill, width)
+import Element.Font as Font
 import Html exposing (Html)
 import Html.Styled
 import Pages.Flags
@@ -111,7 +112,10 @@ view tableOfContents page model toMsg pageView =
         )
             :: TableOfContents.view model.showMobileMenu False Nothing tableOfContents
             :: pageView.body
-            |> Element.column [ width fill ]
+            |> Element.column
+                [ width fill
+                , Font.family [ Font.typeface "system" ]
+                ]
             |> Element.layout [ width fill ]
     , title = pageView.title
     }

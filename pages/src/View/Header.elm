@@ -2,7 +2,9 @@ module View.Header exposing (..)
 
 import Css
 import Element exposing (Element, alignRight, column, fill, link, padding, row, spacing, text, width)
+import Element.Border as Border
 import Element.Background as Background
+import Element.Font as Font
 import Html.Attributes as Attrs
 import Html.Styled exposing (..)
 import Html.Styled.Attributes as Attr exposing (css)
@@ -23,21 +25,19 @@ view : msg -> Path -> Element msg
 view toggleMobileMenuMsg currentPath =
     row
         [ width fill
+        , Font.size 28
         , spacing 10
         , padding 10
         , Background.color (Element.rgb255 255 87 87)
+        , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
         , Element.htmlAttribute (Attrs.style "position" "sticky")
         , Element.htmlAttribute (Attrs.style "top" "0")
         , Element.htmlAttribute (Attrs.style "left" "0")
         , Element.htmlAttribute (Attrs.style "z-index" "1")
         ]
         [ headerLink []
-            { url = Route.Index |> Route.toPath |> Path.toAbsolute
+            { url = "/"
             , label = Element.text "Red Door Collective"
-            }
-        , headerLink [ alignRight ]
-            { url = currentPath |> Path.toAbsolute
-            , label = Element.text "Blog"
             }
         ]
 
