@@ -4,6 +4,8 @@ import Element
     exposing
         ( Element
         , alignTop
+        , centerX
+        , centerY
         , column
         , el
         , fill
@@ -104,7 +106,7 @@ renderer =
             [ spacing 10, paddingXY 0 10 ]
     , thematicBreak = Element.none
     , text = \value -> paragraph [] [ text value ]
-    , strong = \content -> paragraph [ Font.bold ] content
+    , strong = \content -> paragraph [ Font.bold, Font.color grayFont ] content
     , emphasis = \content -> paragraph [ Font.italic ] content
     , strikethrough = \content -> paragraph [ Font.strike ] content
     , codeSpan = code
@@ -143,7 +145,7 @@ renderer =
                 children
     , unorderedList =
         \items ->
-            column [ spacing 10 ]
+            column [ spacing 10, paddingXY 0 10 ]
                 (items
                     |> List.map
                         (\(ListItem task children) ->
@@ -186,8 +188,12 @@ renderer =
             , width fill
             , Font.center
             ]
-    , tableBody = column []
-    , tableRow = row [ height fill, width fill ]
+    , tableBody = column [ width fill ]
+    , tableRow =
+        row
+            [ height fill
+            , width fill
+            ]
     , tableHeaderCell =
         \maybeAlignment children ->
             paragraph
@@ -261,11 +267,22 @@ heading { level, rawText, children } =
              , Font.color redFont
              ]
                 ++ (case level of
+                        Block.H1 ->
+                            [ Background.color grayFont
+                            , Font.color (rgb255 255 87 87)
+                            , Font.center
+                            , centerX
+                            , centerY
+                            ]
+
                         Block.H2 ->
                             [ Background.color (rgb255 255 87 87)
                             , Font.color (rgb255 255 255 255)
                             , paddingXY 10 15
                             ]
+
+                        Block.H4 ->
+                            [ Font.color grayFont ]
 
                         _ ->
                             []
