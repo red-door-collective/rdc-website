@@ -1,4 +1,4 @@
-module MarkdownRenderer exposing (renderer)
+module MarkdownRenderer exposing (renderer, view)
 
 import Element
     exposing
@@ -55,6 +55,23 @@ buildToc blocks =
             )
 
 
+tocView : TableOfContents -> Element msg
+tocView toc =
+    Element.column [ Element.alignTop, Element.spacing 20 ]
+        [ Element.el [ Font.bold, Font.size 22 ] (Element.text "Table of Contents")
+        , Element.column [ Element.spacing 10 ]
+            (toc
+                |> List.map
+                    (\headingBlock ->
+                        Element.link [ Font.color (Element.rgb255 100 100 100) ]
+                            { url = "#" ++ headingBlock.anchorId
+                            , label = Element.text headingBlock.name
+                            }
+                    )
+            )
+        ]
+
+
 styledToString : List Inline -> String
 styledToString inlines =
     --List.map .string list
@@ -90,12 +107,22 @@ type alias TableOfContents =
     List { anchorId : String, name : String, level : Int }
 
 
-view : String -> Result String (List (Element msg))
+view : String -> Result String ( TableOfContents, List (Element msg) )
 view markdown =
-    markdown
-        |> Markdown.Parser.parse
-        |> Result.mapError (\error -> error |> List.map Markdown.Parser.deadEndToString |> String.join "\n")
-        |> Result.andThen (Markdown.Renderer.render renderer)
+    case
+        markdown
+            |> Markdown.Parser.parse
+    of
+        Ok okAst ->
+            case Markdown.Renderer.render renderer okAst of
+                Ok rendered ->
+                    Ok ( buildToc okAst, rendered )
+
+                Err errors ->
+                    Err errors
+
+        Err error ->
+            Err (error |> List.map Markdown.Parser.deadEndToString |> String.join "\n")
 
 
 renderer : Markdown.Renderer.Renderer (Element msg)

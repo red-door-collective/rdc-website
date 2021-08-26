@@ -210,7 +210,7 @@ head static =
             , datePublished = Date.toIsoString metadata.published
             , mainEntityOfPage =
                 StructuredData.softwareSourceCode
-                    { codeRepositoryUrl = "https://github.com/thebritican/eviction-tracker"
+                    { codeRepositoryUrl = "https://github.com/red-door-collective/eviction-tracker"
                     , description = "A free website that keeps the people informed about housing and evictions."
                     , author = "Greg Ziegan"
                     , programmingLanguage = StructuredData.elmLang
