@@ -5,7 +5,7 @@ import Cloudinary
 import Data.Author as Author exposing (Author)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
-import Element exposing (Element, alignTop, centerX, centerY, column, el, fill, fillPortion, height, maximum, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, textColumn, width, wrappedRow)
+import Element exposing (Element, alignLeft, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, maximum, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, textColumn, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -182,11 +182,25 @@ elmUiRenderer =
     MarkdownRenderer.renderer
 
 
+viewAlignLeft : List (Element msg) -> Element msg
+viewAlignLeft renderedChildren =
+    row [ alignLeft, width (fill |> maximum 375), height fill ]
+        renderedChildren
+
+
+viewAlignRight : List (Element msg) -> Element msg
+viewAlignRight renderedChildren =
+    row [ alignRight, width (fill |> maximum 375), height fill ]
+        renderedChildren
+
+
 viewTextColumn : List (Element msg) -> Element msg
 viewTextColumn renderedChildren =
     textColumn
         [ width fill
-        , Element.spacingXY 0 10
+        , Element.spacingXY 10 10
+
+        -- , Element.explain Debug.todo
         ]
         renderedChildren
 
@@ -245,7 +259,7 @@ viewSizedImage title widthInPx heightInPx src alt =
             Element.image [ widthAttr, heightAttr ] { src = src, description = alt }
 
         Nothing ->
-            Element.image [ Element.alignRight, alignTop, widthAttr, heightAttr ] { src = src, description = alt }
+            Element.image [ alignTop, widthAttr, heightAttr ] { src = src, description = alt }
 
 
 viewLegend : String -> Element msg
@@ -291,6 +305,14 @@ blogRenderer =
                 , Markdown.Html.tag "text-column"
                     (\renderedChildren ->
                         viewTextColumn renderedChildren
+                    )
+                , Markdown.Html.tag "align-left"
+                    (\renderedChildren ->
+                        viewAlignLeft renderedChildren
+                    )
+                , Markdown.Html.tag "align-right"
+                    (\renderedChildren ->
+                        viewAlignRight renderedChildren
                     )
                 , Markdown.Html.tag "row"
                     (\renderedChildren ->

@@ -14,25 +14,23 @@
 
 ## SUMMARY
 
-<row>
-<column portion="2">
+<text-column>
 
 ### RED DOOR COLLECTIVE
+
+<align-right> 
+  <sized-image
+  alt="A house with a red front door left open with roses in the foreground."
+  src="../images/eviction-report-h1-2021/roses-artwork.png"
+  />
+</align-right>
+
 
 Red Door Collective was created to support and defend renters through collective action. We recognize the capitalist commodification of housing is a tool of oppression and affects poor, working class, and marginalized communities the hardest. Our survival depends on fighting shoulder to shoulder for safe, accessible, and dignified housing.
 
 ### NASHVILLE, TENNESSEE
 
 Nashville is located in Davidson County, Tennessee. The city has historically been racially segregated with black communities being disproportionately displaced by development. In the past decade there has been unsustainable growth with insufficient investment into affordable housing and renter protections. Many properties have been snatched up by a handful of property owners, particularly following natural disasters.
-
-</column>
-<column portion="1"> 
-  <sized-image
-  alt="A house with a red front door left open with roses in the foreground."
-  src="../images/eviction-report-h1-2021/roses-artwork.png"
-  />
-</column>
-</row>
 
 ### PAST AND PRESENT
 
@@ -41,6 +39,8 @@ The number and rate of detainer warrants issued in Davidson Co. increased betwee
 ### FUTURE OF HOUSING
 
 A collective effort of Nashvillians is needed to make substantial change. We at Red Door Collective understand the urgent need for comprehensive rent relief, new affordable housing, and additional protections for renters.
+
+</text-column>
 
 ## NOTES
 
@@ -138,7 +138,7 @@ Between January 1, 2017 and December 31, 2019, over 31,000 detainer warrants (DW
 
 </row>
 
-Ten plaintiffs represent nearly one-third of DWs in Nashvilleduring this time period (Table 1). At least 4,000 unique plaintiff names account for the other two-thirds of DWs.Because plaintiff names change and are inconsistently listed on detainer warrants, the number of cases shown are an approximation. Between 2017 and 2019, the Metropolitan Development and Housing Agency (MDHA) alone accounts for approximately 1 of every 5 DWs issued between 2017 and 2019.
+Ten plaintiffs represent nearly one-third of DWs in Nashville during this time period (Table 1). At least 4,000 unique plaintiff names account for the other two-thirds of DWs. Because plaintiff names change and are inconsistently listed on detainer warrants, the number of cases shown are an approximation. Between 2017 and 2019, the Metropolitan Development and Housing Agency (MDHA) alone accounts for approximately 1 of every 5 DWs issued between 2017 and 2019.
 
 # PLAINTIFF ATTORNEYS AND JUDGEMENTS, 2017-2019
 
@@ -159,7 +159,9 @@ A consistent group of eviction attorneys are responsible for representing the ma
 
 <text-column>
 
+<align-left>
 ![Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee](../images/eviction-report-h1-2021/judgments-pie-chart.png "Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee")
+</align-left>
 
 Judgement data was manually entered from CaseLink. To reduce the workload of determining frequency of judgement outcomes for historical data, we used a random number generator to sample 5% (574) of DWs from 2019. While the below data does not include all cases, we believe it can provide insight into historical trends.
 

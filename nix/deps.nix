@@ -107,6 +107,7 @@ in rec {
     pkgs.elmPackages.elm-test
     pkgs.elmPackages.elm-format
     pkgs.elmPackages.elm-optimize-level-2
+    pkgs.elmPackages.elm-review
   ];
 
   # Needed for a development nix shell
