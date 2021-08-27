@@ -25,7 +25,6 @@
   />
 </align-right>
 
-
 Red Door Collective was created to support and defend renters through collective action. We recognize the capitalist commodification of housing is a tool of oppression and affects poor, working class, and marginalized communities the hardest. Our survival depends on fighting shoulder to shoulder for safe, accessible, and dignified housing.
 
 ### NASHVILLE, TENNESSEE
@@ -231,18 +230,18 @@ Overall, the ZIP codes with the highest and lowest rates did not significantly c
 
 ## CONCLUSION
 
+<text-column>
+
 This document was put together in the Spring and Summer of 2021, in the months when the CDC Moratorium was set to expire and then pushed back temporarily. There are hundreds of families who have waited months to hear about rent relief in Davidson Co. after struggling with bureaucratic barriers. Nearly 1 in 5 Tennesseans are still behind on their rent [\[8\]](https://www.cbpp.org/research/poverty-and-inequality/tracking-the-covid-19-recessions-effects-on-food-housing-and). In recent months, numerous community groups have fought to hold landlords accountable for their abuses and disregard for renters across Nashville, including at Mosaic Apartments, WC Mobile Home Community, The Blue Note Apartments, and Porter East Apartments. To say this report will come at a crossroads in housing justice is an understatement. We must ask ourselves difficult questions: How many more families will be forced out of their homes? How many people who sustain Nashville will no longer be able to live here? How can we ensure development reflects the interests of our community? What are we willing to do for our freedom?
 
-<row>
-<column portion="1">
+<align-left>
 ![Where is Bill Lee poster](../images/eviction-report-h1-2021/bill-lee.png)
-</column>
-<column portion="1">
+</align-left>
+
 Since at least 2017, detainer warrant filings have increased and are now backlogged as we wait for hundreds of cases filed during the COVID-19 pandemic to be settled. Evictions have disproportionately affected the underserved areas of Nashville. Housing costs have skyrocketed in the midst of rapid gentrification and few low-income options exist. These are desperate times that require collective action on a massive scale.
 
 The first step of rectifying these injustices is to expose them to the light. We hope that this report increases awareness, agency, and agitation towards action. A better world is possible.
-</column>
-</row>
+</text-column>
 
 ![housing art backdrop](../images/eviction-report-h1-2021/housing-art-backdrop.png)
 
