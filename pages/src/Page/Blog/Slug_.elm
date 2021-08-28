@@ -1,4 +1,4 @@
-module Page.Slug_ exposing (Data, Model, Msg, page)
+module Page.Blog.Slug_ exposing (Data, Model, Msg, page)
 
 import Article
 import Cloudinary
@@ -327,7 +327,7 @@ data route =
     MarkdownCodec.withFrontmatter Data
         frontmatterDecoder
         blogRenderer
-        ("content/" ++ route.slug ++ ".md")
+        ("content/blog/" ++ route.slug ++ ".md")
 
 
 type alias ArticleMetadata =

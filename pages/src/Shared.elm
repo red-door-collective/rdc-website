@@ -1,8 +1,7 @@
 module Shared exposing (Data, Model, Msg, template)
 
-import BlogSection
 import Browser.Navigation
-import DataSource
+import DataSource exposing (DataSource)
 import Element exposing (Element, fill, width)
 import Element.Font as Font
 import Html exposing (Html)
@@ -12,7 +11,6 @@ import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import Route exposing (Route)
 import SharedTemplate exposing (SharedTemplate)
-import TableOfContents
 import View exposing (View)
 import View.Header
 
@@ -39,7 +37,7 @@ type Msg
 
 
 type alias Data =
-    TableOfContents.TableOfContents TableOfContents.Data
+    ()
 
 
 type alias Model =
@@ -90,9 +88,8 @@ subscriptions _ _ =
     Sub.none
 
 
-data : DataSource.DataSource Data
 data =
-    TableOfContents.dataSource BlogSection.all
+    DataSource.succeed ()
 
 
 view :
@@ -110,7 +107,6 @@ view tableOfContents page model toMsg pageView =
         (View.Header.view ToggleMobileMenu page.path
             |> Element.map toMsg
         )
-            --     -- :: TableOfContents.view model.showMobileMenu False Nothing tableOfContents
             :: pageView.body
             |> Element.column
                 [ width fill
