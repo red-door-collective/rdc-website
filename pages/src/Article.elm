@@ -20,7 +20,7 @@ blogPostsGlob : DataSource.DataSource (List { filePath : String, slug : String }
 blogPostsGlob =
     Glob.succeed BlogPost
         |> Glob.captureFilePath
-        |> Glob.match (Glob.literal "content/blog/")
+        |> Glob.match (Glob.literal "content/")
         |> Glob.capture Glob.wildcard
         |> Glob.match (Glob.literal ".md")
         |> Glob.toDataSource
@@ -35,7 +35,7 @@ allMetadata =
                     |> List.map
                         (\{ filePath, slug } ->
                             DataSource.map2 Tuple.pair
-                                (DataSource.succeed <| Route.Blog__Slug_ { slug = slug })
+                                (DataSource.succeed <| Route.Slug_ { slug = slug })
                                 (File.onlyFrontmatter frontmatterDecoder filePath)
                         )
             )

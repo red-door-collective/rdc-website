@@ -161,6 +161,7 @@ links settings page =
       }
     , { url = Route.href Route.Actions, text = "Actions", isActive = page == Actions }
     , { url = Route.href (Route.Glossary Nothing), text = "Glossary", isActive = page == Glossary }
+    , { url = "/blog/eviction-report-h1-2021", text = "Blog", isActive = False }
     ]
         ++ (case settings.viewer of
                 Just _ ->

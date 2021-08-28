@@ -12,7 +12,7 @@ static_files
 
 *.db
 eviction_tracker/static/*
-eviction_tracker/static_pages
+eviction_tracker/static_pages/*
 !eviction_tracker/static/images/
 result
 

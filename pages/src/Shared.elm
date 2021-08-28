@@ -1,15 +1,20 @@
-module Shared exposing (Data, Model, Msg(..), SharedMsg(..), template)
+module Shared exposing (Data, Model, Msg, template)
 
+import BlogSection
 import Browser.Navigation
 import DataSource
-import Element exposing (fill, width)
+import Element exposing (Element, fill, width)
+import Element.Font as Font
 import Html exposing (Html)
+import Html.Styled
 import Pages.Flags
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import Route exposing (Route)
 import SharedTemplate exposing (SharedTemplate)
+import TableOfContents
 import View exposing (View)
+import View.Header
 
 
 template : SharedTemplate Msg Model Data msg
@@ -29,19 +34,18 @@ type Msg
         , query : Maybe String
         , fragment : Maybe String
         }
-    | SharedMsg SharedMsg
+    | ToggleMobileMenu
+    | IncrementFromChild
 
 
 type alias Data =
-    ()
-
-
-type SharedMsg
-    = NoOp
+    TableOfContents.TableOfContents TableOfContents.Data
 
 
 type alias Model =
     { showMobileMenu : Bool
+    , counter : Int
+    , navigationKey : Maybe Browser.Navigation.Key
     }
 
 
@@ -60,7 +64,10 @@ init :
             }
     -> ( Model, Cmd Msg )
 init navigationKey flags maybePagePath =
-    ( { showMobileMenu = False }
+    ( { showMobileMenu = False
+      , counter = 0
+      , navigationKey = navigationKey
+      }
     , Cmd.none
     )
 
@@ -71,8 +78,11 @@ update msg model =
         OnPageChange _ ->
             ( { model | showMobileMenu = False }, Cmd.none )
 
-        SharedMsg globalMsg ->
-            ( model, Cmd.none )
+        ToggleMobileMenu ->
+            ( { model | showMobileMenu = not model.showMobileMenu }, Cmd.none )
+
+        IncrementFromChild ->
+            ( { model | counter = model.counter + 1 }, Cmd.none )
 
 
 subscriptions : Path -> Model -> Sub Msg
@@ -82,7 +92,7 @@ subscriptions _ _ =
 
 data : DataSource.DataSource Data
 data =
-    DataSource.succeed ()
+    TableOfContents.dataSource BlogSection.all
 
 
 view :
@@ -95,7 +105,17 @@ view :
     -> (Msg -> msg)
     -> View msg
     -> { body : Html msg, title : String }
-view sharedData page model toMsg pageView =
-    { body = Element.layout [] (Element.column [ width fill ] pageView.body)
+view tableOfContents page model toMsg pageView =
+    { body =
+        (View.Header.view ToggleMobileMenu page.path
+            |> Element.map toMsg
+        )
+            --     -- :: TableOfContents.view model.showMobileMenu False Nothing tableOfContents
+            :: pageView.body
+            |> Element.column
+                [ width fill
+                , Font.family [ Font.typeface "system" ]
+                ]
+            |> Element.layout [ width fill ]
     , title = pageView.title
     }
