@@ -1,4 +1,4 @@
-module StructuredData exposing (StructuredData(..), additionalName, article, article_, computerLanguage, elmLang, encode, person, softwareSourceCode)
+module StructuredData exposing (StructuredData(..), aboutPage, additionalName, article, article_, computerLanguage, elmLang, encode, person, softwareSourceCode)
 
 import Json.Encode as Encode
 import Pages.Url
@@ -46,6 +46,34 @@ elmLang =
         }
 
 
+{-| <https://schema.org/AboutPage>
+-}
+aboutPage :
+    { title : String
+    , description : String
+    , author : StructuredData { authorMemberOf | personOrOrganization : () } authorPossibleFields
+    , publisher : StructuredData { publisherMemberOf | personOrOrganization : () } publisherPossibleFields
+    , url : String
+    , imageUrl : Pages.Url.Url
+    , lastReviewed : String
+    , mainEntityOfPage : Encode.Value
+    }
+    -> Encode.Value
+aboutPage info =
+    Encode.object
+        [ ( "@context", Encode.string "http://schema.org/" )
+        , ( "@type", Encode.string "AboutPage" )
+        , ( "headline", Encode.string info.title )
+        , ( "description", Encode.string info.description )
+        , ( "image", Encode.string (Pages.Url.toString info.imageUrl) )
+        , ( "author", encode info.author )
+        , ( "publisher", encode info.publisher )
+        , ( "url", Encode.string info.url )
+        , ( "lastReviewed", Encode.string info.lastReviewed )
+        , ( "mainEntityOfPage", info.mainEntityOfPage )
+        ]
+
+
 {-| <https://schema.org/Article>
 -}
 article :
@@ -84,7 +112,8 @@ person :
     { name : String
     }
     ->
-        StructuredData { personOrOrganization : () }
+        StructuredData
+            { personOrOrganization : () }
             { additionalName : ()
             , address : ()
             , affiliation : ()

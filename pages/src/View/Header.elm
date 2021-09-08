@@ -2,8 +2,8 @@ module View.Header exposing (..)
 
 import Css
 import Element exposing (Element, alignRight, column, fill, link, padding, row, spacing, text, width)
-import Element.Border as Border
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes as Attrs
 import Html.Styled exposing (..)
@@ -38,6 +38,14 @@ view toggleMobileMenuMsg currentPath =
         [ headerLink []
             { url = "/"
             , label = Element.text "Red Door Collective"
+            }
+        , headerLink [ alignRight ]
+            { url = "/blog"
+            , label = Element.text "Blog"
+            }
+        , headerLink []
+            { url = "/about"
+            , label = Element.text "About"
             }
         ]
 
