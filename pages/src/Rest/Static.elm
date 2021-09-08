@@ -1,20 +1,26 @@
-module Stats exposing
+module Rest.Static exposing
     ( AmountAwardedMonth
     , DetainerWarrantsPerMonth
     , EvictionHistory
     , PlaintiffAttorneyWarrantCount
+    , RollupMetadata
     , TopEvictor
     , amountAwardedMonthDecoder
+    , api
     , detainerWarrantsPerMonthDecoder
     , evictionHistoryDecoder
     , plaintiffAttorneyWarrantCountDecoder
+    , rollupMetadataDecoder
     , topEvictorDecoder
     )
 
-import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
-import Json.Decode.Pipeline exposing (optional, required)
-import Rest exposing (posix)
+import OptimizedDecoder as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
+import OptimizedDecoder.Pipeline exposing (optional, required)
 import Time
+
+
+type alias RollupMetadata =
+    { lastWarrantUpdatedAt : Time.Posix }
 
 
 type alias EvictionHistory =
@@ -47,6 +53,22 @@ type alias AmountAwardedMonth =
     { time : Time.Posix
     , totalAmount : Int
     }
+
+
+api : String -> String
+api path =
+    "https://reddoorcollective.org/api/v1/rollup/" ++ path
+
+
+posix : Decoder Time.Posix
+posix =
+    Decode.map Time.millisToPosix int
+
+
+rollupMetadataDecoder : Decoder RollupMetadata
+rollupMetadataDecoder =
+    Decode.succeed RollupMetadata
+        |> required "last_detainer_warrant_update" posix
 
 
 evictionHistoryDecoder : Decoder EvictionHistory

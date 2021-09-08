@@ -46,14 +46,16 @@ import Pages.Url
 import Palette
 import Path exposing (Path)
 import Rest
+import Rest.Static exposing (AmountAwardedMonth, DetainerWarrantsPerMonth, EvictionHistory, PlaintiffAttorneyWarrantCount, RollupMetadata, TopEvictor)
 import Rollbar exposing (Rollbar)
 import Runtime exposing (Runtime)
 import Scale exposing (BandConfig, BandScale, ContinuousScale, defaultBandConfig)
 import Session exposing (Session)
 import Shape exposing (defaultPieConfig)
+import Shape.Patch.Pie
 import Shared
-import Stats exposing (AmountAwardedMonth, DetainerWarrantsPerMonth, EvictionHistory, PlaintiffAttorneyWarrantCount, TopEvictor)
 import Svg exposing (Svg)
+import Svg.Path as SvgPath
 import Time exposing (Month(..))
 import Time.Extra as Time exposing (Parts, partsToPosix)
 import TypedSvg exposing (circle, g, rect, style, svg, text_)
@@ -68,10 +70,6 @@ type alias Model =
     { runtime : Runtime
     , hovering : List EvictionHistory
     , hoveringAmounts : List AmountAwardedMonth
-    , warrantsPerMonth : List DetainerWarrantsPerMonth
-    , plaintiffAttorneyWarrantCounts : List PlaintiffAttorneyWarrantCount
-    , rollupMeta : Maybe Rest.RollupMetadata
-    , amountAwardedHistory : Maybe (List Stats.AmountAwardedMonth)
     }
 
 
@@ -95,8 +93,13 @@ page =
 
 data : DataSource Data
 data =
-    topEvictorsData
-        |> DataSource.map (\evictors -> { topEvictors = evictors })
+    DataSource.map5 Data
+        topEvictorsData
+        -- |> DataSource.map (\evictors -> { topEvictors = evictors })
+        detainerWarrantsPerMonth
+        plaintiffAttorneyWarrantCountPerMonth
+        amountAwardedHistoryData
+        apiMetadata
 
 
 head :
@@ -121,6 +124,10 @@ head static =
 
 type alias Data =
     { topEvictors : List TopEvictor
+    , warrantsPerMonth : List DetainerWarrantsPerMonth
+    , plaintiffAttorneyWarrantCounts : List PlaintiffAttorneyWarrantCount
+    , amountAwardedHistory : List Rest.Static.AmountAwardedMonth
+    , rollupMeta : RollupMetadata
     }
 
 
@@ -147,26 +154,16 @@ view maybeUrl sharedModel model static =
                 [ Element.row []
                     [ chart model static ]
                 , Element.row []
-                    [ viewDetainerWarrantsHistory model.warrantsPerMonth
+                    [ viewDetainerWarrantsHistory static.data.warrantsPerMonth
                     ]
                 , Element.row [ Element.width fill ]
-                    [ viewPlaintiffAttorneyChart model.plaintiffAttorneyWarrantCounts ]
+                    [ viewPlaintiffAttorneyChart static.data.plaintiffAttorneyWarrantCounts ]
                 , Element.row [ Element.height (Element.px 30) ] []
-                , case model.amountAwardedHistory of
-                    Just amountAwardedHistory ->
-                        Element.row []
-                            [ amountAwardedChart model amountAwardedHistory
-                            ]
-
-                    Nothing ->
-                        Element.none
-                , case model.rollupMeta of
-                    Just rollupMeta ->
-                        Element.row [ Element.centerX ]
-                            [ Element.text ("Detainer Warrants updated via Red Door Collective members as of: " ++ dateFormatLong rollupMeta.lastWarrantUpdatedAt) ]
-
-                    Nothing ->
-                        Element.none
+                , Element.row []
+                    [ amountAwardedChart model static.data.amountAwardedHistory
+                    ]
+                , Element.row [ Element.centerX ]
+                    [ Element.text ("Detainer Warrants updated via Red Door Collective members as of: " ++ dateFormatLong static.data.rollupMeta.lastWarrantUpdatedAt) ]
                 ]
             ]
         ]
@@ -175,7 +172,7 @@ view maybeUrl sharedModel model static =
 
 topEvictorsData : DataSource (List TopEvictor)
 topEvictorsData =
-    DataSource.Http.get (Secrets.succeed "https://reddoorcollective.org/api/v1/rollup/plaintiffs")
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api "plaintiffs"))
         (list
             (decode TopEvictor
                 |> required "name" string
@@ -190,28 +187,28 @@ topEvictorsData =
         )
 
 
+detainerWarrantsPerMonth : DataSource (List DetainerWarrantsPerMonth)
+detainerWarrantsPerMonth =
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api "detainer-warrants"))
+        (list Rest.Static.detainerWarrantsPerMonthDecoder)
 
--- getDetainerWarrantsPerMonth : Cmd Msg
--- getDetainerWarrantsPerMonth =
---     Http.get
---         { url = "/api/v1/rollup/detainer-warrants"
---         , expect = Http.expectJson GotDetainerWarrantData (list Stats.detainerWarrantsPerMonthDecoder)
---         }
--- getPlaintiffAttorneyWarrantCountPerMonth : Cmd Msg
--- getPlaintiffAttorneyWarrantCountPerMonth =
---     Http.get
---         { url = "/api/v1/rollup/plaintiff-attorney"
---         , expect = Http.expectJson GotPlaintiffAttorneyWarrantCount (list Stats.plaintiffAttorneyWarrantCountDecoder)
---         }
--- getApiMetadata : Cmd Msg
--- getApiMetadata =
---     Http.get
---         { url = "/api/v1/rollup/meta"
---         , expect = Http.expectJson GotApiMeta Api.rollupMetadataDecoder
---         }
--- getAmountAwardedHistory : Cmd Msg
--- getAmountAwardedHistory =
---     Api.get Endpoint.amountAwardedHistory Nothing GotAmountAwardedHistory (Api.unpaginatedCollectionDecoder Stats.amountAwardedMonthDecoder)
+
+plaintiffAttorneyWarrantCountPerMonth : DataSource (List PlaintiffAttorneyWarrantCount)
+plaintiffAttorneyWarrantCountPerMonth =
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api "plaintiff-attorney"))
+        (list Rest.Static.plaintiffAttorneyWarrantCountDecoder)
+
+
+amountAwardedHistoryData : DataSource (List AmountAwardedMonth)
+amountAwardedHistoryData =
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api "amount-awarded/history"))
+        (Decode.field "data" (list Rest.Static.amountAwardedMonthDecoder))
+
+
+apiMetadata : DataSource RollupMetadata
+apiMetadata =
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api "meta"))
+        Rest.Static.rollupMetadataDecoder
 
 
 init :
@@ -223,10 +220,6 @@ init pageUrl sharedModel payload =
     ( { runtime = Runtime.default
       , hovering = []
       , hoveringAmounts = []
-      , warrantsPerMonth = []
-      , plaintiffAttorneyWarrantCounts = []
-      , rollupMeta = Nothing
-      , amountAwardedHistory = Nothing
       }
     , Cmd.none
       -- , Cmd.batch
@@ -270,12 +263,6 @@ update pageUrl navKey sharedModel payload msg model =
             error rollbar << Log.httpErrorMessage
     in
     case msg of
-        -- GotEvictionData result ->
-        --     case result of
-        --         Ok topEvictors ->
-        --             ( { model | topEvictors = topEvictors }, Cmd.none )
-        --         Err httpError ->
-        --             ( model, logHttpError httpError )
         -- GotDetainerWarrantData result ->
         --     case result of
         --         Ok warrantsPerMonth ->
@@ -294,8 +281,6 @@ update pageUrl navKey sharedModel payload msg model =
         --             ( { model | rollupMeta = Just rollupMeta }, Cmd.none )
         --         Err httpError ->
         --             ( model, logHttpError httpError )
-        -- GotAmountAwardedHistory (Ok collection) ->
-        --     ( { model | amountAwardedHistory = Just collection.data }, Cmd.none )
         -- GotAmountAwardedHistory (Err httpError) ->
         --     ( model, logHttpError httpError )
         Hover hovering ->
@@ -754,9 +739,8 @@ viewPlaintiffAttorneyChart counts =
             Array.fromList pieColors
 
         makeSlice index datum =
-            Svg.g [] []
+            SvgPath.element (Shape.Patch.Pie.arc datum) [ Attr.fill <| Paint <| Maybe.withDefault Color.black <| Array.get index colors, stroke <| Paint <| Color.white ]
 
-        -- SvgPath.element (Shape.arc datum) [ Attr.fill <| Paint <| Maybe.withDefault Color.black <| Array.get index colors, stroke <| Paint <| Color.white ]
         makeLabel slice ( name, percentage ) =
             let
                 ( x, y ) =

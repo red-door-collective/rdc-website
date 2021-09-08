@@ -1,4 +1,4 @@
-port module Rest exposing (Collection, Cred, Flags, Item, PageMeta, RollupMetadata, UnpaginatedCollection, Window, addServerError, application, campaignApiDecoder, collectionDecoder, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, onStoreChange, pageMetaDecoder, patch, posix, post, put, rollupMetadataDecoder, storeCache, storeCred, unpaginatedCollectionDecoder, userApiDecoder, users, viewerChanges)
+port module Rest exposing (Collection, Cred, Flags, Item, PageMeta, UnpaginatedCollection, Window, addServerError, application, campaignApiDecoder, collectionDecoder, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, onStoreChange, pageMetaDecoder, patch, posix, post, put, storeCache, storeCred, unpaginatedCollectionDecoder, userApiDecoder, users, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -388,19 +388,9 @@ type alias Item data =
     }
 
 
-type alias RollupMetadata =
-    { lastWarrantUpdatedAt : Time.Posix }
-
-
 posix : Decoder Time.Posix
 posix =
     Decode.map Time.millisToPosix int
-
-
-rollupMetadataDecoder : Decoder RollupMetadata
-rollupMetadataDecoder =
-    Decode.succeed RollupMetadata
-        |> required "last_detainer_warrant_update" posix
 
 
 pageMetaDecoder : Decoder PageMeta
