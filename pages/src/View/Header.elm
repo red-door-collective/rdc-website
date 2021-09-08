@@ -47,6 +47,10 @@ view toggleMobileMenuMsg currentPath =
             { url = "/about"
             , label = Element.text "About"
             }
+        , headerLink []
+            { url = "/glossary"
+            , label = Element.text "Glossary"
+            }
         ]
 
 
