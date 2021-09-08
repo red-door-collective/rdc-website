@@ -6,6 +6,7 @@ import Axis
 import Browser.Navigation
 import Color
 import DataSource exposing (DataSource)
+import DataSource.Http
 import DateFormat exposing (format, monthNameAbbreviated)
 import Element exposing (Device, Element, fill)
 import Element.Background as Background
@@ -17,7 +18,6 @@ import FormatNumber.Locales exposing (usLocale)
 import Head
 import Head.Seo as Seo
 import Html exposing (Html)
-import Json.Decode as Decode exposing (list)
 import LineChart as LineChart
 import LineChart.Area as Area
 import LineChart.Axis as Axis
@@ -37,8 +37,11 @@ import LineChart.Junk as Junk
 import LineChart.Legends as Legends
 import LineChart.Line as Line
 import Log
+import OptimizedDecoder as Decode exposing (float, int, list, string)
+import OptimizedDecoder.Pipeline exposing (decode, optional, required)
 import Page exposing (Page, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
+import Pages.Secrets as Secrets
 import Pages.Url
 import Palette
 import Path exposing (Path)
@@ -63,7 +66,6 @@ import View exposing (View)
 
 type alias Model =
     { runtime : Runtime
-    , topEvictors : List TopEvictor
     , hovering : List EvictionHistory
     , hoveringAmounts : List AmountAwardedMonth
     , warrantsPerMonth : List DetainerWarrantsPerMonth
@@ -93,7 +95,8 @@ page =
 
 data : DataSource Data
 data =
-    DataSource.succeed ()
+    topEvictorsData
+        |> DataSource.map (\evictors -> { topEvictors = evictors })
 
 
 head :
@@ -117,7 +120,8 @@ head static =
 
 
 type alias Data =
-    ()
+    { topEvictors : List TopEvictor
+    }
 
 
 view :
@@ -141,7 +145,7 @@ view maybeUrl sharedModel model static =
                 , Element.width fill
                 ]
                 [ Element.row []
-                    [ chart model ]
+                    [ chart model static ]
                 , Element.row []
                     [ viewDetainerWarrantsHistory model.warrantsPerMonth
                     ]
@@ -169,13 +173,24 @@ view maybeUrl sharedModel model static =
     }
 
 
+topEvictorsData : DataSource (List TopEvictor)
+topEvictorsData =
+    DataSource.Http.get (Secrets.succeed "https://reddoorcollective.org/api/v1/rollup/plaintiffs")
+        (list
+            (decode TopEvictor
+                |> required "name" string
+                |> required "history"
+                    (list
+                        (decode EvictionHistory
+                            |> required "date" float
+                            |> required "eviction_count" float
+                        )
+                    )
+            )
+        )
 
--- getEvictionData : Cmd Msg
--- getEvictionData =
---     Http.get
---         { url = "/api/v1/rollup/plaintiffs"
---         , expect = Http.expectJson GotEvictionData (list Stats.topEvictorDecoder)
---         }
+
+
 -- getDetainerWarrantsPerMonth : Cmd Msg
 -- getDetainerWarrantsPerMonth =
 --     Http.get
@@ -206,7 +221,6 @@ init :
     -> ( Model, Cmd Msg )
 init pageUrl sharedModel payload =
     ( { runtime = Runtime.default
-      , topEvictors = []
       , hovering = []
       , hoveringAmounts = []
       , warrantsPerMonth = []
@@ -322,8 +336,8 @@ lines topEvictors =
     List.indexedMap (\index evictor -> viewTopEvictorLine (LineChart.line (color index) (shape index)) evictor) topEvictors
 
 
-chart : Model -> Element Msg
-chart model =
+chart : Model -> StaticPayload Data RouteParams -> Element Msg
+chart model static =
     Element.column [ Element.centerX ]
         [ Element.paragraph [ Region.heading 1, Font.size 20, Font.bold, Font.center ] [ Element.text "Top 10 Evictors in Davidson Co. TN by month" ]
         , Element.row []
@@ -342,7 +356,7 @@ chart model =
                     , line = Line.default
                     , dots = Dots.hoverMany model.hovering
                     }
-                    (lines model.topEvictors)
+                    (lines static.data.topEvictors)
                 )
             ]
         ]
