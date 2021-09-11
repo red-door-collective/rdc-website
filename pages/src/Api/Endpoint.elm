@@ -107,7 +107,7 @@ plaintiff domain id =
 
 plaintiffsSearch : String -> List Param -> Endpoint
 plaintiffsSearch domain params =
-    url domain [ "plaintiffs" ] (toQueryArgs params)
+    url domain [ "plaintiffs", "" ] (toQueryArgs params)
 
 
 attorneys : String -> List Param -> Endpoint
