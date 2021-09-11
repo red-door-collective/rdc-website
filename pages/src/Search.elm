@@ -1,7 +1,9 @@
-module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsQuery, plaintiffsArgs, plaintiffsDefault, plaintiffsQuery, toPair)
+module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsQuery, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsQuery, toPair)
 
 import Api.Endpoint exposing (toQueryArgs)
 import Date exposing (Date)
+import Dict
+import QueryParams
 import Url.Builder
 
 
@@ -43,6 +45,23 @@ detainerWarrantsDefault =
     , plaintiffAttorney = Nothing
     , defendant = Nothing
     , address = Nothing
+    }
+
+
+dwFromString : String -> DetainerWarrants
+dwFromString str =
+    let
+        params =
+            QueryParams.fromString str
+                |> QueryParams.toDict
+    in
+    { docketId = Dict.get "docket_id" params |> Maybe.andThen List.head
+    , fileDate = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.map Date.fromIsoString |> Maybe.andThen Result.toMaybe
+    , courtDate = Dict.get "court_date" params |> Maybe.andThen List.head |> Maybe.map Date.fromIsoString |> Maybe.andThen Result.toMaybe
+    , plaintiff = Dict.get "plaintiff" params |> Maybe.andThen List.head
+    , plaintiffAttorney = Dict.get "plaintiff_attorney" params |> Maybe.andThen List.head
+    , defendant = Dict.get "defendant_name" params |> Maybe.andThen List.head
+    , address = Dict.get "address" params |> Maybe.andThen List.head
     }
 
 

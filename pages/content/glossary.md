@@ -72,6 +72,7 @@ Faith-based housing justice group.
 Housing policy advocacy group.
 
 ### Metropolitan Action Commission (MAC)
+
 Administers the Emergency Rental Assistance program as part of its HOPE (Housing, Opportunity, Partnership and Employment) Program. This housing assistance “will help renters impacted by COVID-19 catch up on past due payments that are behind as much as 12 months” and this can be rent or utilities
 
 ### United Way Help Line

@@ -1,24 +1,84 @@
-module Page.Login exposing (Model, Msg, init, subscriptions, toSession, update, view)
+module Page.Login exposing (Data, Model, Msg, page)
 
 {-| The login page.
 -}
 
-import Api exposing (Cred)
 import Browser.Navigation as Nav
+import DataSource exposing (DataSource)
+import DataSource.Port
 import Element exposing (Element, centerX, column, fill, maximum, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Head
+import Head.Seo as Seo
 import Html.Events
 import Http
-import Json.Decode as Decode exposing (Decoder, decodeString, field, string)
-import Json.Decode.Pipeline exposing (optional)
+import Json.Decode
 import Json.Encode as Encode
+import OptimizedDecoder as Decode exposing (Decoder, decodeString, field, string)
+import OptimizedDecoder.Pipeline exposing (optional)
+import Page exposing (Page, PageWithState, StaticPayload)
+import Pages.PageUrl exposing (PageUrl)
+import Pages.Url
 import Palette
+import Path exposing (Path)
+import Rest exposing (Cred)
+import Rest.Static
 import Route exposing (Route)
+import Runtime exposing (Runtime)
 import Session exposing (Session)
+import Shared
+import View exposing (View)
 import Viewer exposing (Viewer)
+
+
+type alias RouteParams =
+    {}
+
+
+page : Page.PageWithState RouteParams Data Model Msg
+page =
+    Page.single
+        { head = head
+        , data = data
+        }
+        |> Page.buildWithLocalState
+            { init = init
+            , update = update
+            , view = view
+            , subscriptions = subscriptions
+            }
+
+
+type alias Data =
+    ()
+
+
+data : DataSource Data
+data =
+    DataSource.succeed ()
+
+
+head :
+    StaticPayload Data RouteParams
+    -> List Head.Tag
+head static =
+    Seo.summary
+        { canonicalUrlOverride = Nothing
+        , siteName = "Red Door Collective"
+        , image =
+            { url = Pages.Url.external "https://reddoorcollective.org"
+            , alt = "Red Door Collective Logo"
+            , dimensions = Nothing
+            , mimeType = Nothing
+            }
+        , description = "Red Door Collective Admin Login"
+        , locale = Nothing
+        , title = "Login"
+        }
+        |> Seo.website
 
 
 
@@ -46,9 +106,13 @@ type alias Form =
     }
 
 
-init : Session -> ( Model, Cmd msg )
-init session =
-    ( { session = session
+init :
+    Maybe PageUrl
+    -> Shared.Model
+    -> StaticPayload Data RouteParams
+    -> ( Model, Cmd Msg )
+init pageUrl sharedModel static =
+    ( { session = sharedModel.session
       , problems = []
       , form =
             { email = ""
@@ -67,28 +131,34 @@ onEnter : msg -> Element.Attribute msg
 onEnter msg =
     Element.htmlAttribute
         (Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
+            (Json.Decode.field "key" Json.Decode.string
+                |> Json.Decode.andThen
                     (\key ->
                         if key == "Enter" then
-                            Decode.succeed msg
+                            Json.Decode.succeed msg
 
                         else
-                            Decode.fail "Not the enter key"
+                            Json.Decode.fail "Not the enter key"
                     )
             )
         )
 
 
-view : Model -> { title : String, content : Element Msg }
-view model =
+view :
+    Maybe PageUrl
+    -> Shared.Model
+    -> Model
+    -> StaticPayload Data RouteParams
+    -> View Msg
+view maybeUrl sharedModel model static =
     { title = "Login"
-    , content =
-        column [ width (fill |> maximum 1000), centerX, spacing 20, padding 20 ]
+    , body =
+        [ column [ width (fill |> maximum 1000), centerX, spacing 20, padding 20 ]
             [ row [ Font.size 24, centerX ] [ text "Sign in" ]
             , row [ centerX ] (List.map viewProblem model.problems)
             , viewForm model.form
             ]
+        ]
     }
 
 
@@ -154,14 +224,21 @@ type Msg
     | GotSession Session
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update :
+    PageUrl
+    -> Maybe Nav.Key
+    -> Shared.Model
+    -> StaticPayload Data RouteParams
+    -> Msg
+    -> Model
+    -> ( Model, Cmd Msg )
+update pageUrl navKey sharedModel payload msg model =
     case msg of
         SubmittedForm ->
             case validate model.form of
                 Ok validForm ->
                     ( { model | problems = [] }
-                    , login validForm
+                    , login (Runtime.domain payload.sharedData.runtime.environment) validForm
                     )
 
                 Err problems ->
@@ -178,7 +255,7 @@ update msg model =
         CompletedLogin (Err error) ->
             let
                 serverErrors =
-                    Api.decodeErrors error
+                    Rest.decodeErrors error
                         |> List.map ServerError
             in
             ( { model | problems = List.append model.problems serverErrors }
@@ -192,7 +269,7 @@ update msg model =
 
         GotSession session ->
             ( { model | session = session }
-            , Route.replaceUrl (Session.navKey session) Route.Root
+            , Maybe.withDefault Cmd.none <| Maybe.map (\key -> Nav.replaceUrl key "/dashboard") (Session.navKey session)
             )
 
 
@@ -208,8 +285,8 @@ updateForm transform model =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
+subscriptions pageUrl params path model =
     Session.changes GotSession (Session.navKey model.session)
 
 
@@ -288,8 +365,8 @@ trimFields form =
 -- HTTP
 
 
-login : TrimmedForm -> Cmd Msg
-login (Trimmed form) =
+login : String -> TrimmedForm -> Cmd Msg
+login domain (Trimmed form) =
     let
         user =
             Encode.object
@@ -300,13 +377,4 @@ login (Trimmed form) =
         body =
             Http.jsonBody user
     in
-    Api.login body CompletedLogin Viewer.decoder
-
-
-
--- EXPORT
-
-
-toSession : Model -> Session
-toSession model =
-    model.session
+    Rest.login domain body CompletedLogin Viewer.decoder

@@ -11,12 +11,15 @@ module Rest.Static exposing
     , evictionHistoryDecoder
     , plaintiffAttorneyWarrantCountDecoder
     , rollupMetadataDecoder
+    , storageDecoder
     , topEvictorDecoder
     )
 
 import OptimizedDecoder as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import OptimizedDecoder.Pipeline exposing (optional, required)
+import Rest exposing (Cred(..))
 import Time
+import Url.Builder
 
 
 type alias RollupMetadata =
@@ -55,9 +58,32 @@ type alias AmountAwardedMonth =
     }
 
 
-api : String -> String
-api path =
-    "https://reddoorcollective.org/api/v1/rollup/" ++ path
+api : String -> String -> String
+api domain path =
+    Url.Builder.crossOrigin domain [ "api", "v1", "rollup", path ] []
+
+
+{-| It's important that this is never exposed!
+We expose `login` and `application` instead, so we can be certain that if anyone
+ever has access to a `Cred` value, it came from either the login API endpoint
+or was passed in via flags.
+-}
+credDecoder : Decoder Cred
+credDecoder =
+    Decode.succeed Cred
+        |> required "authentication_token" Decode.string
+
+
+decoderFromCred : Decoder (Cred -> a) -> Decoder a
+decoderFromCred decoder =
+    Decode.map2 (\fromCred cred -> fromCred cred)
+        decoder
+        credDecoder
+
+
+storageDecoder : Decoder (Cred -> viewer) -> Decoder viewer
+storageDecoder viewerDecoder =
+    Decode.field "user" (decoderFromCred viewerDecoder)
 
 
 posix : Decoder Time.Posix

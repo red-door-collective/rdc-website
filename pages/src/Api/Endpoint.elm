@@ -46,11 +46,12 @@ unwrap (Endpoint str) =
     str
 
 
-url : List String -> List QueryParameter -> Endpoint
-url paths queryParams =
+url : String -> List String -> List QueryParameter -> Endpoint
+url domain paths queryParams =
     -- NOTE: Url.Builder takes care of percent-encoding special URL characters.
     -- See https://package.elm-lang.org/packages/elm/url/latest/Url#percentEncode
-    Url.Builder.absolute
+    Url.Builder.crossOrigin
+        domain
         ("api" :: "v1" :: paths)
         queryParams
         |> Endpoint
@@ -60,19 +61,19 @@ url paths queryParams =
 -- ENDPOINTS
 
 
-login : Endpoint
-login =
-    url [ "accounts", "login" ] [ string "include_auth_token" "true" ]
+login : String -> Endpoint
+login domain =
+    url domain [ "accounts", "login" ] [ string "include_auth_token" "true" ]
 
 
-logout : Endpoint
-logout =
-    url [ "accounts", "logout" ] []
+logout : String -> Endpoint
+logout domain =
+    url domain [ "accounts", "logout" ] []
 
 
-detainerWarrants : Endpoint
-detainerWarrants =
-    url [ "detainer-warrants" ] []
+detainerWarrants : String -> Endpoint
+detainerWarrants domain =
+    url domain [ "detainer-warrants" ] []
 
 
 type alias Param =
@@ -84,125 +85,125 @@ toQueryArgs params =
     List.map (\( k, v ) -> string k v) params
 
 
-detainerWarrantsSearch : List Param -> Endpoint
-detainerWarrantsSearch params =
-    url [ "detainer-warrants" ] (toQueryArgs params)
+detainerWarrantsSearch : String -> List Param -> Endpoint
+detainerWarrantsSearch domain params =
+    url domain [ "detainer-warrants", "" ] (toQueryArgs params)
 
 
-detainerWarrant : String -> Endpoint
-detainerWarrant id =
-    url [ "detainer-warrants", id ] []
+detainerWarrant : String -> String -> Endpoint
+detainerWarrant domain id =
+    url domain [ "detainer-warrants", id ] []
 
 
-plaintiffs : List Param -> Endpoint
-plaintiffs =
-    url [ "plaintiffs", "" ] << toQueryArgs
+plaintiffs : String -> List Param -> Endpoint
+plaintiffs domain =
+    url domain [ "plaintiffs", "" ] << toQueryArgs
 
 
-plaintiff : Int -> Endpoint
-plaintiff id =
-    url [ "plaintiffs", String.fromInt id ] []
+plaintiff : String -> Int -> Endpoint
+plaintiff domain id =
+    url domain [ "plaintiffs", String.fromInt id ] []
 
 
-plaintiffsSearch : List Param -> Endpoint
-plaintiffsSearch params =
-    url [ "plaintiffs" ] (toQueryArgs params)
+plaintiffsSearch : String -> List Param -> Endpoint
+plaintiffsSearch domain params =
+    url domain [ "plaintiffs" ] (toQueryArgs params)
 
 
-attorneys : List Param -> Endpoint
-attorneys =
-    url [ "attorneys", "" ] << toQueryArgs
+attorneys : String -> List Param -> Endpoint
+attorneys domain =
+    url domain [ "attorneys", "" ] << toQueryArgs
 
 
-attorney : Int -> Endpoint
-attorney id =
-    url [ "attorneys", String.fromInt id ] []
+attorney : String -> Int -> Endpoint
+attorney domain id =
+    url domain [ "attorneys", String.fromInt id ] []
 
 
-judges : List Param -> Endpoint
-judges =
-    url [ "judges", "" ] << toQueryArgs
+judges : String -> List Param -> Endpoint
+judges domain =
+    url domain [ "judges", "" ] << toQueryArgs
 
 
-judge : Int -> Endpoint
-judge id =
-    url [ "judges", String.fromInt id ] []
+judge : String -> Int -> Endpoint
+judge domain id =
+    url domain [ "judges", String.fromInt id ] []
 
 
-defendants : List Param -> Endpoint
-defendants =
-    url [ "defendants", "" ] << toQueryArgs
+defendants : String -> List Param -> Endpoint
+defendants domain =
+    url domain [ "defendants", "" ] << toQueryArgs
 
 
-defendant : Int -> Endpoint
-defendant id =
-    url [ "defendants", String.fromInt id ] []
+defendant : String -> Int -> Endpoint
+defendant domain id =
+    url domain [ "defendants", String.fromInt id ] []
 
 
-judgements : List Param -> Endpoint
-judgements =
-    url [ "judgements", "" ] << toQueryArgs
+judgements : String -> List Param -> Endpoint
+judgements domain =
+    url domain [ "judgements", "" ] << toQueryArgs
 
 
-judgement : Int -> Endpoint
-judgement id =
-    url [ "judgements", String.fromInt id ] []
+judgement : String -> Int -> Endpoint
+judgement domain id =
+    url domain [ "judgements", String.fromInt id ] []
 
 
-courtrooms : List Param -> Endpoint
-courtrooms =
-    url [ "courtrooms", "" ] << toQueryArgs
+courtrooms : String -> List Param -> Endpoint
+courtrooms domain =
+    url domain [ "courtrooms", "" ] << toQueryArgs
 
 
-courtroom : Int -> Endpoint
-courtroom id =
-    url [ "courtrooms", String.fromInt id ] []
+courtroom : String -> Int -> Endpoint
+courtroom domain id =
+    url domain [ "courtrooms", String.fromInt id ] []
 
 
-campaigns : Endpoint
-campaigns =
-    url [ "campaigns" ] []
+campaigns : String -> Endpoint
+campaigns domain =
+    url domain [ "campaigns", "" ] []
 
 
-campaign : Int -> Endpoint
-campaign id =
-    url [ "campaigns", String.fromInt id ] []
+campaign : String -> Int -> Endpoint
+campaign domain id =
+    url domain [ "campaigns", String.fromInt id ] []
 
 
-event : Int -> Endpoint
-event id =
-    url [ "events", String.fromInt id ] []
+event : String -> Int -> Endpoint
+event domain id =
+    url domain [ "events", String.fromInt id ] []
 
 
-users : Endpoint
-users =
-    url [ "users" ] []
+users : String -> Endpoint
+users domain =
+    url domain [ "users" ] []
 
 
-currentUser : Endpoint
-currentUser =
-    url [ "current_user" ] []
+currentUser : String -> Endpoint
+currentUser domain =
+    url domain [ "current_user" ] []
 
 
 
 -- STATS ENDPOINTS
 
 
-detainerWarrantStats : Endpoint
-detainerWarrantStats =
-    url [ "rollup", "detainer-warrants" ] []
+detainerWarrantStats : String -> Endpoint
+detainerWarrantStats domain =
+    url domain [ "rollup", "detainer-warrants" ] []
 
 
-amountAwardedHistory : Endpoint
-amountAwardedHistory =
-    url [ "rollup", "amount-awarded", "history" ] []
+amountAwardedHistory : String -> Endpoint
+amountAwardedHistory domain =
+    url domain [ "rollup", "amount-awarded", "history" ] []
 
 
-plaintiffAttorneyStats : Endpoint
-plaintiffAttorneyStats =
-    url [ "plaintiff-attorneys" ] []
+plaintiffAttorneyStats : String -> Endpoint
+plaintiffAttorneyStats domain =
+    url domain [ "plaintiff-attorneys" ] []
 
 
-evictionStats : Endpoint
-evictionStats =
-    url [ "plaintiffs" ] []
+evictionStats : String -> Endpoint
+evictionStats domain =
+    url domain [ "plaintiffs" ] []

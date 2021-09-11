@@ -1,119 +1,42 @@
 [tool.poetry]
 name = "eviction-tracker"
-version = "0.1.0"
+version = "1.0.0"
 description = "A court data site for use by the people"
 authors = ["Greg Ziegan <greg.ziegan@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-psycopg2 = "^2.8.5"
-babel = "^2.9.0"
-pdbpp = "^0.10.2"
-Flask = "^1.1.2"
-click = "^7.1.2"
-gspread = "^3.7.0"
+psycopg2 = "^2.9.1"
+Flask = "^2.0.1"
+click = "^8.0.1"
+gspread = "^4.0.1"
 flask-marshmallow = "^0.14.0"
-Flask-Testing = "^0.8.1"
-marshmallow-sqlalchemy = "^0.24.2"
-Flask-SQLAlchemy = "^2.4.4"
-Flask-Migrate = "^2.7.0"
-Flask-Assets = "^2.0"
-PyYAML = "^5.4.1"
-Flask-RESTy = "^1.6.0"
+marshmallow-sqlalchemy = "^0.26.1"
+Flask-SQLAlchemy = "^2.5.1"
+Flask-Migrate = "^3.1.0"
+Flask-RESTy = "^1.8.0"
 Flask-Login = "^0.5.0"
-sqlalchemy = "~1.3"
-Flask-Security-Too = "4.0.0"
+SQLAlchemy = "^1.4.23"
+Flask-Security-Too = "^4.1.0"
 bcrypt = "^3.2.0"
-twilio = "^6.55.0"
-phonenumbers = "^8.12.20"
+twilio = "^6.63.2"
+phonenumbers = "^8.12.31"
 pyquery = "^1.4.3"
 nameparser = "^1.0.6"
 APScheduler = "^3.7.0"
 Flask-APScheduler = "1.12.1"
 usaddress = "^0.5.10"
 datadog = "^0.42.0"
-setproctitle = "^1.2.2"
 python-json-logger = "^2.0.2"
-gspread-formatting = "^1.0.3"
-jellyfish = "^0.8.4"
-
+gspread-formatting = "^1.0.4"
+jellyfish = "^0.8.8"
+Flask-Cors = "^3.0.10"
 
 [tool.poetry.dev-dependencies]
-colorama = "^0.4.3"
-coverage = {extras = ["toml"], version = "^5.2.1"}
-mimesis-factory = "^1.1.0"
-pytest = "^6.0.1"
-pytest-cov = "^2.8.1"
-pytest-instafail = "^0.4.1"
-pytest-localserver = "^0.5.0"
-pytest-mock = "^3.1.0"
-pytest-pspec = "^0.0.4"
-responses = "^0.10.14"
-webtest = "^2.0.35"
+autopep8 = "^1.5.7"
 python-language-server = "^0.36.2"
-pyls-isort = "^0.2.0"
-ipykernel = "^5.5.0"
-autopep8 = "^1.5.5"
-numpy = "^1.20.1"
-
-
-[tool.coverage.report]
-skip_covered = true
-# Regexes for lines to exclude from consideration
-exclude_lines = [
-    "pragma: no cover",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:"
-]
-
-
-[tool.coverage.run]
-source = [
-    "eviction_tracker"
-]
-omit = [
-    "src/eviction_tracker/runserver.py",
-    "src/eviction_tracker/concepts/*/__init__.py",
-    "src/eviction_tracker/runserver_production_deps.py",
-    "src/eviction_tracker/pathtool.py",
-    "src/eviction_tracker/whytool.py"
-]
-
-[tool.pylint.basic]
-good-names = "q, s, f, wf, m, k, v, id"
-
-[tool.pylint.imports] # Taken care of by isort, mostly included for error messages
-known-third-party="ekklesia_common"
-
-
-[tool.pylint.master]
-disable = "C0114, C0115, C0116, R0903"
-
-
-[tool.pylint.format]
-max-line-length="120"
-ignore-long-lines="^\\s*(# )?<?https?://\\S+>?$"
-
-
-[tool.pytest.ini_options]
-addopts = """\
-  --show-capture=no \
-  -ra \
-  --tb=short \
-  -k "not integration" \
-  --strict-markers \
-"""
-filterwarnings = [
-  "ignore::DeprecationWarning"
-]
-norecursedirs = "tests/helpers"
-testpaths = "tests"
-markers = [
-  "integration: An Integration test which is allowed to modify the test database."
-]
-
+Flask-Testing = "^0.8.1"
 
 [build-system]
-requires = ["poetry>=0.12"]
+requires = ["poetry>=1.1.8"]
 build-backend = "poetry.masonry.api"

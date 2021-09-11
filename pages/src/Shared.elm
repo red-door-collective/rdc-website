@@ -2,17 +2,26 @@ module Shared exposing (Data, Model, Msg, template)
 
 import Browser.Navigation
 import DataSource exposing (DataSource)
+import DataSource.Port
 import Element exposing (Element, fill, width)
 import Element.Font as Font
 import Html exposing (Html)
 import Html.Styled
-import Pages.Flags
+import Json.Encode as Encode
+import OptimizedDecoder as Decode exposing (Decoder, int, string)
+import OptimizedDecoder.Pipeline exposing (optional, required)
+import Pages.Flags exposing (Flags(..))
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
+import Rest exposing (Window)
+import Rest.Static
 import Route exposing (Route)
+import Runtime exposing (Runtime)
+import Session exposing (Session)
 import SharedTemplate exposing (SharedTemplate)
 import View exposing (View)
 import View.Header
+import Viewer
 
 
 template : SharedTemplate Msg Model Data msg
@@ -33,18 +42,26 @@ type Msg
         , fragment : Maybe String
         }
     | ToggleMobileMenu
-    | IncrementFromChild
 
 
 type alias Data =
-    ()
+    { runtime : Runtime
+    }
 
 
 type alias Model =
     { showMobileMenu : Bool
-    , counter : Int
     , navigationKey : Maybe Browser.Navigation.Key
+    , session : Session
+    , queryParams : Maybe String
     }
+
+
+windowDecoder : Decoder Window
+windowDecoder =
+    Decode.succeed Window
+        |> required "width" int
+        |> required "height" int
 
 
 init :
@@ -63,8 +80,19 @@ init :
     -> ( Model, Cmd Msg )
 init navigationKey flags maybePagePath =
     ( { showMobileMenu = False
-      , counter = 0
       , navigationKey = navigationKey
+      , session =
+            case flags of
+                BrowserFlags value ->
+                    Decode.decodeValue (Decode.field "viewer" string) value
+                        |> Result.andThen (Decode.decodeString (Rest.Static.storageDecoder Viewer.staticDecoder))
+                        |> Result.toMaybe
+                        |> Session.fromViewer navigationKey
+
+                PreRenderFlags ->
+                    Session.fromViewer Nothing Nothing
+      , queryParams =
+            Maybe.andThen (.query << .path) maybePagePath
       }
     , Cmd.none
     )
@@ -79,9 +107,6 @@ update msg model =
         ToggleMobileMenu ->
             ( { model | showMobileMenu = not model.showMobileMenu }, Cmd.none )
 
-        IncrementFromChild ->
-            ( { model | counter = model.counter + 1 }, Cmd.none )
-
 
 subscriptions : Path -> Model -> Sub Msg
 subscriptions _ _ =
@@ -89,7 +114,22 @@ subscriptions _ _ =
 
 
 data =
-    DataSource.succeed ()
+    DataSource.map Data
+        (DataSource.map4 Runtime
+            (DataSource.Port.get "environmentVariable"
+                (Encode.string "ENV")
+                Runtime.decodeEnvironment
+            )
+            (DataSource.Port.get "environmentVariable"
+                (Encode.string "ROLLBAR_CLIENT_TOKEN")
+                Runtime.decodeToken
+            )
+            (DataSource.Port.get "environmentVariable"
+                (Encode.string "VERSION")
+                Runtime.decodeCodeVersion
+            )
+            (DataSource.Port.get "today" (Encode.string "meh") Runtime.decodeDate)
+        )
 
 
 view :
@@ -104,7 +144,7 @@ view :
     -> { body : Html msg, title : String }
 view tableOfContents page model toMsg pageView =
     { body =
-        (View.Header.view ToggleMobileMenu page.path
+        (View.Header.view model.session ToggleMobileMenu page.path
             |> Element.map toMsg
         )
             :: pageView.body

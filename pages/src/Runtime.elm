@@ -1,7 +1,7 @@
-module Runtime exposing (Environment, RollbarToken, Runtime, codeVersion, decode, default, environment, rollbarToken)
+module Runtime exposing (Environment, RollbarToken, Runtime, codeVersion, decode, decodeCodeVersion, decodeDate, decodeEnvironment, decodeToken, default, domain, environment, rollbarToken)
 
 import Date exposing (Date)
-import Json.Decode as Decode exposing (Decoder, field)
+import OptimizedDecoder as Decode exposing (Decoder, field)
 import Result
 import Time exposing (Month(..))
 
@@ -58,6 +58,19 @@ default =
     , codeVersion = CodeVersion "missing"
     , today = Date.fromCalendarDate 2021 Jan 1
     }
+
+
+domain : Environment -> String
+domain env =
+    case env of
+        Production ->
+            "https://reddoorcollective.org"
+
+        Staging ->
+            "https://reddoorcollective.org"
+
+        Development ->
+            "http://localhost:5000"
 
 
 decodeEnvironment : Decoder Environment

@@ -1,7 +1,7 @@
 import flask
-from flask import Flask, render_template, request, redirect
+from flask import Flask, request, redirect
 from flask_security import hash_password, auth_token_required
-from eviction_tracker.extensions import assets, db, marshmallow, migrate, api, login_manager, security
+from eviction_tracker.extensions import cors, db, marshmallow, migrate, api, login_manager, security
 from eviction_tracker.admin.models import User, user_datastore
 import yaml
 import os
@@ -79,14 +79,6 @@ def create_app(testing=False):
     register_extensions(app)
     register_shellcontext(app)
     register_commands(app)
-
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def index(path):
-        return render_template('index.html', env=app.config['ENV'],
-                               rollbar_token=app.config['ROLLBAR_CLIENT_TOKEN'],
-                               code_version=app.config['VERSION']
-                               )
 
     return app
 
@@ -258,11 +250,11 @@ def register_extensions(app):
     db.init_app(app)
     migrate.init_app(app, db)
     marshmallow.init_app(app)
-    assets.init_app(app)
     api.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = None
     security.init_app(app, user_datastore)
+    cors.init_app(app)
     flask_wtf.CSRFProtect(app)
 
     api.add_resource('/attorneys/', detainer_warrants.views.AttorneyListResource,

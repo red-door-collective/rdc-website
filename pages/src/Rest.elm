@@ -1,4 +1,4 @@
-port module Rest exposing (Collection, Cred, Flags, Item, PageMeta, UnpaginatedCollection, Window, addServerError, application, campaignApiDecoder, collectionDecoder, currentUser, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, onStoreChange, pageMetaDecoder, patch, posix, post, put, storeCache, storeCred, unpaginatedCollectionDecoder, userApiDecoder, users, viewerChanges)
+port module Rest exposing (Collection, Cred(..), Flags, Item, PageMeta, UnpaginatedCollection, Window, addServerError, campaignApiDecoder, collectionDecoder, currentUser, decode, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, onStoreChange, pageMetaDecoder, patch, posix, post, put, storageDecoder, storeCache, storeCred, unpaginatedCollectionDecoder, userApiDecoder, users, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -46,7 +46,9 @@ type Cred
 
 credHeaders : Cred -> List Http.Header
 credHeaders (Cred str) =
-    [ Http.header "authorization" ("Bearer " ++ str), Http.header "authentication-token" str ]
+    [ Http.header "authorization" ("Bearer " ++ str)
+    , Http.header "authentication-token" str
+    ]
 
 
 {-| It's important that this is never exposed!
@@ -90,6 +92,11 @@ decodeFromChange viewerDecoder val =
         |> Result.toMaybe
 
 
+storageDecoder : Decoder (Cred -> viewer) -> Decoder viewer
+storageDecoder viewerDecoder =
+    Decode.field "user" (decoderFromCred viewerDecoder)
+
+
 storeCred : Cred -> Cmd msg
 storeCred (Cred token) =
     let
@@ -105,9 +112,9 @@ storeCred (Cred token) =
     storeCache (Just json)
 
 
-logout : Maybe Cred -> (Result Http.Error () -> msg) -> Cmd msg
-logout cred toMsg =
-    Cmd.batch [ throwaway Endpoint.logout cred toMsg, storeCache Nothing ]
+logout : String -> Maybe Cred -> (Result Http.Error () -> msg) -> Cmd msg
+logout domain cred toMsg =
+    Cmd.batch [ throwaway (Endpoint.logout domain) cred toMsg, storeCache Nothing ]
 
 
 port storeCache : Maybe Value -> Cmd msg
@@ -130,53 +137,6 @@ windowDecoder =
     Decode.succeed Window
         |> required "width" int
         |> required "height" int
-
-
-application :
-    Decoder (Cred -> viewer)
-    ->
-        { init : Flags viewer -> Url -> Nav.Key -> ( model, Cmd msg )
-        , onUrlChange : Url -> msg
-        , onUrlRequest : Browser.UrlRequest -> msg
-        , subscriptions : model -> Sub msg
-        , update : msg -> model -> ( model, Cmd msg )
-        , view : model -> Browser.Document msg
-        }
-    -> Program Value model msg
-application viewerDecoder config =
-    let
-        init flags url navKey =
-            let
-                window =
-                    flags
-                        |> Decode.decodeValue (Decode.field "window" windowDecoder)
-                        |> Result.withDefault { width = 0, height = 0 }
-
-                maybeViewer =
-                    Decode.decodeValue (Decode.field "viewer" string) flags
-                        |> Result.andThen (Decode.decodeString (storageDecoder viewerDecoder))
-                        |> Result.toMaybe
-
-                runtime =
-                    flags
-                        |> Decode.decodeValue (Decode.field "runtime" Runtime.decode)
-                        |> Result.withDefault Runtime.default
-            in
-            config.init { window = window, viewer = maybeViewer, runtime = runtime } url navKey
-    in
-    Browser.application
-        { init = init
-        , onUrlChange = config.onUrlChange
-        , onUrlRequest = config.onUrlRequest
-        , subscriptions = config.subscriptions
-        , update = config.update
-        , view = config.view
-        }
-
-
-storageDecoder : Decoder (Cred -> viewer) -> Decoder viewer
-storageDecoder viewerDecoder =
-    Decode.field "user" (decoderFromCred viewerDecoder)
 
 
 get : Endpoint -> Maybe Cred -> (Result Error a -> msg) -> Decoder a -> Cmd msg
@@ -293,9 +253,9 @@ delete url maybeCred toMsg =
         }
 
 
-login : Http.Body -> (Result Error a -> msg) -> Decoder (Cred -> a) -> Cmd msg
-login body toMsg decoder =
-    post Endpoint.login Nothing body toMsg (Decode.field "response" (Decode.field "user" (decoderFromCred decoder)))
+login : String -> Http.Body -> (Result Error a -> msg) -> Decoder (Cred -> a) -> Cmd msg
+login domain body toMsg decoder =
+    post (Endpoint.login domain) Nothing body toMsg (Decode.field "response" (Decode.field "user" (decoderFromCred decoder)))
 
 
 decoderFromCred : Decoder (Cred -> a) -> Decoder a
@@ -305,14 +265,14 @@ decoderFromCred decoder =
         credDecoder
 
 
-users : Maybe Cred -> (Result Error a -> msg) -> Decoder a -> Cmd msg
-users maybeCred toMsg decoder =
-    get Endpoint.users maybeCred toMsg decoder
+users : String -> Maybe Cred -> (Result Error a -> msg) -> Decoder a -> Cmd msg
+users domain maybeCred toMsg decoder =
+    get (Endpoint.users domain) maybeCred toMsg decoder
 
 
-currentUser : Maybe Cred -> (Result Error a -> msg) -> Decoder a -> Cmd msg
-currentUser maybeCred toMsg decoder =
-    get Endpoint.currentUser maybeCred toMsg decoder
+currentUser : String -> Maybe Cred -> (Result Error a -> msg) -> Decoder a -> Cmd msg
+currentUser domain maybeCred toMsg decoder =
+    get (Endpoint.currentUser domain) maybeCred toMsg decoder
 
 
 

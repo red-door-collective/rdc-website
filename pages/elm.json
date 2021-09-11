@@ -7,9 +7,12 @@
     "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
+            "FabienHenon/elm-infinite-scroll": "3.0.3",
             "MartinSStewart/elm-serialize": "1.2.5",
+            "Massolari/elm-mask": "1.1.0",
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
             "NoRedInk/elm-rollbar": "2.0.1",
+            "Orasund/elm-ui-widgets": "3.1.0",
             "PaackEng/elm-ui-dropdown": "3.2.0",
             "avh4/elm-color": "1.0.0",
             "cuducos/elm-format-number": "8.1.4",
@@ -27,9 +30,11 @@
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
             "elm-community/list-extra": "8.3.1",
+            "elm-community/maybe-extra": "5.2.0",
             "elm-community/string-extra": "4.0.1",
             "elm-community/typed-svg": "7.0.0",
             "fabhof/elm-ui-datepicker": "3.0.0",
+            "feathericons/elm-feather": "1.5.0",
             "folkertdev/elm-deque": "3.0.1",
             "folkertdev/svg-path-lowlevel": "4.0.1",
             "gampleman/elm-visualization": "2.3.0",
@@ -41,6 +46,7 @@
             "mdgriffith/elm-ui": "1.1.8",
             "miniBill/elm-codec": "2.0.0",
             "pablohirafuji/elm-syntax-highlight": "3.4.1",
+            "robinheghan/elm-phone-numbers": "1.0.0",
             "rtfeldman/elm-css": "16.1.1",
             "russelldavies/elm-ui-searchbox": "1.1.0",
             "ryannhg/date-format": "2.3.0",
@@ -57,6 +63,7 @@
             "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.2",
             "elm-community/dict-extra": "2.4.0",
+            "elm-community/intdict": "3.0.0",
             "folkertdev/one-true-path-experiment": "6.0.0",
             "fredcy/elm-parseint": "2.0.1",
             "ianmackenzie/elm-1d-parameter": "1.0.1",
@@ -71,6 +78,7 @@
             "robinheghan/murmur3": "1.0.0",
             "rtfeldman/elm-hex": "1.0.0",
             "tripokey/elm-fuzzy": "5.2.1",
+            "turboMaCk/queue": "1.1.0",
             "vito/elm-ansi": "10.0.1",
             "zwilias/json-decode-exploration": "6.0.0"
         }

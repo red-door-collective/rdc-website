@@ -88,10 +88,6 @@ chord (CubicBezier p0 _ _ p3) =
 
 chunks : Int -> CubicBezier -> List CubicBezier
 chunks itersLeft ((CubicBezier c0 c1 c2 c3) as curve) =
-    let
-        _ =
-            Debug.log "iters left" ( itersLeft, curve )
-    in
     if itersLeft <= 0 then
         [ curve ]
 
@@ -100,9 +96,6 @@ chunks itersLeft ((CubicBezier c0 c1 c2 c3) as curve) =
 
     else
         let
-            _ =
-                Debug.log "iters left" ( itersLeft, curve )
-
             chord =
                 chordLength curve
 

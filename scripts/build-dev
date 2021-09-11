@@ -1,2 +1,0 @@
-cd ui && elm make --debug --output=../eviction_tracker/static/js/main.js src/Main.elm
-

@@ -1,8 +1,9 @@
-module Page.Organize.DetainerWarrants exposing (Model, Msg, init, subscriptions, toSession, update, view)
+module Page.Admin.DetainerWarrants exposing (Data, Model, Msg, page)
 
-import Api exposing (Cred)
 import Api.Endpoint as Endpoint exposing (Endpoint)
+import Browser.Navigation as Nav
 import Color
+import DataSource exposing (DataSource)
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..))
@@ -15,6 +16,8 @@ import Element.Input as Input
 import FeatherIcons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
+import Head
+import Head.Seo as Seo
 import Html.Attributes
 import Html.Events
 import Http exposing (Error(..))
@@ -23,23 +26,28 @@ import Json.Decode as Decode
 import Loader
 import Log
 import Maybe.Extra
+import Page exposing (Page, PageWithState, StaticPayload)
+import Pages.PageUrl exposing (PageUrl)
+import Pages.Url
 import Palette
+import Path exposing (Path)
+import Rest exposing (Cred)
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)
 import Search exposing (Cursor(..), Search)
 import Session exposing (Session)
 import Settings exposing (Settings)
+import Shared
 import Url.Builder exposing (QueryParameter)
 import User exposing (User)
+import View exposing (View)
 import Widget
 import Widget.Icon
 
 
 type alias Model =
-    { session : Session
-    , runtime : Runtime
-    , fileDate : DatePickerState
+    { fileDate : DatePickerState
     , courtDate : DatePickerState
     , warrants : List DetainerWarrant
     , selected : Maybe String
@@ -49,42 +57,50 @@ type alias Model =
     }
 
 
-init : Search.DetainerWarrants -> Runtime -> Session -> ( Model, Cmd Msg )
-init filters runtime session =
+init :
+    Maybe PageUrl
+    -> Shared.Model
+    -> StaticPayload Data RouteParams
+    -> ( Model, Cmd Msg )
+init pageUrl sharedModel static =
     let
         maybeCred =
-            Session.cred session
+            Session.cred sharedModel.session
+
+        domain =
+            Runtime.domain static.sharedData.runtime.environment
+
+        filters =
+            Maybe.withDefault Search.detainerWarrantsDefault <| Maybe.map Search.dwFromString sharedModel.queryParams
 
         search =
             { filters = filters, cursor = NewSearch, previous = Just filters, totalMatches = Nothing }
     in
-    ( { session = session
-      , runtime = runtime
-      , fileDate = initDatePicker runtime.today filters.fileDate
-      , courtDate = initDatePicker runtime.today filters.courtDate
+    ( { fileDate = initDatePicker static.sharedData.runtime.today filters.fileDate
+      , courtDate = initDatePicker static.sharedData.runtime.today filters.courtDate
       , warrants = []
       , search = search
       , selected = Nothing
       , hovered = Nothing
-      , infiniteScroll = InfiniteScroll.init (loadMore maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
+      , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
       }
-    , searchWarrants maybeCred search
+    , searchWarrants domain maybeCred search
     )
 
 
-searchWarrants : Maybe Cred -> Search Search.DetainerWarrants -> Cmd Msg
-searchWarrants maybeCred search =
-    Api.get (Endpoint.detainerWarrantsSearch (queryArgsWithPagination search)) maybeCred GotWarrants Api.detainerWarrantApiDecoder
+searchWarrants : String -> Maybe Cred -> Search Search.DetainerWarrants -> Cmd Msg
+searchWarrants domain maybeCred search =
+    Rest.get (Endpoint.detainerWarrantsSearch domain (queryArgsWithPagination search)) maybeCred GotWarrants Rest.detainerWarrantApiDecoder
 
 
-loadMore : Maybe Cred -> Search Search.DetainerWarrants -> InfiniteScroll.Direction -> Cmd Msg
-loadMore maybeCred search dir =
+loadMore : String -> Maybe Cred -> Search Search.DetainerWarrants -> InfiniteScroll.Direction -> Cmd Msg
+loadMore domain maybeCred search dir =
     case search.cursor of
         NewSearch ->
             Cmd.none
 
         After _ ->
-            searchWarrants maybeCred search
+            searchWarrants domain maybeCred search
 
         End ->
             Cmd.none
@@ -125,7 +141,7 @@ type Msg
     | SelectWarrant String
     | HoverWarrant String
     | SearchWarrants
-    | GotWarrants (Result Http.Error (Api.Collection DetainerWarrant))
+    | GotWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
     | ChangedSorting String
     | InfiniteScrollMsg InfiniteScroll.Msg
     | NoOp
@@ -143,14 +159,27 @@ updateFilters transform model =
     ( { model | search = { search | filters = transform search.filters } }, Cmd.none )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update :
+    PageUrl
+    -> Maybe Nav.Key
+    -> Shared.Model
+    -> StaticPayload Data RouteParams
+    -> Msg
+    -> Model
+    -> ( Model, Cmd Msg )
+update pageUrl navKey sharedModel static msg model =
     let
         rollbar =
-            Log.reporting model.runtime
+            Log.reporting static.sharedData.runtime
+
+        domain =
+            Runtime.domain static.sharedData.runtime.environment
 
         logHttpError =
             error rollbar << Log.httpErrorMessage
+
+        session =
+            sharedModel.session
     in
     case msg of
         InputDocketId query ->
@@ -270,13 +299,14 @@ update msg model =
                         |> Tuple.first
             in
             ( updatedModel
-            , Route.replaceUrl (Session.navKey updatedModel.session) (Route.ManageDetainerWarrants updatedModel.search.filters)
+            , Maybe.withDefault Cmd.none <|
+                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] (Endpoint.toQueryArgs <| Search.detainerWarrantsArgs updatedModel.search.filters))) (Session.navKey session)
             )
 
         GotWarrants (Ok detainerWarrantsPage) ->
             let
                 maybeCred =
-                    Session.cred model.session
+                    Session.cred sharedModel.session
 
                 search =
                     { filters = model.search.filters
@@ -293,7 +323,7 @@ update msg model =
                     | warrants = model.warrants ++ detainerWarrantsPage.data
                     , infiniteScroll =
                         InfiniteScroll.stopLoading model.infiniteScroll
-                            |> InfiniteScroll.loadMoreCmd (loadMore maybeCred search)
+                            |> InfiniteScroll.loadMoreCmd (loadMore domain maybeCred search)
                   }
                 , Cmd.none
                 )
@@ -303,7 +333,7 @@ update msg model =
                     | warrants = detainerWarrantsPage.data
                     , infiniteScroll =
                         InfiniteScroll.stopLoading model.infiniteScroll
-                            |> InfiniteScroll.loadMoreCmd (loadMore maybeCred search)
+                            |> InfiniteScroll.loadMoreCmd (loadMore domain maybeCred search)
                   }
                 , Cmd.none
                 )
@@ -418,11 +448,11 @@ searchField field =
             textSearch inputField
 
 
-searchFields : Model -> Search.DetainerWarrants -> List SearchField
-searchFields model filters =
+searchFields : Date -> Model -> Search.DetainerWarrants -> List SearchField
+searchFields today model filters =
     [ TextSearch { label = "Docket #", placeholder = "", onChange = InputDocketId, query = filters.docketId }
-    , DateSearch { label = "File date", onChange = ChangedFileDate, state = model.fileDate, today = model.runtime.today }
-    , DateSearch { label = "Court date", onChange = ChangedCourtDate, state = model.courtDate, today = model.runtime.today }
+    , DateSearch { label = "File date", onChange = ChangedFileDate, state = model.fileDate, today = today }
+    , DateSearch { label = "Court date", onChange = ChangedCourtDate, state = model.courtDate, today = today }
     , TextSearch { label = "Plaintiff", placeholder = "", onChange = InputPlaintiff, query = filters.plaintiff }
     , TextSearch { label = "Plnt. attorney", placeholder = "", onChange = InputPlaintiffAttorney, query = filters.plaintiffAttorney }
     , TextSearch { label = "Defendant", placeholder = "", onChange = InputDefendant, query = filters.defendant }
@@ -430,8 +460,8 @@ searchFields model filters =
     ]
 
 
-viewSearchBar : Model -> Element Msg
-viewSearchBar model =
+viewSearchBar : Date -> Model -> Element Msg
+viewSearchBar today model =
     Element.wrappedRow
         [ Element.width (fill |> maximum 1200)
         , Element.spacing 10
@@ -439,7 +469,7 @@ viewSearchBar model =
         , Element.centerY
         , Element.centerX
         ]
-        (List.map searchField (searchFields model model.search.filters)
+        (List.map searchField (searchFields today model model.search.filters)
             ++ [ Input.button
                     [ Element.alignBottom
                     , Background.color Palette.redLight
@@ -459,7 +489,7 @@ createNewWarrant : Element Msg
 createNewWarrant =
     row [ centerX ]
         [ link buttonLinkAttrs
-            { url = Route.href (Route.DetainerWarrantCreation Nothing)
+            { url = "/admin/detainer-warrants/edit"
             , label = text "Enter New Detainer Warrant"
             }
         ]
@@ -497,18 +527,23 @@ viewEmptyResults filters =
         )
 
 
-view : Settings -> Model -> { title : String, content : Element Msg }
-view settings model =
-    { title = "Organize - Detainer Warrants"
-    , content =
-        row [ centerX, padding 10, Font.size 20, width (fill |> maximum 2000 |> minimum 400) ]
+view :
+    Maybe PageUrl
+    -> Shared.Model
+    -> Model
+    -> StaticPayload Data RouteParams
+    -> View Msg
+view maybeUrl sharedModel model static =
+    { title = "Admin - Detainer Warrants"
+    , body =
+        [ row [ centerX, padding 10, Font.size 20, width (fill |> maximum 2000 |> minimum 400) ]
             [ column
                 [ centerX
                 , spacing 10
                 , Element.inFront (loader model)
                 ]
                 [ createNewWarrant
-                , viewSearchBar model
+                , viewSearchBar static.sharedData.runtime.today model
                 , case model.search.totalMatches of
                     Just total ->
                         if total > 1 then
@@ -526,6 +561,7 @@ view settings model =
                     viewWarrants model
                 ]
             ]
+        ]
     }
 
 
@@ -608,7 +644,9 @@ viewEditButton hovered index warrant =
         (tableCellAttrs (modBy 2 index == 0) hovered warrant)
         [ link
             (buttonLinkAttrs ++ [ Events.onFocus (SelectWarrant warrant.docketId) ])
-            { url = Route.href (Route.DetainerWarrantCreation (Just warrant.docketId)), label = text "Edit" }
+            { url = Url.Builder.relative [ "detainer-warrants", "edit" ] (Endpoint.toQueryArgs [ ( "docket-id", warrant.docketId ) ])
+            , label = text "Edit"
+            }
         ]
 
 
@@ -784,15 +822,53 @@ viewWarrants model =
         }
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
+subscriptions pageUrl params path model =
     Sub.none
 
 
+type alias RouteParams =
+    {}
 
--- EXPORT
+
+page : Page.PageWithState RouteParams Data Model Msg
+page =
+    Page.single
+        { head = head
+        , data = data
+        }
+        |> Page.buildWithLocalState
+            { init = init
+            , update = update
+            , view = view
+            , subscriptions = subscriptions
+            }
 
 
-toSession : Model -> Session
-toSession model =
-    model.session
+type alias Data =
+    ()
+
+
+data : DataSource Data
+data =
+    DataSource.succeed ()
+
+
+head :
+    StaticPayload Data RouteParams
+    -> List Head.Tag
+head static =
+    Seo.summary
+        { canonicalUrlOverride = Nothing
+        , siteName = "elm-pages"
+        , image =
+            { url = Pages.Url.external "TODO"
+            , alt = "elm-pages logo"
+            , dimensions = Nothing
+            , mimeType = Nothing
+            }
+        , description = "TODO"
+        , locale = Nothing
+        , title = "TODO title" -- metadata.title -- TODO
+        }
+        |> Seo.website

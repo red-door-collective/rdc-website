@@ -1,16 +1,18 @@
-module Page.Organize.DetainerWarrantCreation exposing (Model, Msg, init, subscriptions, toSession, update, view)
+module Page.Admin.DetainerWarrants.Edit exposing (Data, Model, Msg, page)
 
-import Api exposing (Cred)
 import Api.Endpoint as Endpoint
 import Browser.Dom
 import Browser.Events exposing (onMouseDown)
+import Browser.Navigation as Nav
 import Campaign exposing (Campaign)
 import Color
+import DataSource exposing (DataSource)
 import Date exposing (Date)
 import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
+import Dict exposing (Dict)
 import Dropdown
 import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, inFront, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Background as Background
@@ -19,6 +21,8 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input exposing (labelHidden)
 import FeatherIcons
+import Head
+import Head.Seo as Seo
 import Html.Attributes
 import Html.Events
 import Http
@@ -29,10 +33,16 @@ import List.Extra as List
 import Log
 import Mask
 import Maybe.Extra
+import Page exposing (Page, PageWithState, StaticPayload)
+import Pages.PageUrl exposing (PageUrl)
+import Pages.Url
 import Palette
+import Path exposing (Path)
 import PhoneNumber
 import PhoneNumber.Countries exposing (countryUS)
 import Plaintiff exposing (Plaintiff)
+import QueryParams exposing (QueryParams)
+import Rest exposing (Cred)
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)
@@ -40,9 +50,11 @@ import SearchBox
 import Session exposing (Session)
 import Set
 import Settings exposing (Settings)
+import Shared
 import Task
-import Url.Builder as QueryParam
+import Url.Builder
 import User exposing (User)
+import View exposing (View)
 import Widget
 import Widget.Customize as Customize
 import Widget.Icon exposing (Icon)
@@ -176,9 +188,7 @@ type SaveState
 
 
 type alias Model =
-    { session : Session
-    , runtime : Runtime
-    , warrant : Maybe DetainerWarrant
+    { warrant : Maybe DetainerWarrant
     , docketId : Maybe String
     , today : Maybe Date
     , tooltip : Maybe Tooltip
@@ -389,21 +399,33 @@ type FormStatus
     | Ready Form
 
 
-init : Maybe String -> Runtime -> Session -> ( Model, Cmd Msg )
-init maybeId runtime session =
+init :
+    Maybe PageUrl
+    -> Shared.Model
+    -> StaticPayload Data RouteParams
+    -> ( Model, Cmd Msg )
+init pageUrl sharedModel static =
     let
         maybeCred =
-            Session.cred session
+            Session.cred sharedModel.session
+
+        docketId =
+            case pageUrl of
+                Just url ->
+                    url.query
+                        |> Maybe.andThen (Dict.get "docket-id" << QueryParams.toDict)
+                        |> Maybe.andThen List.head
+
+                Nothing ->
+                    Nothing
     in
-    ( { session = session
-      , runtime = runtime
-      , warrant = Nothing
-      , docketId = maybeId
+    ( { warrant = Nothing
+      , docketId = docketId
       , tooltip = Nothing
       , problems = []
       , today = Nothing
       , form =
-            case maybeId of
+            case docketId of
                 Just id ->
                     Initializing id
 
@@ -420,13 +442,13 @@ init maybeId runtime session =
     )
 
 
-getWarrant : String -> Maybe Cred -> Cmd Msg
-getWarrant id maybeCred =
-    Api.get (Endpoint.detainerWarrant id) maybeCred GotDetainerWarrant (Api.itemDecoder DetainerWarrant.decoder)
+getWarrant : String -> String -> Maybe Cred -> Cmd Msg
+getWarrant domain id maybeCred =
+    Rest.get (Endpoint.detainerWarrant domain id) maybeCred GotDetainerWarrant (Rest.itemDecoder DetainerWarrant.decoder)
 
 
 type Msg
-    = GotDetainerWarrant (Result Http.Error (Api.Item DetainerWarrant))
+    = GotDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
     | GotToday Date
     | ChangeTooltip Tooltip
     | CloseTooltip
@@ -478,18 +500,18 @@ type Msg
     | ChangedNotes String
     | SubmitForm
     | SubmitAndAddAnother
-    | UpsertedPlaintiff (Result Http.Error (Api.Item Plaintiff))
-    | UpsertedAttorney (Result Http.Error (Api.Item DetainerWarrant.Attorney))
-    | UpsertedCourtroom (Result Http.Error (Api.Item DetainerWarrant.Courtroom))
-    | UpsertedJudge (Result Http.Error (Api.Item DetainerWarrant.Judge))
-    | UpsertedDefendant Int (Result Http.Error (Api.Item Defendant))
-    | UpsertedJudgement Int (Result Http.Error (Api.Item Judgement))
+    | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
+    | UpsertedAttorney (Result Http.Error (Rest.Item DetainerWarrant.Attorney))
+    | UpsertedCourtroom (Result Http.Error (Rest.Item DetainerWarrant.Courtroom))
+    | UpsertedJudge (Result Http.Error (Rest.Item DetainerWarrant.Judge))
+    | UpsertedDefendant Int (Result Http.Error (Rest.Item Defendant))
+    | UpsertedJudgement Int (Result Http.Error (Rest.Item Judgement))
     | DeletedJudgement Int (Result Http.Error ())
-    | CreatedDetainerWarrant (Result Http.Error (Api.Item DetainerWarrant))
-    | GotPlaintiffs (Result Http.Error (Api.Collection Plaintiff))
-    | GotAttorneys (Result Http.Error (Api.Collection Attorney))
-    | GotJudges (Result Http.Error (Api.Collection Attorney))
-    | GotCourtrooms (Result Http.Error (Api.Collection Courtroom))
+    | CreatedDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
+    | GotPlaintiffs (Result Http.Error (Rest.Collection Plaintiff))
+    | GotAttorneys (Result Http.Error (Rest.Collection Attorney))
+    | GotJudges (Result Http.Error (Rest.Collection Attorney))
+    | GotCourtrooms (Result Http.Error (Rest.Collection Courtroom))
     | NoOp
 
 
@@ -552,14 +574,27 @@ savingError httpError model =
     { model | problems = problems }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update :
+    PageUrl
+    -> Maybe Nav.Key
+    -> Shared.Model
+    -> StaticPayload Data RouteParams
+    -> Msg
+    -> Model
+    -> ( Model, Cmd Msg )
+update pageUrl navKey sharedModel static msg model =
     let
+        session =
+            sharedModel.session
+
         maybeCred =
-            Session.cred model.session
+            Session.cred session
 
         rollbar =
-            Log.reporting model.runtime
+            Log.reporting static.sharedData.runtime
+
+        domain =
+            Runtime.domain static.sharedData.runtime.environment
 
         logHttpError =
             error rollbar << Log.httpErrorMessage
@@ -599,7 +634,7 @@ update msg model =
                 { model | today = Just today }
             , case model.form of
                 Initializing id ->
-                    getWarrant id maybeCred
+                    getWarrant domain id maybeCred
 
                 _ ->
                     Cmd.none
@@ -756,7 +791,7 @@ update msg model =
                             { form | plaintiff = updatedPlaintiff }
                         )
                         model
-                    , Api.get (Endpoint.plaintiffs [ ( "name", text ) ]) maybeCred GotPlaintiffs (Api.collectionDecoder Plaintiff.decoder)
+                    , Rest.get (Endpoint.plaintiffs domain [ ( "name", text ) ]) maybeCred GotPlaintiffs (Rest.collectionDecoder Plaintiff.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -808,7 +843,7 @@ update msg model =
                             { form | plaintiffAttorney = updatedAttorney }
                         )
                         model
-                    , Api.get (Endpoint.attorneys [ ( "name", text ) ]) maybeCred GotAttorneys (Api.collectionDecoder DetainerWarrant.attorneyDecoder)
+                    , Rest.get (Endpoint.attorneys domain [ ( "name", text ) ]) maybeCred GotAttorneys (Rest.collectionDecoder DetainerWarrant.attorneyDecoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -885,7 +920,7 @@ update msg model =
                             { form | courtroom = updatedCourtroom }
                         )
                         model
-                    , Api.get (Endpoint.courtrooms [ ( "name", text ) ]) maybeCred GotCourtrooms (Api.collectionDecoder DetainerWarrant.courtroomDecoder)
+                    , Rest.get (Endpoint.courtrooms domain [ ( "name", text ) ]) maybeCred GotCourtrooms (Rest.collectionDecoder DetainerWarrant.courtroomDecoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -937,7 +972,7 @@ update msg model =
                             { form | presidingJudge = updatedJudge }
                         )
                         model
-                    , Api.get (Endpoint.judges [ ( "name", text ) ]) maybeCred GotJudges (Api.collectionDecoder DetainerWarrant.judgeDecoder)
+                    , Rest.get (Endpoint.judges domain [ ( "name", text ) ]) maybeCred GotJudges (Rest.collectionDecoder DetainerWarrant.judgeDecoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -1475,7 +1510,7 @@ update msg model =
                             )
                         )
                         model
-                    , Api.get (Endpoint.judges [ ( "name", text ) ]) maybeCred GotJudges (Api.collectionDecoder DetainerWarrant.judgeDecoder)
+                    , Rest.get (Endpoint.judges domain [ ( "name", text ) ]) maybeCred GotJudges (Rest.collectionDecoder DetainerWarrant.judgeDecoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -1507,13 +1542,15 @@ update msg model =
                 model
 
         SubmitForm ->
-            submitForm model
+            submitForm domain session model
 
         SubmitAndAddAnother ->
-            submitFormAndAddAnother model
+            submitFormAndAddAnother domain session model
 
         UpsertedPlaintiff (Ok plaintiffItem) ->
             nextStepSave
+                domain
+                session
                 (updateFormOnly
                     (\form -> { form | plaintiff = initPlaintiffForm (Just plaintiffItem.data) })
                     { model
@@ -1532,6 +1569,8 @@ update msg model =
 
         UpsertedCourtroom (Ok courtroomItem) ->
             nextStepSave
+                domain
+                session
                 (updateFormOnly
                     (\form -> { form | courtroom = initCourtroomForm (Just courtroomItem.data) })
                     { model
@@ -1550,6 +1589,8 @@ update msg model =
 
         UpsertedJudge (Ok judgeItem) ->
             nextStepSave
+                domain
+                session
                 (updateFormOnly
                     (\form -> { form | presidingJudge = initJudgeForm (Just judgeItem.data) })
                     { model
@@ -1568,6 +1609,8 @@ update msg model =
 
         UpsertedDefendant index (Ok defendant) ->
             nextStepSave
+                domain
+                session
                 (updateFormOnly
                     (\form ->
                         { form
@@ -1601,6 +1644,8 @@ update msg model =
             case model.today of
                 Just today ->
                     nextStepSave
+                        domain
+                        session
                         (updateFormOnly
                             (\form ->
                                 { form
@@ -1634,13 +1679,15 @@ update msg model =
             ( model, logHttpError httpError )
 
         DeletedJudgement _ (Ok _) ->
-            nextStepSave model
+            nextStepSave domain session model
 
         DeletedJudgement _ (Err httpError) ->
             ( model, logHttpError httpError )
 
         UpsertedAttorney (Ok attorney) ->
             nextStepSave
+                domain
+                session
                 (updateFormOnly
                     (\form -> { form | plaintiffAttorney = initAttorneyForm (Just attorney.data) })
                     { model
@@ -1659,6 +1706,8 @@ update msg model =
 
         CreatedDetainerWarrant (Ok detainerWarrantItem) ->
             nextStepSave
+                domain
+                session
                 { model
                     | warrant = Just detainerWarrantItem.data
                 }
@@ -1715,16 +1764,16 @@ updateJudgement selected fn form =
     }
 
 
-submitFormAndAddAnother : Model -> ( Model, Cmd Msg )
-submitFormAndAddAnother model =
-    Tuple.mapFirst (\m -> { m | newFormOnSuccess = True }) (submitForm model)
+submitFormAndAddAnother : String -> Session -> Model -> ( Model, Cmd Msg )
+submitFormAndAddAnother domain session model =
+    Tuple.mapFirst (\m -> { m | newFormOnSuccess = True }) (submitForm domain session model)
 
 
-submitForm : Model -> ( Model, Cmd Msg )
-submitForm model =
+submitForm : String -> Session -> Model -> ( Model, Cmd Msg )
+submitForm domain session model =
     let
         maybeCred =
-            Session.cred model.session
+            Session.cred session
     in
     case model.today of
         Just today ->
@@ -1749,12 +1798,12 @@ submitForm model =
                     , Cmd.batch
                         (List.concat
                             [ apiForms.attorney
-                                |> Maybe.map (List.singleton << upsertAttorney maybeCred)
+                                |> Maybe.map (List.singleton << upsertAttorney domain maybeCred)
                                 |> Maybe.withDefault []
-                            , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff maybeCred) apiForms.plaintiff
-                            , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertCourtroom maybeCred) apiForms.courtroom
-                            , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertJudge maybeCred) apiForms.judge
-                            , List.indexedMap (upsertDefendant maybeCred) apiForms.defendants
+                            , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff domain maybeCred) apiForms.plaintiff
+                            , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertCourtroom domain maybeCred) apiForms.courtroom
+                            , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertJudge domain maybeCred) apiForms.judge
+                            , List.indexedMap (upsertDefendant domain maybeCred) apiForms.defendants
                             ]
                         )
                     )
@@ -1768,11 +1817,11 @@ submitForm model =
             ( model, Cmd.none )
 
 
-nextStepSave : Model -> ( Model, Cmd Msg )
-nextStepSave model =
+nextStepSave : String -> Session -> Model -> ( Model, Cmd Msg )
+nextStepSave domain session model =
     let
         maybeCred =
-            Session.cred model.session
+            Session.cred session
     in
     case model.today of
         Just today ->
@@ -1793,7 +1842,7 @@ nextStepSave model =
                                     >= models.defendants
                             then
                                 ( { model | saveState = SavingWarrant }
-                                , updateDetainerWarrant maybeCred apiForms.detainerWarrant
+                                , updateDetainerWarrant domain maybeCred apiForms.detainerWarrant
                                 )
 
                             else
@@ -1814,21 +1863,21 @@ nextStepSave model =
                                             []
                             in
                             if List.isEmpty apiForms.judgements && List.isEmpty toDelete then
-                                nextStepSave { model | saveState = Done }
+                                nextStepSave domain session { model | saveState = Done }
 
                             else
                                 ( { model | saveState = SavingJudgements { judgements = 0 } }
                                 , Cmd.batch
                                     (List.concat
-                                        [ List.indexedMap (upsertJudgement maybeCred apiForms.detainerWarrant) apiForms.judgements
-                                        , List.indexedMap (deleteJudgement maybeCred) toDelete
+                                        [ List.indexedMap (upsertJudgement domain maybeCred apiForms.detainerWarrant) apiForms.judgements
+                                        , List.indexedMap (deleteJudgement domain maybeCred) toDelete
                                         ]
                                     )
                                 )
 
                         SavingJudgements models ->
                             if models.judgements >= List.length apiForms.judgements then
-                                nextStepSave { model | saveState = Done }
+                                nextStepSave domain session { model | saveState = Done }
 
                             else
                                 ( model, Cmd.none )
@@ -1836,10 +1885,12 @@ nextStepSave model =
                         Done ->
                             ( model
                             , if model.newFormOnSuccess then
-                                Route.replaceUrl (Session.navKey model.session) (Route.DetainerWarrantCreation Nothing)
+                                Maybe.withDefault Cmd.none <|
+                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
 
                               else
-                                Route.replaceUrl (Session.navKey model.session) (Route.DetainerWarrantCreation (Just apiForms.detainerWarrant.docketId))
+                                Maybe.withDefault Cmd.none <|
+                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ apiForms.detainerWarrant.docketId ] [])) (Session.navKey session)
                             )
 
                 Err _ ->
@@ -3296,11 +3347,16 @@ withTooltip candidate active str =
         []
 
 
-view : Settings -> Model -> { title : String, content : Element Msg }
-view settings model =
+view :
+    Maybe PageUrl
+    -> Shared.Model
+    -> Model
+    -> StaticPayload Data RouteParams
+    -> View Msg
+view maybeUrl sharedModel model static =
     { title = "Organize - Detainer Warrant - Edit"
-    , content =
-        row
+    , body =
+        [ row
             [ centerX
             , padding 20
             , Font.size 20
@@ -3343,11 +3399,12 @@ view settings model =
                     ]
                 ]
             ]
+        ]
     }
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
+subscriptions pageUrl params path model =
     case model.form of
         Initializing _ ->
             Sub.none
@@ -3492,15 +3549,6 @@ tooltipToString tip =
 
         NotesInfo ->
             "notes-info"
-
-
-
--- EXPORT
-
-
-toSession : Model -> Session
-toSession model =
-    model.session
 
 
 
@@ -3764,16 +3812,16 @@ nullable fieldName fn field =
     Maybe.withDefault [ ( fieldName, Encode.null ) ] <| Maybe.map (\f -> [ ( fieldName, fn f ) ]) field
 
 
-toBody data =
-    Encode.object [ ( "data", data ) ]
+toBody body =
+    Encode.object [ ( "data", body ) ]
         |> Http.jsonBody
 
 
-upsertDefendant : Maybe Cred -> Int -> Defendant -> Cmd Msg
-upsertDefendant maybeCred index form =
+upsertDefendant : String -> Maybe Cred -> Int -> Defendant -> Cmd Msg
+upsertDefendant domain maybeCred index form =
     let
         decoder =
-            Api.itemDecoder Defendant.decoder
+            Rest.itemDecoder Defendant.decoder
 
         defendant =
             Encode.object
@@ -3793,41 +3841,41 @@ upsertDefendant maybeCred index form =
     in
     case remoteId form of
         Just id ->
-            Api.patch (Endpoint.defendant id) maybeCred body (UpsertedDefendant index) decoder
+            Rest.patch (Endpoint.defendant domain id) maybeCred body (UpsertedDefendant index) decoder
 
         Nothing ->
-            Api.post (Endpoint.defendants []) maybeCred body (UpsertedDefendant index) decoder
+            Rest.post (Endpoint.defendants domain []) maybeCred body (UpsertedDefendant index) decoder
 
 
-upsertJudgement : Maybe Cred -> DetainerWarrantEdit -> Int -> JudgementEdit -> Cmd Msg
-upsertJudgement maybeCred warrant index form =
+upsertJudgement : String -> Maybe Cred -> DetainerWarrantEdit -> Int -> JudgementEdit -> Cmd Msg
+upsertJudgement domain maybeCred warrant index form =
     let
         decoder =
-            Api.itemDecoder DetainerWarrant.judgementDecoder
+            Rest.itemDecoder DetainerWarrant.judgementDecoder
 
         body =
             toBody (encodeJudgement warrant form)
     in
     case form.id of
         Just id ->
-            Api.patch (Endpoint.judgement id) maybeCred body (UpsertedJudgement index) decoder
+            Rest.patch (Endpoint.judgement domain id) maybeCred body (UpsertedJudgement index) decoder
 
         Nothing ->
-            Api.post (Endpoint.judgements []) maybeCred body (UpsertedJudgement index) decoder
+            Rest.post (Endpoint.judgements domain []) maybeCred body (UpsertedJudgement index) decoder
 
 
-deleteJudgement : Maybe Cred -> Int -> Int -> Cmd Msg
-deleteJudgement maybeCred index id =
-    Api.delete (Endpoint.judgement id) maybeCred (DeletedJudgement index)
+deleteJudgement : String -> Maybe Cred -> Int -> Int -> Cmd Msg
+deleteJudgement domain maybeCred index id =
+    Rest.delete (Endpoint.judgement domain id) maybeCred (DeletedJudgement index)
 
 
-upsertCourtroom : Maybe Cred -> Courtroom -> Cmd Msg
-upsertCourtroom maybeCred courtroom =
+upsertCourtroom : String -> Maybe Cred -> Courtroom -> Cmd Msg
+upsertCourtroom domain maybeCred courtroom =
     let
         decoder =
-            Api.itemDecoder DetainerWarrant.courtroomDecoder
+            Rest.itemDecoder DetainerWarrant.courtroomDecoder
 
-        data =
+        postData =
             Encode.object
                 ([ ( "name", Encode.string courtroom.name )
                  , defaultDistrict
@@ -3836,21 +3884,21 @@ upsertCourtroom maybeCred courtroom =
                 )
 
         body =
-            toBody data
+            toBody postData
     in
     case remoteId courtroom of
         Just id ->
-            Api.patch (Endpoint.courtroom id) maybeCred body UpsertedCourtroom decoder
+            Rest.patch (Endpoint.courtroom domain id) maybeCred body UpsertedCourtroom decoder
 
         Nothing ->
-            Api.post (Endpoint.courtrooms []) maybeCred body UpsertedCourtroom decoder
+            Rest.post (Endpoint.courtrooms domain []) maybeCred body UpsertedCourtroom decoder
 
 
-upsertJudge : Maybe Cred -> Judge -> Cmd Msg
-upsertJudge maybeCred form =
+upsertJudge : String -> Maybe Cred -> Judge -> Cmd Msg
+upsertJudge domain maybeCred form =
     let
         decoder =
-            Api.itemDecoder DetainerWarrant.judgeDecoder
+            Rest.itemDecoder DetainerWarrant.judgeDecoder
 
         judge =
             Encode.object
@@ -3865,10 +3913,10 @@ upsertJudge maybeCred form =
     in
     case remoteId form of
         Just id ->
-            Api.patch (Endpoint.judge id) maybeCred body UpsertedJudge decoder
+            Rest.patch (Endpoint.judge domain id) maybeCred body UpsertedJudge decoder
 
         Nothing ->
-            Api.post (Endpoint.judges []) maybeCred body UpsertedJudge decoder
+            Rest.post (Endpoint.judges domain []) maybeCred body UpsertedJudge decoder
 
 
 remoteId : { a | id : number } -> Maybe number
@@ -3880,13 +3928,13 @@ remoteId resource =
         Just resource.id
 
 
-upsertAttorney : Maybe Cred -> Attorney -> Cmd Msg
-upsertAttorney maybeCred attorney =
+upsertAttorney : String -> Maybe Cred -> Attorney -> Cmd Msg
+upsertAttorney domain maybeCred attorney =
     let
         decoder =
-            Api.itemDecoder DetainerWarrant.attorneyDecoder
+            Rest.itemDecoder DetainerWarrant.attorneyDecoder
 
-        data =
+        postData =
             Encode.object
                 ([ ( "name", Encode.string attorney.name )
                  , defaultDistrict
@@ -3895,27 +3943,27 @@ upsertAttorney maybeCred attorney =
                 )
 
         body =
-            toBody data
+            toBody postData
     in
     case remoteId attorney of
         Just id ->
-            Api.patch (Endpoint.attorney id) maybeCred body UpsertedAttorney decoder
+            Rest.patch (Endpoint.attorney domain id) maybeCred body UpsertedAttorney decoder
 
         Nothing ->
-            Api.post (Endpoint.attorneys []) maybeCred body UpsertedAttorney decoder
+            Rest.post (Endpoint.attorneys domain []) maybeCred body UpsertedAttorney decoder
 
 
 defaultDistrict =
     ( "district_id", Encode.int 1 )
 
 
-upsertPlaintiff : Maybe Cred -> Plaintiff -> Cmd Msg
-upsertPlaintiff maybeCred plaintiff =
+upsertPlaintiff : String -> Maybe Cred -> Plaintiff -> Cmd Msg
+upsertPlaintiff domain maybeCred plaintiff =
     let
         decoder =
-            Api.itemDecoder Plaintiff.decoder
+            Rest.itemDecoder Plaintiff.decoder
 
-        data =
+        postData =
             Encode.object
                 ([ ( "name", Encode.string plaintiff.name )
                  , defaultDistrict
@@ -3924,14 +3972,14 @@ upsertPlaintiff maybeCred plaintiff =
                 )
 
         body =
-            toBody data
+            toBody postData
     in
     case remoteId plaintiff of
         Just id ->
-            Api.patch (Endpoint.plaintiff id) maybeCred body UpsertedPlaintiff decoder
+            Rest.patch (Endpoint.plaintiff domain id) maybeCred body UpsertedPlaintiff decoder
 
         Nothing ->
-            Api.post (Endpoint.plaintiffs []) maybeCred body UpsertedPlaintiff decoder
+            Rest.post (Endpoint.plaintiffs domain []) maybeCred body UpsertedPlaintiff decoder
 
 
 encodeRelated record =
@@ -3973,8 +4021,8 @@ encodeJudgement warrant judgement =
         )
 
 
-updateDetainerWarrant : Maybe Cred -> DetainerWarrantEdit -> Cmd Msg
-updateDetainerWarrant maybeCred form =
+updateDetainerWarrant : String -> Maybe Cred -> DetainerWarrantEdit -> Cmd Msg
+updateDetainerWarrant domain maybeCred form =
     let
         detainerWarrant =
             Encode.object
@@ -3996,5 +4044,52 @@ updateDetainerWarrant maybeCred form =
                     ++ nullable "notes" Encode.string form.notes
                 )
     in
-    Api.itemDecoder DetainerWarrant.decoder
-        |> Api.patch (Endpoint.detainerWarrant form.docketId) maybeCred (toBody detainerWarrant) CreatedDetainerWarrant
+    Rest.itemDecoder DetainerWarrant.decoder
+        |> Rest.patch (Endpoint.detainerWarrant domain form.docketId) maybeCred (toBody detainerWarrant) CreatedDetainerWarrant
+
+
+type alias RouteParams =
+    {}
+
+
+page : Page.PageWithState RouteParams Data Model Msg
+page =
+    Page.single
+        { head = head
+        , data = data
+        }
+        |> Page.buildWithLocalState
+            { init = init
+            , update = update
+            , view = view
+            , subscriptions = subscriptions
+            }
+
+
+data : DataSource Data
+data =
+    DataSource.succeed ()
+
+
+head :
+    StaticPayload Data RouteParams
+    -> List Head.Tag
+head static =
+    Seo.summary
+        { canonicalUrlOverride = Nothing
+        , siteName = "elm-pages"
+        , image =
+            { url = Pages.Url.external "TODO"
+            , alt = "elm-pages logo"
+            , dimensions = Nothing
+            , mimeType = Nothing
+            }
+        , description = "TODO"
+        , locale = Nothing
+        , title = "TODO title" -- metadata.title -- TODO
+        }
+        |> Seo.website
+
+
+type alias Data =
+    ()

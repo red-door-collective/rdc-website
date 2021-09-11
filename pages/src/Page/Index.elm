@@ -7,6 +7,7 @@ import Browser.Navigation
 import Color
 import DataSource exposing (DataSource)
 import DataSource.Http
+import DataSource.Port
 import DateFormat exposing (format, monthNameAbbreviated)
 import Element exposing (Device, Element, fill)
 import Element.Background as Background
@@ -18,6 +19,7 @@ import FormatNumber.Locales exposing (usLocale)
 import Head
 import Head.Seo as Seo
 import Html exposing (Html)
+import Json.Encode
 import LineChart as LineChart
 import LineChart.Area as Area
 import LineChart.Axis as Axis
@@ -93,13 +95,22 @@ page =
 
 data : DataSource Data
 data =
-    DataSource.map5 Data
-        topEvictorsData
-        -- |> DataSource.map (\evictors -> { topEvictors = evictors })
-        detainerWarrantsPerMonth
-        plaintiffAttorneyWarrantCountPerMonth
-        amountAwardedHistoryData
-        apiMetadata
+    DataSource.Port.get "environmentVariable"
+        (Json.Encode.string "ENV")
+        Runtime.decodeEnvironment
+        |> DataSource.andThen
+            (\env ->
+                let
+                    domain =
+                        Runtime.domain env
+                in
+                DataSource.map5 Data
+                    (topEvictorsData domain)
+                    (detainerWarrantsPerMonth domain)
+                    (plaintiffAttorneyWarrantCountPerMonth domain)
+                    (amountAwardedHistoryData domain)
+                    (apiMetadata domain)
+            )
 
 
 head :
@@ -170,9 +181,9 @@ view maybeUrl sharedModel model static =
     }
 
 
-topEvictorsData : DataSource (List TopEvictor)
-topEvictorsData =
-    DataSource.Http.get (Secrets.succeed (Rest.Static.api "plaintiffs"))
+topEvictorsData : String -> DataSource (List TopEvictor)
+topEvictorsData domain =
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api domain "plaintiffs"))
         (list
             (decode TopEvictor
                 |> required "name" string
@@ -187,27 +198,27 @@ topEvictorsData =
         )
 
 
-detainerWarrantsPerMonth : DataSource (List DetainerWarrantsPerMonth)
-detainerWarrantsPerMonth =
-    DataSource.Http.get (Secrets.succeed (Rest.Static.api "detainer-warrants"))
+detainerWarrantsPerMonth : String -> DataSource (List DetainerWarrantsPerMonth)
+detainerWarrantsPerMonth domain =
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api domain "detainer-warrants"))
         (list Rest.Static.detainerWarrantsPerMonthDecoder)
 
 
-plaintiffAttorneyWarrantCountPerMonth : DataSource (List PlaintiffAttorneyWarrantCount)
-plaintiffAttorneyWarrantCountPerMonth =
-    DataSource.Http.get (Secrets.succeed (Rest.Static.api "plaintiff-attorney"))
+plaintiffAttorneyWarrantCountPerMonth : String -> DataSource (List PlaintiffAttorneyWarrantCount)
+plaintiffAttorneyWarrantCountPerMonth domain =
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api domain "plaintiff-attorney"))
         (list Rest.Static.plaintiffAttorneyWarrantCountDecoder)
 
 
-amountAwardedHistoryData : DataSource (List AmountAwardedMonth)
-amountAwardedHistoryData =
-    DataSource.Http.get (Secrets.succeed (Rest.Static.api "amount-awarded/history"))
+amountAwardedHistoryData : String -> DataSource (List AmountAwardedMonth)
+amountAwardedHistoryData domain =
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api domain "amount-awarded/history"))
         (Decode.field "data" (list Rest.Static.amountAwardedMonthDecoder))
 
 
-apiMetadata : DataSource RollupMetadata
-apiMetadata =
-    DataSource.Http.get (Secrets.succeed (Rest.Static.api "meta"))
+apiMetadata : String -> DataSource RollupMetadata
+apiMetadata domain =
+    DataSource.Http.get (Secrets.succeed (Rest.Static.api domain "meta"))
         Rest.Static.rollupMetadataDecoder
 
 
@@ -222,22 +233,7 @@ init pageUrl sharedModel payload =
       , hoveringAmounts = []
       }
     , Cmd.none
-      -- , Cmd.batch
-      --     [ getEvictionData
-      --     , getDetainerWarrantsPerMonth
-      --     , getPlaintiffAttorneyWarrantCountPerMonth
-      --     , getApiMetadata
-      --     , getAmountAwardedHistory
-      --     ]
     )
-
-
-
---     = GotEvictionData (Result Http.Error (List TopEvictor))
---     | GotDetainerWarrantData (Result Http.Error (List DetainerWarrantsPerMonth))
---     | GotPlaintiffAttorneyWarrantCount (Result Http.Error (List PlaintiffAttorneyWarrantCount))
---     | GotApiMeta (Result Http.Error Api.RollupMetadata)
---     | GotAmountAwardedHistory (Result Http.Error (Api.UnpaginatedCollection Stats.AmountAwardedMonth))
 
 
 type Msg
@@ -255,34 +251,7 @@ update :
     -> Model
     -> ( Model, Cmd Msg )
 update pageUrl navKey sharedModel payload msg model =
-    let
-        rollbar =
-            Log.reporting model.runtime
-
-        logHttpError =
-            error rollbar << Log.httpErrorMessage
-    in
     case msg of
-        -- GotDetainerWarrantData result ->
-        --     case result of
-        --         Ok warrantsPerMonth ->
-        --             ( { model | warrantsPerMonth = warrantsPerMonth }, Cmd.none )
-        --         Err httpError ->
-        --             ( model, logHttpError httpError )
-        -- GotPlaintiffAttorneyWarrantCount result ->
-        --     case result of
-        --         Ok counts ->
-        --             ( { model | plaintiffAttorneyWarrantCounts = counts }, Cmd.none )
-        --         Err httpError ->
-        --             ( model, logHttpError httpError )
-        -- GotApiMeta result ->
-        --     case result of
-        --         Ok rollupMeta ->
-        --             ( { model | rollupMeta = Just rollupMeta }, Cmd.none )
-        --         Err httpError ->
-        --             ( model, logHttpError httpError )
-        -- GotAmountAwardedHistory (Err httpError) ->
-        --     ( model, logHttpError httpError )
         Hover hovering ->
             ( { model | hovering = hovering }, Cmd.none )
 

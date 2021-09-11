@@ -1,7 +1,7 @@
 module View.Header exposing (..)
 
 import Css
-import Element exposing (Element, alignRight, column, fill, link, padding, row, spacing, text, width)
+import Element exposing (Element, alignRight, column, el, fill, height, link, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -10,7 +10,8 @@ import Html.Styled exposing (..)
 import Html.Styled.Attributes as Attr exposing (css)
 import Html.Styled.Events
 import Path exposing (Path)
-import Route
+import RedDoor
+import Session exposing (Session)
 import Svg.Styled exposing (path, svg)
 import Svg.Styled.Attributes as SvgAttr
 import Tailwind.Breakpoints as Bp
@@ -21,8 +22,8 @@ headerLink attrs =
     link ([ Element.htmlAttribute <| Attrs.attribute "elm-pages:prefetch" "true" ] ++ attrs)
 
 
-view : msg -> Path -> Element msg
-view toggleMobileMenuMsg currentPath =
+view : Session -> msg -> Path -> Element msg
+view session toggleMobileMenuMsg currentPath =
     row
         [ width fill
         , Font.size 28
@@ -35,23 +36,66 @@ view toggleMobileMenuMsg currentPath =
         , Element.htmlAttribute (Attrs.style "left" "0")
         , Element.htmlAttribute (Attrs.style "z-index" "1")
         ]
-        [ headerLink []
-            { url = "/"
-            , label = Element.text "Red Door Collective"
-            }
-        , headerLink [ alignRight ]
-            { url = "/blog"
-            , label = Element.text "Blog"
-            }
-        , headerLink []
-            { url = "/about"
-            , label = Element.text "About"
-            }
-        , headerLink []
-            { url = "/glossary"
-            , label = Element.text "Glossary"
-            }
-        ]
+        (if String.startsWith "/admin" <| Path.toAbsolute currentPath then
+            [ headerLink []
+                { url = "/"
+                , label =
+                    el [ height (px 32), width (px 32) ] <|
+                        Element.html <|
+                            RedDoor.view RedDoor.default
+                }
+            , headerLink []
+                { url = "/admin/dashboard"
+                , label = Element.text "RDC Admin"
+                }
+            , headerLink [ alignRight ]
+                { url = "/admin/dashboard"
+                , label = Element.text "Dashboard"
+                }
+            , headerLink []
+                { url = "/admin/detainer-warrants"
+                , label = Element.text "Detainer Warrants"
+                }
+            , headerLink []
+                { url = "/admin/plaintiffs"
+                , label = Element.text "Plaintiffs"
+                }
+            , headerLink []
+                { url = "/logout"
+                , label = Element.text "Logout"
+                }
+            ]
+
+         else
+            [ headerLink []
+                { url = "/"
+                , label = Element.text "Red Door Collective"
+                }
+            , headerLink [ alignRight ]
+                { url = "/blog"
+                , label = Element.text "Blog"
+                }
+            , headerLink []
+                { url = "/about"
+                , label = Element.text "About"
+                }
+            , headerLink []
+                { url = "/glossary"
+                , label = Element.text "Glossary"
+                }
+            , if Session.isLoggedIn session then
+                headerLink []
+                    { url = "/admin/dashboard"
+                    , label = Element.text "Admin"
+                    }
+
+              else
+                headerLink []
+                    { url = "/login"
+                    , label = Element.text "Login"
+                    }
+            ]
+        )
 
 
 linkInner : Path -> String -> String -> Html msg
