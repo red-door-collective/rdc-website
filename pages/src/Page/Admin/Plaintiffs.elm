@@ -31,6 +31,7 @@ import Pages.Url
 import Palette
 import Path exposing (Path)
 import Plaintiff exposing (Plaintiff)
+import QueryParams
 import Rest exposing (Cred)
 import Rollbar exposing (Rollbar)
 import Route
@@ -72,7 +73,7 @@ init pageUrl sharedModel static =
             Session.cred session
 
         filters =
-            Maybe.withDefault Search.plaintiffsDefault <| Maybe.map Search.plaintiffsFromString sharedModel.queryParams
+            Maybe.withDefault Search.plaintiffsDefault <| Maybe.andThen (Maybe.map (Search.plaintiffsFromString << QueryParams.toString) << .query) pageUrl
 
         search =
             { filters = filters, cursor = NewSearch, previous = Just filters, totalMatches = Nothing }
@@ -186,8 +187,11 @@ update pageUrl navKey sharedModel static msg model =
 
         SearchPlaintiffs ->
             ( model
-            , Maybe.withDefault Cmd.none <|
-                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ "plaintiffs" ] (Endpoint.toQueryArgs <| Search.plaintiffsArgs model.search.filters))) (Session.navKey session)
+            , Cmd.batch
+                [ Maybe.withDefault Cmd.none <|
+                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ "plaintiffs" ] (Endpoint.toQueryArgs <| Search.plaintiffsArgs model.search.filters))) (Session.navKey session)
+                , searchPlaintiffs domain (Session.cred session) model.search
+                ]
             )
 
         GotPlaintiffs (Ok plaintiffsPage) ->

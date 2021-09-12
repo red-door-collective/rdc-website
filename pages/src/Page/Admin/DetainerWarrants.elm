@@ -31,6 +31,7 @@ import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
 import Palette
 import Path exposing (Path)
+import QueryParams
 import Rest exposing (Cred)
 import Rollbar exposing (Rollbar)
 import Route
@@ -71,7 +72,7 @@ init pageUrl sharedModel static =
             Runtime.domain static.sharedData.runtime.environment
 
         filters =
-            Maybe.withDefault Search.detainerWarrantsDefault <| Maybe.map Search.dwFromString sharedModel.queryParams
+            Maybe.withDefault Search.detainerWarrantsDefault <| Maybe.andThen (Maybe.map (Search.dwFromString << QueryParams.toString) << .query) pageUrl
 
         search =
             { filters = filters, cursor = NewSearch, previous = Just filters, totalMatches = Nothing }
@@ -299,8 +300,20 @@ update pageUrl navKey sharedModel static msg model =
                         |> Tuple.first
             in
             ( updatedModel
-            , Maybe.withDefault Cmd.none <|
-                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] (Endpoint.toQueryArgs <| Search.detainerWarrantsArgs updatedModel.search.filters))) (Session.navKey session)
+            , Cmd.batch
+                [ Maybe.withDefault Cmd.none <|
+                    Maybe.map
+                        (\key ->
+                            Nav.replaceUrl key
+                                (Url.Builder.relative
+                                    [ "detainer-warrants"
+                                    ]
+                                    (Endpoint.toQueryArgs <| Search.detainerWarrantsArgs updatedModel.search.filters)
+                                )
+                        )
+                        (Session.navKey session)
+                , searchWarrants domain (Session.cred session) updatedModel.search
+                ]
             )
 
         GotWarrants (Ok detainerWarrantsPage) ->
@@ -308,17 +321,20 @@ update pageUrl navKey sharedModel static msg model =
                 maybeCred =
                     Session.cred sharedModel.session
 
+                queryFilters =
+                    Maybe.withDefault Search.detainerWarrantsDefault <| Maybe.map Search.dwFromString sharedModel.queryParams
+
                 search =
-                    { filters = model.search.filters
+                    { filters = queryFilters
                     , cursor = Maybe.withDefault End <| Maybe.map After detainerWarrantsPage.meta.afterCursor
-                    , previous = Just model.search.filters
+                    , previous = Just queryFilters
                     , totalMatches = Just detainerWarrantsPage.meta.totalMatches
                     }
 
                 updatedModel =
                     { model | search = search }
             in
-            if model.search.previous == Just model.search.filters then
+            if updatedModel.search.previous == Just updatedModel.search.filters then
                 ( { updatedModel
                     | warrants = model.warrants ++ detainerWarrantsPage.data
                     , infiniteScroll =

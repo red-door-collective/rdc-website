@@ -34,7 +34,7 @@ export default {
   },
   flags: function () {
     var dimensions = { 'width': window.innerWidth, 'height': window.innerHeight };
-    console.log(localStorage.getItem(storageKey))
+
     return {
       'window': dimensions,
       'viewer': localStorage.getItem(storageKey)

@@ -101,8 +101,13 @@ init navigationKey flags maybePagePath =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        OnPageChange _ ->
-            ( { model | showMobileMenu = False }, Cmd.none )
+        OnPageChange pageUrl ->
+            ( { model
+                | showMobileMenu = False
+                , queryParams = pageUrl.query
+              }
+            , Cmd.none
+            )
 
         ToggleMobileMenu ->
             ( { model | showMobileMenu = not model.showMobileMenu }, Cmd.none )
