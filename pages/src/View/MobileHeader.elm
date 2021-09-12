@@ -1,11 +1,10 @@
-module View.Header exposing (..)
+module View.MobileHeader exposing (view)
 
-import Element exposing (Element, alignRight, centerY, column, el, fill, height, link, padding, paddingXY, px, row, spacing, text, width)
+import Element exposing (Element, alignRight, column, el, fill, height, link, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
 import Html.Attributes as Attrs
 import Palette
 import Path exposing (Path)
@@ -18,7 +17,7 @@ headerLink attrs isActive =
     link
         ([ Element.htmlAttribute <| Attrs.attribute "elm-pages:prefetch" "true"
          , Font.size 20
-         , Element.htmlAttribute (Attrs.class "responsive-desktop")
+         , Element.htmlAttribute (Attrs.class "responsive-mobile")
          ]
             ++ (if isActive then
                     [ Font.color Palette.white ]
@@ -33,70 +32,25 @@ headerLink attrs isActive =
 noPreloadLink attrs =
     link
         ([ Font.size 20
-         , Element.htmlAttribute (Attrs.class "responsive-desktop")
          ]
             ++ attrs
         )
 
 
-sectionLink attrs =
-    link
-        ([ Element.htmlAttribute <| Attrs.attribute "elm-pages:prefetch" "true"
-         , Font.size 22
-         ]
-            ++ attrs
-        )
-
-
-mobileMenuButton : Session -> msg -> { path : Path, route : Maybe Route } -> Element msg
-mobileMenuButton session toggleMsg page =
-    Input.button
-        [ Element.htmlAttribute (Attrs.class "responsive-mobile")
-        ]
-        { onPress = Just toggleMsg
-        , label =
-            Element.el
-                [ Element.width (px 40)
-                , height (px 40)
-                , paddingXY 8 8
-                , centerY
-                , Element.alignBottom
-                ]
-                (Element.html
-                    (FeatherIcons.moreVertical
-                        |> FeatherIcons.toHtml []
-                    )
-                )
-        }
-
-
-view : Session -> msg -> { path : Path, route : Maybe Route } -> Element msg
-view session toggleMobileMenuMsg page =
-    row
+view : Session -> { path : Path, route : Maybe Route } -> Element msg
+view session page =
+    column
         [ width fill
         , Font.size 28
         , spacing 10
         , padding 10
         , Background.color (Element.rgb255 255 87 87)
-        , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
-        , Element.htmlAttribute (Attrs.style "position" "sticky")
-        , Element.htmlAttribute (Attrs.style "top" "0")
-        , Element.htmlAttribute (Attrs.style "left" "0")
-        , Element.htmlAttribute (Attrs.style "z-index" "1")
+        , Element.htmlAttribute (Attrs.class "responsive-mobile")
+
+        -- , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
         ]
-        ((if String.startsWith "/admin" <| Path.toAbsolute page.path then
-            [ sectionLink []
-                { url = "/"
-                , label =
-                    el [ height (px 32), width (px 32) ] <|
-                        Element.html <|
-                            RedDoor.view RedDoor.default
-                }
-            , sectionLink []
-                { url = "/admin/dashboard"
-                , label = Element.text "RDC Admin"
-                }
-            , headerLink [ alignRight ]
+        (if String.startsWith "/admin" <| Path.toAbsolute page.path then
+            [ headerLink []
                 (page.route == Just Admin__Dashboard)
                 { url = "/admin/dashboard"
                 , label = Element.text "Dashboard"
@@ -117,17 +71,13 @@ view session toggleMobileMenuMsg page =
                 }
             ]
 
-          else
-            [ sectionLink []
-                { url = "/"
-                , label = Element.text "Red Door Collective"
-                }
-            , headerLink [ alignRight ]
+         else
+            [ headerLink []
                 (page.route == Just Index)
                 { url = "/"
                 , label = Element.text "Trends"
                 }
-            , headerLink [ alignRight ]
+            , headerLink []
                 (page.route == Just Blog)
                 { url = "/blog"
                 , label = Element.text "Blog"
@@ -156,6 +106,4 @@ view session toggleMobileMenuMsg page =
                     , label = Element.text "Login"
                     }
             ]
-         )
-            ++ [ mobileMenuButton session toggleMobileMenuMsg page ]
         )

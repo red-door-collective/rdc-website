@@ -23,6 +23,7 @@ import SharedTemplate exposing (SharedTemplate)
 import Url.Builder
 import View exposing (View)
 import View.Header
+import View.MobileHeader
 import Viewer
 
 
@@ -45,6 +46,7 @@ type Msg
         }
     | ToggleMobileMenu
     | GotSession Session
+    | OnResize Int Int
 
 
 type alias Data =
@@ -57,6 +59,7 @@ type alias Model =
     , navigationKey : Maybe Nav.Key
     , session : Session
     , queryParams : Maybe String
+    , window : Window
     }
 
 
@@ -96,6 +99,14 @@ init navigationKey flags maybePagePath =
                     Session.fromViewer Nothing Nothing
       , queryParams =
             Maybe.andThen (.query << .path) maybePagePath
+      , window =
+            case flags of
+                BrowserFlags value ->
+                    Decode.decodeValue (Decode.field "window" windowDecoder) value
+                        |> Result.withDefault { width = 0, height = 0 }
+
+                PreRenderFlags ->
+                    { width = 0, height = 0 }
       }
     , Cmd.none
     )
@@ -130,6 +141,9 @@ update msg model =
                     )
                     (Session.navKey session)
             )
+
+        OnResize width height ->
+            ( { model | window = { width = width, height = height } }, Cmd.none )
 
 
 subscriptions : Path -> Model -> Sub Msg
@@ -171,6 +185,13 @@ view tableOfContents page model toMsg pageView =
         (View.Header.view model.session ToggleMobileMenu page
             |> Element.map toMsg
         )
+            :: (if model.showMobileMenu then
+                    View.MobileHeader.view model.session page
+                        |> Element.map toMsg
+
+                else
+                    Element.none
+               )
             :: pageView.body
             |> Element.column
                 [ width fill
