@@ -1,12 +1,13 @@
 module Shared exposing (Data, Model, Msg, template)
 
-import Browser.Navigation
+import Browser.Navigation as Nav
 import DataSource exposing (DataSource)
 import DataSource.Port
 import Element exposing (Element, fill, width)
 import Element.Font as Font
 import Html exposing (Html)
 import Html.Styled
+import Http
 import Json.Encode as Encode
 import OptimizedDecoder as Decode exposing (Decoder, int, string)
 import OptimizedDecoder.Pipeline exposing (optional, required)
@@ -19,6 +20,7 @@ import Route exposing (Route)
 import Runtime exposing (Runtime)
 import Session exposing (Session)
 import SharedTemplate exposing (SharedTemplate)
+import Url.Builder
 import View exposing (View)
 import View.Header
 import Viewer
@@ -42,6 +44,7 @@ type Msg
         , fragment : Maybe String
         }
     | ToggleMobileMenu
+    | GotSession Session
 
 
 type alias Data =
@@ -51,7 +54,7 @@ type alias Data =
 
 type alias Model =
     { showMobileMenu : Bool
-    , navigationKey : Maybe Browser.Navigation.Key
+    , navigationKey : Maybe Nav.Key
     , session : Session
     , queryParams : Maybe String
     }
@@ -65,7 +68,7 @@ windowDecoder =
 
 
 init :
-    Maybe Browser.Navigation.Key
+    Maybe Nav.Key
     -> Pages.Flags.Flags
     ->
         Maybe
@@ -112,10 +115,26 @@ update msg model =
         ToggleMobileMenu ->
             ( { model | showMobileMenu = not model.showMobileMenu }, Cmd.none )
 
+        GotSession session ->
+            ( { model | session = session }
+            , Maybe.withDefault Cmd.none <|
+                Maybe.map
+                    (\key ->
+                        Nav.replaceUrl key
+                            (if Session.isLoggedIn session then
+                                "/admin/dashboard"
+
+                             else
+                                "/"
+                            )
+                    )
+                    (Session.navKey session)
+            )
+
 
 subscriptions : Path -> Model -> Sub Msg
-subscriptions _ _ =
-    Sub.none
+subscriptions _ model =
+    Session.changes GotSession (Session.navKey model.session)
 
 
 data =
@@ -149,7 +168,7 @@ view :
     -> { body : Html msg, title : String }
 view tableOfContents page model toMsg pageView =
     { body =
-        (View.Header.view model.session ToggleMobileMenu page.path
+        (View.Header.view model.session ToggleMobileMenu page
             |> Element.map toMsg
         )
             :: pageView.body

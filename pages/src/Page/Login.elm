@@ -221,7 +221,6 @@ type Msg
     | EnteredEmail String
     | EnteredPassword String
     | CompletedLogin (Result Http.Error Viewer)
-    | GotSession Session
 
 
 update :
@@ -267,11 +266,6 @@ update pageUrl navKey sharedModel payload msg model =
             , Viewer.store viewer
             )
 
-        GotSession session ->
-            ( { model | session = session }
-            , Maybe.withDefault Cmd.none <| Maybe.map (\key -> Nav.replaceUrl key "/dashboard") (Session.navKey session)
-            )
-
 
 {-| Helper function for `update`. Updates the form and returns Cmd.none.
 Useful for recording form fields!
@@ -287,7 +281,7 @@ updateForm transform model =
 
 subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
 subscriptions pageUrl params path model =
-    Session.changes GotSession (Session.navKey model.session)
+    Sub.none
 
 
 
