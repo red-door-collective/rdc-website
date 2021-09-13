@@ -81,6 +81,78 @@ type alias Model =
 --         ]
 
 
+blogColumn model articles =
+    column
+        [ width (fill |> maximum 375)
+        ]
+        (List.indexedMap (blogTile model) (List.reverse articles))
+
+
+blogTile : Model -> Int -> ( Route, Article.ArticleMetadata ) -> Element Msg
+blogTile model index ( route, info ) =
+    let
+        absPath =
+            route |> Route.toPath |> Path.toAbsolute |> Pages.Url.toAbsoluteUrl
+    in
+    column
+        ([ centerX
+         , width (fill |> maximum 375)
+         , paddingXY 10 0
+         ]
+            ++ (if model.hoveringOn == Just info.title then
+                    [ Element.htmlAttribute (Attr.style "filter" "brightness(1.25)") ]
+
+                else
+                    []
+               )
+            ++ (if modBy 3 (index + 2) == 0 then
+                    [ Border.widthXY 1 0
+                    , Border.color (rgb255 235 235 235)
+                    ]
+
+                else
+                    []
+               )
+        )
+        [ row
+            [ width fill
+            ]
+            [ link route
+                [ width fill ]
+                { url = route |> Route.toPath |> Path.toAbsolute
+                , label =
+                    image
+                        [ width (fill |> maximum 180)
+                        , Element.Events.onMouseEnter (MouseEnteredPost info.title)
+                        , Element.Events.onMouseLeave MouseLeftPost
+                        ]
+                        { src = absPath info.image
+                        , description = "Article thumbnail"
+                        }
+                }
+            ]
+        , row
+            [ width fill
+            , padding 10
+            ]
+            [ textColumn [ width fill, spacing 10 ]
+                [ paragraph
+                    [ Font.size 22
+                    , Font.bold
+                    ]
+                    [ link route [] { url = route |> Route.toPath |> Path.toAbsolute, label = text info.title } ]
+                , paragraph
+                    [ Font.size 17 ]
+                    [ text info.description ]
+                , paragraph
+                    [ Font.size 14
+                    ]
+                    [ text (info.author ++ " - " ++ (info.published |> Date.format "MMMM ddd, yyyy")) ]
+                ]
+            ]
+        ]
+
+
 blogGrid model articles =
     wrappedRow
         [ centerX
@@ -118,18 +190,42 @@ view maybeUrl sharedModel model staticPayload =
                 ]
             ]
             [ row [ centerX ]
-                [ textColumn [ spacing 20 ]
+                [ textColumn [ spacing 20, width fill ]
                     [ paragraph
                         [ Font.size 30
                         , Font.bold
                         , Font.center
                         ]
                         [ text "Red Door Collective" ]
-                    , paragraph [ Font.center, Font.size 20 ] [ text blogDescription ]
+                    , paragraph
+                        [ Font.center
+                        , Font.size 20
+                        , Element.htmlAttribute (Attr.class "responsive-desktop")
+                        ]
+                        [ text blogDescription
+                        ]
+                    , paragraph
+                        [ Font.center
+                        , Font.size 20
+                        , Element.htmlAttribute (Attr.class "responsive-mobile")
+                        , width (fill |> maximum 375)
+                        ]
+                        [ text blogDescription
+                        ]
                     ]
                 ]
-            , row [ width fill, centerX ]
+            , row
+                [ Element.htmlAttribute (Attr.class "responsive-desktop")
+                , width fill
+                , centerX
+                ]
                 [ blogGrid model (sortByPublished staticPayload.data) ]
+            , row
+                [ Element.htmlAttribute (Attr.class "responsive-mobile")
+                , width fill
+                , centerX
+                ]
+                [ blogColumn model (sortByPublished staticPayload.data) ]
             ]
         ]
     }

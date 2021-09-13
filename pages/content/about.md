@@ -9,7 +9,7 @@
 
 <sized-image
     alt="Drawing of a handshake with a rose in the background."
-    width="400"
+    width="375"
     src="../images/about/dsa-handdrawn-logo.png"
     />
 
