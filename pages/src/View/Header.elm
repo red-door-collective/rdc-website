@@ -12,6 +12,7 @@ import Path exposing (Path)
 import RedDoor
 import Route exposing (Route(..))
 import Session exposing (Session)
+import View.MobileHeader
 
 
 headerLink attrs isActive =
@@ -70,92 +71,101 @@ mobileMenuButton session toggleMsg page =
         }
 
 
-view : Session -> msg -> { path : Path, route : Maybe Route } -> Element msg
-view session toggleMobileMenuMsg page =
-    row
+view : Bool -> Session -> msg -> { path : Path, route : Maybe Route } -> Element msg
+view showMobileMenu session toggleMobileMenuMsg page =
+    column
         [ width fill
-        , Font.size 28
-        , spacing 10
-        , padding 10
-        , Background.color (Element.rgb255 255 87 87)
-        , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
         , Element.htmlAttribute (Attrs.style "position" "sticky")
         , Element.htmlAttribute (Attrs.style "top" "0")
         , Element.htmlAttribute (Attrs.style "left" "0")
         , Element.htmlAttribute (Attrs.style "z-index" "1")
         ]
-        ((if String.startsWith "/admin" <| Path.toAbsolute page.path then
-            [ sectionLink []
-                { url = "/"
-                , label =
-                    el [ height (px 32), width (px 32) ] <|
-                        Element.html <|
-                            RedDoor.view RedDoor.default
-                }
-            , sectionLink []
-                { url = "/admin/dashboard"
-                , label = Element.text "RDC Admin"
-                }
-            , headerLink [ alignRight ]
-                (page.route == Just Admin__Dashboard)
-                { url = "/admin/dashboard"
-                , label = Element.text "Dashboard"
-                }
-            , headerLink []
-                (page.route == Just Admin__DetainerWarrants)
-                { url = "/admin/detainer-warrants"
-                , label = Element.text "Detainer Warrants"
-                }
-            , headerLink []
-                (page.route == Just Admin__Plaintiffs)
-                { url = "/admin/plaintiffs"
-                , label = Element.text "Plaintiffs"
-                }
-            , noPreloadLink []
-                { url = "/logout"
-                , label = Element.text "Logout"
-                }
+        [ row
+            [ width fill
+            , Font.size 28
+            , spacing 10
+            , padding 10
+            , Background.color (Element.rgb255 255 87 87)
+            , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
             ]
-
-          else
-            [ sectionLink []
-                { url = "/"
-                , label = Element.text "Red Door Collective"
-                }
-            , headerLink [ alignRight ]
-                (page.route == Just Index)
-                { url = "/"
-                , label = Element.text "Trends"
-                }
-            , headerLink [ alignRight ]
-                (page.route == Just Blog)
-                { url = "/blog"
-                , label = Element.text "Blog"
-                }
-            , headerLink []
-                (page.route == Just About)
-                { url = "/about"
-                , label = Element.text "About"
-                }
-            , headerLink []
-                (page.route == Just Glossary)
-                { url = "/glossary"
-                , label = Element.text "Glossary"
-                }
-            , if Session.isLoggedIn session then
-                headerLink []
-                    False
-                    { url = "/admin/dashboard"
-                    , label = Element.text "Admin"
+            ((if String.startsWith "/admin" <| Path.toAbsolute page.path then
+                [ sectionLink []
+                    { url = "/"
+                    , label =
+                        el [ height (px 32), width (px 32) ] <|
+                            Element.html <|
+                                RedDoor.view RedDoor.default
                     }
+                , sectionLink []
+                    { url = "/admin/dashboard"
+                    , label = Element.text "RDC Admin"
+                    }
+                , headerLink [ alignRight ]
+                    (page.route == Just Admin__Dashboard)
+                    { url = "/admin/dashboard"
+                    , label = Element.text "Dashboard"
+                    }
+                , headerLink []
+                    (page.route == Just Admin__DetainerWarrants)
+                    { url = "/admin/detainer-warrants"
+                    , label = Element.text "Detainer Warrants"
+                    }
+                , headerLink []
+                    (page.route == Just Admin__Plaintiffs)
+                    { url = "/admin/plaintiffs"
+                    , label = Element.text "Plaintiffs"
+                    }
+                , noPreloadLink []
+                    { url = "/logout"
+                    , label = Element.text "Logout"
+                    }
+                ]
 
               else
-                headerLink []
-                    (page.route == Just Login)
-                    { url = "/login"
-                    , label = Element.text "Login"
+                [ sectionLink []
+                    { url = "/"
+                    , label = Element.text "Red Door Collective"
                     }
-            ]
-         )
-            ++ [ mobileMenuButton session toggleMobileMenuMsg page ]
-        )
+                , headerLink [ alignRight ]
+                    (page.route == Just Index)
+                    { url = "/"
+                    , label = Element.text "Trends"
+                    }
+                , headerLink [ alignRight ]
+                    (page.route == Just Blog)
+                    { url = "/blog"
+                    , label = Element.text "Blog"
+                    }
+                , headerLink []
+                    (page.route == Just About)
+                    { url = "/about"
+                    , label = Element.text "About"
+                    }
+                , headerLink []
+                    (page.route == Just Glossary)
+                    { url = "/glossary"
+                    , label = Element.text "Glossary"
+                    }
+                , if Session.isLoggedIn session then
+                    headerLink []
+                        False
+                        { url = "/admin/dashboard"
+                        , label = Element.text "Admin"
+                        }
+
+                  else
+                    headerLink []
+                        (page.route == Just Login)
+                        { url = "/login"
+                        , label = Element.text "Login"
+                        }
+                ]
+             )
+                ++ [ mobileMenuButton session toggleMobileMenuMsg page ]
+            )
+        , if showMobileMenu then
+            View.MobileHeader.view session page
+
+          else
+            Element.none
+        ]

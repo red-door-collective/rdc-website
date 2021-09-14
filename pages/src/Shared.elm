@@ -182,16 +182,9 @@ view :
     -> { body : Html msg, title : String }
 view tableOfContents page model toMsg pageView =
     { body =
-        (View.Header.view model.session ToggleMobileMenu page
+        (View.Header.view model.showMobileMenu model.session ToggleMobileMenu page
             |> Element.map toMsg
         )
-            :: (if model.showMobileMenu then
-                    View.MobileHeader.view model.session page
-                        |> Element.map toMsg
-
-                else
-                    Element.none
-               )
             :: pageView.body
             |> Element.column
                 [ width fill
