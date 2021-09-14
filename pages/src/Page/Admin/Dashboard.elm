@@ -116,7 +116,12 @@ view :
 view maybeUrl sharedModel model static =
     { title = "Admin - Dashboard"
     , body =
-        [ row [ centerX, padding 10, Font.size 20, width (fill |> maximum 1000 |> minimum 400) ]
+        [ row
+            [ centerX
+            , padding 10
+            , Font.size 20
+            , width (fill |> maximum 1000 |> minimum 375)
+            ]
             [ column [ centerX, spacing 10 ]
                 ([ row [ centerX ]
                     [ paragraph [] [ text "Current campaigns" ]

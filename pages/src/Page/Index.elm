@@ -133,18 +133,20 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "Trends"
+    { title = "Red Door Collective | Eviction Trends"
     , body =
         [ Element.column
             [ Element.centerX
             , Element.width (fill |> Element.maximum 1000)
             , Font.size 14
-            , Element.padding 5
+            , Element.paddingXY 5 10
             ]
             [ Element.column
-                [ Element.spacing 30
+                [ Element.spacing 40
                 , Element.centerX
                 , Element.width fill
+
+                -- , Element.explain Debug.todo
                 ]
                 [ row
                     [ Element.htmlAttribute (Attrs.class "responsive-desktop")
@@ -172,7 +174,6 @@ view maybeUrl sharedModel model static =
                     , Element.width fill
                     ]
                     [ viewPlaintiffAttorneyChart { width = 365, height = 365 } static.data.plaintiffAttorneyWarrantCounts ]
-                , row [ Element.height (Element.px 30) ] []
                 , row [ Element.htmlAttribute <| Attrs.class "responsive-desktop", Element.centerX ]
                     [ Element.text ("Detainer Warrants updated via Red Door Collective members as of: " ++ dateFormatLong static.data.rollupMeta.lastWarrantUpdatedAt) ]
                 , row
@@ -298,7 +299,7 @@ topEvictorsChart { width, height } model static =
     --         else
     --             topEvictors
     -- in
-    Element.column [ Element.spacing 10 ]
+    Element.column [ Element.spacing 20 ]
         [ row [ Element.width fill ]
             [ Element.paragraph
                 ([ Region.heading 1
