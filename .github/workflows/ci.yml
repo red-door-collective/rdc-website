@@ -73,7 +73,7 @@ jobs:
           set -ex -o pipefail
           git config user.name "Release Bot"
           git config user.email "not.real@example.com"
-          git add -f eviction_tracker/static eviction_tracker/static_pages
+          git add -f eviction_tracker/static_pages
           git commit -m "Build application for $GITHUB_SHA"
           
           BRANCH_NAME="$(echo "${GITHUB_HEAD_REF:-$GITHUB_REF}" | sed -e 's/refs\/heads\///')-deploy"
