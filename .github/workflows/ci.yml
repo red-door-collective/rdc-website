@@ -70,6 +70,9 @@ jobs:
         env:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          ENV: production
+          ROLLBAR_CLIENT_TOKEN: ${{ secrets.ROLLBAR_CLIENT_TOKEN }}
+          VERSION: ${{ needs.compute_tags.outputs.release_tag }}
       - id: commit_assets
         run: |
           set -ex -o pipefail
