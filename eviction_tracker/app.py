@@ -3,7 +3,6 @@ from flask import Flask, request, redirect
 from flask_security import hash_password, auth_token_required
 from eviction_tracker.extensions import cors, db, marshmallow, migrate, api, login_manager, security
 from eviction_tracker.admin.models import User, user_datastore
-import yaml
 import os
 import time
 
