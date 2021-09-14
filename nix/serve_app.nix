@@ -1,12 +1,12 @@
 #!/usr/bin/env -S nix-build -o serve_app
 { sources ? null,
   listen ? "127.0.0.1:8080",
-  tmpdir ? null
+  tmpdir ? null,
+  pkgs ? import <nixpkgs> {}
 }:
 let
   eviction-tracker = import ../. { inherit sources; };
-  inherit (eviction-tracker) dependencyEnv deps src;
-  inherit (deps) pkgs flask gunicorn lib;
+  inherit (eviction-tracker) dependencyEnv src;
   pythonpath = "${dependencyEnv}/${dependencyEnv.sitePackages}";
 
   gunicornConf = pkgs.writeText
@@ -16,40 +16,40 @@ let
                 });
 
   runGunicorn = pkgs.writeShellScriptBin "run" ''
-    ${lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
+    ${pkgs.lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
     export PYTHONPATH=${pythonpath}
-    ${gunicorn}/bin/gunicorn -c ${gunicornConf} \
+    ${dependencyEnv}/bin/gunicorn -c ${gunicornConf} \
       "eviction_tracker.app:create_app()"
   '';
 
   runMigrations = pkgs.writeShellScriptBin "migrate" ''
     export PYTHONPATH=${pythonpath}
     cd ${src}
-    ${flask}/bin/flask db upgrade
+    ${dependencyEnv}/bin/flask db upgrade
   '';
 
   runSync = pkgs.writeShellScriptBin "sync" ''
     export PYTHONPATH=${pythonpath}
     cd ${src}
-    ${flask}/bin/flask sync "$@"
+    ${dependencyEnv}/bin/flask sync "$@"
   '';
 
   console = pkgs.writeShellScriptBin "console" ''
     export PYTHONPATH=${pythonpath}
     cd ${src}
-    ${flask}/bin/flask shell
+    ${dependencyEnv}/bin/flask shell
   '';
 
   verifyPhones = pkgs.writeShellScriptBin "verifyPhones" ''
     export PYTHONPATH=${pythonpath}
     cd ${src}
-    ${flask}/bin/flask verify-phones "$@"
+    ${dependencyEnv}/bin/flask verify-phones "$@"
   '';
 
   runFlask = pkgs.writeShellScriptBin "flask" ''
     export PYTHONPATH=${pythonpath}
     cd ${src}
-    ${flask}/bin/flask "$@"
+    ${dependencyEnv}/bin/flask "$@"
   '';
 
 in pkgs.buildEnv {

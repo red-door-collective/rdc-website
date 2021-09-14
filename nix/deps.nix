@@ -52,6 +52,7 @@ in rec {
   # Can be imported in Python code or run directly as debug tools
   debugLibsAndTools = with python.pkgs; [
     ipython
+    poetryPackagesByName.pdbpp
   ];
 
   pythonDevTest = python.buildEnv.override {
@@ -95,6 +96,7 @@ in rec {
     niv
     pkgs.jq
     pkgs.postgresql_11
+    poetryPackagesByName.pdbpp
     poetryWrapper
     python.pkgs.gunicorn
   ];
