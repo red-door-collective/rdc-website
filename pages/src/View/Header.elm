@@ -1,73 +1,171 @@
 module View.Header exposing (..)
 
-import Css
-import Element exposing (Element, alignRight, column, fill, link, padding, row, spacing, text, width)
-import Element.Border as Border
+import Element exposing (Element, alignRight, centerY, column, el, fill, height, link, padding, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
+import FeatherIcons
 import Html.Attributes as Attrs
-import Html.Styled exposing (..)
-import Html.Styled.Attributes as Attr exposing (css)
-import Html.Styled.Events
+import Palette
 import Path exposing (Path)
-import Route
-import Svg.Styled exposing (path, svg)
-import Svg.Styled.Attributes as SvgAttr
-import Tailwind.Breakpoints as Bp
-import Tailwind.Utilities as Tw
+import RedDoor
+import Route exposing (Route(..))
+import Session exposing (Session)
+import View.MobileHeader
 
 
-headerLink attrs =
-    link ([ Element.htmlAttribute <| Attrs.attribute "elm-pages:prefetch" "true" ] ++ attrs)
+headerLink attrs isActive =
+    link
+        ([ Element.htmlAttribute <| Attrs.attribute "elm-pages:prefetch" "true"
+         , Font.size 20
+         , Element.htmlAttribute (Attrs.class "responsive-desktop")
+         ]
+            ++ (if isActive then
+                    [ Font.color Palette.white ]
+
+                else
+                    []
+               )
+            ++ attrs
+        )
 
 
-view : msg -> Path -> Element msg
-view toggleMobileMenuMsg currentPath =
-    row
+noPreloadLink attrs =
+    link
+        ([ Font.size 20
+         , Element.htmlAttribute (Attrs.class "responsive-desktop")
+         ]
+            ++ attrs
+        )
+
+
+sectionLink attrs =
+    link
+        ([ Element.htmlAttribute <| Attrs.attribute "elm-pages:prefetch" "true"
+         , Font.size 22
+         ]
+            ++ attrs
+        )
+
+
+mobileMenuButton : Session -> msg -> { path : Path, route : Maybe Route } -> Element msg
+mobileMenuButton session toggleMsg page =
+    Input.button
+        [ Element.htmlAttribute (Attrs.class "responsive-mobile")
+        ]
+        { onPress = Just toggleMsg
+        , label =
+            Element.el
+                [ Element.width (px 40)
+                , height (px 40)
+                , paddingXY 8 8
+                , centerY
+                , Element.alignBottom
+                ]
+                (Element.html
+                    (FeatherIcons.moreVertical
+                        |> FeatherIcons.toHtml []
+                    )
+                )
+        }
+
+
+view : Bool -> Session -> msg -> { path : Path, route : Maybe Route } -> Element msg
+view showMobileMenu session toggleMobileMenuMsg page =
+    column
         [ width fill
-        , Font.size 28
-        , spacing 10
-        , padding 10
-        , Background.color (Element.rgb255 255 87 87)
-        , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
         , Element.htmlAttribute (Attrs.style "position" "sticky")
         , Element.htmlAttribute (Attrs.style "top" "0")
         , Element.htmlAttribute (Attrs.style "left" "0")
         , Element.htmlAttribute (Attrs.style "z-index" "1")
         ]
-        [ headerLink []
-            { url = "/"
-            , label = Element.text "Red Door Collective"
-            }
-        ]
-
-
-linkInner : Path -> String -> String -> Html msg
-linkInner currentPagePath linkTo name =
-    let
-        isCurrentPath : Bool
-        isCurrentPath =
-            List.head (Path.toSegments currentPagePath) == Just linkTo
-    in
-    span
-        [ css
-            [ Tw.text_sm
-            , Tw.p_2
-            , if isCurrentPath then
-                Css.batch
-                    [ Tw.text_blue_600
-                    , Css.hover
-                        [ Tw.text_blue_700
-                        ]
-                    ]
+        [ row
+            [ width fill
+            , Font.size 28
+            , spacing 10
+            , padding 10
+            , Background.color (Element.rgb255 255 87 87)
+            , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
+            ]
+            ((if String.startsWith "/admin" <| Path.toAbsolute page.path then
+                [ sectionLink []
+                    { url = "/"
+                    , label =
+                        el [ height (px 32), width (px 32) ] <|
+                            Element.html <|
+                                RedDoor.view RedDoor.default
+                    }
+                , sectionLink []
+                    { url = "/admin/dashboard"
+                    , label = Element.text "RDC Admin"
+                    }
+                , headerLink [ alignRight ]
+                    (page.route == Just Admin__Dashboard)
+                    { url = "/admin/dashboard"
+                    , label = Element.text "Dashboard"
+                    }
+                , headerLink []
+                    (page.route == Just Admin__DetainerWarrants)
+                    { url = "/admin/detainer-warrants"
+                    , label = Element.text "Detainer Warrants"
+                    }
+                , headerLink []
+                    (page.route == Just Admin__Plaintiffs)
+                    { url = "/admin/plaintiffs"
+                    , label = Element.text "Plaintiffs"
+                    }
+                , noPreloadLink []
+                    { url = "/logout"
+                    , label = Element.text "Logout"
+                    }
+                ]
 
               else
-                Css.batch
-                    [ Tw.text_gray_600
-                    , Css.hover
-                        [ Tw.text_gray_900
-                        ]
-                    ]
-            ]
+                [ sectionLink []
+                    { url = "/"
+                    , label = Element.text "Red Door Collective"
+                    }
+                , headerLink [ alignRight ]
+                    (page.route == Just Index)
+                    { url = "/"
+                    , label = Element.text "Trends"
+                    }
+                , headerLink [ alignRight ]
+                    (page.route == Just Blog)
+                    { url = "/blog"
+                    , label = Element.text "Blog"
+                    }
+                , headerLink []
+                    (page.route == Just About)
+                    { url = "/about"
+                    , label = Element.text "About"
+                    }
+                , headerLink []
+                    (page.route == Just Glossary)
+                    { url = "/glossary"
+                    , label = Element.text "Glossary"
+                    }
+                , if Session.isLoggedIn session then
+                    headerLink []
+                        False
+                        { url = "/admin/dashboard"
+                        , label = Element.text "Admin"
+                        }
+
+                  else
+                    headerLink []
+                        (page.route == Just Login)
+                        { url = "/login"
+                        , label = Element.text "Login"
+                        }
+                ]
+             )
+                ++ [ mobileMenuButton session toggleMobileMenuMsg page ]
+            )
+        , if showMobileMenu then
+            View.MobileHeader.view session page
+
+          else
+            Element.none
         ]
-        [ Html.Styled.text name ]

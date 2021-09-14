@@ -1,20 +1,30 @@
 module Shared exposing (Data, Model, Msg, template)
 
-import BlogSection
-import Browser.Navigation
-import DataSource
+import Browser.Navigation as Nav
+import DataSource exposing (DataSource)
+import DataSource.Port
 import Element exposing (Element, fill, width)
 import Element.Font as Font
 import Html exposing (Html)
 import Html.Styled
-import Pages.Flags
+import Http
+import Json.Encode as Encode
+import OptimizedDecoder as Decode exposing (Decoder, int, string)
+import OptimizedDecoder.Pipeline exposing (optional, required)
+import Pages.Flags exposing (Flags(..))
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
+import Rest exposing (Window)
+import Rest.Static
 import Route exposing (Route)
+import Runtime exposing (Runtime)
+import Session exposing (Session)
 import SharedTemplate exposing (SharedTemplate)
-import TableOfContents
+import Url.Builder
 import View exposing (View)
 import View.Header
+import View.MobileHeader
+import Viewer
 
 
 template : SharedTemplate Msg Model Data msg
@@ -35,22 +45,33 @@ type Msg
         , fragment : Maybe String
         }
     | ToggleMobileMenu
-    | IncrementFromChild
+    | GotSession Session
+    | OnResize Int Int
 
 
 type alias Data =
-    TableOfContents.TableOfContents TableOfContents.Data
+    { runtime : Runtime
+    }
 
 
 type alias Model =
     { showMobileMenu : Bool
-    , counter : Int
-    , navigationKey : Maybe Browser.Navigation.Key
+    , navigationKey : Maybe Nav.Key
+    , session : Session
+    , queryParams : Maybe String
+    , window : Window
     }
 
 
+windowDecoder : Decoder Window
+windowDecoder =
+    Decode.succeed Window
+        |> required "width" int
+        |> required "height" int
+
+
 init :
-    Maybe Browser.Navigation.Key
+    Maybe Nav.Key
     -> Pages.Flags.Flags
     ->
         Maybe
@@ -65,8 +86,27 @@ init :
     -> ( Model, Cmd Msg )
 init navigationKey flags maybePagePath =
     ( { showMobileMenu = False
-      , counter = 0
       , navigationKey = navigationKey
+      , session =
+            case flags of
+                BrowserFlags value ->
+                    Decode.decodeValue (Decode.field "viewer" string) value
+                        |> Result.andThen (Decode.decodeString (Rest.Static.storageDecoder Viewer.staticDecoder))
+                        |> Result.toMaybe
+                        |> Session.fromViewer navigationKey
+
+                PreRenderFlags ->
+                    Session.fromViewer Nothing Nothing
+      , queryParams =
+            Maybe.andThen (.query << .path) maybePagePath
+      , window =
+            case flags of
+                BrowserFlags value ->
+                    Decode.decodeValue (Decode.field "window" windowDecoder) value
+                        |> Result.withDefault { width = 0, height = 0 }
+
+                PreRenderFlags ->
+                    { width = 0, height = 0 }
       }
     , Cmd.none
     )
@@ -75,24 +115,59 @@ init navigationKey flags maybePagePath =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        OnPageChange _ ->
-            ( { model | showMobileMenu = False }, Cmd.none )
+        OnPageChange pageUrl ->
+            ( { model
+                | showMobileMenu = False
+                , queryParams = pageUrl.query
+              }
+            , Cmd.none
+            )
 
         ToggleMobileMenu ->
             ( { model | showMobileMenu = not model.showMobileMenu }, Cmd.none )
 
-        IncrementFromChild ->
-            ( { model | counter = model.counter + 1 }, Cmd.none )
+        GotSession session ->
+            ( { model | session = session }
+            , Maybe.withDefault Cmd.none <|
+                Maybe.map
+                    (\key ->
+                        Nav.replaceUrl key
+                            (if Session.isLoggedIn session then
+                                "/admin/dashboard"
+
+                             else
+                                "/"
+                            )
+                    )
+                    (Session.navKey session)
+            )
+
+        OnResize width height ->
+            ( { model | window = { width = width, height = height } }, Cmd.none )
 
 
 subscriptions : Path -> Model -> Sub Msg
-subscriptions _ _ =
-    Sub.none
+subscriptions _ model =
+    Session.changes GotSession (Session.navKey model.session)
 
 
-data : DataSource.DataSource Data
 data =
-    TableOfContents.dataSource BlogSection.all
+    DataSource.map Data
+        (DataSource.map4 Runtime
+            (DataSource.Port.get "environmentVariable"
+                (Encode.string "ENV")
+                Runtime.decodeEnvironment
+            )
+            (DataSource.Port.get "environmentVariable"
+                (Encode.string "ROLLBAR_CLIENT_TOKEN")
+                Runtime.decodeToken
+            )
+            (DataSource.Port.get "environmentVariable"
+                (Encode.string "VERSION")
+                Runtime.decodeCodeVersion
+            )
+            (DataSource.Port.get "today" (Encode.string "meh") Runtime.decodeDate)
+        )
 
 
 view :
@@ -107,10 +182,9 @@ view :
     -> { body : Html msg, title : String }
 view tableOfContents page model toMsg pageView =
     { body =
-        (View.Header.view ToggleMobileMenu page.path
+        (View.Header.view model.showMobileMenu model.session ToggleMobileMenu page
             |> Element.map toMsg
         )
-            --     -- :: TableOfContents.view model.showMobileMenu False Nothing tableOfContents
             :: pageView.body
             |> Element.column
                 [ width fill

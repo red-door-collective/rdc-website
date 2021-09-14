@@ -60,22 +60,20 @@ jobs:
       - uses: cachix/install-nix-action@v12
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v8
-        with:
-          name: midtndsa
-          signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-      - run: nix-shell --run './scripts/build-ui'
+      - run: ./scripts/build-ui
         name: Build application
         env:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          ENV: production
+          ROLLBAR_CLIENT_TOKEN: ${{ secrets.ROLLBAR_CLIENT_TOKEN }}
+          VERSION: ${{ needs.compute_tags.outputs.release_tag }}
       - id: commit_assets
         run: |
           set -ex -o pipefail
           git config user.name "Release Bot"
           git config user.email "not.real@example.com"
-          git add -f eviction_tracker/static eviction_tracker/static_pages
+          git add -f eviction_tracker/static_pages
           git commit -m "Build application for $GITHUB_SHA"
           
           BRANCH_NAME="$(echo "${GITHUB_HEAD_REF:-$GITHUB_REF}" | sed -e 's/refs\/heads\///')-deploy"
