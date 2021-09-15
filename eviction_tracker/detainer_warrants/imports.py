@@ -59,7 +59,7 @@ def create_defendant(defaults, number, warrant):
                                           last_name=last_name,
                                           suffix=suffix,
                                           address=address,
-                                          potential_phones=potential_phones).first()
+                                          potential_phones=phones).first()
     return defendant
 
 
