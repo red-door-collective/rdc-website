@@ -6,6 +6,7 @@ import Head
 import Head.Seo as Seo
 import Http
 import Log
+import Logo
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
@@ -107,16 +108,11 @@ head :
 head static =
     Seo.summary
         { canonicalUrlOverride = Nothing
-        , siteName = "elm-pages"
-        , image =
-            { url = Pages.Url.external "TODO"
-            , alt = "elm-pages logo"
-            , dimensions = Nothing
-            , mimeType = Nothing
-            }
-        , description = "TODO"
-        , locale = Nothing
-        , title = "TODO title" -- metadata.title -- TODO
+        , siteName = "Red Door Collective | Logout"
+        , image = Logo.smallImage
+        , description = "Log out of the Red Door Collective Administration Center"
+        , locale = Just "en"
+        , title = "Logout"
         }
         |> Seo.website
 

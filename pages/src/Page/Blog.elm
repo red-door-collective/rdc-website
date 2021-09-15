@@ -13,6 +13,7 @@ import Head.Seo as Seo
 import Html
 import Html.Attributes as Attr
 import List.Extra
+import Logo
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
@@ -236,12 +237,7 @@ head staticPayload =
     Seo.summary
         { canonicalUrlOverride = Nothing
         , siteName = "reddoormidtn"
-        , image =
-            { url = [ "images", "red-door-logo.png" ] |> Path.join |> Pages.Url.fromPath
-            , alt = "Red Door Collective logo"
-            , dimensions = Just { width = 300, height = 300 }
-            , mimeType = Just "png"
-            }
+        , image = Logo.smallImage
         , description = blogDescription
         , locale = Just "en-us"
         , title = "Red Door Collective Blog"

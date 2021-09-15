@@ -24,6 +24,7 @@ import Html exposing (Html)
 import Html.Attributes as Attrs
 import Json.Encode
 import Log
+import Logo
 import OptimizedDecoder as Decode exposing (float, int, list, string)
 import OptimizedDecoder.Pipeline exposing (decode, optional, required)
 import Page exposing (Page, StaticPayload)
@@ -104,12 +105,7 @@ head static =
     Seo.summary
         { canonicalUrlOverride = Nothing
         , siteName = "Red Door Collective"
-        , image =
-            { url = Pages.Url.external "TODO"
-            , alt = "Red Door Collective Logo"
-            , dimensions = Nothing
-            , mimeType = Nothing
-            }
+        , image = Logo.smallImage
         , description = "Organizing Nashville tenants for dignified housing."
         , locale = Nothing
         , title = "Red Door Collective"

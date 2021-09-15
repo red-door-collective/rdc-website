@@ -8,9 +8,9 @@
 }
 ---
 
-![Cover](../images/eviction-report-h1-2021/cover.png)
+![Cover](/images/eviction-report-h1-2021/cover.png)
 
-[Printable report available here](../reports/RDC-Nashville-Eviction-Report-Aug-2021.pdf)
+[Printable report available here](/reports/RDC-Nashville-Eviction-Report-Aug-2021.pdf)
 
 ## SUMMARY
 
@@ -21,7 +21,7 @@
 <align-right> 
   <sized-image
   alt="A house with a red front door left open with roses in the foreground."
-  src="../images/eviction-report-h1-2021/roses-artwork.png"
+  src="/images/eviction-report-h1-2021/roses-artwork.png"
   />
 </align-right>
 
@@ -87,7 +87,7 @@ There is a long history of racist and classist policies driving the racial segre
 
 In recent years the cost of living in Nashville has skyrocketed with few options for low-income residents and families who struggle to stay in their homes or find new ones. At least 7,000 Nashvillians rely on public housing vouchers to pay rent [\[4\]](https://www.newschannel5.com/news/public-housing-tenants-feel-forced-out-of-village-west-apartments).
 
-![Two Red Door Collective members holding up a banner that reads "Safe Homes for Nashville"](../images/eviction-report-h1-2021/safe-home-banner.jpg)
+![Two Red Door Collective members holding up a banner that reads "Safe Homes for Nashville"](/images/eviction-report-h1-2021/safe-home-banner.jpg)
 
 # DISASTER(S) STRIKE
 
@@ -95,7 +95,7 @@ In recent years the cost of living in Nashville has skyrocketed with few options
 
 Immediately prior to the COVID-19 pandemic, Davidson Co. was hit by a deadly tornado on the night of March 2 and into the morning of March 3, 2020 [\[5\]](https://www.arkansasonline.com/news/2020/mar/03/tornado-hits-downtown-nashville-least-7-die-tennes/). Following natural disasters such as the catastrophic flooding in May 2010, many homeowners are suddenly bombarded with offers to buy their now damaged homes. Increased gentrification has been significant in historically neglected and oppressed areas of Nashville impacted by severe weather events such as East and North Nashville; this gentrification has resulted in further displacement of longstanding communities.
 
-![Scenes of destruction in Nashville after the 2020 tornado.](../images/eviction-report-h1-2021/destruction.jpg)
+![Scenes of destruction in Nashville after the 2020 tornado.](/images/eviction-report-h1-2021/destruction.jpg)
 
 ### AFFECTS OF COVID-19
 
@@ -113,7 +113,7 @@ While eviction hearings were delayed by COVID restrictions and the CDC eviction 
 
 Between January 1, 2017 and December 31, 2019, over 31,000 detainer warrants (DWs) were filed. A detainer warrant is the document that informs a tenant or renter of their upcoming eviction proceeding. The number filed per year increased 20% over the three-year period, with approximately 9,358 detainer warrants filed in 2017, 10,543 in 2018, and 11,471 in 2019. While the population of Davidson Co. increased in this time frame, the rate of detainer warrants filed per year also increased from 14.2 DWs issued per 10,000 persons in 2017 to 16.8 in 2019. The number of DWs issued per month varied widely and seasonal trends are inconsistent between years.
 
-![Figure 1. Number of detainer warrants issued by month 2017-2019, Davidson Co. Tennessee](../images/eviction-report-h1-2021/eviction-bar-chart.png "Figure 1. Number of detainer warrants issued by month 2017-2019, Davidson Co. Tennessee")
+![Figure 1. Number of detainer warrants issued by month 2017-2019, Davidson Co. Tennessee](/images/eviction-report-h1-2021/eviction-bar-chart.png "Figure 1. Number of detainer warrants issued by month 2017-2019, Davidson Co. Tennessee")
 
 <row>
 <text-column portion="2">
@@ -159,7 +159,7 @@ A consistent group of eviction attorneys are responsible for representing the ma
 <text-column>
 
 <align-left>
-![Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee](../images/eviction-report-h1-2021/judgments-pie-chart.png "Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee")
+![Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgments-pie-chart.png "Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee")
 </align-left>
 
 Judgement data was manually entered from CaseLink. To reduce the workload of determining frequency of judgement outcomes for historical data, we used a random number generator to sample 5% (574) of DWs from 2019. While the below data does not include all cases, we believe it can provide insight into historical trends.
@@ -170,17 +170,17 @@ Figure 2 shows that over half of cases sampled resulted in repossession of prope
 
 For the 221 cases with monetary damages ("possession and fees"), approximately $750,000 total was awarded to plaintiffs with an average of $3,434 per case. The median financial award was $2,443 per case.
 
-![A pedestrian bridge with a poster hanging on its fencing that reads "All my homies hate landlords".](../images/eviction-report-h1-2021/bridge.jpg)
+![A pedestrian bridge with a poster hanging on its fencing that reads "All my homies hate landlords".](/images/eviction-report-h1-2021/bridge.jpg)
 
 ### EVICTION DATA 2020-2021
 
 The COVID-19 pandemic has significantly impacted the total number of detainer warrants (DWs) issued in Davidson County as well as the most frequent plaintiffs seeking to evict people. In prior years (see Figure 1), between 700 and 1,300 DWs were issued every month. The number of DWs issued per month sharply declined to 122 cases in April 2020, but rebounded slightly in Summer 2020 (Figure 3). If the number of DWs issued in Davidson Co. continued to grow in the absence of COVID-19, we would have expected approximately 10% more DWs compared to 2020, or 12,650 issued per year and 1,054 per month in 2021. The following sections include some charts from April 2020 to March 2021 to illustrate how one year of the COVID-19 pandemic has affected evictions.
 
-![Figure 3. Number of detainer warrants issued by month, January 2020 to March 2021, Davidson Co. Tennessee](../images/eviction-report-h1-2021/monthly-bar-chart.png "Figure 3. Number of detainer warrants issued by month, January 2020 to March 2021, Davidson Co. Tennessee")
+![Figure 3. Number of detainer warrants issued by month, January 2020 to March 2021, Davidson Co. Tennessee](/images/eviction-report-h1-2021/monthly-bar-chart.png "Figure 3. Number of detainer warrants issued by month, January 2020 to March 2021, Davidson Co. Tennessee")
 
 ## MOST COMMON PLAINTIFFS AND ATTORNEYS, 2020-2021
 
-![Figure 4. Ten most common plaintiffs by number of detainer warrants (N), April 2020 to March 2021, Davidson Co. Tennessee](../images/eviction-report-h1-2021/top-evictors.png "Figure 4. Ten most common plaintiffs by number of detainer warrants (N), April 2020 to March 2021, Davidson Co. Tennessee")
+![Figure 4. Ten most common plaintiffs by number of detainer warrants (N), April 2020 to March 2021, Davidson Co. Tennessee](/images/eviction-report-h1-2021/top-evictors.png "Figure 4. Ten most common plaintiffs by number of detainer warrants (N), April 2020 to March 2021, Davidson Co. Tennessee")
 
 The most common plaintiffs listed on DWs between April 2020 and March 2021 include the Metropolitan Development and Housing Agency (MDHA), Elmington Property Management, and Hickory Highlands Apartments (Figure 4). MDHA decreased their overall share of evictions since COVID-19, but are still the most frequently listed plaintiff during this period. The same five attorneys were most frequently listed on detainer warrants during this time frame as in previous years (Table 3). These attorneys' most frequent plaintiffs are some of the most common plaintiffs overall.
 
@@ -198,10 +198,10 @@ The most common plaintiffs listed on DWs between April 2020 and March 2021 inclu
 
 <row>
 <column portion="1">
-![Figure 5. Number of detainer warrants and named defendants by month, October to December 2020, Davidson Co. Tennessee](../images/eviction-report-h1-2021/defendants-bar-chart.png "Figure 5. Number of detainer warrants and named defendants by month, October to December 2020, Davidson Co. Tennessee")
+![Figure 5. Number of detainer warrants and named defendants by month, October to December 2020, Davidson Co. Tennessee](/images/eviction-report-h1-2021/defendants-bar-chart.png "Figure 5. Number of detainer warrants and named defendants by month, October to December 2020, Davidson Co. Tennessee")
 </column>
 <column portion="1">
-![Figure 6. Judgements of closed cases, October to December 2020, Davidson Co. Tennessee](../images/eviction-report-h1-2021/judgments-pie-chart2.png "Figure 6. Judgements of closed cases, October to December 2020, Davidson Co. Tennessee")
+![Figure 6. Judgements of closed cases, October to December 2020, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgments-pie-chart2.png "Figure 6. Judgements of closed cases, October to December 2020, Davidson Co. Tennessee")
 </column>
 </row>
 On average, for every five DWs submitted between October 2020 and March 2021, at least six people are listed as defendants (Figure 5). We know that this number largely underestimates the total number of people at risk of being evicted; DWs are not required to list all defendants, including children living inside the home. 
@@ -214,15 +214,15 @@ Of the 141 cases that noted both possession and financial damages, over $877,000
 
 <row>
   <column portion="1">
-  ![Figure 7. Rate of detainer warrants issued per month by zip code, January 2017 to December 2019, Davidson Co. Tennessee](../images/eviction-report-h1-2021/zipcode-heat-map-2017-2019.png "Figure 7. Rate of detainer warrants issued per month by zip code, January 2017 to December 2019, Davidson Co. Tennessee")
+  ![Figure 7. Rate of detainer warrants issued per month by zip code, January 2017 to December 2019, Davidson Co. Tennessee](/images/eviction-report-h1-2021/zipcode-heat-map-2017-2019.png "Figure 7. Rate of detainer warrants issued per month by zip code, January 2017 to December 2019, Davidson Co. Tennessee")
   </column>
 
   <column portion="1">
-  ![Figure 8. Rate of detainer warrants issued per month by zip code, January 2020 to March 2021, Davidson Co. Tennessee](../images/eviction-report-h1-2021/zipcode-heat-map-2020-2021.png "Figure 8. Rate of detainer warrants issued per month by zip code, January 2020 to March 2021, Davidson Co. Tennessee")
+  ![Figure 8. Rate of detainer warrants issued per month by zip code, January 2020 to March 2021, Davidson Co. Tennessee](/images/eviction-report-h1-2021/zipcode-heat-map-2020-2021.png "Figure 8. Rate of detainer warrants issued per month by zip code, January 2020 to March 2021, Davidson Co. Tennessee")
   </column>
 </row>
 
-![Heat map legend](../images/eviction-report-h1-2021/heat-map-legend.png)
+![Heat map legend](/images/eviction-report-h1-2021/heat-map-legend.png)
 
 The number of DWs filed per month differed by ZIP code across time. To account for population differences between ZIP codes, we calculated rates with 2019 population estimates. The monthly rates were split into four equal groups called "quartiles" to compare highest and lowest rates of DWs issued across Davidson Co. Becase ZIP codes cross county lines, rates for some ZIP codes (i.e. 37027, 37135) are likely underestimated. Rates are calculated per 10,000 persons.
 
@@ -235,7 +235,7 @@ Overall, the ZIP codes with the highest and lowest rates did not significantly c
 This document was put together in the Spring and Summer of 2021, in the months when the CDC Moratorium was set to expire and then pushed back temporarily. There are hundreds of families who have waited months to hear about rent relief in Davidson Co. after struggling with bureaucratic barriers. Nearly 1 in 5 Tennesseans are still behind on their rent [\[8\]](https://www.cbpp.org/research/poverty-and-inequality/tracking-the-covid-19-recessions-effects-on-food-housing-and). In recent months, numerous community groups have fought to hold landlords accountable for their abuses and disregard for renters across Nashville, including at Mosaic Apartments, WC Mobile Home Community, The Blue Note Apartments, and Porter East Apartments. To say this report will come at a crossroads in housing justice is an understatement. We must ask ourselves difficult questions: How many more families will be forced out of their homes? How many people who sustain Nashville will no longer be able to live here? How can we ensure development reflects the interests of our community? What are we willing to do for our freedom?
 
 <align-left>
-![Where is Bill Lee poster](../images/eviction-report-h1-2021/bill-lee.png)
+![Where is Bill Lee poster](/images/eviction-report-h1-2021/bill-lee.png)
 </align-left>
 
 Since at least 2017, detainer warrant filings have increased and are now backlogged as we wait for hundreds of cases filed during the COVID-19 pandemic to be settled. Evictions have disproportionately affected the underserved areas of Nashville. Housing costs have skyrocketed in the midst of rapid gentrification and few low-income options exist. These are desperate times that require collective action on a massive scale.
@@ -243,7 +243,7 @@ Since at least 2017, detainer warrant filings have increased and are now backlog
 The first step of rectifying these injustices is to expose them to the light. We hope that this report increases awareness, agency, and agitation towards action. A better world is possible.
 </text-column>
 
-![housing art backdrop](../images/eviction-report-h1-2021/housing-art-backdrop.png)
+![housing art backdrop](/images/eviction-report-h1-2021/housing-art-backdrop.png)
 
 ### CONTACT INFORMATION
 

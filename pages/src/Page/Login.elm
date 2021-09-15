@@ -17,6 +17,7 @@ import Html.Events
 import Http
 import Json.Decode
 import Json.Encode as Encode
+import Logo
 import OptimizedDecoder as Decode exposing (Decoder, decodeString, field, string)
 import OptimizedDecoder.Pipeline exposing (optional)
 import Page exposing (Page, PageWithState, StaticPayload)
@@ -68,14 +69,9 @@ head static =
     Seo.summary
         { canonicalUrlOverride = Nothing
         , siteName = "Red Door Collective"
-        , image =
-            { url = Pages.Url.external "https://reddoorcollective.org"
-            , alt = "Red Door Collective Logo"
-            , dimensions = Nothing
-            , mimeType = Nothing
-            }
-        , description = "Red Door Collective Admin Login"
-        , locale = Nothing
+        , image = Logo.smallImage
+        , description = "Log in to the Red Door Collective Administration Center"
+        , locale = Just "en"
         , title = "Login"
         }
         |> Seo.website

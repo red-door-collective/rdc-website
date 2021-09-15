@@ -1,9 +1,19 @@
-module Logo exposing (link)
+module Logo exposing (link, smallImage)
 
 import Element exposing (Element, alignBottom, alignRight, centerX, column, height, paragraph, px, row, shrink, text, width)
 import Element.Font as Font
+import Pages.Url
 import Palette
+import Path
 import RedDoor
+
+
+smallImage =
+    { url = [ "images", "red-door-logo.png" ] |> Path.join |> Pages.Url.fromPath
+    , alt = "Red Door Collective logo"
+    , dimensions = Just { width = 300, height = 300 }
+    , mimeType = Just "png"
+    }
 
 
 name : Element msg
