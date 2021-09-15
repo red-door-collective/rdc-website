@@ -66,11 +66,11 @@ def create_defendant(defaults, docket_id, listing):
                 defaults=defaults
             )
         except MultipleResultsFound:
-            return Defendant.query.filter(first_name=name.first,
-                                          middle_name=name.middle,
-                                          last_name=name.last,
-                                          suffix=name.suffix,
-                                          address=address).first()
+            return Defendant.query.filter_by(first_name=name.first,
+                                             middle_name=name.middle,
+                                             last_name=name.last,
+                                             suffix=name.suffix,
+                                             address=address).first()
 
     return defendant
 

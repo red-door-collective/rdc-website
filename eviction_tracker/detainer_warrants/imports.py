@@ -54,12 +54,12 @@ def create_defendant(defaults, number, warrant):
                 potential_phones=phones, address=address, defaults=defaults
             )
         except MultipleResultsFound:
-            return Defendant.query.filter(first_name=first_name,
-                                          middle_name=middle_name,
-                                          last_name=last_name,
-                                          suffix=suffix,
-                                          address=address,
-                                          potential_phones=phones).first()
+            return Defendant.query.filter_by(first_name=first_name,
+                                             middle_name=middle_name,
+                                             last_name=last_name,
+                                             suffix=suffix,
+                                             address=address,
+                                             potential_phones=phones).first()
     return defendant
 
 
