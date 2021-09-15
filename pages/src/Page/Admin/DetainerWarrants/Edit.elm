@@ -31,6 +31,7 @@ import Json.Encode as Encode
 import LineChart.Axis.Values exposing (Amount)
 import List.Extra as List
 import Log
+import Logo
 import Mask
 import Maybe.Extra
 import Page exposing (Page, PageWithState, StaticPayload)
@@ -4078,15 +4079,10 @@ head static =
     Seo.summary
         { canonicalUrlOverride = Nothing
         , siteName = "Red Door Collective"
-        , image =
-            { url = Pages.Url.external "TODO"
-            , alt = "elm-pages logo"
-            , dimensions = Nothing
-            , mimeType = Nothing
-            }
-        , description = "TODO"
-        , locale = Nothing
-        , title = "TODO title" -- metadata.title -- TODO
+        , image = Logo.smallImage
+        , description = "Edit detainer warrant details"
+        , locale = Just "en-us"
+        , title = "RDC | Admin | Detainer Warrant | Edit"
         }
         |> Seo.website
 
