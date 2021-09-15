@@ -97,26 +97,26 @@ view showMobileMenu session toggleMobileMenuMsg page =
                                 RedDoor.view RedDoor.default
                     }
                 , sectionLink []
-                    { url = "/admin/dashboard"
+                    { url = "/admin/dashboard/"
                     , label = Element.text "RDC Admin"
                     }
                 , headerLink [ alignRight ]
                     (page.route == Just Admin__Dashboard)
-                    { url = "/admin/dashboard"
+                    { url = "/admin/dashboard/"
                     , label = Element.text "Dashboard"
                     }
                 , headerLink []
                     (page.route == Just Admin__DetainerWarrants)
-                    { url = "/admin/detainer-warrants"
+                    { url = "/admin/detainer-warrants/"
                     , label = Element.text "Detainer Warrants"
                     }
                 , headerLink []
                     (page.route == Just Admin__Plaintiffs)
-                    { url = "/admin/plaintiffs"
+                    { url = "/admin/plaintiffs/"
                     , label = Element.text "Plaintiffs"
                     }
                 , noPreloadLink []
-                    { url = "/logout"
+                    { url = "/logout/"
                     , label = Element.text "Logout"
                     }
                 ]
@@ -133,30 +133,30 @@ view showMobileMenu session toggleMobileMenuMsg page =
                     }
                 , headerLink [ alignRight ]
                     (page.route == Just Blog)
-                    { url = "/blog"
+                    { url = "/blog/"
                     , label = Element.text "Blog"
                     }
                 , headerLink []
                     (page.route == Just About)
-                    { url = "/about"
+                    { url = "/about/"
                     , label = Element.text "About"
                     }
                 , headerLink []
                     (page.route == Just Glossary)
-                    { url = "/glossary"
+                    { url = "/glossary/"
                     , label = Element.text "Glossary"
                     }
                 , if Session.isLoggedIn session then
                     headerLink []
                         False
-                        { url = "/admin/dashboard"
+                        { url = "/admin/dashboard/"
                         , label = Element.text "Admin"
                         }
 
                   else
                     headerLink []
                         (page.route == Just Login)
-                        { url = "/login"
+                        { url = "/login/"
                         , label = Element.text "Login"
                         }
                 ]
