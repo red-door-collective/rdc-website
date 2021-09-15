@@ -178,7 +178,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model staticPayload =
-    { title = "Red Door Collective Blog"
+    { title = "Red Door Collective | Blog"
     , body =
         [ column
             [ width fill
