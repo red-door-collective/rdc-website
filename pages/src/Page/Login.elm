@@ -71,7 +71,7 @@ head static =
         , siteName = "Red Door Collective"
         , image = Logo.smallImage
         , description = "Log in to the Red Door Collective Administration Center"
-        , locale = Just "en"
+        , locale = Just "en-us"
         , title = "Login"
         }
         |> Seo.website

@@ -151,7 +151,7 @@ head static =
         )
         :: (Seo.summaryLarge
                 { canonicalUrlOverride = Nothing
-                , siteName = "elm-pages"
+                , siteName = "Red Door Collective"
                 , image =
                     { url = metadata.image
                     , alt = metadata.description

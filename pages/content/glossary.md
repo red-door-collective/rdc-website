@@ -1,6 +1,6 @@
 ---
 {
-  "title": "Glossary",
+  "title": "Red Door Collective | Glossary",
   "description": "Housing advocacy jargon most useful for organizing in Nashville, TN.",
   "image": "avatars/red-door-logo.png",
   "lastReviewed": "2021-09-08",

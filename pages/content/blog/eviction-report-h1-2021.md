@@ -1,9 +1,9 @@
 ---
 {
   "author": "Jack Marr",
-  "title": "Nashville Eviction Report - August 2021",
+  "title": "Red Door Collective | Nashville Eviction Report, August 2021",
   "description": "A summary of the evictions happening in Davidson County.",
-  "image": "article-covers/zipcode-heat-map-2020-2021.png",
+  "image": "/article-covers/zipcode-heat-map-2020-2021.png",
   "published": "2021-08-25",
 }
 ---

@@ -4077,7 +4077,7 @@ head :
 head static =
     Seo.summary
         { canonicalUrlOverride = Nothing
-        , siteName = "elm-pages"
+        , siteName = "Red Door Collective"
         , image =
             { url = Pages.Url.external "TODO"
             , alt = "elm-pages logo"

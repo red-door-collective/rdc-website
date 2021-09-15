@@ -236,11 +236,11 @@ head : StaticPayload Data {} -> List Head.Tag
 head staticPayload =
     Seo.summary
         { canonicalUrlOverride = Nothing
-        , siteName = "reddoormidtn"
+        , siteName = "Red Door Collective"
         , image = Logo.smallImage
         , description = blogDescription
         , locale = Just "en-us"
-        , title = "Red Door Collective Blog"
+        , title = "Red Door Collective | Blog"
         }
         |> Seo.website
 

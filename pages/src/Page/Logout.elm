@@ -108,10 +108,10 @@ head :
 head static =
     Seo.summary
         { canonicalUrlOverride = Nothing
-        , siteName = "Red Door Collective | Logout"
+        , siteName = "Red Door Collective"
         , image = Logo.smallImage
         , description = "Log out of the Red Door Collective Administration Center"
-        , locale = Just "en"
+        , locale = Just "en-us"
         , title = "Logout"
         }
         |> Seo.website

@@ -7,6 +7,7 @@ import Element exposing (Element, alignLeft, alignRight, alignTop, centerX, colu
 import Element.Font as Font
 import Head
 import Head.Seo as Seo
+import Logo
 import Markdown.Html
 import MarkdownCodec
 import MarkdownRenderer
@@ -76,17 +77,12 @@ head static =
                     }
             }
         )
-        :: (Seo.summaryLarge
+        :: (Seo.summary
                 { canonicalUrlOverride = Nothing
                 , siteName = "Red Door Collective"
-                , image =
-                    { url = metadata.image
-                    , alt = metadata.description
-                    , dimensions = Nothing
-                    , mimeType = Nothing
-                    }
+                , image = Logo.smallImage
                 , description = metadata.description
-                , locale = Nothing
+                , locale = Just "en-us"
                 , title = metadata.title
                 }
                 |> Seo.website

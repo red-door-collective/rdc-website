@@ -16,6 +16,7 @@ import Head.Seo as Seo
 import Html.Events
 import Http
 import Json.Decode as Decode
+import Logo
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
@@ -172,15 +173,10 @@ head :
 head static =
     Seo.summary
         { canonicalUrlOverride = Nothing
-        , siteName = "Red Door Collective Admin"
-        , image =
-            { url = Pages.Url.external "TODO"
-            , alt = "RDC Logo"
-            , dimensions = Nothing
-            , mimeType = Nothing
-            }
-        , description = "Red Door Collective Administration"
+        , siteName = "Red Door Collective"
+        , image = Logo.smallImage
+        , description = "RDC at a single view"
         , locale = Nothing
-        , title = "Red Door Collective > Dashboard"
+        , title = "Red Door Collective | Admin | Dashboard"
         }
         |> Seo.website

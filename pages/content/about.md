@@ -1,8 +1,8 @@
 ---
 {
-  "title": "About",
+  "title": "Red Door Collective | About",
   "description": "Who is Red Door Collective?",
-  "image": "avatars/red-door-logo.png",
+  "image": "/avatars/red-door-logo.png",
   "lastReviewed": "2021-09-08",
 }
 ---

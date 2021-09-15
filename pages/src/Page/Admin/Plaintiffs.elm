@@ -24,6 +24,7 @@ import InfiniteScroll
 import Json.Decode as Decode
 import Loader
 import Log
+import Logo
 import Maybe.Extra
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
@@ -600,15 +601,10 @@ head :
 head static =
     Seo.summary
         { canonicalUrlOverride = Nothing
-        , siteName = "elm-pages"
-        , image =
-            { url = Pages.Url.external "TODO"
-            , alt = "elm-pages logo"
-            , dimensions = Nothing
-            , mimeType = Nothing
-            }
-        , description = "TODO"
+        , siteName = "Red Door Collective"
+        , image = Logo.smallImage
+        , description = "Manage plaintiffs"
         , locale = Nothing
-        , title = "TODO title" -- metadata.title -- TODO
+        , title = "Red Door Collective | Admin | Plaintiffs"
         }
         |> Seo.website
