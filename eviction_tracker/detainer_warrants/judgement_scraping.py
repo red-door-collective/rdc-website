@@ -2,7 +2,7 @@ from nameparser import HumanName
 from pyquery import PyQuery as pq
 import re
 import requests
-from sqlalchemy.exc import IntegrityError, InternalError
+from sqlalchemy.exc import IntegrityError, InternalError, MultipleResultsFound
 from sqlalchemy.dialects.postgresql import insert
 from datetime import date, datetime, timedelta
 
@@ -55,15 +55,22 @@ def create_defendant(defaults, docket_id, listing):
 
     defendant = None
     if name.first:
-        defendant, _ = get_or_create(
-            db.session, Defendant,
-            first_name=name.first,
-            middle_name=name.middle,
-            last_name=name.last,
-            suffix=name.suffix,
-            address=address,
-            defaults=defaults
-        )
+        try:
+            defendant, _ = get_or_create(
+                db.session, Defendant,
+                first_name=name.first,
+                middle_name=name.middle,
+                last_name=name.last,
+                suffix=name.suffix,
+                address=address,
+                defaults=defaults
+            )
+        except MultipleResultsFound:
+            return Defendant.query.filter(first_name=name.first,
+                                          middle_name=name.middle,
+                                          last_name=name.last,
+                                          suffix=name.suffix,
+                                          address=address).first()
 
     return defendant
 

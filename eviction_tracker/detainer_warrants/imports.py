@@ -44,14 +44,22 @@ def create_defendant(defaults, number, warrant):
 
     defendant = None
     if bool(first_name) or bool(phones):
-        defendant, _ = get_or_create(
-            db.session, Defendant,
-            first_name=first_name,
-            middle_name=middle_name,
-            last_name=last_name,
-            suffix=suffix,
-            potential_phones=phones, address=address, defaults=defaults
-        )
+        try:
+            defendant, _ = get_or_create(
+                db.session, Defendant,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+                suffix=suffix,
+                potential_phones=phones, address=address, defaults=defaults
+            )
+        except MultipleResultsFound:
+            return Defendant.query.filter(first_name=first_name,
+                                          middle_name=middle_name,
+                                          last_name=last_name,
+                                          suffix=suffix,
+                                          address=address,
+                                          potential_phones=potential_phones).first()
     return defendant
 
 
