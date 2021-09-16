@@ -1,7 +1,8 @@
 from .models import db
 from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plaintiff, detainer_warrant_defendants
 from .util import get_or_create, normalize, open_workbook, dw_rows, district_defaults
-from sqlalchemy.exc import IntegrityError, InternalError, MultipleResultsFound
+from sqlalchemy.exc import IntegrityError, InternalError
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
 

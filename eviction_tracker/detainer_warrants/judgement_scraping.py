@@ -2,7 +2,8 @@ from nameparser import HumanName
 from pyquery import PyQuery as pq
 import re
 import requests
-from sqlalchemy.exc import IntegrityError, InternalError, MultipleResultsFound
+from sqlalchemy.exc import IntegrityError, InternalError
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.dialects.postgresql import insert
 from datetime import date, datetime, timedelta
 
