@@ -1,11 +1,17 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, judgementDecoder, statusOptions, statusText, ternaryOptions)
+module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, ternaryOptions, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
 
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import Dropdown
+import Element exposing (Element, column, fill, height, maximum, padding, px, row, text, width)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Events as Events
+import Element.Font as Font
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
+import Palette
 import Plaintiff exposing (Plaintiff)
 import SearchBox
 import String.Extra
@@ -349,20 +355,30 @@ amountClaimedCategoryText category =
             "N/A"
 
 
+statusFromText : String -> Result String Status
+statusFromText str =
+    case str of
+        "CLOSED" ->
+            Result.Ok Closed
+
+        "PENDING" ->
+            Result.Ok Pending
+
+        _ ->
+            Result.Err "Invalid Status"
+
+
 statusDecoder : Decoder Status
 statusDecoder =
     Decode.string
         |> Decode.andThen
             (\str ->
-                case str of
-                    "CLOSED" ->
-                        Decode.succeed Closed
+                case statusFromText str of
+                    Ok status ->
+                        Decode.succeed status
 
-                    "PENDING" ->
-                        Decode.succeed Pending
-
-                    somethingElse ->
-                        Decode.fail <| "Unknown status:" ++ somethingElse
+                    Err msg ->
+                        Decode.fail msg
             )
 
 
@@ -529,9 +545,14 @@ judgeDecoder =
         |> required "aliases" (list string)
 
 
+dateFromString : String -> Maybe Date
+dateFromString =
+    Result.toMaybe << Date.fromIsoString
+
+
 dateDecoder : Decoder Date
 dateDecoder =
-    Decode.map (Maybe.withDefault (Date.fromCalendarDate 2021 Jan 1) << Result.toMaybe << Date.fromIsoString) Decode.string
+    Decode.map (Maybe.withDefault (Date.fromCalendarDate 2021 Jan 1) << dateFromString) Decode.string
 
 
 decoder : Decoder DetainerWarrant
@@ -553,3 +574,146 @@ decoder =
         |> required "defendants" (list Defendant.decoder)
         |> required "judgements" (list judgementDecoder)
         |> required "notes" (nullable string)
+
+
+viewStatusIcon : (Int -> TableCellConfig msg) -> Int -> DetainerWarrant -> Element msg
+viewStatusIcon config index warrant =
+    let
+        icon ( letter, fontColor, backgroundColor ) =
+            Element.el
+                [ Element.width (px 20)
+                , Element.height (px 20)
+                , Element.centerX
+                , Border.width 1
+                , Border.rounded 2
+                , Font.color fontColor
+                , Background.color backgroundColor
+                ]
+                (Element.el [ Element.centerX, Element.centerY ]
+                    (text <| letter)
+                )
+    in
+    Element.row
+        (tableCellAttrs (config index) warrant)
+        [ case warrant.status of
+            Just Pending ->
+                icon ( "P", Palette.gold, Palette.white )
+
+            Just Closed ->
+                icon ( "C", Palette.purple, Palette.white )
+
+            Nothing ->
+                Element.none
+        ]
+
+
+type alias TableCellConfig msg =
+    { onMouseDown : Maybe (DetainerWarrant -> msg)
+    , onMouseEnter : Maybe (DetainerWarrant -> msg)
+    , selected : Maybe String
+    , striped : Bool
+    , hovered : Maybe String
+    }
+
+
+tableCellAttrs :
+    TableCellConfig msg
+    -> DetainerWarrant
+    -> List (Element.Attribute msg)
+tableCellAttrs { onMouseDown, onMouseEnter, striped, hovered } warrant =
+    [ Element.width (Element.shrink |> maximum 200)
+    , height (px 60)
+    , Element.clipX
+    , Element.padding 10
+    , Border.solid
+    , Border.color Palette.grayLight
+    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+    ]
+        ++ (case onMouseDown of
+                Just ev ->
+                    [ Events.onMouseDown (ev warrant) ]
+
+                Nothing ->
+                    []
+           )
+        ++ (case onMouseEnter of
+                Just ev ->
+                    [ Events.onMouseEnter (ev warrant) ]
+
+                Nothing ->
+                    []
+           )
+        ++ (if hovered == Just warrant.docketId then
+                [ Background.color Palette.redLightest ]
+
+            else if striped then
+                [ Background.color Palette.grayBack ]
+
+            else
+                []
+           )
+
+
+viewHeaderCell text =
+    Element.row
+        [ Element.width (Element.shrink |> maximum 200)
+        , Element.padding 10
+        , Font.semiBold
+        , Border.solid
+        , Border.color Palette.grayLight
+        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+        ]
+        [ Element.text text ]
+
+
+viewDocketId : (Int -> TableCellConfig msg) -> Int -> DetainerWarrant -> Element msg
+viewDocketId toConfig index warrant =
+    let
+        config =
+            toConfig index
+
+        attrs =
+            [ width (Element.shrink |> maximum 200)
+            , height (px 60)
+            , Border.widthEach { bottom = 0, top = 0, right = 0, left = 4 }
+            , Border.color Palette.transparent
+            ]
+    in
+    row
+        (attrs
+            ++ (if config.selected == Just warrant.docketId then
+                    [ Border.color Palette.sred
+                    ]
+
+                else
+                    []
+               )
+            ++ (if config.hovered == Just warrant.docketId then
+                    [ Background.color Palette.redLightest
+                    ]
+
+                else if config.striped then
+                    [ Background.color Palette.grayBack ]
+
+                else
+                    []
+               )
+        )
+        [ column
+            [ width fill
+            , height (px 60)
+            , padding 10
+            , Border.solid
+            , Border.color Palette.grayLight
+            , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+            ]
+            [ Element.el [ Element.centerY ] (text warrant.docketId)
+            ]
+        ]
+
+
+viewTextRow : (Int -> TableCellConfig msg) -> (DetainerWarrant -> String) -> Int -> DetainerWarrant -> Element msg
+viewTextRow config toText index warrant =
+    Element.row
+        (tableCellAttrs (config index) warrant)
+        [ Element.text (toText warrant) ]
