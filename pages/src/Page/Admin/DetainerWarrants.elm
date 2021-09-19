@@ -307,8 +307,7 @@ update pageUrl navKey sharedModel static msg model =
                         (\key ->
                             Nav.replaceUrl key
                                 (Url.Builder.relative
-                                    [ "detainer-warrants"
-                                    ]
+                                    []
                                     (Endpoint.toQueryArgs <| Search.detainerWarrantsArgs updatedModel.search.filters)
                                 )
                         )
@@ -661,7 +660,7 @@ viewEditButton hovered index warrant =
         (tableCellAttrs (modBy 2 index == 0) hovered warrant)
         [ link
             (buttonLinkAttrs ++ [ Events.onFocus (SelectWarrant warrant.docketId) ])
-            { url = Url.Builder.relative [ "detainer-warrants", "edit" ] (Endpoint.toQueryArgs [ ( "docket-id", warrant.docketId ) ])
+            { url = Url.Builder.relative [ "edit" ] (Endpoint.toQueryArgs [ ( "docket-id", warrant.docketId ) ])
             , label = text "Edit"
             }
         ]
