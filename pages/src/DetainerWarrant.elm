@@ -576,8 +576,8 @@ decoder =
         |> required "notes" (nullable string)
 
 
-viewStatusIcon : (Int -> TableCellConfig msg) -> Int -> DetainerWarrant -> Element msg
-viewStatusIcon config index warrant =
+viewStatusIcon : (Int -> TableCellConfig data msg) -> Int -> data -> Element msg
+viewStatusIcon toConfig index warrant =
     let
         icon ( letter, fontColor, backgroundColor ) =
             Element.el
@@ -592,10 +592,13 @@ viewStatusIcon config index warrant =
                 (Element.el [ Element.centerX, Element.centerY ]
                     (text <| letter)
                 )
+
+        config =
+            toConfig index
     in
     Element.row
-        (tableCellAttrs (config index) warrant)
-        [ case warrant.status of
+        (tableCellAttrs config warrant)
+        [ case config.status warrant of
             Just Pending ->
                 icon ( "P", Palette.gold, Palette.white )
 
@@ -607,9 +610,11 @@ viewStatusIcon config index warrant =
         ]
 
 
-type alias TableCellConfig msg =
-    { onMouseDown : Maybe (DetainerWarrant -> msg)
-    , onMouseEnter : Maybe (DetainerWarrant -> msg)
+type alias TableCellConfig data msg =
+    { toId : data -> String
+    , status : data -> Maybe Status
+    , onMouseDown : Maybe (data -> msg)
+    , onMouseEnter : Maybe (data -> msg)
     , selected : Maybe String
     , striped : Bool
     , hovered : Maybe String
@@ -617,10 +622,10 @@ type alias TableCellConfig msg =
 
 
 tableCellAttrs :
-    TableCellConfig msg
-    -> DetainerWarrant
+    TableCellConfig data msg
+    -> data
     -> List (Element.Attribute msg)
-tableCellAttrs { onMouseDown, onMouseEnter, striped, hovered } warrant =
+tableCellAttrs { toId, onMouseDown, onMouseEnter, striped, hovered } warrant =
     [ Element.width (Element.shrink |> maximum 200)
     , height (px 60)
     , Element.clipX
@@ -643,7 +648,7 @@ tableCellAttrs { onMouseDown, onMouseEnter, striped, hovered } warrant =
                 Nothing ->
                     []
            )
-        ++ (if hovered == Just warrant.docketId then
+        ++ (if hovered == Just (toId warrant) then
                 [ Background.color Palette.redLightest ]
 
             else if striped then
@@ -654,6 +659,7 @@ tableCellAttrs { onMouseDown, onMouseEnter, striped, hovered } warrant =
            )
 
 
+viewHeaderCell : String -> Element msg
 viewHeaderCell text =
     Element.row
         [ Element.width (Element.shrink |> maximum 200)
@@ -666,7 +672,7 @@ viewHeaderCell text =
         [ Element.text text ]
 
 
-viewDocketId : (Int -> TableCellConfig msg) -> Int -> DetainerWarrant -> Element msg
+viewDocketId : (Int -> TableCellConfig data msg) -> Int -> data -> Element msg
 viewDocketId toConfig index warrant =
     let
         config =
@@ -681,14 +687,14 @@ viewDocketId toConfig index warrant =
     in
     row
         (attrs
-            ++ (if config.selected == Just warrant.docketId then
+            ++ (if config.selected == Just (config.toId warrant) then
                     [ Border.color Palette.sred
                     ]
 
                 else
                     []
                )
-            ++ (if config.hovered == Just warrant.docketId then
+            ++ (if config.hovered == Just (config.toId warrant) then
                     [ Background.color Palette.redLightest
                     ]
 
@@ -707,12 +713,12 @@ viewDocketId toConfig index warrant =
             , Border.color Palette.grayLight
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             ]
-            [ Element.el [ Element.centerY ] (text warrant.docketId)
+            [ Element.el [ Element.centerY ] (text (config.toId warrant))
             ]
         ]
 
 
-viewTextRow : (Int -> TableCellConfig msg) -> (DetainerWarrant -> String) -> Int -> DetainerWarrant -> Element msg
+viewTextRow : (Int -> TableCellConfig data msg) -> (data -> String) -> Int -> data -> Element msg
 viewTextRow config toText index warrant =
     Element.row
         (tableCellAttrs (config index) warrant)

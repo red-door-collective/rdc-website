@@ -3,8 +3,9 @@ module Page.Admin.DetainerWarrants.BulkUpload exposing (Data, Model, Msg, page)
 import Browser.Navigation as Nav
 import Csv.Decode exposing (FieldNames(..), field, pipeline, string)
 import DataSource exposing (DataSource)
-import Date
-import DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant)
+import Date exposing (Date)
+import Date.Extra
+import DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, Status)
 import Element exposing (Element, column, fill, height, maximum, paragraph, px, row, text, width)
 import Element.Font as Font
 import Element.Input as Input
@@ -110,11 +111,23 @@ head static =
         |> Seo.website
 
 
-viewWarrants : List DetainerWarrant -> Element Msg
+type alias DetainerWarrantStub =
+    { docketId : String
+    , fileDate : Maybe Date
+    , status : Maybe Status
+    , plaintiff : Maybe String
+    , plaintiffAttorney : Maybe String
+    , defendants : Maybe String
+    }
+
+
+viewWarrants : List DetainerWarrantStub -> Element Msg
 viewWarrants warrants =
     let
         toCellConfig index =
-            { striped = modBy 2 index == 0
+            { toId = .docketId
+            , status = .status
+            , striped = modBy 2 index == 0
             , hovered = Nothing
             , selected = Nothing
             , onMouseDown = Nothing
@@ -145,41 +158,47 @@ viewWarrants warrants =
               , width = Element.fill
               }
             , { header = DetainerWarrant.viewHeaderCell "Plaintiff"
-              , view = cell (Maybe.withDefault "" << Maybe.map .name << .plaintiff)
+              , view = cell (Maybe.withDefault "" << .plaintiff)
               , width = fill
               }
             , { header = DetainerWarrant.viewHeaderCell "Plnt. Attorney"
-              , view = cell (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)
+              , view = cell (Maybe.withDefault "" << .plaintiffAttorney)
               , width = fill
               }
             , { header = DetainerWarrant.viewHeaderCell "Defendant"
-              , view = cell (Maybe.withDefault "" << Maybe.map .name << List.head << .defendants)
+              , view = cell (Maybe.withDefault "" << .defendants)
               , width = fill
               }
             ]
         }
 
 
+decodeWarrants : String -> Result Csv.Decode.Error (List DetainerWarrantStub)
 decodeWarrants content =
     Csv.Decode.decodeCsv FieldNamesFromFirstRow
         (Csv.Decode.into
             (\docketId fileDate status plaintiff plaintiffAttorney defendants ->
                 { docketId = docketId
-                , fileDate = DetainerWarrant.dateFromString fileDate
+                , fileDate = Date.Extra.fromUSCalString fileDate
                 , status = Result.toMaybe <| DetainerWarrant.statusFromText status
-                , plaintiff = Nothing
-                , plaintiffAttorney = Nothing
-                , defendants = []
-                , presidingJudge = Nothing
-                , courtDate = Nothing
-                , courtroom = Nothing
-                , amountClaimed = Nothing
-                , amountClaimedCategory = NotApplicable
-                , isCares = Nothing
-                , isLegacy = Nothing
-                , nonpayment = Nothing
-                , judgements = []
-                , notes = Nothing
+                , plaintiff =
+                    if String.isEmpty plaintiff then
+                        Nothing
+
+                    else
+                        Just plaintiff
+                , plaintiffAttorney =
+                    if String.isEmpty plaintiffAttorney then
+                        Nothing
+
+                    else
+                        Just plaintiffAttorney
+                , defendants =
+                    if String.isEmpty defendants then
+                        Nothing
+
+                    else
+                        Just defendants
                 }
             )
             |> pipeline (field "Docket #" string)

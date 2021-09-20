@@ -659,7 +659,7 @@ buttonLinkAttrs =
     ]
 
 
-viewEditButton : (Int -> TableCellConfig Msg) -> Int -> DetainerWarrant -> Element Msg
+viewEditButton : (Int -> TableCellConfig DetainerWarrant Msg) -> Int -> DetainerWarrant -> Element Msg
 viewEditButton toCellConfig index warrant =
     row (tableCellAttrs (toCellConfig index) warrant)
         [ link
@@ -674,7 +674,9 @@ viewWarrants : Model -> Element Msg
 viewWarrants model =
     let
         toCellConfig index =
-            { striped = modBy 2 index == 0
+            { toId = .docketId
+            , status = .status
+            , striped = modBy 2 index == 0
             , hovered = model.hovered
             , selected = model.selected
             , onMouseDown = Just (SelectWarrant << .docketId)
