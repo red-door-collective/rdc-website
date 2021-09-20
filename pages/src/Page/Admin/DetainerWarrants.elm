@@ -675,6 +675,7 @@ viewWarrants model =
         toCellConfig index =
             { toId = .docketId
             , status = .status
+            , maxWidth = Nothing
             , striped = modBy 2 index == 0
             , hovered = model.hovered
             , selected = model.selected

@@ -4,7 +4,7 @@ import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import Dropdown
-import Element exposing (Element, column, fill, height, maximum, padding, px, row, text, width)
+import Element exposing (Element, column, fill, height, maximum, minimum, padding, px, row, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -615,6 +615,7 @@ type alias TableCellConfig data msg =
     , status : data -> Maybe Status
     , onMouseDown : Maybe (data -> msg)
     , onMouseEnter : Maybe (data -> msg)
+    , maxWidth : Maybe Int
     , selected : Maybe String
     , striped : Bool
     , hovered : Maybe String
@@ -625,14 +626,16 @@ tableCellAttrs :
     TableCellConfig data msg
     -> data
     -> List (Element.Attribute msg)
-tableCellAttrs { toId, onMouseDown, onMouseEnter, striped, hovered } warrant =
-    [ Element.width (Element.shrink |> maximum 200)
-    , height (px 60)
-    , Element.clipX
+tableCellAttrs { toId, onMouseDown, onMouseEnter, maxWidth, striped, hovered } warrant =
+    [ Element.width
+        (Element.shrink
+            |> maximum (Maybe.withDefault 200 maxWidth)
+        )
+    , height (fill |> minimum 60)
     , Element.padding 10
     , Border.solid
     , Border.color Palette.grayLight
-    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+    , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
     ]
         ++ (case onMouseDown of
                 Just ev ->
@@ -667,7 +670,7 @@ viewHeaderCell text =
         , Font.semiBold
         , Border.solid
         , Border.color Palette.grayLight
-        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+        , Border.widthEach { bottom = 0, left = 0, right = 0, top = 0 }
         ]
         [ Element.text text ]
 
@@ -679,9 +682,9 @@ viewDocketId toConfig index warrant =
             toConfig index
 
         attrs =
-            [ width (Element.shrink |> maximum 200)
-            , height (px 60)
-            , Border.widthEach { bottom = 0, top = 0, right = 0, left = 4 }
+            [ width (Element.shrink |> maximum (Maybe.withDefault 200 config.maxWidth))
+            , height (fill |> minimum 60)
+            , Border.widthEach { bottom = 0, top = 0, right = 0, left = 0 }
             , Border.color Palette.transparent
             ]
     in
@@ -707,11 +710,11 @@ viewDocketId toConfig index warrant =
         )
         [ column
             [ width fill
-            , height (px 60)
+            , height (fill |> minimum 60)
             , padding 10
             , Border.solid
             , Border.color Palette.grayLight
-            , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+            , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
             ]
             [ Element.el [ Element.centerY ] (text (config.toId warrant))
             ]
@@ -722,4 +725,4 @@ viewTextRow : (Int -> TableCellConfig data msg) -> (data -> String) -> Int -> da
 viewTextRow config toText index warrant =
     Element.row
         (tableCellAttrs (config index) warrant)
-        [ Element.text (toText warrant) ]
+        [ Element.paragraph [] [ Element.text (toText warrant) ] ]

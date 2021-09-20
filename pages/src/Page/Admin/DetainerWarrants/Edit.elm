@@ -11,6 +11,7 @@ import Date exposing (Date)
 import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
+import Design
 import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
 import Dict exposing (Dict)
 import Dropdown
@@ -56,10 +57,6 @@ import Task
 import Url.Builder
 import User exposing (User)
 import View exposing (View)
-import Widget
-import Widget.Customize as Customize
-import Widget.Icon exposing (Icon)
-import Widget.Material as Material
 
 
 validUSNumber : String -> Bool
@@ -1918,23 +1915,6 @@ onEnter msg =
         )
 
 
-palette : Material.Palette
-palette =
-    { primary = Color.rgb255 236 31 39
-    , secondary = Color.rgb255 216 27 96
-    , background = Color.rgb255 255 255 255
-    , surface = Color.rgb255 255 255 255
-    , error = Color.rgb255 156 39 176
-    , on =
-        { primary = Color.rgb255 255 255 255
-        , secondary = Color.rgb255 0 0 0
-        , background = Color.rgb255 0 0 0
-        , surface = Color.rgb255 0 0 0
-        , error = Color.rgb255 255 255 255
-        }
-    }
-
-
 focusedButtonStyles : List (Element.Attr decorative msg)
 focusedButtonStyles =
     [ Background.color Palette.sred, Font.color Palette.white ]
@@ -2785,7 +2765,7 @@ viewPotentialPhones options index defendant =
                     ]
             )
             defendant.potentialPhones
-            ++ [ Input.button primaryStyles { onPress = Just <| AddPhone index, label = Element.el [ width shrink, height shrink ] (Element.html (FeatherIcons.plus |> FeatherIcons.withSize 15 |> FeatherIcons.toHtml [])) } ]
+            ++ [ Design.button [] { onPress = Just <| AddPhone index, label = Element.el [ width shrink, height shrink ] (Element.html (FeatherIcons.plus |> FeatherIcons.withSize 15 |> FeatherIcons.toHtml [])) } ]
         )
 
 
@@ -2815,7 +2795,7 @@ viewDefendants options form =
     row [ centerX, width (fill |> maximum 1000), padding 10 ]
         [ column [ width fill, spacing 20 ]
             (List.indexedMap (viewDefendantForm options) form.defendants
-                ++ [ Input.button (primaryStyles ++ [ Element.alignRight ]) { onPress = Just AddDefendant, label = text "Add Defendant" } ]
+                ++ [ Design.button [ Element.alignRight ] { onPress = Just AddDefendant, label = text "Add Defendant" } ]
             )
         ]
 
@@ -2825,14 +2805,12 @@ viewJudgements options form =
     column [ centerX, spacing 20, width (fill |> maximum 1000), padding 10 ]
         (List.indexedMap (viewJudgement options) form.judgements
             ++ [ Input.button
-                    (primaryStyles
-                        ++ [ if List.isEmpty form.judgements then
-                                Element.centerX
+                    [ if List.isEmpty form.judgements then
+                        Element.centerX
 
-                             else
-                                Element.alignRight
-                           ]
-                    )
+                      else
+                        Element.alignRight
+                    ]
                     { onPress = Just AddJudgement, label = text "Add Judgement" }
                ]
         )
@@ -3038,7 +3016,7 @@ viewJudgement options index form =
         , Border.rounded 5
         , inFront
             (row [ Element.alignRight, padding 20 ]
-                [ Input.button primaryStyles
+                [ Design.button []
                     { onPress = Just (RemoveJudgement index)
                     , label =
                         Element.el
@@ -3206,16 +3184,6 @@ tile groups =
         groups
 
 
-primaryStyles : List (Element.Attr () msg)
-primaryStyles =
-    [ Background.color Palette.sred
-    , Font.color Palette.white
-    , Font.size 20
-    , padding 10
-    , Border.rounded 3
-    ]
-
-
 submitAndAddAnother : Element Msg
 submitAndAddAnother =
     Input.button
@@ -3232,8 +3200,8 @@ submitAndAddAnother =
 
 submitButton : Element Msg
 submitButton =
-    Input.button
-        (primaryStyles ++ [ Font.size 22 ])
+    Design.button
+        [ Font.size 22 ]
         { onPress = Just SubmitForm, label = text "Submit" }
 
 
@@ -3363,13 +3331,12 @@ view maybeUrl sharedModel model static =
             , Font.size 20
             , width (fill |> maximum 1200 |> minimum 400)
             , Element.inFront
-                (Input.button
-                    (primaryStyles
-                        ++ [ Font.size 14
-                           , Element.alignRight
-                           , Element.alignTop
-                           , Events.onLoseFocus CloseTooltip
-                           ]
+                (Design.button
+                    ([ Font.size 14
+                     , Element.alignRight
+                     , Element.alignTop
+                     , Events.onLoseFocus CloseTooltip
+                     ]
                         ++ withTooltip DetainerWarrantInfo model.tooltip "In some states, such as Tennessee, when a property owner wants to evict a tenant, he must first give notice, known as a detainer warrant. A detainer warrant is not the same as an arrest warrant, however. It is the document that informs the tenant about the court date set in the eviction proceeding. The notification gives the tenant the opportunity to appear in court and tell the judge her side of the story."
                     )
                     { onPress = Just (ChangeTooltip DetainerWarrantInfo), label = text "What is a Detainer Warrant?" }

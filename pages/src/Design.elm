@@ -1,10 +1,26 @@
 module Design exposing (..)
 
-import Element exposing (Attribute, Element, fill, height, paddingXY, px, spacing, spacingXY, width)
+import Element exposing (Attribute, Element, fill, height, padding, paddingXY, px, spacing, spacingXY, width)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
 import FeatherIcons
 import Palette
+
+
+button : List (Element.Attr () msg) -> { onPress : Maybe msg, label : Element msg } -> Element msg
+button attrs config =
+    Input.button
+        ([ Background.color Palette.sred
+         , Font.color Palette.white
+         , Font.size 20
+         , padding 10
+         , Border.rounded 3
+         ]
+            ++ attrs
+        )
+        config
 
 
 link : List (Attribute msg) -> { url : String, label : Element msg } -> Element msg
