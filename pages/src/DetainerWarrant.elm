@@ -632,8 +632,6 @@ tableCellAttrs { toId, onMouseDown, onMouseEnter, maxWidth, striped, hovered } w
             |> maximum (Maybe.withDefault 200 maxWidth)
         )
     , height (fill |> minimum 60)
-
-    -- , Element.scrollbarX
     , Element.padding 10
     , Border.solid
     , Border.color Palette.grayLight

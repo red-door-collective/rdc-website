@@ -5,8 +5,9 @@ import Csv.Decode exposing (FieldNames(..), field, pipeline, string)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
 import Date.Extra
+import Design
 import DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, Status)
-import Element exposing (Element, column, fill, height, maximum, padding, paragraph, px, row, text, width)
+import Element exposing (Element, centerX, column, fill, height, maximum, padding, paragraph, px, row, spacing, text, width)
 import Element.Font as Font
 import Element.Input as Input
 import File exposing (File)
@@ -221,22 +222,29 @@ view :
 view maybeUrl sharedModel model static =
     { title = "RDC Admin Bulk Upload"
     , body =
-        [ case model.csv of
-            Nothing ->
-                Input.button [] { onPress = Just CsvRequested, label = text "Load CSV" }
+        [ column [ width fill, spacing 10, padding 10 ]
+            [ row [ width fill ]
+                [ paragraph [ centerX, Font.center ] [ text "Under construction... come back soon!" ]
+                ]
+            , row [ width fill ]
+                [ case model.csv of
+                    Nothing ->
+                        Design.button [ centerX ] { onPress = Just CsvRequested, label = text "Load CSV" }
 
-            Just content ->
-                let
-                    decoded =
-                        decodeWarrants content
-                in
-                case decoded of
-                    Ok warrants ->
-                        column [ padding 10 ]
-                            [ row [] [ viewWarrants warrants ] ]
+                    Just content ->
+                        let
+                            decoded =
+                                decodeWarrants content
+                        in
+                        case decoded of
+                            Ok warrants ->
+                                column [ padding 10 ]
+                                    [ row [] [ viewWarrants warrants ] ]
 
-                    Err _ ->
-                        Element.text "Oops"
+                            Err _ ->
+                                Element.text "Oops"
+                ]
+            ]
         ]
     }
 
