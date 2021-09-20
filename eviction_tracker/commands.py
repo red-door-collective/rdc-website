@@ -195,6 +195,15 @@ def verify_phones(limit):
 
 
 @click.command()
+@click.option('-f', '--file-path',
+              help='Path to the csv file')
+@with_appcontext
+def import_from_caselink(file_path):
+    """Insert Detainer Warrants"""
+    detainer_warrants.csv_imports.from_caselink(file_path)
+
+
+@click.command()
 @click.argument('phone_number')
 @with_appcontext
 def verify_phone(phone_number):

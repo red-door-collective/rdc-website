@@ -6,7 +6,7 @@ import Color
 import DataSource exposing (DataSource)
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
-import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..))
+import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..), TableCellConfig, tableCellAttrs, viewDocketId, viewHeaderCell, viewTextRow)
 import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -503,10 +503,14 @@ viewSearchBar today model =
 
 createNewWarrant : Element Msg
 createNewWarrant =
-    row [ centerX ]
+    row [ centerX, spacing 10 ]
         [ link buttonLinkAttrs
             { url = "/admin/detainer-warrants/edit"
             , label = text "Enter New Detainer Warrant"
+            }
+        , link buttonLinkAttrs
+            { url = "/admin/detainer-warrants/bulk-upload"
+            , label = text "Upload via CaseLink CSV"
             }
         ]
 
@@ -654,10 +658,9 @@ buttonLinkAttrs =
     ]
 
 
-viewEditButton : Maybe String -> Int -> DetainerWarrant -> Element Msg
-viewEditButton hovered index warrant =
-    row
-        (tableCellAttrs (modBy 2 index == 0) hovered warrant)
+viewEditButton : (Int -> TableCellConfig DetainerWarrant Msg) -> Int -> DetainerWarrant -> Element Msg
+viewEditButton toCellConfig index warrant =
+    row (tableCellAttrs (toCellConfig index) warrant)
         [ link
             (buttonLinkAttrs ++ [ Events.onFocus (SelectWarrant warrant.docketId) ])
             { url = Url.Builder.relative [ "edit" ] (Endpoint.toQueryArgs [ ( "docket-id", warrant.docketId ) ])
@@ -666,128 +669,21 @@ viewEditButton hovered index warrant =
         ]
 
 
-tableCellAttrs : Bool -> Maybe String -> DetainerWarrant -> List (Element.Attribute Msg)
-tableCellAttrs striped hovered warrant =
-    [ Element.width (Element.shrink |> maximum 200)
-    , height (px 60)
-    , Element.clipX
-    , Element.padding 10
-    , Border.solid
-    , Border.color Palette.grayLight
-    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Events.onMouseDown (SelectWarrant warrant.docketId)
-    , Events.onMouseEnter (HoverWarrant warrant.docketId)
-    ]
-        ++ (if hovered == Just warrant.docketId then
-                [ Background.color Palette.redLightest ]
-
-            else if striped then
-                [ Background.color Palette.grayBack ]
-
-            else
-                []
-           )
-
-
-viewHeaderCell text =
-    Element.row
-        [ Element.width (Element.shrink |> maximum 200)
-        , Element.padding 10
-        , Font.semiBold
-        , Border.solid
-        , Border.color Palette.grayLight
-        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        ]
-        [ Element.text text ]
-
-
-viewTextRow : Maybe String -> (DetainerWarrant -> String) -> Int -> DetainerWarrant -> Element Msg
-viewTextRow hovered toText index warrant =
-    Element.row (tableCellAttrs (modBy 2 index == 0) hovered warrant)
-        [ Element.text (toText warrant) ]
-
-
-viewDocketId : Maybe String -> Maybe String -> Int -> DetainerWarrant -> Element Msg
-viewDocketId hovered selected index warrant =
-    let
-        striped =
-            modBy 2 index == 0
-
-        attrs =
-            [ width (Element.shrink |> maximum 200)
-            , height (px 60)
-            , Border.widthEach { bottom = 0, top = 0, right = 0, left = 4 }
-            , Border.color Palette.transparent
-            ]
-    in
-    row
-        (attrs
-            ++ (if selected == Just warrant.docketId then
-                    [ Border.color Palette.sred
-                    ]
-
-                else
-                    []
-               )
-            ++ (if hovered == Just warrant.docketId then
-                    [ Background.color Palette.redLightest
-                    ]
-
-                else if striped then
-                    [ Background.color Palette.grayBack ]
-
-                else
-                    []
-               )
-        )
-        [ column
-            [ width fill
-            , height (px 60)
-            , padding 10
-            , Border.solid
-            , Border.color Palette.grayLight
-            , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-            ]
-            [ Element.el [ Element.centerY ] (text warrant.docketId)
-            ]
-        ]
-
-
-viewStatusIcon : Maybe String -> Int -> DetainerWarrant -> Element Msg
-viewStatusIcon hovered index warrant =
-    let
-        icon ( letter, fontColor, backgroundColor ) =
-            Element.el
-                [ width (px 20)
-                , height (px 20)
-                , centerX
-                , Border.width 1
-                , Border.rounded 2
-                , Font.color fontColor
-                , Background.color backgroundColor
-                ]
-                (Element.el [ centerX, Element.centerY ]
-                    (text <| letter)
-                )
-    in
-    Element.row (tableCellAttrs (modBy 2 index == 0) hovered warrant)
-        [ case warrant.status of
-            Just Pending ->
-                icon ( "P", Palette.gold, Palette.white )
-
-            Just Closed ->
-                icon ( "C", Palette.purple, Palette.white )
-
-            Nothing ->
-                Element.none
-        ]
-
-
 viewWarrants : Model -> Element Msg
 viewWarrants model =
     let
+        toCellConfig index =
+            { toId = .docketId
+            , status = .status
+            , striped = modBy 2 index == 0
+            , hovered = model.hovered
+            , selected = model.selected
+            , onMouseDown = Just (SelectWarrant << .docketId)
+            , onMouseEnter = Just (HoverWarrant << .docketId)
+            }
+
         cell =
-            viewTextRow model.hovered
+            viewTextRow toCellConfig
     in
     Element.indexedTable
         [ width (fill |> maximum 1400)
@@ -798,12 +694,12 @@ viewWarrants model =
         ]
         { data = model.warrants
         , columns =
-            [ { header = Element.none -- viewHeaderCell "Status"
-              , view = viewStatusIcon model.hovered
+            [ { header = Element.none
+              , view = DetainerWarrant.viewStatusIcon toCellConfig
               , width = px 40
               }
             , { header = viewHeaderCell "Docket #"
-              , view = viewDocketId model.hovered model.selected
+              , view = viewDocketId toCellConfig
               , width = Element.fill
               }
             , { header = viewHeaderCell "File Date"
@@ -831,7 +727,7 @@ viewWarrants model =
               , width = fill
               }
             , { header = viewHeaderCell "Edit"
-              , view = viewEditButton model.hovered
+              , view = viewEditButton toCellConfig
               , width = fill
               }
             ]
