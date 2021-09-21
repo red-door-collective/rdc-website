@@ -69,9 +69,12 @@ class TestDataImport(TestCase):
         roles = ['Superuser', 'Admin', 'Organizer', 'Defendant']
         for role in roles:
             user_datastore.find_or_create_role(role)
+            db.session.commit()
         user_datastore.create_user(id=-1, email="system-user@reddoorcollective.org", first_name="System",
                                    last_name="User", password=hash_password(str(uuid.uuid4())), roles=['Superuser'])
+        db.session.commit()
         District.create(name='Davidson County')
+        db.session.commit()
 
     def tearDown(self):
         db.session.remove()
