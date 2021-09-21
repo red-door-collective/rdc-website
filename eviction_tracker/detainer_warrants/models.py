@@ -40,7 +40,7 @@ class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
     __table_args__ = (
         db.UniqueConstraint('first_name', 'middle_name',
-                            'last_name', 'suffix', 'address', 'district_id'),
+                            'last_name', 'suffix', 'address', 'district_id', 'potential_phones'),
     )
 
     id = Column(db.Integer, primary_key=True)
