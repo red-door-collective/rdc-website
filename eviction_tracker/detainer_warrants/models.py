@@ -5,6 +5,8 @@ from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
 
+from nameparser import HumanName
+
 
 class District(db.Model, Timestamped):
     __tablename__ = 'districts'
@@ -67,6 +69,18 @@ class Defendant(db.Model, Timestamped):
     @property
     def name(self):
         return ' '.join([name for name in [self.first_name, self.middle_name, self.last_name, self.suffix] if name])
+
+    @name.setter
+    def name(self, full_name):
+        human_name = HumanName(full_name.replace('OR ALL OCCUPANTS', ''))
+
+        if human_name.first:
+            self.first_name = human_name.first
+            self.middle_name = human_name.middle
+            self.last_name = human_name.last
+            self.suffix = human_name.suffix
+        else:
+            self.first_name = full_name
 
     def __repr__(self):
         return f"<Defendant(name='{self.name}', phones='{self.potential_phones}', address='{self.address}')>"

@@ -19,6 +19,7 @@ from flask_resty import (
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import raiseload
+from sqlalchemy.exc import IntegrityError
 
 from eviction_tracker.database import db
 from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, Judge, Judgement, PhoneNumberVerification

@@ -38,7 +38,7 @@ class CRUDMixin(Model):
         return commit and db.session.commit()
 
 
-db = SQLAlchemy(model_class=CRUDMixin)
+db = SQLAlchemy(model_class=CRUDMixin, session_options={"autoflush": False})
 
 # fsqla.FsModels.set_db_info(db)
 
