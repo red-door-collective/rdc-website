@@ -1,32 +1,83 @@
 module Page.Admin.DetainerWarrants.BulkUpload exposing (Data, Model, Msg, page)
 
+import Api.Endpoint as Endpoint
 import Browser.Navigation as Nav
 import Csv.Decode exposing (FieldNames(..), field, pipeline, string)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
 import Date.Extra
+import Defendant exposing (Defendant)
 import Design
-import DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, Status)
-import Element exposing (Element, centerX, column, fill, height, maximum, padding, paragraph, px, row, spacing, text, width)
+import DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, DetainerWarrant, Status)
+import Dict exposing (Dict)
+import Element exposing (Element, centerX, column, fill, height, maximum, padding, paragraph, px, row, shrink, spacing, text, width)
 import Element.Font as Font
 import Element.Input as Input
 import File exposing (File)
 import File.Select as Select
 import Head
 import Head.Seo as Seo
+import Http
+import Json.Encode
 import Logo
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
 import Path exposing (Path)
+import Plaintiff exposing (Plaintiff)
+import Progress exposing (Tracking)
+import Rest exposing (Cred)
+import Session exposing (Session)
+import Set exposing (Set)
 import Shared
 import Task
 import View exposing (View)
 
 
-type alias Model =
-    { csv : Maybe String
+type alias DetainerWarrantStub =
+    { docketId : String
+    , fileDate : Maybe Date
+    , status : Maybe Status
+    , plaintiff : Maybe String
+    , plaintiffAttorney : Maybe String
+    , defendants : Maybe String
     }
+
+
+type RemoteData data
+    = NotFetched
+    | Fetching
+    | Success data
+    | Failure Http.Error
+
+
+type alias UploadState =
+    { stubs : List DetainerWarrantStub
+    , attorneys : Dict String (RemoteData Attorney)
+    , defendants : Dict String (RemoteData Defendant)
+    , plaintiffs : Dict String (RemoteData Plaintiff)
+    , warrants : Dict String (RemoteData DetainerWarrant)
+    , saveState : SaveState
+    }
+
+
+type alias UploadTracking =
+    { plaintiffs : Tracking
+    , attorneys : Tracking
+    , defendants : Tracking
+    , warrants : Tracking
+    }
+
+
+type SaveState
+    = NotStarted
+    | SavingWarrants UploadTracking
+    | DoneSaving
+
+
+type Model
+    = ReadyForCsv { error : Maybe Csv.Decode.Error }
+    | ReadyForBulkSave UploadState
 
 
 type alias RouteParams =
@@ -39,13 +90,150 @@ init :
     -> StaticPayload Data RouteParams
     -> ( Model, Cmd Msg )
 init pageUrl sharedModel static =
-    ( Model Nothing, Cmd.none )
+    ( ReadyForCsv { error = Nothing }, Cmd.none )
 
 
-type Msg
+type CsvUploadMsg
     = CsvRequested
     | CsvSelected File
     | CsvLoaded String
+
+
+type BulkUploadMsg
+    = SaveWarrants
+    | InsertedAttorney (Result Http.Error (Rest.Item Attorney))
+    | InsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
+    | InsertedDefendant (Result Http.Error (Rest.Item Defendant))
+    | InsertedWarrant (Result Http.Error (Rest.Item DetainerWarrant))
+
+
+type Msg
+    = CsvUpload CsvUploadMsg
+    | BulkUpload BulkUploadMsg
+
+
+initBulkUpload stubs =
+    { stubs = stubs
+    , attorneys = collectRelated .plaintiffAttorney stubs
+    , plaintiffs = collectRelated .plaintiff stubs
+    , defendants = collectRelated .defendants stubs
+    , warrants = collectRelated (Just << .docketId) stubs
+    , saveState = NotStarted
+    }
+
+
+updateBeforeCsvUpload : CsvUploadMsg -> { error : Maybe Csv.Decode.Error } -> ( Model, Cmd Msg )
+updateBeforeCsvUpload msg model =
+    case msg of
+        CsvRequested ->
+            ( ReadyForCsv model
+            , Select.file [ "text/csv" ] (CsvUpload << CsvSelected)
+            )
+
+        CsvSelected file ->
+            ( ReadyForCsv model
+            , Task.perform (CsvUpload << CsvLoaded) (File.toString file)
+            )
+
+        CsvLoaded content ->
+            case decodeWarrants content of
+                Ok stubs ->
+                    ( ReadyForBulkSave (initBulkUpload stubs)
+                    , Cmd.none
+                    )
+
+                Err errMsg ->
+                    ( ReadyForCsv { error = Just errMsg }
+                    , Cmd.none
+                    )
+
+
+updateDict : String -> a -> Dict String (RemoteData a) -> Dict String (RemoteData a)
+updateDict resourceId updatedResource resources =
+    Dict.update resourceId (Maybe.map (\_ -> Success updatedResource)) resources
+
+
+increment tracking =
+    { tracking | current = tracking.current + 1 }
+
+
+updateAfterCsvUpload : Session -> BulkUploadMsg -> UploadState -> ( Model, Cmd Msg )
+updateAfterCsvUpload session msg state =
+    let
+        domain =
+            "http://localhost:5000"
+    in
+    case msg of
+        SaveWarrants ->
+            saveWarrants domain session state
+
+        InsertedAttorney (Ok item) ->
+            saveWarrants domain
+                session
+                { state
+                    | attorneys = updateDict item.data.name item.data state.attorneys
+                    , saveState =
+                        case state.saveState of
+                            SavingWarrants uploadTracking ->
+                                SavingWarrants { uploadTracking | attorneys = increment uploadTracking.attorneys }
+
+                            _ ->
+                                state.saveState
+                }
+
+        InsertedAttorney (Err errMsg) ->
+            ( ReadyForBulkSave state, Cmd.none )
+
+        InsertedPlaintiff (Ok item) ->
+            saveWarrants domain
+                session
+                { state
+                    | plaintiffs = updateDict item.data.name item.data state.plaintiffs
+                    , saveState =
+                        case state.saveState of
+                            SavingWarrants uploadTracking ->
+                                SavingWarrants { uploadTracking | plaintiffs = increment uploadTracking.plaintiffs }
+
+                            _ ->
+                                state.saveState
+                }
+
+        InsertedPlaintiff (Err errMsg) ->
+            ( ReadyForBulkSave state, Cmd.none )
+
+        InsertedDefendant (Ok item) ->
+            saveWarrants domain
+                session
+                { state
+                    | defendants = updateDict item.data.name item.data state.defendants
+                    , saveState =
+                        case state.saveState of
+                            SavingWarrants uploadTracking ->
+                                SavingWarrants { uploadTracking | defendants = increment uploadTracking.defendants }
+
+                            _ ->
+                                state.saveState
+                }
+
+        InsertedDefendant (Err errMsg) ->
+            ( ReadyForBulkSave state, Cmd.none )
+
+        InsertedWarrant (Ok item) ->
+            saveWarrants domain
+                session
+                { state
+                    | warrants = updateDict item.data.docketId item.data state.warrants
+                    , saveState =
+                        case state.saveState of
+                            SavingWarrants uploadTracking ->
+                                SavingWarrants { uploadTracking | warrants = increment uploadTracking.warrants }
+
+                            _ ->
+                                state.saveState
+                }
+
+        InsertedWarrant (Err errMsg) ->
+            ( ReadyForBulkSave state, Cmd.none )
 
 
 update :
@@ -57,21 +245,233 @@ update :
     -> Model
     -> ( Model, Cmd Msg )
 update pageUrl navKey sharedModel static msg model =
-    case msg of
-        CsvRequested ->
-            ( model
-            , Select.file [ "text/csv" ] CsvSelected
+    case ( msg, model ) of
+        ( CsvUpload subMsg, ReadyForCsv subModel ) ->
+            updateBeforeCsvUpload subMsg subModel
+
+        ( BulkUpload subMsg, ReadyForBulkSave state ) ->
+            updateAfterCsvUpload sharedModel.session subMsg state
+
+        ( _, _ ) ->
+            ( model, Cmd.none )
+
+
+collectRelated :
+    (DetainerWarrantStub -> Maybe String)
+    -> List DetainerWarrantStub
+    -> Dict String (RemoteData a)
+collectRelated fn warrants =
+    List.filterMap fn warrants
+        |> Set.fromList
+        |> Set.toList
+        |> List.map (\id -> ( id, Fetching ))
+        |> Dict.fromList
+
+
+defaultDistrict =
+    ( "district_id", Json.Encode.int 1 )
+
+
+insertAttorney : String -> Maybe Cred -> String -> Cmd BulkUploadMsg
+insertAttorney domain maybeCred name =
+    let
+        decoder =
+            Rest.itemDecoder DetainerWarrant.attorneyDecoder
+
+        body =
+            Json.Encode.object
+                [ ( "data"
+                  , Json.Encode.object
+                        [ ( "name", Json.Encode.string name )
+                        , defaultDistrict
+                        ]
+                  )
+                ]
+                |> Http.jsonBody
+    in
+    Rest.post (Endpoint.attorneys domain []) maybeCred body InsertedAttorney decoder
+
+
+insertPlaintiff : String -> Maybe Cred -> String -> Cmd BulkUploadMsg
+insertPlaintiff domain maybeCred name =
+    let
+        decoder =
+            Rest.itemDecoder Plaintiff.decoder
+
+        body =
+            Json.Encode.object
+                [ ( "data"
+                  , Json.Encode.object
+                        [ ( "name", Json.Encode.string name )
+                        , defaultDistrict
+                        ]
+                  )
+                ]
+                |> Http.jsonBody
+    in
+    Rest.post (Endpoint.plaintiffs domain []) maybeCred body InsertedPlaintiff decoder
+
+
+insertDefendant : String -> Maybe Cred -> String -> Cmd BulkUploadMsg
+insertDefendant domain maybeCred name =
+    let
+        decoder =
+            Rest.itemDecoder Defendant.decoder
+
+        body =
+            Json.Encode.object
+                [ ( "data"
+                  , Json.Encode.object
+                        [ ( "name", Json.Encode.string name )
+                        , defaultDistrict
+                        ]
+                  )
+                ]
+                |> Http.jsonBody
+    in
+    Rest.post (Endpoint.defendants domain []) maybeCred body InsertedDefendant decoder
+
+
+nullable fieldName fn field =
+    Maybe.withDefault [ ( fieldName, Json.Encode.null ) ] <| Maybe.map (\f -> [ ( fieldName, fn f ) ]) field
+
+
+encodeRelated record =
+    Json.Encode.object [ ( "id", Json.Encode.int record.id ) ]
+
+
+insertWarrant : String -> Maybe Cred -> UploadState -> DetainerWarrantStub -> Cmd BulkUploadMsg
+insertWarrant domain maybeCred state stub =
+    let
+        decoder =
+            Rest.itemDecoder DetainerWarrant.decoder
+
+        body =
+            Json.Encode.object
+                [ ( "data"
+                  , Json.Encode.object
+                        ([ ( "docket_id", Json.Encode.string stub.docketId )
+                         , ( "defendants"
+                           , Json.Encode.list encodeRelated
+                                (Maybe.withDefault [] <|
+                                    Maybe.andThen
+                                        (\name ->
+                                            Maybe.andThen
+                                                (\remoteData ->
+                                                    case remoteData of
+                                                        Success defendant ->
+                                                            Just [ { id = defendant.id } ]
+
+                                                        _ ->
+                                                            Nothing
+                                                )
+                                            <|
+                                                Dict.get name state.defendants
+                                        )
+                                        stub.defendants
+                                )
+                           )
+                         ]
+                            ++ nullable "file_date" Json.Encode.string (Maybe.map Date.toIsoString stub.fileDate)
+                            ++ nullable "plaintiff"
+                                encodeRelated
+                                (Maybe.andThen
+                                    (\name ->
+                                        Maybe.andThen
+                                            (\remoteData ->
+                                                case remoteData of
+                                                    Success plaintiff ->
+                                                        Just { id = plaintiff.id }
+
+                                                    _ ->
+                                                        Nothing
+                                            )
+                                        <|
+                                            Dict.get name state.plaintiffs
+                                    )
+                                    stub.plaintiff
+                                )
+                            ++ nullable "plaintiff_attorney"
+                                encodeRelated
+                                (Maybe.andThen
+                                    (\name ->
+                                        Maybe.andThen
+                                            (\remoteData ->
+                                                case remoteData of
+                                                    Success attorney ->
+                                                        Just { id = attorney.id }
+
+                                                    _ ->
+                                                        Nothing
+                                            )
+                                        <|
+                                            Dict.get name state.attorneys
+                                    )
+                                    stub.plaintiffAttorney
+                                )
+                        )
+                  )
+                ]
+                |> Http.jsonBody
+    in
+    Rest.patch (Endpoint.detainerWarrant domain stub.docketId) maybeCred body InsertedWarrant decoder
+
+
+saveWarrants : String -> Session -> UploadState -> ( Model, Cmd Msg )
+saveWarrants domain session state =
+    let
+        maybeCred =
+            Session.cred session
+    in
+    case state.saveState of
+        NotStarted ->
+            ( ReadyForBulkSave
+                { state
+                    | saveState =
+                        SavingWarrants
+                            { attorneys = { current = 0, total = Dict.size state.attorneys }
+                            , defendants = { current = 0, total = Dict.size state.defendants }
+                            , plaintiffs = { current = 0, total = Dict.size state.plaintiffs }
+                            , warrants = { current = 0, total = Dict.size state.warrants }
+                            }
+                }
+            , Cmd.map BulkUpload <|
+                Cmd.batch
+                    (List.concat
+                        [ List.map (insertAttorney domain maybeCred) (Dict.keys state.attorneys)
+                        , List.map (insertPlaintiff domain maybeCred) (Dict.keys state.plaintiffs)
+                        , List.map (insertDefendant domain maybeCred) (Dict.keys state.defendants)
+                        ]
+                    )
             )
 
-        CsvSelected file ->
-            ( model
-            , Task.perform CsvLoaded (File.toString file)
-            )
+        SavingWarrants tracking ->
+            let
+                savingWarrants =
+                    (tracking.attorneys.current
+                        + tracking.plaintiffs.current
+                        + tracking.defendants.current
+                    )
+                        >= (tracking.attorneys.total
+                                + tracking.plaintiffs.total
+                                + tracking.defendants.total
+                           )
+            in
+            if savingWarrants && tracking.warrants.current == 0 then
+                ( ReadyForBulkSave state
+                , Cmd.map BulkUpload <| Cmd.batch (List.map (insertWarrant domain maybeCred state) state.stubs)
+                )
 
-        CsvLoaded content ->
-            ( { model | csv = Just content }
-            , Cmd.none
-            )
+            else if savingWarrants && tracking.warrants.current >= tracking.warrants.total then
+                ( ReadyForBulkSave { state | saveState = DoneSaving }
+                , Cmd.none
+                )
+
+            else
+                ( ReadyForBulkSave state, Cmd.none )
+
+        DoneSaving ->
+            ( ReadyForBulkSave state, Cmd.none )
 
 
 page : Page.PageWithState RouteParams Data Model Msg
@@ -110,16 +510,6 @@ head static =
         , title = "RDC | Admin | Detainer Warrants | Bulk Upload"
         }
         |> Seo.website
-
-
-type alias DetainerWarrantStub =
-    { docketId : String
-    , fileDate : Maybe Date
-    , status : Maybe Status
-    , plaintiff : Maybe String
-    , plaintiffAttorney : Maybe String
-    , defendants : Maybe String
-    }
 
 
 viewWarrants : List DetainerWarrantStub -> Element Msg
@@ -224,25 +614,42 @@ view maybeUrl sharedModel model static =
     , body =
         [ column [ width fill, spacing 10, padding 10 ]
             [ row [ width fill ]
-                [ paragraph [ centerX, Font.center ] [ text "Under construction... come back soon!" ]
-                ]
-            , row [ width fill ]
-                [ case model.csv of
-                    Nothing ->
-                        Design.button [ centerX ] { onPress = Just CsvRequested, label = text "Load CSV" }
+                [ case model of
+                    ReadyForCsv { error } ->
+                        case error of
+                            Just errMsg ->
+                                Element.text (Csv.Decode.errorToString errMsg)
 
-                    Just content ->
-                        let
-                            decoded =
-                                decodeWarrants content
-                        in
-                        case decoded of
-                            Ok warrants ->
-                                column [ padding 10 ]
-                                    [ row [] [ viewWarrants warrants ] ]
+                            Nothing ->
+                                Design.button [ centerX ] { onPress = Just (CsvUpload CsvRequested), label = text "Load CSV" }
 
-                            Err _ ->
-                                Element.text "Oops"
+                    ReadyForBulkSave state ->
+                        column [ width fill ]
+                            [ row [ width fill ]
+                                [ case state.saveState of
+                                    NotStarted ->
+                                        Design.button [ centerX ]
+                                            { onPress = Just (BulkUpload SaveWarrants)
+                                            , label = text "Save Warrants"
+                                            }
+
+                                    SavingWarrants tracking ->
+                                        let
+                                            totalTracking =
+                                                { current = tracking.attorneys.current + tracking.defendants.current + tracking.plaintiffs.current + tracking.warrants.current
+                                                , total = tracking.attorneys.total + tracking.defendants.total + tracking.plaintiffs.total + tracking.warrants.total
+                                                }
+                                        in
+                                        Element.el [ centerX, width shrink, height shrink ]
+                                            (Element.html (Progress.bar { width = 400, height = 30, tracking = totalTracking }))
+
+                                    DoneSaving ->
+                                        paragraph [ centerX ] [ text "Finished!" ]
+                                ]
+                            , row [ width fill ]
+                                [ viewWarrants state.stubs
+                                ]
+                            ]
                 ]
             ]
         ]

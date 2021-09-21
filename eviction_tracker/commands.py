@@ -227,18 +227,22 @@ def bootstrap():
     roles = ['Superuser', 'Admin', 'Organizer', 'Defendant']
     for role in roles:
         user_datastore.find_or_create_role(role)
+        db.session.commit()
 
     user_datastore.create_user(id=-1, email="system-user@reddoorcollective.org", first_name="System",
                                last_name="User", password=hash_password(str(uuid.uuid4())), roles=['Superuser'])
+    db.session.commit()
 
     if env == 'development':
         user_datastore.create_user(email="superuser@example.com", first_name="Super",
                                    last_name="User", password=hash_password(simple), roles=['Superuser'])
+        db.session.commit()
         user_datastore.create_user(email="admin@example.com", first_name="Admin",
                                    last_name="Person", password=hash_password(simple), roles=['Admin'])
+        db.session.commit()
         user_datastore.create_user(email="organizer@example.com",
                                    first_name="Organizer", last_name="Gal", password=hash_password(simple), roles=['Organizer'])
+        db.session.commit()
         user_datastore.create_user(email="defendant@example.com", first_name="Defendant",
                                    last_name="Guy", password=hash_password(simple), roles=['Defendant'])
-
-    db.session.commit()
+        db.session.commit()

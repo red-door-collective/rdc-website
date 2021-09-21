@@ -5,13 +5,16 @@ from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
 
+from nameparser import HumanName
+
 
 class District(db.Model, Timestamped):
     __tablename__ = 'districts'
+    __table_args__ = (
+        db.UniqueConstraint('name'),
+    )
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
-
-    db.UniqueConstraint('name')
 
     attorneys = relationship('Attorney', back_populates='district')
     plaintiffs = relationship('Plaintiff', back_populates='district')
@@ -35,6 +38,11 @@ detainer_warrant_defendants = db.Table(
 
 class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
+    __table_args__ = (
+        db.UniqueConstraint('first_name', 'middle_name',
+                            'last_name', 'suffix', 'address', 'district_id'),
+    )
+
     id = Column(db.Integer, primary_key=True)
     first_name = Column(db.String(255))
     middle_name = Column(db.String(50))
@@ -49,9 +57,6 @@ class Defendant(db.Model, Timestamped):
         'districts.id'), nullable=False)
     verified_phone_id = Column(db.Integer, db.ForeignKey(
         'phone_number_verifications.id'))
-
-    db.UniqueConstraint('first_name', 'middle_name',
-                        'last_name', 'suffix', 'address', 'district_id', 'potential_phones')
 
     district = relationship('District', back_populates='defendants')
     detainer_warrants = relationship('DetainerWarrant',
@@ -68,20 +73,33 @@ class Defendant(db.Model, Timestamped):
     def name(self):
         return ' '.join([name for name in [self.first_name, self.middle_name, self.last_name, self.suffix] if name])
 
+    @name.setter
+    def name(self, full_name):
+        human_name = HumanName(full_name.replace('OR ALL OCCUPANTS', ''))
+
+        if human_name.first:
+            self.first_name = human_name.first
+            self.middle_name = human_name.middle
+            self.last_name = human_name.last
+            self.suffix = human_name.suffix
+        else:
+            self.first_name = full_name
+
     def __repr__(self):
         return f"<Defendant(name='{self.name}', phones='{self.potential_phones}', address='{self.address}')>"
 
 
 class Attorney(db.Model, Timestamped):
     __tablename__ = 'attorneys'
+    __table_args__ = (
+        db.UniqueConstraint('name', 'district_id'),
+    )
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
     aliases = Column(db.ARRAY(db.String(255)),
                      nullable=False, server_default='{}')
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
-
-    db.UniqueConstraint('name', 'district_id')
 
     district = relationship('District', back_populates='attorneys')
     detainer_warrants = relationship(
@@ -99,12 +117,13 @@ class Attorney(db.Model, Timestamped):
 
 class Courtroom(db.Model, Timestamped):
     __tablename__ = 'courtrooms'
+    __table_args__ = (
+        db.UniqueConstraint('name', 'district_id'),
+    )
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
-
-    db.UniqueConstraint('name', 'district_id')
 
     district = relationship('District', back_populates='courtrooms')
     cases = relationship('DetainerWarrant', back_populates='_courtroom')
@@ -116,14 +135,15 @@ class Courtroom(db.Model, Timestamped):
 
 class Plaintiff(db.Model, Timestamped):
     __tablename__ = 'plaintiffs'
+    __table_args__ = (
+        db.UniqueConstraint('name', 'district_id'),
+    )
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
     aliases = Column(db.ARRAY(db.String(255)),
                      nullable=False, server_default='{}')
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
-
-    db.UniqueConstraint('name', 'district_id')
 
     district = relationship('District', back_populates='plaintiffs')
     detainer_warrants = relationship(
@@ -138,14 +158,15 @@ class Plaintiff(db.Model, Timestamped):
 
 class Judge(db.Model, Timestamped):
     __tablename__ = "judges"
+    __table_args__ = (
+        db.UniqueConstraint('name', 'district_id'),
+    )
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
     aliases = Column(db.ARRAY(db.String(255)),
                      nullable=False, server_default='{}')
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
-
-    db.UniqueConstraint('name', 'district_id')
 
     district = relationship('District', back_populates='judges')
     cases = relationship('DetainerWarrant', back_populates='_presiding_judge')
