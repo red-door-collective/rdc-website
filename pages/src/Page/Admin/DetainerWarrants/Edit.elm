@@ -2804,7 +2804,7 @@ viewJudgements : FormOptions -> Form -> Element Msg
 viewJudgements options form =
     column [ centerX, spacing 20, width (fill |> maximum 1000), padding 10 ]
         (List.indexedMap (viewJudgement options) form.judgements
-            ++ [ Input.button
+            ++ [ Design.button
                     [ if List.isEmpty form.judgements then
                         Element.centerX
 

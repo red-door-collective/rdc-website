@@ -17,7 +17,7 @@ import File exposing (File)
 import File.Select as Select
 import Head
 import Head.Seo as Seo
-import Http
+import Http exposing (Error(..))
 import Json.Encode
 import Logo
 import Page exposing (Page, PageWithState, StaticPayload)
@@ -101,10 +101,13 @@ type CsvUploadMsg
 
 type BulkUploadMsg
     = SaveWarrants
-    | InsertedAttorney (Result Http.Error (Rest.Item Attorney))
-    | InsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
-    | InsertedDefendant (Result Http.Error (Rest.Item Defendant))
-    | InsertedWarrant (Result Http.Error (Rest.Item DetainerWarrant))
+    | InsertedAttorney String (Result Http.Error (Rest.Item Attorney))
+    | InsertedPlaintiff String (Result Http.Error (Rest.Item Plaintiff))
+    | InsertedDefendant String (Result Http.Error (Rest.Item Defendant))
+    | InsertedWarrant String (Result Http.Error (Rest.Item DetainerWarrant))
+    | GotAttorney String (Result Http.Error (Rest.Collection Attorney))
+    | GotPlaintiff String (Result Http.Error (Rest.Collection Plaintiff))
+    | GotDefendant String (Result Http.Error (Rest.Collection Defendant))
 
 
 type Msg
@@ -148,13 +151,63 @@ updateBeforeCsvUpload msg model =
                     )
 
 
-updateDict : String -> a -> Dict String (RemoteData a) -> Dict String (RemoteData a)
-updateDict resourceId updatedResource resources =
-    Dict.update resourceId (Maybe.map (\_ -> Success updatedResource)) resources
+updateDict : String -> Result Http.Error a -> Dict String (RemoteData a) -> Dict String (RemoteData a)
+updateDict resourceId result resources =
+    Dict.update resourceId
+        (Maybe.map
+            (\_ ->
+                case result of
+                    Ok updatedResource ->
+                        Success updatedResource
+
+                    Err errMsg ->
+                        Failure errMsg
+            )
+        )
+        resources
 
 
-increment tracking =
-    { tracking | current = tracking.current + 1 }
+maybeUpdateDict : String -> Result Http.Error (Maybe a) -> Dict String (RemoteData a) -> Dict String (RemoteData a)
+maybeUpdateDict resourceId result resources =
+    case result of
+        Ok good ->
+            case good of
+                Just something ->
+                    updateDict resourceId (Result.Ok something) resources
+
+                Nothing ->
+                    resources
+
+        Err errMsg ->
+            updateDict resourceId (Result.Err errMsg) resources
+
+
+increment result tracking =
+    if isConflict result then
+        { tracking | current = tracking.current }
+
+    else
+        case result of
+            Ok _ ->
+                { tracking | current = tracking.current + 1 }
+
+            Err _ ->
+                { tracking | errored = tracking.errored + 1 }
+
+
+isConflict : Result Http.Error a -> Bool
+isConflict result =
+    case result of
+        Ok _ ->
+            False
+
+        Err errMsg ->
+            case errMsg of
+                BadStatus status ->
+                    status == 409
+
+                _ ->
+                    False
 
 
 updateAfterCsvUpload : Session -> BulkUploadMsg -> UploadState -> ( Model, Cmd Msg )
@@ -167,73 +220,130 @@ updateAfterCsvUpload session msg state =
         SaveWarrants ->
             saveWarrants domain session state
 
-        InsertedAttorney (Ok item) ->
+        InsertedAttorney name result ->
+            let
+                getOnConflict =
+                    if isConflict result then
+                        Rest.get (Endpoint.attorneysSearch domain [ ( "name", name ) ]) (Session.cred session) (GotAttorney name) (Rest.collectionDecoder DetainerWarrant.attorneyDecoder)
+
+                    else
+                        Cmd.none
+
+                newState =
+                    { state
+                        | attorneys = updateDict name (Result.map .data result) state.attorneys
+                        , saveState =
+                            case state.saveState of
+                                SavingWarrants uploadTracking ->
+                                    SavingWarrants { uploadTracking | attorneys = increment result uploadTracking.attorneys }
+
+                                _ ->
+                                    state.saveState
+                    }
+            in
+            Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Cmd.map BulkUpload getOnConflict ]) (saveWarrants domain session newState)
+
+        InsertedPlaintiff name result ->
+            let
+                getOnConflict =
+                    if isConflict result then
+                        Rest.get (Endpoint.plaintiffsSearch domain [ ( "name", name ) ]) (Session.cred session) (GotPlaintiff name) (Rest.collectionDecoder Plaintiff.decoder)
+
+                    else
+                        Cmd.none
+
+                newState =
+                    { state
+                        | plaintiffs = updateDict name (Result.map .data result) state.plaintiffs
+                        , saveState =
+                            case state.saveState of
+                                SavingWarrants uploadTracking ->
+                                    SavingWarrants { uploadTracking | plaintiffs = increment result uploadTracking.plaintiffs }
+
+                                _ ->
+                                    state.saveState
+                    }
+            in
+            Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Cmd.map BulkUpload getOnConflict ]) (saveWarrants domain session newState)
+
+        InsertedDefendant name result ->
+            let
+                getOnConflict =
+                    if isConflict result then
+                        Rest.get (Endpoint.defendantsSearch domain [ ( "name", name ) ]) (Session.cred session) (GotDefendant name) (Rest.collectionDecoder Defendant.decoder)
+
+                    else
+                        Cmd.none
+
+                newState =
+                    { state
+                        | defendants = updateDict name (Result.map .data result) state.defendants
+                        , saveState =
+                            case state.saveState of
+                                SavingWarrants uploadTracking ->
+                                    SavingWarrants { uploadTracking | defendants = increment result uploadTracking.defendants }
+
+                                _ ->
+                                    state.saveState
+                    }
+            in
+            Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, Cmd.map BulkUpload getOnConflict ]) (saveWarrants domain session newState)
+
+        InsertedWarrant docketId result ->
             saveWarrants domain
                 session
                 { state
-                    | attorneys = updateDict item.data.name item.data state.attorneys
+                    | warrants = updateDict docketId (Result.map .data result) state.warrants
                     , saveState =
                         case state.saveState of
                             SavingWarrants uploadTracking ->
-                                SavingWarrants { uploadTracking | attorneys = increment uploadTracking.attorneys }
+                                SavingWarrants { uploadTracking | warrants = increment result uploadTracking.warrants }
 
                             _ ->
                                 state.saveState
                 }
 
-        InsertedAttorney (Err errMsg) ->
-            ( ReadyForBulkSave state, Cmd.none )
-
-        InsertedPlaintiff (Ok item) ->
+        GotAttorney name result ->
             saveWarrants domain
                 session
                 { state
-                    | plaintiffs = updateDict item.data.name item.data state.plaintiffs
+                    | attorneys = maybeUpdateDict name (Result.map (List.head << .data) result) state.attorneys
                     , saveState =
                         case state.saveState of
                             SavingWarrants uploadTracking ->
-                                SavingWarrants { uploadTracking | plaintiffs = increment uploadTracking.plaintiffs }
+                                SavingWarrants { uploadTracking | attorneys = increment result uploadTracking.attorneys }
 
                             _ ->
                                 state.saveState
                 }
 
-        InsertedPlaintiff (Err errMsg) ->
-            ( ReadyForBulkSave state, Cmd.none )
-
-        InsertedDefendant (Ok item) ->
+        GotPlaintiff name result ->
             saveWarrants domain
                 session
                 { state
-                    | defendants = updateDict item.data.name item.data state.defendants
+                    | plaintiffs = maybeUpdateDict name (Result.map (List.head << .data) result) state.plaintiffs
                     , saveState =
                         case state.saveState of
                             SavingWarrants uploadTracking ->
-                                SavingWarrants { uploadTracking | defendants = increment uploadTracking.defendants }
+                                SavingWarrants { uploadTracking | plaintiffs = increment result uploadTracking.plaintiffs }
 
                             _ ->
                                 state.saveState
                 }
 
-        InsertedDefendant (Err errMsg) ->
-            ( ReadyForBulkSave state, Cmd.none )
-
-        InsertedWarrant (Ok item) ->
+        GotDefendant name result ->
             saveWarrants domain
                 session
                 { state
-                    | warrants = updateDict item.data.docketId item.data state.warrants
+                    | defendants = maybeUpdateDict name (Result.map (List.head << .data) result) state.defendants
                     , saveState =
                         case state.saveState of
                             SavingWarrants uploadTracking ->
-                                SavingWarrants { uploadTracking | warrants = increment uploadTracking.warrants }
+                                SavingWarrants { uploadTracking | defendants = increment result uploadTracking.defendants }
 
                             _ ->
                                 state.saveState
                 }
-
-        InsertedWarrant (Err errMsg) ->
-            ( ReadyForBulkSave state, Cmd.none )
 
 
 update :
@@ -289,7 +399,7 @@ insertAttorney domain maybeCred name =
                 ]
                 |> Http.jsonBody
     in
-    Rest.post (Endpoint.attorneys domain []) maybeCred body InsertedAttorney decoder
+    Rest.post (Endpoint.attorneys domain []) maybeCred body (InsertedAttorney name) decoder
 
 
 insertPlaintiff : String -> Maybe Cred -> String -> Cmd BulkUploadMsg
@@ -309,7 +419,7 @@ insertPlaintiff domain maybeCred name =
                 ]
                 |> Http.jsonBody
     in
-    Rest.post (Endpoint.plaintiffs domain []) maybeCred body InsertedPlaintiff decoder
+    Rest.post (Endpoint.plaintiffs domain []) maybeCred body (InsertedPlaintiff name) decoder
 
 
 insertDefendant : String -> Maybe Cred -> String -> Cmd BulkUploadMsg
@@ -329,7 +439,7 @@ insertDefendant domain maybeCred name =
                 ]
                 |> Http.jsonBody
     in
-    Rest.post (Endpoint.defendants domain []) maybeCred body InsertedDefendant decoder
+    Rest.post (Endpoint.defendants domain []) maybeCred body (InsertedDefendant name) decoder
 
 
 nullable fieldName fn field =
@@ -414,7 +524,7 @@ insertWarrant domain maybeCred state stub =
                 ]
                 |> Http.jsonBody
     in
-    Rest.patch (Endpoint.detainerWarrant domain stub.docketId) maybeCred body InsertedWarrant decoder
+    Rest.patch (Endpoint.detainerWarrant domain stub.docketId) maybeCred body (InsertedWarrant stub.docketId) decoder
 
 
 saveWarrants : String -> Session -> UploadState -> ( Model, Cmd Msg )
@@ -429,10 +539,10 @@ saveWarrants domain session state =
                 { state
                     | saveState =
                         SavingWarrants
-                            { attorneys = { current = 0, total = Dict.size state.attorneys }
-                            , defendants = { current = 0, total = Dict.size state.defendants }
-                            , plaintiffs = { current = 0, total = Dict.size state.plaintiffs }
-                            , warrants = { current = 0, total = Dict.size state.warrants }
+                            { attorneys = { current = 0, total = Dict.size state.attorneys, errored = 0 }
+                            , defendants = { current = 0, total = Dict.size state.defendants, errored = 0 }
+                            , plaintiffs = { current = 0, total = Dict.size state.plaintiffs, errored = 0 }
+                            , warrants = { current = 0, total = Dict.size state.warrants, errored = 0 }
                             }
                 }
             , Cmd.map BulkUpload <|
@@ -451,6 +561,9 @@ saveWarrants domain session state =
                     (tracking.attorneys.current
                         + tracking.plaintiffs.current
                         + tracking.defendants.current
+                        + tracking.attorneys.errored
+                        + tracking.plaintiffs.errored
+                        + tracking.defendants.errored
                     )
                         >= (tracking.attorneys.total
                                 + tracking.plaintiffs.total
@@ -638,6 +751,7 @@ view maybeUrl sharedModel model static =
                                             totalTracking =
                                                 { current = tracking.attorneys.current + tracking.defendants.current + tracking.plaintiffs.current + tracking.warrants.current
                                                 , total = tracking.attorneys.total + tracking.defendants.total + tracking.plaintiffs.total + tracking.warrants.total
+                                                , errored = tracking.attorneys.errored + tracking.defendants.errored + tracking.plaintiffs.errored + tracking.warrants.errored
                                                 }
                                         in
                                         Element.el [ centerX, width shrink, height shrink ]

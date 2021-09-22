@@ -69,9 +69,18 @@ class Defendant(db.Model, Timestamped):
     phone_bank_attempts = relationship(
         'PhoneBankEvent', secondary=phone_bank_tenants, back_populates='tenants')
 
-    @property
+    @hybrid_property
     def name(self):
         return ' '.join([name for name in [self.first_name, self.middle_name, self.last_name, self.suffix] if name])
+
+    @name.expression
+    def name(cls):
+        return func.concat(
+            func.coalesce(cls.first_name + ' ', ''),
+            func.coalesce(cls.middle_name + ' ', ''),
+            func.coalesce(cls.last_name + ' ', ''),
+            func.coalesce(cls.suffix, '')
+        )
 
     @name.setter
     def name(self, full_name):

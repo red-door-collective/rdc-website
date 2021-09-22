@@ -7,6 +7,7 @@ import Svg.Attributes exposing (fill, height, stroke, width, x, y)
 type alias Tracking =
     { current : Int
     , total : Int
+    , errored : Int
     }
 
 
@@ -19,7 +20,7 @@ type alias Config =
 
 progress : Tracking -> Float
 progress tracking =
-    toFloat tracking.current / toFloat tracking.total
+    toFloat (tracking.current + tracking.errored) / toFloat tracking.total
 
 
 widthFromTracking : Float -> Config -> Float

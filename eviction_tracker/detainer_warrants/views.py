@@ -25,6 +25,9 @@ from eviction_tracker.database import db
 from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, Judge, Judgement, PhoneNumberVerification
 from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
+from psycopg2 import errors
+
+UniqueViolation = errors.lookup('23505')
 
 
 @model_filter(fields.String())
@@ -83,7 +86,8 @@ class DefendantResourceBase(GenericModelView):
     sorting = Sorting('id', default='-id')
     filtering = Filtering(
         first_name=filter_first_name,
-        last_name=filter_last_name
+        last_name=filter_last_name,
+        name=filter_name
     )
 
 
@@ -234,7 +238,7 @@ def filter_docket_id(model, id):
 
 @model_filter(fields.String())
 def filter_defendant_name(model, defendant_name):
-    return model._defendants.any(Defendant.first_name.ilike(f'%{defendant_name}%'))
+    return model._defendants.any(Defendant.name.ilike(f'%{defendant_name}%'))
 
 
 @model_filter(fields.String())
