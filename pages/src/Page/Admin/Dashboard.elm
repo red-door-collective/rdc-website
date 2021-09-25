@@ -1,6 +1,5 @@
 module Page.Admin.Dashboard exposing (Data, Model, Msg, page)
 
-import Rest.Endpoint as Endpoint
 import Browser.Navigation as Nav
 import Campaign exposing (Campaign)
 import Color
@@ -23,6 +22,7 @@ import Pages.Url
 import Palette
 import Path exposing (Path)
 import Rest exposing (Cred)
+import Rest.Endpoint as Endpoint
 import Runtime
 import Session exposing (Session)
 import Settings exposing (Settings)
@@ -108,6 +108,10 @@ viewCampaign campaign =
         ]
 
 
+title =
+    "RDC | Admin | Dashboard"
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -115,7 +119,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "Admin - Dashboard"
+    { title = title
     , body =
         [ row
             [ centerX
@@ -177,6 +181,6 @@ head static =
         , image = Logo.smallImage
         , description = "RDC at a single view"
         , locale = Nothing
-        , title = "Red Door Collective | Admin | Dashboard"
+        , title = title
         }
         |> Seo.website

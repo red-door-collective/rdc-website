@@ -777,6 +777,6 @@ head static =
         , image = Logo.smallImage
         , description = "Manage detainer warrants"
         , locale = Nothing
-        , title = "Red Door Collective | Admin | Detainer Warrants"
+        , title = "RDC | Admin | Detainer Warrants"
         }
         |> Seo.website

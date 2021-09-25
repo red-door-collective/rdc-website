@@ -373,7 +373,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "Organize - Plaintiffs"
+    { title = "RDC | Admin | Plaintiffs"
     , body =
         [ row [ centerX, padding 10, Font.size 20, width (fill |> maximum 2000 |> minimum 400) ]
             [ column

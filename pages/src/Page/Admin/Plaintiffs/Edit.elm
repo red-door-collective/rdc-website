@@ -821,7 +821,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "Organize - Plaintiff - Edit"
+    { title = title
     , body =
         [ row
             [ centerX
@@ -1096,6 +1096,10 @@ data =
     DataSource.succeed ()
 
 
+title =
+    "RDC | Admin | Detainer Warrant | Edit"
+
+
 head :
     StaticPayload Data RouteParams
     -> List Head.Tag
@@ -1106,6 +1110,6 @@ head static =
         , image = Logo.smallImage
         , description = "Edit plaintiff details"
         , locale = Just "en-us"
-        , title = "RDC | Admin | Detainer Warrant | Edit"
+        , title = title
         }
         |> Seo.website

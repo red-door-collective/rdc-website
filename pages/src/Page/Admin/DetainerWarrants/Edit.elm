@@ -3282,6 +3282,10 @@ withTooltip candidate active str =
         []
 
 
+title =
+    "RDC | Admin | Detainer Warrants | Edit"
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -3289,7 +3293,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "Organize - Detainer Warrant - Edit"
+    { title = title
     , body =
         [ row
             [ centerX
@@ -4015,7 +4019,7 @@ head static =
         , image = Logo.smallImage
         , description = "Edit detainer warrant details"
         , locale = Just "en-us"
-        , title = "RDC | Admin | Detainer Warrant | Edit"
+        , title = title
         }
         |> Seo.website
 

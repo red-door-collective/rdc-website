@@ -622,7 +622,7 @@ head static =
         , image = Logo.smallImage
         , description = "Upload multiple detainer warrants from CaseLink"
         , locale = Just "en-us"
-        , title = "RDC | Admin | Detainer Warrants | Bulk Upload"
+        , title = title
         }
         |> Seo.website
 
@@ -718,6 +718,10 @@ decodeWarrants content =
         content
 
 
+title =
+    "RDC | Admin | Detainer Warrants | Bulk Upload"
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -725,7 +729,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "RDC Admin Bulk Upload"
+    { title = title
     , body =
         [ column [ width fill, spacing 10, padding 10 ]
             [ row [ width fill ]
