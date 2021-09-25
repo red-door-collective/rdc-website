@@ -1,6 +1,7 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, ternaryOptions, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
+module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, ternaryOptions, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
 
 import Attorney exposing (Attorney)
+import Courtroom exposing (Courtroom)
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
@@ -36,10 +37,6 @@ type AmountClaimedCategory
     | Fees
     | Both
     | NotApplicable
-
-
-type alias Courtroom =
-    { id : Int, name : String }
 
 
 type Entrance
@@ -508,13 +505,6 @@ judgementDecoder =
         |> Decode.andThen fromConditions
 
 
-courtroomDecoder : Decoder Courtroom
-courtroomDecoder =
-    Decode.succeed Courtroom
-        |> required "id" int
-        |> required "name" string
-
-
 dateFromString : String -> Maybe Date
 dateFromString =
     Result.toMaybe << Date.fromIsoString
@@ -534,7 +524,7 @@ decoder =
         |> required "plaintiff" (nullable Plaintiff.decoder)
         |> required "plaintiff_attorney" (nullable Attorney.decoder)
         |> required "court_date" (nullable dateDecoder)
-        |> required "courtroom" (nullable courtroomDecoder)
+        |> required "courtroom" (nullable Courtroom.decoder)
         |> required "presiding_judge" (nullable Judge.decoder)
         |> required "amount_claimed" (nullable float)
         |> required "amount_claimed_category" amountClaimedCategoryDecoder

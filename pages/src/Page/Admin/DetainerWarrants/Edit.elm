@@ -6,13 +6,14 @@ import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
 import Campaign exposing (Campaign)
 import Color
+import Courtroom exposing (Courtroom)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
 import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import Design
-import DetainerWarrant exposing (AmountClaimedCategory, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
+import DetainerWarrant exposing (AmountClaimedCategory, ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
 import Dict exposing (Dict)
 import Dropdown
 import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, inFront, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
@@ -502,7 +503,7 @@ type Msg
     | SubmitAndAddAnother
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
-    | UpsertedCourtroom (Result Http.Error (Rest.Item DetainerWarrant.Courtroom))
+    | UpsertedCourtroom (Result Http.Error (Rest.Item Courtroom))
     | UpsertedJudge (Result Http.Error (Rest.Item Judge))
     | UpsertedDefendant Int (Result Http.Error (Rest.Item Defendant))
     | UpsertedJudgement Int (Result Http.Error (Rest.Item Judgement))
@@ -920,7 +921,7 @@ update pageUrl navKey sharedModel static msg model =
                             { form | courtroom = updatedCourtroom }
                         )
                         model
-                    , Rest.get (Endpoint.courtrooms domain [ ( "name", text ) ]) maybeCred GotCourtrooms (Rest.collectionDecoder DetainerWarrant.courtroomDecoder)
+                    , Rest.get (Endpoint.courtrooms domain [ ( "name", text ) ]) maybeCred GotCourtrooms (Rest.collectionDecoder Courtroom.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -3843,7 +3844,7 @@ upsertCourtroom : String -> Maybe Cred -> Courtroom -> Cmd Msg
 upsertCourtroom domain maybeCred courtroom =
     let
         decoder =
-            Rest.itemDecoder DetainerWarrant.courtroomDecoder
+            Rest.itemDecoder Courtroom.decoder
 
         postData =
             Encode.object
