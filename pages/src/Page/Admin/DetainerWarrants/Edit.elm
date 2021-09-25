@@ -89,7 +89,7 @@ type alias FormOptions =
     , courtrooms : List Courtroom
     , tooltip : Maybe Tooltip
     , docketId : Maybe String
-    , today : Maybe Date
+    , today : Date
     , problems : List Problem
     , originalWarrant : Maybe DetainerWarrant
     }
@@ -191,7 +191,6 @@ type SaveState
 type alias Model =
     { warrant : Maybe DetainerWarrant
     , docketId : Maybe String
-    , today : Maybe Date
     , tooltip : Maybe Tooltip
     , problems : List Problem
     , form : FormStatus
@@ -407,6 +406,9 @@ init :
     -> ( Model, Cmd Msg )
 init pageUrl sharedModel static =
     let
+        domain =
+            Runtime.domain static.sharedData.runtime.environment
+
         maybeCred =
             Session.cred sharedModel.session
 
@@ -424,7 +426,6 @@ init pageUrl sharedModel static =
       , docketId = docketId
       , tooltip = Nothing
       , problems = []
-      , today = Nothing
       , form =
             case docketId of
                 Just id ->
@@ -439,7 +440,12 @@ init pageUrl sharedModel static =
       , saveState = Done
       , newFormOnSuccess = False
       }
-    , Task.perform GotToday Date.today
+    , case docketId of
+        Just id ->
+            getWarrant domain id maybeCred
+
+        _ ->
+            Cmd.none
     )
 
 
@@ -450,7 +456,6 @@ getWarrant domain id maybeCred =
 
 type Msg
     = GotDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
-    | GotToday Date
     | ChangeTooltip Tooltip
     | CloseTooltip
     | ChangedDocketId String
@@ -585,6 +590,9 @@ update :
     -> ( Model, Cmd Msg )
 update pageUrl navKey sharedModel static msg model =
     let
+        today =
+            static.sharedData.runtime.today
+
         session =
             sharedModel.session
 
@@ -602,44 +610,12 @@ update pageUrl navKey sharedModel static msg model =
     in
     case msg of
         GotDetainerWarrant result ->
-            case model.today of
-                Just today ->
-                    case result of
-                        Ok warrantPage ->
-                            ( { model | warrant = Just warrantPage.data, form = Ready (editForm today warrantPage.data) }, Cmd.none )
+            case result of
+                Ok warrantPage ->
+                    ( { model | warrant = Just warrantPage.data, form = Ready (editForm today warrantPage.data) }, Cmd.none )
 
-                        Err httpError ->
-                            ( model, logHttpError httpError )
-
-                Nothing ->
-                    ( model, Cmd.none )
-
-        GotToday today ->
-            ( updateFormOnly
-                (\form ->
-                    let
-                        fileDate =
-                            form.fileDate
-
-                        updatedFileDate =
-                            { fileDate | pickerModel = fileDate.pickerModel |> DatePicker.setToday today }
-
-                        courtDate =
-                            form.courtDate
-
-                        updatedCourtDate =
-                            { courtDate | pickerModel = courtDate.pickerModel |> DatePicker.setToday today }
-                    in
-                    { form | fileDate = updatedFileDate, courtDate = updatedCourtDate }
-                )
-                { model | today = Just today }
-            , case model.form of
-                Initializing id ->
-                    getWarrant domain id maybeCred
-
-                _ ->
-                    Cmd.none
-            )
+                Err httpError ->
+                    ( model, logHttpError httpError )
 
         ChangeTooltip selection ->
             ( { model
@@ -1112,26 +1088,21 @@ update pageUrl navKey sharedModel static msg model =
                 model
 
         AddJudgement ->
-            case model.today of
-                Just today ->
-                    updateFormNarrow
-                        (\form ->
-                            let
-                                nextJudgementId =
-                                    List.length form.judgements
-                            in
-                            ( { form
-                                | judgements = form.judgements ++ [ judgementFormInit today nextJudgementId Nothing ]
-                              }
-                            , Task.attempt
-                                (always NoOp)
-                                (Browser.Dom.focus (judgementInfoText nextJudgementId JudgementFileDateDetail))
-                            )
-                        )
-                        model
-
-                Nothing ->
-                    ( model, Cmd.none )
+            updateFormNarrow
+                (\form ->
+                    let
+                        nextJudgementId =
+                            List.length form.judgements
+                    in
+                    ( { form
+                        | judgements = form.judgements ++ [ judgementFormInit today nextJudgementId Nothing ]
+                      }
+                    , Task.attempt
+                        (always NoOp)
+                        (Browser.Dom.focus (judgementInfoText nextJudgementId JudgementFileDateDetail))
+                    )
+                )
+                model
 
         RemoveJudgement selected ->
             updateForm (\form -> { form | judgements = List.removeAt selected form.judgements }) model
@@ -1543,13 +1514,14 @@ update pageUrl navKey sharedModel static msg model =
                 model
 
         SubmitForm ->
-            submitForm domain session model
+            submitForm today domain session model
 
         SubmitAndAddAnother ->
-            submitFormAndAddAnother domain session model
+            submitFormAndAddAnother today domain session model
 
         UpsertedPlaintiff (Ok plaintiffItem) ->
             nextStepSave
+                today
                 domain
                 session
                 (updateFormOnly
@@ -1570,6 +1542,7 @@ update pageUrl navKey sharedModel static msg model =
 
         UpsertedCourtroom (Ok courtroomItem) ->
             nextStepSave
+                today
                 domain
                 session
                 (updateFormOnly
@@ -1590,6 +1563,7 @@ update pageUrl navKey sharedModel static msg model =
 
         UpsertedJudge (Ok judgeItem) ->
             nextStepSave
+                today
                 domain
                 session
                 (updateFormOnly
@@ -1610,6 +1584,7 @@ update pageUrl navKey sharedModel static msg model =
 
         UpsertedDefendant index (Ok defendant) ->
             nextStepSave
+                today
                 domain
                 session
                 (updateFormOnly
@@ -1642,51 +1617,48 @@ update pageUrl navKey sharedModel static msg model =
             ( model, logHttpError httpError )
 
         UpsertedJudgement index (Ok judgement) ->
-            case model.today of
-                Just today ->
-                    nextStepSave
-                        domain
-                        session
-                        (updateFormOnly
-                            (\form ->
-                                { form
-                                    | judgements =
-                                        List.indexedMap
-                                            (\i def ->
-                                                if i == index then
-                                                    judgementFormInit today index (Just judgement.data)
+            nextStepSave
+                today
+                domain
+                session
+                (updateFormOnly
+                    (\form ->
+                        { form
+                            | judgements =
+                                List.indexedMap
+                                    (\i def ->
+                                        if i == index then
+                                            judgementFormInit today index (Just judgement.data)
 
-                                                else
-                                                    def
-                                            )
-                                            form.judgements
-                                }
-                            )
-                            { model
-                                | saveState =
-                                    case model.saveState of
-                                        SavingJudgements models ->
-                                            SavingJudgements { models | judgements = models.judgements + 1 }
+                                        else
+                                            def
+                                    )
+                                    form.judgements
+                        }
+                    )
+                    { model
+                        | saveState =
+                            case model.saveState of
+                                SavingJudgements models ->
+                                    SavingJudgements { models | judgements = models.judgements + 1 }
 
-                                        _ ->
-                                            model.saveState
-                            }
-                        )
-
-                Nothing ->
-                    ( model, Cmd.none )
+                                _ ->
+                                    model.saveState
+                    }
+                )
 
         UpsertedJudgement _ (Err httpError) ->
             ( model, logHttpError httpError )
 
         DeletedJudgement _ (Ok _) ->
-            nextStepSave domain session model
+            nextStepSave today domain session model
 
         DeletedJudgement _ (Err httpError) ->
             ( model, logHttpError httpError )
 
         UpsertedAttorney (Ok attorney) ->
             nextStepSave
+                today
                 domain
                 session
                 (updateFormOnly
@@ -1707,6 +1679,7 @@ update pageUrl navKey sharedModel static msg model =
 
         CreatedDetainerWarrant (Ok detainerWarrantItem) ->
             nextStepSave
+                today
                 domain
                 session
                 { model
@@ -1765,139 +1738,129 @@ updateJudgement selected fn form =
     }
 
 
-submitFormAndAddAnother : String -> Session -> Model -> ( Model, Cmd Msg )
-submitFormAndAddAnother domain session model =
-    Tuple.mapFirst (\m -> { m | newFormOnSuccess = True }) (submitForm domain session model)
+submitFormAndAddAnother : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
+submitFormAndAddAnother today domain session model =
+    Tuple.mapFirst (\m -> { m | newFormOnSuccess = True }) (submitForm today domain session model)
 
 
-submitForm : String -> Session -> Model -> ( Model, Cmd Msg )
-submitForm domain session model =
+submitForm : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
+submitForm today domain session model =
     let
         maybeCred =
             Session.cred session
     in
-    case model.today of
-        Just today ->
-            case validate today model.form of
-                Ok validForm ->
-                    let
-                        apiForms =
-                            toDetainerWarrant today validForm
-                    in
-                    ( { model
-                        | newFormOnSuccess = False
-                        , problems = []
-                        , saveState =
-                            SavingRelatedModels
-                                { attorney = apiForms.attorney == Nothing
-                                , plaintiff = apiForms.plaintiff == Nothing
-                                , courtroom = apiForms.courtroom == Nothing
-                                , judge = apiForms.judge == Nothing
-                                , defendants = 0
-                                }
-                      }
-                    , Cmd.batch
-                        (List.concat
-                            [ apiForms.attorney
-                                |> Maybe.map (List.singleton << upsertAttorney domain maybeCred)
-                                |> Maybe.withDefault []
-                            , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff domain maybeCred) apiForms.plaintiff
-                            , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertCourtroom domain maybeCred) apiForms.courtroom
-                            , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertJudge domain maybeCred) apiForms.judge
-                            , List.indexedMap (upsertDefendant domain maybeCred) apiForms.defendants
-                            ]
+    case validate today model.form of
+        Ok validForm ->
+            let
+                apiForms =
+                    toDetainerWarrant today validForm
+            in
+            ( { model
+                | newFormOnSuccess = False
+                , problems = []
+                , saveState =
+                    SavingRelatedModels
+                        { attorney = apiForms.attorney == Nothing
+                        , plaintiff = apiForms.plaintiff == Nothing
+                        , courtroom = apiForms.courtroom == Nothing
+                        , judge = apiForms.judge == Nothing
+                        , defendants = 0
+                        }
+              }
+            , Cmd.batch
+                (List.concat
+                    [ apiForms.attorney
+                        |> Maybe.map (List.singleton << upsertAttorney domain maybeCred)
+                        |> Maybe.withDefault []
+                    , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff domain maybeCred) apiForms.plaintiff
+                    , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertCourtroom domain maybeCred) apiForms.courtroom
+                    , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertJudge domain maybeCred) apiForms.judge
+                    , List.indexedMap (upsertDefendant domain maybeCred) apiForms.defendants
+                    ]
+                )
+            )
+
+        Err problems ->
+            ( { model | newFormOnSuccess = False, problems = problems }
+            , Cmd.none
+            )
+
+
+nextStepSave : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
+nextStepSave today domain session model =
+    let
+        maybeCred =
+            Session.cred session
+    in
+    case validate today model.form of
+        Ok form ->
+            let
+                apiForms =
+                    toDetainerWarrant today form
+            in
+            case model.saveState of
+                SavingRelatedModels models ->
+                    if
+                        models.attorney
+                            && models.courtroom
+                            && models.judge
+                            && models.plaintiff
+                            && List.length apiForms.defendants
+                            >= models.defendants
+                    then
+                        ( { model | saveState = SavingWarrant }
+                        , updateDetainerWarrant domain maybeCred apiForms.detainerWarrant
                         )
-                    )
 
-                Err problems ->
-                    ( { model | newFormOnSuccess = False, problems = problems }
-                    , Cmd.none
-                    )
+                    else
+                        ( model, Cmd.none )
 
-        Nothing ->
-            ( model, Cmd.none )
-
-
-nextStepSave : String -> Session -> Model -> ( Model, Cmd Msg )
-nextStepSave domain session model =
-    let
-        maybeCred =
-            Session.cred session
-    in
-    case model.today of
-        Just today ->
-            case validate today model.form of
-                Ok form ->
+                SavingWarrant ->
                     let
-                        apiForms =
-                            toDetainerWarrant today form
+                        toDelete =
+                            case model.warrant of
+                                Just warrant ->
+                                    if List.length warrant.judgements /= List.length apiForms.judgements then
+                                        Set.toList (Set.diff (Set.fromList (List.map .id warrant.judgements)) (Set.fromList (List.filterMap .id apiForms.judgements)))
+
+                                    else
+                                        []
+
+                                Nothing ->
+                                    []
                     in
-                    case model.saveState of
-                        SavingRelatedModels models ->
-                            if
-                                models.attorney
-                                    && models.courtroom
-                                    && models.judge
-                                    && models.plaintiff
-                                    && List.length apiForms.defendants
-                                    >= models.defendants
-                            then
-                                ( { model | saveState = SavingWarrant }
-                                , updateDetainerWarrant domain maybeCred apiForms.detainerWarrant
-                                )
+                    if List.isEmpty apiForms.judgements && List.isEmpty toDelete then
+                        nextStepSave today domain session { model | saveState = Done }
 
-                            else
-                                ( model, Cmd.none )
-
-                        SavingWarrant ->
-                            let
-                                toDelete =
-                                    case model.warrant of
-                                        Just warrant ->
-                                            if List.length warrant.judgements /= List.length apiForms.judgements then
-                                                Set.toList (Set.diff (Set.fromList (List.map .id warrant.judgements)) (Set.fromList (List.filterMap .id apiForms.judgements)))
-
-                                            else
-                                                []
-
-                                        Nothing ->
-                                            []
-                            in
-                            if List.isEmpty apiForms.judgements && List.isEmpty toDelete then
-                                nextStepSave domain session { model | saveState = Done }
-
-                            else
-                                ( { model | saveState = SavingJudgements { judgements = 0 } }
-                                , Cmd.batch
-                                    (List.concat
-                                        [ List.indexedMap (upsertJudgement domain maybeCred apiForms.detainerWarrant) apiForms.judgements
-                                        , List.indexedMap (deleteJudgement domain maybeCred) toDelete
-                                        ]
-                                    )
-                                )
-
-                        SavingJudgements models ->
-                            if models.judgements >= List.length apiForms.judgements then
-                                nextStepSave domain session { model | saveState = Done }
-
-                            else
-                                ( model, Cmd.none )
-
-                        Done ->
-                            ( model
-                            , if model.newFormOnSuccess then
-                                Maybe.withDefault Cmd.none <|
-                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
-
-                              else
-                                Maybe.withDefault Cmd.none <|
-                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ apiForms.detainerWarrant.docketId ] [])) (Session.navKey session)
+                    else
+                        ( { model | saveState = SavingJudgements { judgements = 0 } }
+                        , Cmd.batch
+                            (List.concat
+                                [ List.indexedMap (upsertJudgement domain maybeCred apiForms.detainerWarrant) apiForms.judgements
+                                , List.indexedMap (deleteJudgement domain maybeCred) toDelete
+                                ]
                             )
+                        )
 
-                Err _ ->
-                    ( model, Cmd.none )
+                SavingJudgements models ->
+                    if models.judgements >= List.length apiForms.judgements then
+                        nextStepSave today domain session { model | saveState = Done }
 
-        Nothing ->
+                    else
+                        ( model, Cmd.none )
+
+                Done ->
+                    ( model
+                    , if model.newFormOnSuccess then
+                        Maybe.withDefault Cmd.none <|
+                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
+
+                      else
+                        Maybe.withDefault Cmd.none <|
+                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ apiForms.detainerWarrant.docketId ] [])) (Session.navKey session)
+                    )
+
+        Err _ ->
             ( model, Cmd.none )
 
 
@@ -2077,7 +2040,7 @@ viewFileDate options form =
                     , label =
                         Input.labelAbove [] (text "File Date")
                     , placeholder =
-                        Maybe.map (Input.placeholder [] << text << Date.toIsoString) options.today
+                        Just <| Input.placeholder [] <| text <| Date.toIsoString options.today
                     , settings = DatePicker.defaultSettings
                     , model = form.fileDate.pickerModel
                     }
@@ -2328,7 +2291,7 @@ viewCourtDate options form =
                     , text = form.courtDate.dateText
                     , label =
                         Input.labelAbove [] (text "Court Date")
-                    , placeholder = Just <| Input.placeholder [] (text (Maybe.withDefault "" <| Maybe.map Date.toIsoString options.today))
+                    , placeholder = Just <| Input.placeholder [] (text (Date.toIsoString options.today))
                     , settings = DatePicker.defaultSettings
                     , model = form.courtDate.pickerModel
                     }
@@ -3059,7 +3022,7 @@ viewJudgement options index form =
                         , label =
                             requiredLabel Input.labelAbove "Court Date"
                         , placeholder =
-                            Maybe.map (Input.placeholder [] << text << Date.toIsoString) options.today
+                            Just <| Input.placeholder [] <| text <| Date.toIsoString <| options.today
                         , settings = DatePicker.defaultSettings
                         , model = form.courtDate.pickerModel
                         }
@@ -3264,15 +3227,15 @@ viewForm options formStatus =
                 ]
 
 
-formOptions : Model -> FormOptions
-formOptions model =
+formOptions : Date -> Model -> FormOptions
+formOptions today model =
     { plaintiffs = model.plaintiffs
     , attorneys = model.attorneys
     , judges = model.judges
     , courtrooms = model.courtrooms
     , tooltip = model.tooltip
     , docketId = model.docketId
-    , today = model.today
+    , today = today
     , problems = model.problems
     , originalWarrant = model.warrant
     }
@@ -3366,7 +3329,7 @@ view maybeUrl sharedModel model static =
                     ]
                 , viewProblems model.problems
                 , row [ width fill ]
-                    [ viewForm (formOptions model) model.form
+                    [ viewForm (formOptions static.sharedData.runtime.today model) model.form
                     ]
                 ]
             ]
