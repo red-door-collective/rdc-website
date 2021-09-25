@@ -27,6 +27,7 @@ import Plaintiff exposing (Plaintiff)
 import Progress exposing (Tracking)
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
+import Runtime
 import Session exposing (Session)
 import Set exposing (Set)
 import Shared
@@ -210,11 +211,11 @@ isConflict result =
                     False
 
 
-updateAfterCsvUpload : Session -> BulkUploadMsg -> UploadState -> ( Model, Cmd Msg )
-updateAfterCsvUpload session msg state =
+updateAfterCsvUpload : StaticPayload Data RouteParams -> Session -> BulkUploadMsg -> UploadState -> ( Model, Cmd Msg )
+updateAfterCsvUpload static session msg state =
     let
         domain =
-            "http://localhost:5000"
+            Runtime.domain static.sharedData.runtime.environment
     in
     case msg of
         SaveWarrants ->
@@ -360,7 +361,7 @@ update pageUrl navKey sharedModel static msg model =
             updateBeforeCsvUpload subMsg subModel
 
         ( BulkUpload subMsg, ReadyForBulkSave state ) ->
-            updateAfterCsvUpload sharedModel.session subMsg state
+            updateAfterCsvUpload static sharedModel.session subMsg state
 
         ( _, _ ) ->
             ( model, Cmd.none )
