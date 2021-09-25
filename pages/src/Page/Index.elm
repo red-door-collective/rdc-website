@@ -1,6 +1,5 @@
 module Page.Index exposing (Data, Model, Msg, page)
 
-import Api.Endpoint as Endpoint
 import Array exposing (Array)
 import Axis
 import Browser.Navigation
@@ -34,6 +33,7 @@ import Pages.Url
 import Palette
 import Path exposing (Path)
 import Rest
+import Rest.Endpoint as Endpoint
 import Rest.Static exposing (AmountAwardedMonth, DetainerWarrantsPerMonth, EvictionHistory, PlaintiffAttorneyWarrantCount, RollupMetadata, TopEvictor)
 import Rollbar exposing (Rollbar)
 import Runtime exposing (Runtime)

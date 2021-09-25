@@ -1,9 +1,9 @@
-module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsQuery, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsQuery, toPair, plaintiffsFromString)
+module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsQuery, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString, plaintiffsQuery, toPair)
 
-import Api.Endpoint exposing (toQueryArgs)
 import Date exposing (Date)
 import Dict
 import QueryParams
+import Rest.Endpoint exposing (toQueryArgs)
 import Url.Builder
 
 
@@ -47,7 +47,8 @@ detainerWarrantsDefault =
     , address = Nothing
     }
 
-plaintiffsFromString: String -> Plaintiffs
+
+plaintiffsFromString : String -> Plaintiffs
 plaintiffsFromString str =
     let
         params =
@@ -56,6 +57,7 @@ plaintiffsFromString str =
     in
     { name = Dict.get "name" params |> Maybe.andThen List.head
     }
+
 
 dwFromString : String -> DetainerWarrants
 dwFromString str =

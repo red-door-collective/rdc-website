@@ -6,7 +6,6 @@ It exposes an opaque Endpoint type which is guaranteed to point to the correct U
 
 -}
 
-import Api.Endpoint as Endpoint exposing (Endpoint)
 import Browser
 import Browser.Navigation as Nav
 import Campaign exposing (Campaign)
@@ -16,6 +15,7 @@ import Http exposing (Body, Error, Expect)
 import Json.Decode as Decode exposing (Decoder, Value, bool, decodeString, field, int, list, nullable, string)
 import Json.Decode.Pipeline as Pipeline exposing (optional, required)
 import Json.Encode as Encode
+import Rest.Endpoint as Endpoint exposing (Endpoint)
 import Runtime exposing (Runtime)
 import Time
 import Url exposing (Url)

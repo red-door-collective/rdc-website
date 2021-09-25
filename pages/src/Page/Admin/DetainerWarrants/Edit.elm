@@ -1,6 +1,5 @@
 module Page.Admin.DetainerWarrants.Edit exposing (Data, Model, Msg, page)
 
-import Api.Endpoint as Endpoint
 import Browser.Dom
 import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
@@ -45,6 +44,7 @@ import PhoneNumber.Countries exposing (countryUS)
 import Plaintiff exposing (Plaintiff)
 import QueryParams exposing (QueryParams)
 import Rest exposing (Cred)
+import Rest.Endpoint as Endpoint
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)

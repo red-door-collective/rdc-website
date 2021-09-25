@@ -1,6 +1,5 @@
 module Page.Admin.Plaintiffs.Edit exposing (Data, Model, Msg, page)
 
-import Api.Endpoint as Endpoint
 import Browser.Dom
 import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
@@ -44,6 +43,7 @@ import Plaintiff exposing (Plaintiff)
 import QueryParams
 import Regex exposing (Regex)
 import Rest exposing (Cred)
+import Rest.Endpoint as Endpoint
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)

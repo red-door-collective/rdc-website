@@ -1,6 +1,5 @@
 module Page.Admin.DetainerWarrants.BulkUpload exposing (Data, Model, Msg, page)
 
-import Api.Endpoint as Endpoint
 import Browser.Navigation as Nav
 import Csv.Decode exposing (FieldNames(..), field, pipeline, string)
 import DataSource exposing (DataSource)
@@ -27,6 +26,7 @@ import Path exposing (Path)
 import Plaintiff exposing (Plaintiff)
 import Progress exposing (Tracking)
 import Rest exposing (Cred)
+import Rest.Endpoint as Endpoint
 import Session exposing (Session)
 import Set exposing (Set)
 import Shared

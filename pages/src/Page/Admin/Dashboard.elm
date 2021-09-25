@@ -1,6 +1,6 @@
 module Page.Admin.Dashboard exposing (Data, Model, Msg, page)
 
-import Api.Endpoint as Endpoint
+import Rest.Endpoint as Endpoint
 import Browser.Navigation as Nav
 import Campaign exposing (Campaign)
 import Color
