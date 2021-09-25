@@ -72,7 +72,7 @@ head static =
         , image = Logo.smallImage
         , description = "Log in to the Red Door Collective Administration Center"
         , locale = Just "en-us"
-        , title = "Login"
+        , title = title
         }
         |> Seo.website
 
@@ -140,6 +140,10 @@ onEnter msg =
         )
 
 
+title =
+    "Red Door Collective | Login"
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -147,7 +151,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "Login"
+    { title = title
     , body =
         [ column [ width (fill |> maximum 1000), centerX, spacing 20, padding 20 ]
             [ row [ Font.size 24, centerX ] [ text "Sign in" ]

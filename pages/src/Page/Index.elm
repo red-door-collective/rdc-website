@@ -108,7 +108,7 @@ head static =
         , image = Logo.smallImage
         , description = "Organizing Nashville tenants for dignified housing."
         , locale = Nothing
-        , title = "Red Door Collective"
+        , title = title
         }
         |> Seo.website
 
@@ -122,6 +122,10 @@ type alias Data =
     }
 
 
+title =
+    "Red Door Collective"
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -129,7 +133,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "Red Door Collective | Eviction Trends"
+    { title = title
     , body =
         [ Element.column
             [ Element.centerX
