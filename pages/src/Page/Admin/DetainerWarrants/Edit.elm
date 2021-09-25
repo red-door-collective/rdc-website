@@ -11,7 +11,7 @@ import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import Design
-import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
+import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
 import Dict exposing (Dict)
 import Dropdown
 import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, inFront, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
@@ -28,6 +28,7 @@ import Html.Events
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Judge exposing (Judge, JudgeForm)
 import LineChart.Axis.Values exposing (Amount)
 import List.Extra as List
 import Log
@@ -501,7 +502,7 @@ type Msg
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Rest.Item DetainerWarrant.Attorney))
     | UpsertedCourtroom (Result Http.Error (Rest.Item DetainerWarrant.Courtroom))
-    | UpsertedJudge (Result Http.Error (Rest.Item DetainerWarrant.Judge))
+    | UpsertedJudge (Result Http.Error (Rest.Item Judge))
     | UpsertedDefendant Int (Result Http.Error (Rest.Item Defendant))
     | UpsertedJudgement Int (Result Http.Error (Rest.Item Judgement))
     | DeletedJudgement Int (Result Http.Error ())
@@ -970,7 +971,7 @@ update pageUrl navKey sharedModel static msg model =
                             { form | presidingJudge = updatedJudge }
                         )
                         model
-                    , Rest.get (Endpoint.judges domain [ ( "name", text ) ]) maybeCred GotJudges (Rest.collectionDecoder DetainerWarrant.judgeDecoder)
+                    , Rest.get (Endpoint.judges domain [ ( "name", text ) ]) maybeCred GotJudges (Rest.collectionDecoder Judge.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -1508,7 +1509,7 @@ update pageUrl navKey sharedModel static msg model =
                             )
                         )
                         model
-                    , Rest.get (Endpoint.judges domain [ ( "name", text ) ]) maybeCred GotJudges (Rest.collectionDecoder DetainerWarrant.judgeDecoder)
+                    , Rest.get (Endpoint.judges domain [ ( "name", text ) ]) maybeCred GotJudges (Rest.collectionDecoder Judge.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -3866,7 +3867,7 @@ upsertJudge : String -> Maybe Cred -> Judge -> Cmd Msg
 upsertJudge domain maybeCred form =
     let
         decoder =
-            Rest.itemDecoder DetainerWarrant.judgeDecoder
+            Rest.itemDecoder Judge.decoder
 
         judge =
             Encode.object
