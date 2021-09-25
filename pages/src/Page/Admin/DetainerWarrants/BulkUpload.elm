@@ -1,5 +1,6 @@
 module Page.Admin.DetainerWarrants.BulkUpload exposing (Data, Model, Msg, page)
 
+import Attorney exposing (Attorney)
 import Browser.Navigation as Nav
 import Csv.Decode exposing (FieldNames(..), field, pipeline, string)
 import DataSource exposing (DataSource)
@@ -7,7 +8,7 @@ import Date exposing (Date)
 import Date.Extra
 import Defendant exposing (Defendant)
 import Design
-import DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, DetainerWarrant, Status)
+import DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, Status)
 import Dict exposing (Dict)
 import Element exposing (Element, centerX, column, fill, height, maximum, padding, paragraph, px, row, shrink, spacing, text, width)
 import Element.Font as Font
@@ -225,7 +226,7 @@ updateAfterCsvUpload static session msg state =
             let
                 getOnConflict =
                     if isConflict result then
-                        Rest.get (Endpoint.attorneysSearch domain [ ( "name", name ) ]) (Session.cred session) (GotAttorney name) (Rest.collectionDecoder DetainerWarrant.attorneyDecoder)
+                        Rest.get (Endpoint.attorneysSearch domain [ ( "name", name ) ]) (Session.cred session) (GotAttorney name) (Rest.collectionDecoder Attorney.decoder)
 
                     else
                         Cmd.none
@@ -387,7 +388,7 @@ insertAttorney : String -> Maybe Cred -> String -> Cmd BulkUploadMsg
 insertAttorney domain maybeCred name =
     let
         decoder =
-            Rest.itemDecoder DetainerWarrant.attorneyDecoder
+            Rest.itemDecoder Attorney.decoder
 
         body =
             Json.Encode.object

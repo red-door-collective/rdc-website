@@ -1,5 +1,6 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, ternaryOptions, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
+module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, ternaryOptions, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
 
+import Attorney exposing (Attorney)
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
@@ -35,10 +36,6 @@ type AmountClaimedCategory
     | Fees
     | Both
     | NotApplicable
-
-
-type alias Attorney =
-    { id : Int, name : String, aliases : List String }
 
 
 type alias Courtroom =
@@ -511,14 +508,6 @@ judgementDecoder =
         |> Decode.andThen fromConditions
 
 
-attorneyDecoder : Decoder Attorney
-attorneyDecoder =
-    Decode.succeed Attorney
-        |> required "id" int
-        |> required "name" string
-        |> required "aliases" (list string)
-
-
 courtroomDecoder : Decoder Courtroom
 courtroomDecoder =
     Decode.succeed Courtroom
@@ -543,7 +532,7 @@ decoder =
         |> required "file_date" (nullable dateDecoder)
         |> required "status" (nullable statusDecoder)
         |> required "plaintiff" (nullable Plaintiff.decoder)
-        |> required "plaintiff_attorney" (nullable attorneyDecoder)
+        |> required "plaintiff_attorney" (nullable Attorney.decoder)
         |> required "court_date" (nullable dateDecoder)
         |> required "courtroom" (nullable courtroomDecoder)
         |> required "presiding_judge" (nullable Judge.decoder)

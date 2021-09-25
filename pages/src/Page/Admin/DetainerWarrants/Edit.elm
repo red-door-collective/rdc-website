@@ -1,5 +1,6 @@
 module Page.Admin.DetainerWarrants.Edit exposing (Data, Model, Msg, page)
 
+import Attorney exposing (Attorney)
 import Browser.Dom
 import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
@@ -11,7 +12,7 @@ import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import Design
-import DetainerWarrant exposing (AmountClaimedCategory, Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
+import DetainerWarrant exposing (AmountClaimedCategory, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
 import Dict exposing (Dict)
 import Dropdown
 import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, inFront, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
@@ -500,7 +501,7 @@ type Msg
     | SubmitForm
     | SubmitAndAddAnother
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
-    | UpsertedAttorney (Result Http.Error (Rest.Item DetainerWarrant.Attorney))
+    | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
     | UpsertedCourtroom (Result Http.Error (Rest.Item DetainerWarrant.Courtroom))
     | UpsertedJudge (Result Http.Error (Rest.Item Judge))
     | UpsertedDefendant Int (Result Http.Error (Rest.Item Defendant))
@@ -842,7 +843,7 @@ update pageUrl navKey sharedModel static msg model =
                             { form | plaintiffAttorney = updatedAttorney }
                         )
                         model
-                    , Rest.get (Endpoint.attorneys domain [ ( "name", text ) ]) maybeCred GotAttorneys (Rest.collectionDecoder DetainerWarrant.attorneyDecoder)
+                    , Rest.get (Endpoint.attorneys domain [ ( "name", text ) ]) maybeCred GotAttorneys (Rest.collectionDecoder Attorney.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -3901,7 +3902,7 @@ upsertAttorney : String -> Maybe Cred -> Attorney -> Cmd Msg
 upsertAttorney domain maybeCred attorney =
     let
         decoder =
-            Rest.itemDecoder DetainerWarrant.attorneyDecoder
+            Rest.itemDecoder Attorney.decoder
 
         postData =
             Encode.object
