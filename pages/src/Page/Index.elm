@@ -1,10 +1,11 @@
 module Page.Index exposing (Data, Model, Msg, page)
 
 import Array exposing (Array)
-import Axis
 import Browser.Navigation
 import Chart as C
 import Chart.Attributes as CA
+import Chart.Events as CE
+import Chart.Item as CI
 import Color
 import DataSource exposing (DataSource)
 import DataSource.Http
@@ -57,6 +58,7 @@ import View exposing (View)
 type alias Model =
     { hovering : List EvictionHistory
     , hoveringAmounts : List AmountAwardedMonth
+    , hoveringOnBar : List (CI.One Datum CI.Bar)
     }
 
 
@@ -159,10 +161,10 @@ view maybeUrl sharedModel model static =
                     [ topEvictorsChart { width = 365, height = 400 } model static
                     ]
                 , row [ Element.htmlAttribute (Attrs.class "responsive-desktop") ]
-                    [ viewDetainerWarrantsHistory { width = 1000, height = 600 } static.data.warrantsPerMonth
+                    [ viewDetainerWarrantsHistory model { width = 1000, height = 600 } static.data.warrantsPerMonth
                     ]
                 , row [ Element.htmlAttribute (Attrs.class "responsive-mobile") ]
-                    [ viewDetainerWarrantsHistory { width = 365, height = 365 } static.data.warrantsPerMonth
+                    [ viewDetainerWarrantsHistory model { width = 365, height = 365 } static.data.warrantsPerMonth
                     ]
                 , row
                     [ Element.width fill
@@ -242,6 +244,7 @@ init :
 init pageUrl sharedModel payload =
     ( { hovering = []
       , hoveringAmounts = []
+      , hoveringOnBar = []
       }
     , Cmd.none
     )
@@ -250,6 +253,7 @@ init pageUrl sharedModel payload =
 type Msg
     = Hover (List EvictionHistory)
     | HoverAmounts (List AmountAwardedMonth)
+    | HoverOnBar (List (CI.One Datum CI.Bar))
     | NoOp
 
 
@@ -268,6 +272,9 @@ update pageUrl navKey sharedModel payload msg model =
 
         HoverAmounts hovering ->
             ( { model | hoveringAmounts = hovering }, Cmd.none )
+
+        HoverOnBar hovering ->
+            ( { model | hoveringOnBar = hovering }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
@@ -288,7 +295,7 @@ type alias EvictorData =
 --     List.foldl (\evictor xs -> { name = evictor.name, evictionCount = evictor.evictionCount, date = evictor.date } :: xs) evictors
 
 
-topEvictorsChart : { width : Int, height : Int } -> Model -> StaticPayload Data RouteParams -> Element Msg
+topEvictorsChart : Dimensions -> Model -> StaticPayload Data RouteParams -> Element Msg
 topEvictorsChart { width, height } model static =
     -- let
     --     topEvictors =
@@ -396,18 +403,7 @@ padding =
 
 
 type alias Datum =
-    { time : Time.Posix, total : Int }
-
-
-xScale : Int -> List Datum -> BandScale Time.Posix
-xScale width times =
-    List.map .time times
-        |> Scale.band { defaultBandConfig | paddingInner = 0.1, paddingOuter = 0.2 } ( 0, toFloat width - 2 * padding )
-
-
-yScale : Int -> ContinuousScale Float
-yScale height =
-    Scale.linear ( toFloat height - 2 * padding, 0 ) ( 0, 800 )
+    { time : Time.Posix, total : Float }
 
 
 barDateFormat : Time.Posix -> String
@@ -415,41 +411,45 @@ barDateFormat =
     DateFormat.format [ DateFormat.monthNameAbbreviated, DateFormat.text " ", DateFormat.yearNumberLastTwo ] Time.utc
 
 
-xAxis : Int -> List Datum -> Svg msg
-xAxis width times =
-    Axis.bottom [] (Scale.toRenderable barDateFormat (xScale width times))
-
-
-yAxis : Int -> Svg msg
-yAxis height =
-    Axis.left [ Axis.tickCount 5 ] (yScale height)
-
-
 type alias Dimensions =
     { width : Int, height : Int }
 
 
-column : Dimensions -> BandScale Time.Posix -> { time : Time.Posix, total : Int } -> Svg msg
-column dimens scale { time, total } =
-    g [ class [ "column" ] ]
-        [ rect
-            [ x <| Scale.convert scale time
-            , y <| Scale.convert (yScale dimens.height) (toFloat total)
-            , width <| Scale.bandwidth scale
-            , height <| toFloat dimens.height - Scale.convert (yScale dimens.height) (toFloat total) - 2 * padding
+viewBarChart : Model -> Dimensions -> List DetainerWarrantsPerMonth -> Element Msg
+viewBarChart model dimens warrants =
+    let
+        series =
+            List.map (\s -> { time = s.time, total = toFloat s.totalWarrants }) warrants
+    in
+    Element.html <|
+        C.chart
+            [ CA.height (toFloat dimens.height)
+            , CA.width (toFloat dimens.width)
+            , CE.onMouseMove HoverOnBar (CE.getNearest CI.bars)
+            , CE.onMouseLeave (HoverOnBar [])
+            , CA.padding { top = 10, bottom = 0, left = 0, right = 0 }
             ]
-            []
-        , text_
-            [ x <| Scale.convert (Scale.toRenderable barDateFormat scale) time
-            , y <| Scale.convert (yScale dimens.height) (toFloat total) - 5
-            , textAnchor AnchorMiddle
+            [ C.yLabels [ CA.withGrid ]
+            , C.bars
+                [ CA.roundTop 0.2
+                , CA.margin 0.1
+                , CA.spacing 0.15
+                ]
+                [ C.bar .total [ CA.borderWidth 1 ]
+                    |> C.named "Evictions"
+                    |> C.amongst model.hoveringOnBar (\_ -> [ CA.highlight 0.25 ])
+                ]
+                series
+            , C.barLabels [ CA.moveUp 10 ]
+            , C.binLabels (barDateFormat << .time) [ CA.moveDown 15 ]
+            , C.each model.hoveringOnBar <|
+                \p item ->
+                    [ C.tooltip item [] [] [] ]
             ]
-            [ text <| String.fromInt total ]
-        ]
 
 
-viewDetainerWarrantsHistory : { width : Int, height : Int } -> List DetainerWarrantsPerMonth -> Element msg
-viewDetainerWarrantsHistory ({ width, height } as dimens) allWarrants =
+viewDetainerWarrantsHistory : Model -> Dimensions -> List DetainerWarrantsPerMonth -> Element Msg
+viewDetainerWarrantsHistory model ({ width, height } as dimens) allWarrants =
     let
         warrants =
             if width < 600 then
@@ -457,9 +457,6 @@ viewDetainerWarrantsHistory ({ width, height } as dimens) allWarrants =
 
             else
                 allWarrants
-
-        series =
-            List.map (\s -> { time = s.time, total = s.totalWarrants }) warrants
     in
     Element.column [ Element.spacing 10, Element.centerX, Element.width fill ]
         [ row [ Element.width fill ]
@@ -479,24 +476,7 @@ viewDetainerWarrantsHistory ({ width, height } as dimens) allWarrants =
                 [ Element.text "Number of detainer warrants in Davidson Co. TN by month" ]
             ]
         , row [ Element.width fill ]
-            [ Element.column [ Element.width (Element.shrink |> Element.minimum width), Element.height (Element.px height) ]
-                [ Element.html
-                    (svg [ viewBox 0 0 (toFloat width) (toFloat height) ]
-                        [ style [] [ text """
-            .column rect { fill: rgba(12, 84, 228, 0.8); }
-            .column text { display: none; }
-            .column:hover rect { fill: rgb(129, 169, 248); }
-            .column:hover text { display: inline; }
-          """ ]
-                        , g [ transform [ Translate (padding - 1) (toFloat height - padding) ] ]
-                            [ xAxis width series ]
-                        , g [ transform [ Translate (padding - 1) padding ] ]
-                            [ yAxis height ]
-                        , g [ transform [ Translate padding padding ], class [ "series" ] ] <|
-                            List.map (column dimens (xScale width series)) series
-                        ]
-                    )
-                ]
+            [ viewBarChart model dimens warrants
             ]
         ]
 
@@ -550,7 +530,7 @@ pieColorsAsElements =
     pieColorsHelp Element.rgb255
 
 
-viewPlaintiffAttorneyChart : { width : Int, height : Int } -> List PlaintiffAttorneyWarrantCount -> Element Msg
+viewPlaintiffAttorneyChart : Dimensions -> List PlaintiffAttorneyWarrantCount -> Element Msg
 viewPlaintiffAttorneyChart { width, height } counts =
     let
         radius =

@@ -47,8 +47,8 @@ page =
 update : a -> b -> c -> d -> Msg -> Model -> ( Model, Cmd msg )
 update _ maybeNavigationKey sharedModel static msg model =
     case msg of
-        MouseEnteredPost title ->
-            ( { model | hoveringOn = Just title }, Cmd.none )
+        MouseEnteredPost postTitle ->
+            ( { model | hoveringOn = Just postTitle }, Cmd.none )
 
         MouseLeftPost ->
             ( { model | hoveringOn = Nothing }, Cmd.none )
