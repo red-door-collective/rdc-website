@@ -129,6 +129,7 @@ def top_plaintiff_attorneys_bet(start, end):
         (select a.name, count(dw.docket_id) as warrantCount
     from attorneys a
     inner join detainer_warrants dw on dw.plaintiff_attorney_id = a.id
+    where a.name <> 'PRS'
     group by a.id, a.name
     order by count(dw.docket_id) desc)
     select *
@@ -353,7 +354,14 @@ def register_extensions(app):
             'end_date': millis(end_dt)
         } for attorney_name, warrant_count in top_six]
 
-        return flask.jsonify(top_plaintiffs)
+        prs = {
+            'warrant_count': between_dates(start_dt, end_dt, Attorney.query.filter_by(name="PRS").join(DetainerWarrant)).count(),
+            'plaintiff_attorney_name': 'PLAINTIFF REPRESENTING SELF (PRS)',
+            'start_date': millis(start_dt),
+            'end_date': millis(end_dt),
+        }
+
+        return flask.jsonify(top_plaintiffs + [prs])
 
     @app.route('/api/v1/rollup/judges')
     def judge_warrant_share():

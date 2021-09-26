@@ -140,11 +140,9 @@ view maybeUrl sharedModel model static =
             , Element.paddingXY 5 10
             ]
             [ Element.column
-                [ Element.spacing 40
+                [ Element.spacing 80
                 , Element.centerX
                 , Element.width fill
-
-                -- , Element.explain Debug.todo
                 ]
                 [ row
                     [ Element.htmlAttribute (Attrs.class "responsive-desktop")
@@ -166,7 +164,7 @@ view maybeUrl sharedModel model static =
                     [ Element.width fill
                     , Element.htmlAttribute <| Attrs.class "responsive-desktop"
                     ]
-                    [ viewPlaintiffAttorneyChart model { width = 1000, height = 600 } static.data.plaintiffAttorneyWarrantCounts ]
+                    [ viewPlaintiffAttorneyChart model { width = 1000, height = 800 } static.data.plaintiffAttorneyWarrantCounts ]
                 , row
                     [ Element.htmlAttribute <| Attrs.class "responsive-mobile"
                     , Element.width fill
@@ -393,11 +391,6 @@ formatMonth time =
 -- BAR CHART
 
 
-padding : Float
-padding =
-    30
-
-
 type alias Datum =
     { time : Time.Posix, total : Float }
 
@@ -477,55 +470,6 @@ viewDetainerWarrantsHistory model ({ width, height } as dimens) allWarrants =
         ]
 
 
-calcRadius : Float -> Float -> Float
-calcRadius w h =
-    min w h / 2
-
-
-viewPieColor : Element.Color -> Element Msg
-viewPieColor color =
-    Element.el
-        [ Background.color color
-        , Border.rounded 5
-        , Element.width (Element.px 20)
-        , Element.height (Element.px 20)
-        , Element.alignRight
-        ]
-        Element.none
-
-
-pieLegendName : ( String, Element.Color ) -> Element Msg
-pieLegendName ( name, color ) =
-    row [ Element.spacing 10, Element.width fill ] [ Element.column [ Element.alignLeft ] [ Element.text name ], viewPieColor color ]
-
-
-pieLegend : List String -> Element Msg
-pieLegend names =
-    let
-        legendData =
-            List.map2 Tuple.pair names pieColorsAsElements
-    in
-    Element.column [ Font.size 18, Element.spacing 10 ] (List.map pieLegendName legendData)
-
-
-pieColorsHelp toColor =
-    [ toColor 176 140 212
-    , toColor 166 230 235
-    , toColor 180 212 140
-    , toColor 247 212 163
-    , toColor 212 140 149
-    , toColor 220 174 90
-    ]
-
-
-pieColors =
-    pieColorsHelp Color.rgb255
-
-
-pieColorsAsElements =
-    pieColorsHelp Element.rgb255
-
-
 emptyStack =
     { name = "UNKNOWN", count = 0.0 }
 
@@ -537,6 +481,7 @@ emptyStacks =
     , fourth = emptyStack
     , fifth = emptyStack
     , other = emptyStack
+    , prs = emptyStack
     }
 
 
@@ -544,11 +489,20 @@ viewPlaintiffShareChart : Model -> Dimensions -> List PlaintiffAttorneyWarrantCo
 viewPlaintiffShareChart model dimens counts =
     let
         ( other, top5Plaintiffs ) =
-            List.partition ((==) "ALL OTHER" << .plaintiffAttorneyName) counts
+            List.partition (\r -> List.member r.plaintiffAttorneyName [ "ALL OTHER", "PLAINTIFF REPRESENTING SELF (PRS)" ]) counts
 
         byCount =
             counts
-                |> List.map (\r -> ( toFloat r.warrantCount, r.plaintiffAttorneyName ))
+                |> List.map
+                    (\r ->
+                        ( toFloat r.warrantCount
+                        , if r.plaintiffAttorneyName == "PLAINTIFF REPRESENTING SELF (PRS)" then
+                            "SELF REPRESENTING"
+
+                          else
+                            r.plaintiffAttorneyName
+                        )
+                    )
                 |> Dict.fromList
 
         top5 =
@@ -557,7 +511,9 @@ viewPlaintiffShareChart model dimens counts =
                     (\i r acc ->
                         let
                             datum =
-                                { name = r.plaintiffAttorneyName, count = toFloat r.warrantCount }
+                                { name = r.plaintiffAttorneyName
+                                , count = toFloat r.warrantCount
+                                }
                         in
                         { acc
                             | first =
@@ -590,19 +546,27 @@ viewPlaintiffShareChart model dimens counts =
 
                                 else
                                     acc.fifth
-                            , other =
-                                if r.plaintiffAttorneyName == "ALL OTHER" then
-                                    datum
-
-                                else
-                                    acc.other
                         }
                     )
                     emptyStacks
 
         series =
             [ top5
-            , { emptyStacks | other = { name = "ALL OTHER", count = Maybe.withDefault 0.0 <| Maybe.map (toFloat << .warrantCount) <| List.head other } }
+            , { emptyStacks
+                | other =
+                    { name = "ALL OTHER"
+                    , count = Maybe.withDefault 0.0 <| Maybe.map (toFloat << .warrantCount) <| List.head other
+                    }
+                , prs =
+                    { name = "SELF REPRESENTING"
+                    , count =
+                        other
+                            |> List.filter ((==) "PLAINTIFF REPRESENTING SELF (PRS)" << .plaintiffAttorneyName)
+                            |> List.head
+                            |> Maybe.map (toFloat << .warrantCount)
+                            |> Maybe.withDefault 0.0
+                    }
+              }
             ]
 
         total =
@@ -611,48 +575,65 @@ viewPlaintiffShareChart model dimens counts =
 
         toPercent y =
             round (100 * y / total)
+
+        extractName fn =
+            Maybe.withDefault "Unknown" <| Maybe.map (.name << fn) <| List.head series
+
+        { fontSize, firstShift, secondShift, titleSize } =
+            if dimens.width < 600 then
+                { fontSize = 8, firstShift = 10, secondShift = 20, titleSize = 12 }
+
+            else
+                { fontSize = 12, firstShift = 20, secondShift = 40, titleSize = 20 }
     in
     Element.html
         (C.chart
             [ CA.height (toFloat dimens.height)
             , CA.width (toFloat dimens.width)
+            , CA.margin { top = 20, bottom = 30, left = 80, right = 20 }
+            , CA.padding { top = 20, bottom = 20, left = 0, right = 0 }
             ]
             [ C.yLabels []
             , C.bars
-                []
+                [ CA.margin 0.05 ]
                 [ C.stacked
-                    [ C.bar (.count << .other)
-                        []
-                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .other) <| List.head series)
-                    , C.bar (.count << .fifth) []
-                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .fifth) <| List.head series)
-                    , C.bar (.count << .fourth) []
-                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .fourth) <| List.head series)
-                    , C.bar (.count << .third) []
-                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .third) <| List.head series)
+                    [ C.bar (.count << .first) []
+                        |> C.named (extractName .first)
                     , C.bar (.count << .second) []
-                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .second) <| List.head series)
-                    , C.bar (.count << .first) []
-                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .first) <| List.head series)
+                        |> C.named (extractName .second)
+                    , C.bar (.count << .third) []
+                        |> C.named (extractName .third)
+                    , C.bar (.count << .fourth) []
+                        |> C.named (extractName .fourth)
+                    , C.bar (.count << .fifth) []
+                        |> C.named (extractName .fifth)
+                    , C.bar (.count << .prs) []
+                        |> C.named "SELF REPRESENTING"
+                    , C.bar (.count << .other) []
+                        |> C.named "ALL OTHER"
                     ]
                 ]
                 series
             , C.eachBar <|
                 \p bar ->
                     if CI.getY bar > 0 then
-                        [ C.label [ CA.moveDown 25, CA.color "white" ] [ Svg.text (Maybe.withDefault "" <| Dict.get (CI.getY bar) byCount) ] (CI.getTop p bar)
-                        , C.label [ CA.moveDown 45, CA.color "white" ] [ Svg.text (String.fromFloat (CI.getY bar) ++ " (" ++ (String.fromInt <| toPercent <| CI.getY bar) ++ "%)") ] (CI.getTop p bar)
+                        [ C.label [ CA.fontSize fontSize, CA.moveDown firstShift, CA.color "white" ] [ Svg.text (Maybe.withDefault "" <| Dict.get (CI.getY bar) byCount) ] (CI.getTop p bar)
+                        , C.label [ CA.fontSize fontSize, CA.moveDown secondShift, CA.color "white" ] [ Svg.text (String.fromFloat (CI.getY bar) ++ " (" ++ (String.fromInt <| toPercent <| CI.getY bar) ++ "%)") ] (CI.getTop p bar)
                         ]
 
                     else
                         []
-            , C.labelAt .max
+            , C.labelAt CA.middle
                 .max
-                [ CA.moveLeft 8, CA.moveDown 5, CA.alignRight ]
+                [ CA.fontSize titleSize ]
                 [ Svg.text "Plaintiff attorney listed on detainer warrants" ]
+            , C.labelAt CA.middle
+                .min
+                [ CA.moveDown 18 ]
+                [ Svg.text "Plaintiff attorney" ]
             , C.labelAt .min
                 CA.middle
-                [ CA.moveRight 20, CA.rotate 90, CA.moveUp 25 ]
+                [ CA.moveLeft 60, CA.rotate 90, CA.moveUp 25 ]
                 [ Svg.text "Detainer Warrants" ]
             ]
         )
@@ -660,10 +641,6 @@ viewPlaintiffShareChart model dimens counts =
 
 viewPlaintiffAttorneyChart : Model -> Dimensions -> List PlaintiffAttorneyWarrantCount -> Element Msg
 viewPlaintiffAttorneyChart model ({ width, height } as dimens) counts =
-    let
-        total =
-            List.sum <| List.map .warrantCount counts
-    in
     Element.column [ Element.spacing 10, Element.centerX, Element.width fill ]
         [ row [ Element.width fill ]
             [ Element.column
