@@ -11,6 +11,7 @@ import DataSource exposing (DataSource)
 import DataSource.Http
 import DataSource.Port
 import DateFormat exposing (format, monthNameAbbreviated)
+import Dict
 import Element exposing (Device, Element, fill, px, row)
 import Element.Background as Background
 import Element.Border as Border
@@ -23,8 +24,10 @@ import Head.Seo as Seo
 import Html exposing (Html)
 import Html.Attributes as Attrs
 import Json.Encode
+import List.Extra
 import Log
 import Logo
+import Maybe.Extra
 import OptimizedDecoder as Decode exposing (float, int, list, string)
 import OptimizedDecoder.Pipeline exposing (decode, optional, required)
 import Page exposing (Page, StaticPayload)
@@ -41,7 +44,6 @@ import Runtime exposing (Runtime)
 import Scale exposing (BandConfig, BandScale, ContinuousScale, defaultBandConfig)
 import Session exposing (Session)
 import Shape exposing (defaultPieConfig)
-import Shape.Patch.Pie
 import Shared
 import Svg exposing (Svg)
 import Svg.Path as SvgPath
@@ -170,12 +172,12 @@ view maybeUrl sharedModel model static =
                     [ Element.width fill
                     , Element.htmlAttribute <| Attrs.class "responsive-desktop"
                     ]
-                    [ viewPlaintiffAttorneyChart { width = 1000, height = 600 } static.data.plaintiffAttorneyWarrantCounts ]
+                    [ viewPlaintiffAttorneyChart model { width = 1000, height = 600 } static.data.plaintiffAttorneyWarrantCounts ]
                 , row
                     [ Element.htmlAttribute <| Attrs.class "responsive-mobile"
                     , Element.width fill
                     ]
-                    [ viewPlaintiffAttorneyChart { width = 365, height = 365 } static.data.plaintiffAttorneyWarrantCounts ]
+                    [ viewPlaintiffAttorneyChart model { width = 365, height = 365 } static.data.plaintiffAttorneyWarrantCounts ]
                 , row [ Element.htmlAttribute <| Attrs.class "responsive-desktop", Element.centerX ]
                     [ Element.text ("Detainer Warrants updated via Red Door Collective members as of: " ++ dateFormatLong static.data.rollupMeta.lastWarrantUpdatedAt) ]
                 , row
@@ -530,86 +532,151 @@ pieColorsAsElements =
     pieColorsHelp Element.rgb255
 
 
-viewPlaintiffAttorneyChart : Dimensions -> List PlaintiffAttorneyWarrantCount -> Element Msg
-viewPlaintiffAttorneyChart { width, height } counts =
+emptyStack =
+    { name = "UNKNOWN", count = 0.0 }
+
+
+emptyStacks =
+    { first = emptyStack
+    , second = emptyStack
+    , third = emptyStack
+    , fourth = emptyStack
+    , fifth = emptyStack
+    , other = emptyStack
+    }
+
+
+viewPlaintiffShareChart : Model -> Dimensions -> List PlaintiffAttorneyWarrantCount -> Element Msg
+viewPlaintiffShareChart model dimens counts =
     let
-        radius =
-            calcRadius (toFloat width) (toFloat height)
+        ( other, top5Plaintiffs ) =
+            List.partition ((==) "ALL OTHER" << .plaintiffAttorneyName) counts
+
+        byCount =
+            counts
+                |> List.map (\r -> ( toFloat r.warrantCount, r.plaintiffAttorneyName ))
+                |> Dict.fromList
+
+        top5 =
+            top5Plaintiffs
+                |> List.Extra.indexedFoldl
+                    (\i r acc ->
+                        let
+                            datum =
+                                { name = r.plaintiffAttorneyName, count = toFloat r.warrantCount }
+                        in
+                        { acc
+                            | first =
+                                if i == 0 then
+                                    datum
+
+                                else
+                                    acc.first
+                            , second =
+                                if i == 1 then
+                                    datum
+
+                                else
+                                    acc.second
+                            , third =
+                                if i == 2 then
+                                    datum
+
+                                else
+                                    acc.third
+                            , fourth =
+                                if i == 3 then
+                                    datum
+
+                                else
+                                    acc.fourth
+                            , fifth =
+                                if i == 4 then
+                                    datum
+
+                                else
+                                    acc.fifth
+                            , other =
+                                if r.plaintiffAttorneyName == "ALL OTHER" then
+                                    datum
+
+                                else
+                                    acc.other
+                        }
+                    )
+                    emptyStacks
+
+        series =
+            [ top5
+            , { emptyStacks | other = { name = "ALL OTHER", count = Maybe.withDefault 0.0 <| Maybe.map (toFloat << .warrantCount) <| List.head other } }
+            ]
 
         total =
+            List.map (toFloat << .warrantCount) counts
+                |> List.sum
+
+        toPercent y =
+            round (100 * y / total)
+    in
+    Element.html
+        (C.chart
+            [ CA.height (toFloat dimens.height)
+            , CA.width (toFloat dimens.width)
+            ]
+            [ C.yLabels []
+            , C.bars
+                []
+                [ C.stacked
+                    [ C.bar (.count << .other)
+                        []
+                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .other) <| List.head series)
+                    , C.bar (.count << .fifth) []
+                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .fifth) <| List.head series)
+                    , C.bar (.count << .fourth) []
+                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .fourth) <| List.head series)
+                    , C.bar (.count << .third) []
+                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .third) <| List.head series)
+                    , C.bar (.count << .second) []
+                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .second) <| List.head series)
+                    , C.bar (.count << .first) []
+                        |> C.named (Maybe.withDefault "Meh" <| Maybe.map (.name << .first) <| List.head series)
+                    ]
+                ]
+                series
+            , C.eachBar <|
+                \p bar ->
+                    if CI.getY bar > 0 then
+                        [ C.label [ CA.moveDown 25, CA.color "white" ] [ Svg.text (Maybe.withDefault "" <| Dict.get (CI.getY bar) byCount) ] (CI.getTop p bar)
+                        , C.label [ CA.moveDown 45, CA.color "white" ] [ Svg.text (String.fromFloat (CI.getY bar) ++ " (" ++ (String.fromInt <| toPercent <| CI.getY bar) ++ "%)") ] (CI.getTop p bar)
+                        ]
+
+                    else
+                        []
+            , C.labelAt .max
+                .max
+                [ CA.moveLeft 8, CA.moveDown 5, CA.alignRight ]
+                [ Svg.text "Plaintiff attorney listed on detainer warrants" ]
+            , C.labelAt .min
+                CA.middle
+                [ CA.moveRight 20, CA.rotate 90, CA.moveUp 25 ]
+                [ Svg.text "Detainer Warrants" ]
+            ]
+        )
+
+
+viewPlaintiffAttorneyChart : Model -> Dimensions -> List PlaintiffAttorneyWarrantCount -> Element Msg
+viewPlaintiffAttorneyChart model ({ width, height } as dimens) counts =
+    let
+        total =
             List.sum <| List.map .warrantCount counts
-
-        shares =
-            List.map (\stats -> ( stats.plaintiffAttorneyName, toFloat stats.warrantCount / toFloat total )) counts
-
-        pieData =
-            shares |> List.map Tuple.second |> Shape.pie { defaultPieConfig | outerRadius = radius }
-
-        colors =
-            Array.fromList pieColors
-
-        makeSlice index datum =
-            SvgPath.element (Shape.Patch.Pie.arc datum)
-                [ Attr.fill <|
-                    Paint <|
-                        Maybe.withDefault Color.black <|
-                            Array.get index colors
-                , stroke <| Paint <| Color.white
-                ]
-
-        makeLabel slice ( name, percentage ) =
-            let
-                ( x, y ) =
-                    Shape.centroid
-                        { slice
-                            | innerRadius = radius - 120
-                            , outerRadius = radius - 40
-                        }
-
-                label =
-                    percentage
-                        * 100
-                        |> String.fromFloat
-                        |> String.left 4
-            in
-            text_
-                [ transform [ Translate x y ]
-                , dy (em 0.35)
-                , textAnchor AnchorMiddle
-                ]
-                [ text (label ++ "%") ]
     in
     Element.column [ Element.spacing 10, Element.centerX, Element.width fill ]
         [ row [ Element.width fill ]
-            [ Element.paragraph
-                ([ Region.heading 1
-                 , Font.size 20
-                 , Font.bold
-                 , Font.center
-                 ]
-                    ++ (if width <= 600 then
-                            [ Element.width (fill |> Element.maximum 365) ]
-
-                        else
-                            [ Element.width fill ]
-                       )
-                )
-                [ Element.text "Plaintiff attorney listed on detainer warrants, Davidson Co. TN" ]
-            ]
-        , Element.wrappedRow [ Element.spacing 10 ]
-            [ pieLegend (List.map Tuple.first shares)
-            , Element.column
+            [ Element.column
                 [ Element.width (Element.shrink |> Element.minimum width)
                 , Element.height (Element.px height)
                 ]
-                [ Element.html
-                    (svg [ viewBox 0 0 (toFloat width) (toFloat height) ]
-                        [ g [ transform [ Translate (toFloat width / 2) (toFloat height / 2) ] ]
-                            [ g [] <| List.indexedMap makeSlice pieData
-                            , g [] <| List.map2 makeLabel pieData shares
-                            ]
-                        ]
-                    )
+                [ viewPlaintiffShareChart model dimens counts
                 ]
             ]
         ]
