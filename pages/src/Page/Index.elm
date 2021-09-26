@@ -27,26 +27,20 @@ import Json.Encode
 import List.Extra
 import Log
 import Logo
-import Maybe.Extra
 import OptimizedDecoder as Decode exposing (float, int, list, string)
 import OptimizedDecoder.Pipeline exposing (decode, optional, required)
 import Page exposing (Page, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Secrets as Secrets
-import Pages.Url
-import Palette
 import Path exposing (Path)
 import Rest
 import Rest.Endpoint as Endpoint
 import Rest.Static exposing (AmountAwardedMonth, DetainerWarrantsPerMonth, EvictionHistory, PlaintiffAttorneyWarrantCount, RollupMetadata, TopEvictor)
 import Rollbar exposing (Rollbar)
 import Runtime exposing (Runtime)
-import Scale exposing (BandConfig, BandScale, ContinuousScale, defaultBandConfig)
 import Session exposing (Session)
-import Shape exposing (defaultPieConfig)
 import Shared
 import Svg exposing (Svg)
-import Svg.Path as SvgPath
 import Time exposing (Month(..))
 import Time.Extra as Time exposing (Parts, partsToPosix)
 import TypedSvg exposing (circle, g, rect, style, svg, text_)
