@@ -6,7 +6,6 @@ import Chart as C
 import Chart.Attributes as CA
 import Chart.Events as CE
 import Chart.Item as CI
-import Color
 import DataSource exposing (DataSource)
 import DataSource.Http
 import DataSource.Port
@@ -262,11 +261,6 @@ update pageUrl navKey sharedModel payload msg model =
 
         NoOp ->
             ( model, Cmd.none )
-
-
-error : Rollbar -> String -> Cmd Msg
-error rollbar report =
-    Log.error rollbar (\_ -> NoOp) report
 
 
 type alias EvictorData =
