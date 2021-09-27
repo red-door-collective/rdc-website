@@ -38,15 +38,9 @@
             "elm-community/typed-svg": "7.0.0",
             "fabhof/elm-ui-datepicker": "3.0.0",
             "feathericons/elm-feather": "1.5.0",
-            "folkertdev/elm-deque": "3.0.1",
-            "folkertdev/svg-path-lowlevel": "4.0.1",
-            "gampleman/elm-visualization": "2.3.0",
-            "ianmackenzie/elm-geometry": "3.9.1",
-            "ianmackenzie/elm-units": "2.9.0",
             "justinmimbs/date": "3.2.1",
             "justinmimbs/time-extra": "1.1.0",
             "mdgriffith/elm-ui": "1.1.8",
-            "miniBill/elm-codec": "2.0.0",
             "pablohirafuji/elm-syntax-highlight": "3.4.1",
             "robinheghan/elm-phone-numbers": "1.0.0",
             "rtfeldman/elm-css": "16.1.1",
@@ -67,15 +61,9 @@
             "elm-community/dict-extra": "2.4.0",
             "elm-community/intdict": "3.0.0",
             "elm-explorations/test": "1.2.2",
-            "folkertdev/one-true-path-experiment": "6.0.0",
             "fredcy/elm-parseint": "2.0.1",
-            "ianmackenzie/elm-1d-parameter": "1.0.1",
-            "ianmackenzie/elm-float-extra": "1.1.0",
-            "ianmackenzie/elm-interval": "2.0.0",
-            "ianmackenzie/elm-triangular-mesh": "1.1.0",
-            "ianmackenzie/elm-units-interval": "2.3.0",
-            "ianmackenzie/elm-units-prefixed": "2.7.0",
             "mgold/elm-nonempty-list": "4.1.0",
+            "miniBill/elm-codec": "2.0.0",
             "myrho/elm-round": "1.0.4",
             "noahzgordon/elm-color-extra": "1.0.2",
             "robinheghan/murmur3": "1.0.0",
@@ -89,9 +77,6 @@
     },
     "test-dependencies": {
         "direct": {},
-        "indirect": {
-            "NoRedInk/elm-random-general": "1.0.0",
-            "NoRedInk/elm-random-pcg-extended": "1.0.0"
-        }
+        "indirect": {}
     }
 }

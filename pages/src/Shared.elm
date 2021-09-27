@@ -46,7 +46,6 @@ type Msg
         }
     | ToggleMobileMenu
     | GotSession Session
-    | OnResize Int Int
 
 
 type alias Data =
@@ -141,9 +140,6 @@ update msg model =
                     )
                     (Session.navKey session)
             )
-
-        OnResize width height ->
-            ( { model | window = { width = width, height = height } }, Cmd.none )
 
 
 subscriptions : Path -> Model -> Sub Msg

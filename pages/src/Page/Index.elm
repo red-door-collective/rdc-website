@@ -243,9 +243,7 @@ init pageUrl sharedModel payload =
 
 
 type Msg
-    = Hover (List EvictionHistory)
-    | HoverAmounts (List AmountAwardedMonth)
-    | HoverOnBar (List (CI.One Datum CI.Bar))
+    = HoverOnBar (List (CI.One Datum CI.Bar))
     | NoOp
 
 
@@ -259,12 +257,6 @@ update :
     -> ( Model, Cmd Msg )
 update pageUrl navKey sharedModel payload msg model =
     case msg of
-        Hover hovering ->
-            ( { model | hovering = hovering }, Cmd.none )
-
-        HoverAmounts hovering ->
-            ( { model | hoveringAmounts = hovering }, Cmd.none )
-
         HoverOnBar hovering ->
             ( { model | hoveringOnBar = hovering }, Cmd.none )
 

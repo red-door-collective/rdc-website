@@ -47,8 +47,7 @@ type alias DetainerWarrantStub =
 
 
 type RemoteData data
-    = NotFetched
-    | Fetching
+    = Fetching
     | Success data
     | Failure Http.Error
 

@@ -1,7 +1,7 @@
 module Courtroom exposing (..)
 
-import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
-import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
+import Json.Decode as Decode exposing (Decoder, float, int, list, nullable, string)
+import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 
 
 type alias Courtroom =

@@ -1,7 +1,7 @@
 module Attorney exposing (Attorney, decoder)
 
-import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
-import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
+import Json.Decode as Decode exposing (Decoder, int, list, string)
+import Json.Decode.Pipeline exposing (required)
 
 
 type alias Attorney =

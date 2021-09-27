@@ -137,7 +137,6 @@ type Msg
     | HoverPlaintiff String
     | SearchPlaintiffs
     | GotPlaintiffs (Result Http.Error (Rest.Collection Plaintiff))
-    | ChangedSorting String
     | InfiniteScrollMsg InfiniteScroll.Msg
     | NoOp
 
@@ -232,9 +231,6 @@ update pageUrl navKey sharedModel static msg model =
 
         GotPlaintiffs (Err httpError) ->
             ( model, logHttpError httpError )
-
-        ChangedSorting _ ->
-            ( model, Cmd.none )
 
         InfiniteScrollMsg subMsg ->
             case model.search.cursor of

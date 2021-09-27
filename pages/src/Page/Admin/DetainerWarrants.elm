@@ -144,7 +144,6 @@ type Msg
     | HoverWarrant String
     | SearchWarrants
     | GotWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
-    | ChangedSorting String
     | InfiniteScrollMsg InfiniteScroll.Msg
     | NoOp
 
@@ -356,9 +355,6 @@ update pageUrl navKey sharedModel static msg model =
 
         GotWarrants (Err httpError) ->
             ( model, logHttpError httpError )
-
-        ChangedSorting _ ->
-            ( model, Cmd.none )
 
         InfiniteScrollMsg subMsg ->
             case model.search.cursor of
