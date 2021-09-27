@@ -1,6 +1,6 @@
 module Page.Admin.DetainerWarrants.BulkUpload exposing (Data, Model, Msg, page)
 
-import Api.Endpoint as Endpoint
+import Attorney exposing (Attorney)
 import Browser.Navigation as Nav
 import Csv.Decode exposing (FieldNames(..), field, pipeline, string)
 import DataSource exposing (DataSource)
@@ -8,7 +8,7 @@ import Date exposing (Date)
 import Date.Extra
 import Defendant exposing (Defendant)
 import Design
-import DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, DetainerWarrant, Status)
+import DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, Status)
 import Dict exposing (Dict)
 import Element exposing (Element, centerX, column, fill, height, maximum, padding, paragraph, px, row, shrink, spacing, text, width)
 import Element.Font as Font
@@ -27,6 +27,8 @@ import Path exposing (Path)
 import Plaintiff exposing (Plaintiff)
 import Progress exposing (Tracking)
 import Rest exposing (Cred)
+import Rest.Endpoint as Endpoint
+import Runtime
 import Session exposing (Session)
 import Set exposing (Set)
 import Shared
@@ -210,11 +212,11 @@ isConflict result =
                     False
 
 
-updateAfterCsvUpload : Session -> BulkUploadMsg -> UploadState -> ( Model, Cmd Msg )
-updateAfterCsvUpload session msg state =
+updateAfterCsvUpload : StaticPayload Data RouteParams -> Session -> BulkUploadMsg -> UploadState -> ( Model, Cmd Msg )
+updateAfterCsvUpload static session msg state =
     let
         domain =
-            "http://localhost:5000"
+            Runtime.domain static.sharedData.runtime.environment
     in
     case msg of
         SaveWarrants ->
@@ -224,7 +226,7 @@ updateAfterCsvUpload session msg state =
             let
                 getOnConflict =
                     if isConflict result then
-                        Rest.get (Endpoint.attorneysSearch domain [ ( "name", name ) ]) (Session.cred session) (GotAttorney name) (Rest.collectionDecoder DetainerWarrant.attorneyDecoder)
+                        Rest.get (Endpoint.attorneysSearch domain [ ( "name", name ) ]) (Session.cred session) (GotAttorney name) (Rest.collectionDecoder Attorney.decoder)
 
                     else
                         Cmd.none
@@ -360,7 +362,7 @@ update pageUrl navKey sharedModel static msg model =
             updateBeforeCsvUpload subMsg subModel
 
         ( BulkUpload subMsg, ReadyForBulkSave state ) ->
-            updateAfterCsvUpload sharedModel.session subMsg state
+            updateAfterCsvUpload static sharedModel.session subMsg state
 
         ( _, _ ) ->
             ( model, Cmd.none )
@@ -386,7 +388,7 @@ insertAttorney : String -> Maybe Cred -> String -> Cmd BulkUploadMsg
 insertAttorney domain maybeCred name =
     let
         decoder =
-            Rest.itemDecoder DetainerWarrant.attorneyDecoder
+            Rest.itemDecoder Attorney.decoder
 
         body =
             Json.Encode.object
@@ -620,7 +622,7 @@ head static =
         , image = Logo.smallImage
         , description = "Upload multiple detainer warrants from CaseLink"
         , locale = Just "en-us"
-        , title = "RDC | Admin | Detainer Warrants | Bulk Upload"
+        , title = title
         }
         |> Seo.website
 
@@ -716,6 +718,10 @@ decodeWarrants content =
         content
 
 
+title =
+    "RDC | Admin | Detainer Warrants | Bulk Upload"
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -723,7 +729,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "RDC Admin Bulk Upload"
+    { title = title
     , body =
         [ column [ width fill, spacing 10, padding 10 ]
             [ row [ width fill ]

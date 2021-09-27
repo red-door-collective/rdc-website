@@ -1,6 +1,5 @@
 module Page.Admin.Plaintiffs exposing (Data, Model, Msg, page)
 
-import Api.Endpoint as Endpoint exposing (Endpoint)
 import Browser.Navigation as Nav
 import Color
 import DataSource exposing (DataSource)
@@ -34,6 +33,7 @@ import Path exposing (Path)
 import Plaintiff exposing (Plaintiff)
 import QueryParams
 import Rest exposing (Cred)
+import Rest.Endpoint as Endpoint exposing (Endpoint)
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)
@@ -373,7 +373,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "Organize - Plaintiffs"
+    { title = "RDC | Admin | Plaintiffs"
     , body =
         [ row [ centerX, padding 10, Font.size 20, width (fill |> maximum 2000 |> minimum 400) ]
             [ column

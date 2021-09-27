@@ -1,5 +1,7 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), Attorney, ConditionOption(..), Conditions(..), Courtroom, DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judge, JudgeForm, Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, attorneyDecoder, conditionText, conditionsOptions, courtroomDecoder, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgeDecoder, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, ternaryOptions, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
+module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, ternaryOptions, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
 
+import Attorney exposing (Attorney)
+import Courtroom exposing (Courtroom)
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
@@ -11,9 +13,9 @@ import Element.Events as Events
 import Element.Font as Font
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
+import Judge exposing (Judge, JudgeForm)
 import Palette
 import Plaintiff exposing (Plaintiff)
-import SearchBox
 import String.Extra
 import Time exposing (Month(..))
 
@@ -35,18 +37,6 @@ type AmountClaimedCategory
     | Fees
     | Both
     | NotApplicable
-
-
-type alias Judge =
-    { id : Int, name : String, aliases : List String }
-
-
-type alias Attorney =
-    { id : Int, name : String, aliases : List String }
-
-
-type alias Courtroom =
-    { id : Int, name : String }
 
 
 type Entrance
@@ -136,13 +126,6 @@ type alias JudgementEdit =
     -- Tenant Favor
     , dismissalBasis : Maybe String
     , withPrejudice : Maybe Bool
-    }
-
-
-type alias JudgeForm =
-    { person : Maybe Judge
-    , text : String
-    , searchBox : SearchBox.State
     }
 
 
@@ -500,7 +483,7 @@ fromConditions conditions =
         |> required "notes" (nullable string)
         |> required "court_date" (nullable dateDecoder)
         |> required "entered_by" entranceDecoder
-        |> required "judge" (nullable judgeDecoder)
+        |> required "judge" (nullable Judge.decoder)
         |> custom (Decode.succeed conditions)
 
 
@@ -522,29 +505,6 @@ judgementDecoder =
         |> Decode.andThen fromConditions
 
 
-attorneyDecoder : Decoder Attorney
-attorneyDecoder =
-    Decode.succeed Attorney
-        |> required "id" int
-        |> required "name" string
-        |> required "aliases" (list string)
-
-
-courtroomDecoder : Decoder Courtroom
-courtroomDecoder =
-    Decode.succeed Courtroom
-        |> required "id" int
-        |> required "name" string
-
-
-judgeDecoder : Decoder Judge
-judgeDecoder =
-    Decode.succeed Judge
-        |> required "id" int
-        |> required "name" string
-        |> required "aliases" (list string)
-
-
 dateFromString : String -> Maybe Date
 dateFromString =
     Result.toMaybe << Date.fromIsoString
@@ -562,10 +522,10 @@ decoder =
         |> required "file_date" (nullable dateDecoder)
         |> required "status" (nullable statusDecoder)
         |> required "plaintiff" (nullable Plaintiff.decoder)
-        |> required "plaintiff_attorney" (nullable attorneyDecoder)
+        |> required "plaintiff_attorney" (nullable Attorney.decoder)
         |> required "court_date" (nullable dateDecoder)
-        |> required "courtroom" (nullable courtroomDecoder)
-        |> required "presiding_judge" (nullable judgeDecoder)
+        |> required "courtroom" (nullable Courtroom.decoder)
+        |> required "presiding_judge" (nullable Judge.decoder)
         |> required "amount_claimed" (nullable float)
         |> required "amount_claimed_category" amountClaimedCategoryDecoder
         |> required "is_cares" (nullable bool)

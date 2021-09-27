@@ -47,8 +47,8 @@ page =
 update : a -> b -> c -> d -> Msg -> Model -> ( Model, Cmd msg )
 update _ maybeNavigationKey sharedModel static msg model =
     case msg of
-        MouseEnteredPost title ->
-            ( { model | hoveringOn = Just title }, Cmd.none )
+        MouseEnteredPost postTitle ->
+            ( { model | hoveringOn = Just postTitle }, Cmd.none )
 
         MouseLeftPost ->
             ( { model | hoveringOn = Nothing }, Cmd.none )
@@ -171,6 +171,10 @@ sortByPublished articles =
     List.sortWith (\( _, a ) ( _, b ) -> Date.compare a.published b.published) articles
 
 
+title =
+    "Red Door Collective | Blog"
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -178,7 +182,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model staticPayload =
-    { title = "Red Door Collective | Blog"
+    { title = title
     , body =
         [ column
             [ width fill
@@ -240,7 +244,7 @@ head staticPayload =
         , image = Logo.smallImage
         , description = blogDescription
         , locale = Just "en-us"
-        , title = "Red Door Collective | Blog"
+        , title = title
         }
         |> Seo.website
 

@@ -1,6 +1,5 @@
 module Page.Admin.Plaintiffs.Edit exposing (Data, Model, Msg, page)
 
-import Api.Endpoint as Endpoint
 import Browser.Dom
 import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
@@ -44,6 +43,7 @@ import Plaintiff exposing (Plaintiff)
 import QueryParams
 import Regex exposing (Regex)
 import Rest exposing (Cred)
+import Rest.Endpoint as Endpoint
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)
@@ -821,7 +821,7 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "Organize - Plaintiff - Edit"
+    { title = title
     , body =
         [ row
             [ centerX
@@ -1096,6 +1096,10 @@ data =
     DataSource.succeed ()
 
 
+title =
+    "RDC | Admin | Detainer Warrant | Edit"
+
+
 head :
     StaticPayload Data RouteParams
     -> List Head.Tag
@@ -1106,6 +1110,6 @@ head static =
         , image = Logo.smallImage
         , description = "Edit plaintiff details"
         , locale = Just "en-us"
-        , title = "RDC | Admin | Detainer Warrant | Edit"
+        , title = title
         }
         |> Seo.website

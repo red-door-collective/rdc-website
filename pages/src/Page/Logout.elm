@@ -112,9 +112,13 @@ head static =
         , image = Logo.smallImage
         , description = "Log out of the Red Door Collective Administration Center"
         , locale = Just "en-us"
-        , title = "Logout"
+        , title = title
         }
         |> Seo.website
+
+
+title =
+    "Red Door Collective | Logout"
 
 
 view :
