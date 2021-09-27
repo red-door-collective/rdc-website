@@ -150,24 +150,22 @@ view maybeUrl sharedModel model static =
                     [ topEvictorsChart { width = 1000, height = 600 } model static
                     ]
                 , row
-                    [ Element.htmlAttribute <| Attrs.class "responsive-mobile"
+                    [ Element.htmlAttribute (Attrs.class "responsive-mobile")
                     ]
                     [ topEvictorsChart { width = 365, height = 400 } model static
                     ]
                 , row [ Element.htmlAttribute (Attrs.class "responsive-desktop") ]
-                    [ viewDetainerWarrantsHistory model { width = 1000, height = 600 } static.data.warrantsPerMonth
+                    [ viewBarChart model { width = 1000, height = 600 } static.data.warrantsPerMonth
                     ]
                 , row [ Element.htmlAttribute (Attrs.class "responsive-mobile") ]
-                    [ viewDetainerWarrantsHistory model { width = 365, height = 365 } static.data.warrantsPerMonth
+                    [ viewBarChart model { width = 365, height = 365 } static.data.warrantsPerMonth
                     ]
                 , row
-                    [ Element.width fill
-                    , Element.htmlAttribute <| Attrs.class "responsive-desktop"
+                    [ Element.htmlAttribute <| Attrs.class "responsive-desktop"
                     ]
                     [ viewPlaintiffAttorneyChart model { width = 1000, height = 800 } static.data.plaintiffAttorneyWarrantCounts ]
                 , row
                     [ Element.htmlAttribute <| Attrs.class "responsive-mobile"
-                    , Element.width fill
                     ]
                     [ viewPlaintiffAttorneyChart model { width = 365, height = 365 } static.data.plaintiffAttorneyWarrantCounts ]
                 , row [ Element.htmlAttribute <| Attrs.class "responsive-desktop", Element.centerX ]
@@ -291,73 +289,68 @@ type alias EvictorData =
 
 topEvictorsChart : Dimensions -> Model -> StaticPayload Data RouteParams -> Element Msg
 topEvictorsChart { width, height } model static =
-    -- let
-    --     topEvictors =
-    --         topEvictorsToData static.data.topEvictors
-    --     evictors =
-    --         if width < 600 then
-    --             topEvictors
-    --         else
-    --             topEvictors
-    -- in
-    Element.column [ Element.spacing 20 ]
-        [ row [ Element.width fill ]
-            [ Element.paragraph
-                ([ Region.heading 1
-                 , Font.size 20
-                 , Font.bold
-                 , Font.center
-                 , Element.centerX
-                 ]
-                    ++ (if width <= 600 then
-                            [ Element.width (fill |> Element.maximum 365) ]
+    let
+        series =
+            static.data.topEvictors
 
-                        else
-                            [ Element.width fill ]
-                       )
-                )
-                [ Element.text "Top 10 Evictors in Davidson Co. TN by month"
+        ( titleSize, legendSize, spacing ) =
+            if width < 600 then
+                ( 12, 8, 2 )
+
+            else
+                ( 20, 12, 5 )
+    in
+    Element.el [ Element.width (px width), Element.height (px height) ]
+        (Element.html
+            (C.chart
+                [ CA.height (toFloat height)
+                , CA.width (toFloat width)
+                , CA.margin { top = 20, bottom = 30, left = 60, right = 20 }
+                , CA.padding { top = 40, bottom = 20, left = 0, right = 0 }
                 ]
-            ]
-        , row []
-            [ Element.el [ Element.width (px width), Element.height (px height) ]
-                (Element.html
-                    (C.chart
-                        [ CA.height (toFloat height)
-                        , CA.width (toFloat width)
-                        ]
-                        ([ C.xLabels
-                            [ CA.format (\num -> dateFormat (Time.millisToPosix (round num)))
-                            ]
-                         , C.yLabels [ CA.withGrid ]
-                         ]
-                            ++ List.map
-                                (\evictor ->
-                                    C.series .date
-                                        [ C.interpolated .evictionCount [] [ CA.cross, CA.borderWidth 2, CA.border "white" ]
-                                            |> C.named evictor.name
-                                        ]
-                                        evictor.history
-                                )
-                                static.data.topEvictors
-                            ++ [ --C.each model.hovering <|
-                                 --         \p item ->
-                                 --             [ C.tooltip item.date [] [] [] ]
-                                 C.legendsAt .min
-                                    .max
-                                    [ CA.column
-                                    , CA.moveRight 25
-                                    , CA.spacing 5
-                                    ]
-                                    [ CA.width 20
-                                    , CA.fontSize 12
-                                    ]
-                               ]
+                ([ C.xLabels
+                    [ CA.format (\num -> dateFormat (Time.millisToPosix (round num)))
+                    ]
+                 , C.yLabels [ CA.withGrid ]
+                 , C.labelAt CA.middle
+                    .max
+                    [ CA.fontSize titleSize ]
+                    [ Svg.text "Top 10 Evictors in Davidson Co. TN by month" ]
+                 , C.labelAt CA.middle
+                    .min
+                    [ CA.moveDown 18 ]
+                    [ Svg.text "Month" ]
+                 , C.labelAt .min
+                    CA.middle
+                    [ CA.moveLeft 45, CA.rotate 90 ]
+                    [ Svg.text "Evictions" ]
+                 ]
+                    ++ List.map
+                        (\evictor ->
+                            C.series .date
+                                [ C.interpolated .evictionCount [] [ CA.cross, CA.borderWidth 2, CA.border "white" ]
+                                    |> C.named evictor.name
+                                ]
+                                evictor.history
                         )
-                    )
+                        series
+                    ++ [ --C.each model.hovering <|
+                         --         \p item ->
+                         --             [ C.tooltip item.date [] [] [] ]
+                         C.legendsAt .max
+                            .max
+                            [ CA.column
+                            , CA.moveDown 20
+                            , CA.alignRight
+                            , CA.spacing spacing
+                            ]
+                            [ CA.width 20
+                            , CA.fontSize legendSize
+                            ]
+                       ]
                 )
-            ]
-        ]
+            )
+        )
 
 
 formatDollars number =
@@ -405,69 +398,58 @@ type alias Dimensions =
 
 
 viewBarChart : Model -> Dimensions -> List DetainerWarrantsPerMonth -> Element Msg
-viewBarChart model dimens warrants =
+viewBarChart model dimens allWarrants =
     let
+        ( titleSize, warrants ) =
+            if dimens.width < 600 then
+                ( 12, List.drop 8 allWarrants )
+
+            else
+                ( 20, allWarrants )
+
         series =
             List.map (\s -> { time = s.time, total = toFloat s.totalWarrants }) warrants
     in
-    Element.html <|
-        C.chart
-            [ CA.height (toFloat dimens.height)
-            , CA.width (toFloat dimens.width)
-            , CE.onMouseMove HoverOnBar (CE.getNearest CI.bars)
-            , CE.onMouseLeave (HoverOnBar [])
-            , CA.padding { top = 10, bottom = 0, left = 0, right = 0 }
-            ]
-            [ C.yLabels [ CA.withGrid ]
-            , C.bars
-                [ CA.roundTop 0.2
-                , CA.margin 0.1
-                , CA.spacing 0.15
+    Element.el [ Element.width (px dimens.width), Element.height (px dimens.height) ]
+        (Element.html <|
+            C.chart
+                [ CA.height (toFloat dimens.height)
+                , CA.width (toFloat dimens.width)
+                , CE.onMouseMove HoverOnBar (CE.getNearest CI.bars)
+                , CE.onMouseLeave (HoverOnBar [])
+                , CA.margin { top = 20, bottom = 30, left = 80, right = 20 }
+                , CA.padding { top = 40, bottom = 20, left = 0, right = 0 }
                 ]
-                [ C.bar .total [ CA.borderWidth 1 ]
-                    |> C.named "Evictions"
-                    |> C.amongst model.hoveringOnBar (\_ -> [ CA.highlight 0.25 ])
+                [ C.yLabels [ CA.withGrid ]
+                , C.bars
+                    [ CA.roundTop 0.2
+                    , CA.margin 0.1
+                    , CA.spacing 0.15
+                    ]
+                    [ C.bar .total [ CA.borderWidth 1 ]
+                        |> C.named "Evictions"
+                        |> C.amongst model.hoveringOnBar (\_ -> [ CA.highlight 0.25 ])
+                    ]
+                    series
+                , C.barLabels [ CA.moveDown 20, CA.color "#FFFFFF" ]
+                , C.binLabels (barDateFormat << .time) [ CA.moveDown 15 ]
+                , C.labelAt CA.middle
+                    .max
+                    [ CA.fontSize titleSize ]
+                    [ Svg.text "Detainer warrants in Davidson Co. TN by month" ]
+                , C.labelAt CA.middle
+                    .min
+                    [ CA.moveDown 18 ]
+                    [ Svg.text "Month" ]
+                , C.labelAt .min
+                    CA.middle
+                    [ CA.moveLeft 60, CA.rotate 90 ]
+                    [ Svg.text "# of Detainer warrants" ]
+                , C.each model.hoveringOnBar <|
+                    \p item ->
+                        [ C.tooltip item [] [] [] ]
                 ]
-                series
-            , C.barLabels [ CA.moveUp 10 ]
-            , C.binLabels (barDateFormat << .time) [ CA.moveDown 15 ]
-            , C.each model.hoveringOnBar <|
-                \p item ->
-                    [ C.tooltip item [] [] [] ]
-            ]
-
-
-viewDetainerWarrantsHistory : Model -> Dimensions -> List DetainerWarrantsPerMonth -> Element Msg
-viewDetainerWarrantsHistory model ({ width, height } as dimens) allWarrants =
-    let
-        warrants =
-            if width < 600 then
-                List.drop 6 allWarrants
-
-            else
-                allWarrants
-    in
-    Element.column [ Element.spacing 10, Element.centerX, Element.width fill ]
-        [ row [ Element.width fill ]
-            [ Element.paragraph
-                ([ Region.heading 1
-                 , Font.size 20
-                 , Font.bold
-                 , Font.center
-                 ]
-                    ++ (if width <= 600 then
-                            [ Element.width (fill |> Element.maximum 365) ]
-
-                        else
-                            [ Element.width fill ]
-                       )
-                )
-                [ Element.text "Number of detainer warrants in Davidson Co. TN by month" ]
-            ]
-        , row [ Element.width fill ]
-            [ viewBarChart model dimens warrants
-            ]
-        ]
+        )
 
 
 emptyStack =
@@ -584,58 +566,60 @@ viewPlaintiffShareChart model dimens counts =
                 { fontSize = 8, firstShift = 10, secondShift = 20, titleSize = 12 }
 
             else
-                { fontSize = 12, firstShift = 20, secondShift = 40, titleSize = 20 }
+                { fontSize = 14, firstShift = 20, secondShift = 45, titleSize = 20 }
     in
-    Element.html
-        (C.chart
-            [ CA.height (toFloat dimens.height)
-            , CA.width (toFloat dimens.width)
-            , CA.margin { top = 20, bottom = 30, left = 80, right = 20 }
-            , CA.padding { top = 20, bottom = 20, left = 0, right = 0 }
-            ]
-            [ C.yLabels []
-            , C.bars
-                [ CA.margin 0.05 ]
-                [ C.stacked
-                    [ C.bar (.count << .first) []
-                        |> C.named (extractName .first)
-                    , C.bar (.count << .second) []
-                        |> C.named (extractName .second)
-                    , C.bar (.count << .third) []
-                        |> C.named (extractName .third)
-                    , C.bar (.count << .fourth) []
-                        |> C.named (extractName .fourth)
-                    , C.bar (.count << .fifth) []
-                        |> C.named (extractName .fifth)
-                    , C.bar (.count << .prs) []
-                        |> C.named "SELF REPRESENTING"
-                    , C.bar (.count << .other) []
-                        |> C.named "ALL OTHER"
-                    ]
+    Element.el [ Element.width (px dimens.width), Element.height (px dimens.height) ]
+        (Element.html
+            (C.chart
+                [ CA.height (toFloat dimens.height)
+                , CA.width (toFloat dimens.width)
+                , CA.margin { top = 20, bottom = 30, left = 80, right = 20 }
+                , CA.padding { top = 20, bottom = 20, left = 0, right = 0 }
                 ]
-                series
-            , C.eachBar <|
-                \p bar ->
-                    if CI.getY bar > 0 then
-                        [ C.label [ CA.fontSize fontSize, CA.moveDown firstShift, CA.color "white" ] [ Svg.text (Maybe.withDefault "" <| Dict.get (CI.getY bar) byCount) ] (CI.getTop p bar)
-                        , C.label [ CA.fontSize fontSize, CA.moveDown secondShift, CA.color "white" ] [ Svg.text (String.fromFloat (CI.getY bar) ++ " (" ++ (String.fromInt <| toPercent <| CI.getY bar) ++ "%)") ] (CI.getTop p bar)
+                [ C.yLabels []
+                , C.bars
+                    [ CA.margin 0.05 ]
+                    [ C.stacked
+                        [ C.bar (.count << .first) []
+                            |> C.named (extractName .first)
+                        , C.bar (.count << .second) []
+                            |> C.named (extractName .second)
+                        , C.bar (.count << .third) []
+                            |> C.named (extractName .third)
+                        , C.bar (.count << .fourth) []
+                            |> C.named (extractName .fourth)
+                        , C.bar (.count << .fifth) []
+                            |> C.named (extractName .fifth)
+                        , C.bar (.count << .prs) []
+                            |> C.named "SELF REPRESENTING"
+                        , C.bar (.count << .other) []
+                            |> C.named "ALL OTHER"
                         ]
+                    ]
+                    series
+                , C.eachBar <|
+                    \p bar ->
+                        if CI.getY bar > 0 then
+                            [ C.label [ CA.fontSize fontSize, CA.moveDown firstShift, CA.color "white" ] [ Svg.text (Maybe.withDefault "" <| Dict.get (CI.getY bar) byCount) ] (CI.getTop p bar)
+                            , C.label [ CA.fontSize fontSize, CA.moveDown secondShift, CA.color "white" ] [ Svg.text (String.fromFloat (CI.getY bar) ++ " (" ++ (String.fromInt <| toPercent <| CI.getY bar) ++ "%)") ] (CI.getTop p bar)
+                            ]
 
-                    else
-                        []
-            , C.labelAt CA.middle
-                .max
-                [ CA.fontSize titleSize ]
-                [ Svg.text "Plaintiff attorney listed on detainer warrants" ]
-            , C.labelAt CA.middle
-                .min
-                [ CA.moveDown 18 ]
-                [ Svg.text "Plaintiff attorney" ]
-            , C.labelAt .min
-                CA.middle
-                [ CA.moveLeft 60, CA.rotate 90, CA.moveUp 25 ]
-                [ Svg.text "Detainer Warrants" ]
-            ]
+                        else
+                            []
+                , C.labelAt CA.middle
+                    .max
+                    [ CA.fontSize titleSize ]
+                    [ Svg.text "Plaintiff attorney listed on detainer warrants" ]
+                , C.labelAt CA.middle
+                    .min
+                    [ CA.moveDown 18 ]
+                    [ Svg.text "Plaintiff attorney" ]
+                , C.labelAt .min
+                    CA.middle
+                    [ CA.moveLeft 60, CA.rotate 90, CA.moveUp 25 ]
+                    [ Svg.text "Detainer Warrants" ]
+                ]
+            )
         )
 
 
