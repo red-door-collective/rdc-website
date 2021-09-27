@@ -52,7 +52,7 @@ import View exposing (View)
 
 type alias Model =
     { hovering : List EvictionHistory
-    , hoveringAmounts : List AmountAwardedMonth
+    , hoveringAmounts : List (CI.Many AmountAwardedMonth CI.Any)
     , hoveringOnBar : List (CI.One Datum CI.Bar)
     }
 
@@ -159,14 +159,14 @@ view maybeUrl sharedModel model static =
                 , row [ Element.htmlAttribute (Attrs.class "responsive-mobile") ]
                     [ viewBarChart model { width = 365, height = 365 } static.data.warrantsPerMonth
                     ]
-                , row
-                    [ Element.htmlAttribute <| Attrs.class "responsive-desktop"
-                    ]
-                    [ viewPlaintiffAttorneyChart model { width = 1000, height = 800 } static.data.plaintiffAttorneyWarrantCounts ]
-                , row
-                    [ Element.htmlAttribute <| Attrs.class "responsive-mobile"
-                    ]
-                    [ viewPlaintiffAttorneyChart model { width = 365, height = 365 } static.data.plaintiffAttorneyWarrantCounts ]
+                , row [ Element.htmlAttribute <| Attrs.class "responsive-desktop" ]
+                    [ viewPlaintiffShareChart model { width = 1000, height = 800 } static.data.plaintiffAttorneyWarrantCounts ]
+                , row [ Element.htmlAttribute <| Attrs.class "responsive-mobile" ]
+                    [ viewPlaintiffShareChart model { width = 365, height = 365 } static.data.plaintiffAttorneyWarrantCounts ]
+                , row [ Element.htmlAttribute <| Attrs.class "responsive-desktop" ]
+                    [ viewAmountAwardedChart model { width = 1000, height = 800 } static.data.amountAwardedHistory ]
+                , row [ Element.htmlAttribute <| Attrs.class "responsive-mobile" ]
+                    [ viewAmountAwardedChart model { width = 365, height = 365 } static.data.amountAwardedHistory ]
                 , row [ Element.htmlAttribute <| Attrs.class "responsive-desktop", Element.centerX ]
                     [ Element.text ("Detainer Warrants updated via Red Door Collective members as of: " ++ dateFormatLong static.data.rollupMeta.lastWarrantUpdatedAt) ]
                 , row
@@ -243,6 +243,7 @@ init pageUrl sharedModel payload =
 
 type Msg
     = HoverOnBar (List (CI.One Datum CI.Bar))
+    | OnHoverAmounts (List (CI.Many AmountAwardedMonth CI.Any))
     | NoOp
 
 
@@ -259,18 +260,11 @@ update pageUrl navKey sharedModel payload msg model =
         HoverOnBar hovering ->
             ( { model | hoveringOnBar = hovering }, Cmd.none )
 
+        OnHoverAmounts hovering ->
+            ( { model | hoveringAmounts = hovering }, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
-
-
-type alias EvictorData =
-    List { date : Float, evictionCount : Float, name : String }
-
-
-
--- topEvictorsToData : List TopEvictor -> EvictorData
--- topEvictorsToData evictors =
---     List.foldl (\evictor xs -> { name = evictor.name, evictionCount = evictor.evictionCount, date = evictor.date } :: xs) evictors
 
 
 topEvictorsChart : Dimensions -> Model -> StaticPayload Data RouteParams -> Element Msg
@@ -342,6 +336,10 @@ topEvictorsChart { width, height } model static =
 
 formatDollars number =
     "$" ++ FormatNumber.format usLocale number
+
+
+formatMillions number =
+    "$" ++ String.fromFloat (number / 1000000) ++ "M"
 
 
 dateFormat : Time.Posix -> String
@@ -610,18 +608,58 @@ viewPlaintiffShareChart model dimens counts =
         )
 
 
-viewPlaintiffAttorneyChart : Model -> Dimensions -> List PlaintiffAttorneyWarrantCount -> Element Msg
-viewPlaintiffAttorneyChart model ({ width, height } as dimens) counts =
-    Element.column [ Element.spacing 10, Element.centerX, Element.width fill ]
-        [ row [ Element.width fill ]
-            [ Element.column
-                [ Element.width (Element.shrink |> Element.minimum width)
-                , Element.height (Element.px height)
+viewAmountAwardedChart : Model -> Dimensions -> List AmountAwardedMonth -> Element Msg
+viewAmountAwardedChart model dimens awards =
+    let
+        titleSize =
+            if dimens.width < 600 then
+                12
+
+            else
+                20
+    in
+    Element.el [ Element.width (px dimens.width), Element.height (px dimens.height) ]
+        (Element.html
+            (C.chart
+                [ CA.height <| toFloat dimens.height
+                , CA.width <| toFloat dimens.width
+                , CE.onMouseMove OnHoverAmounts (CE.getNearest CI.stacks)
+                , CE.onMouseLeave (OnHoverAmounts [])
+                , CA.margin { top = 20, bottom = 30, left = 100, right = 20 }
+                , CA.padding { top = 20, bottom = 20, left = 0, right = 0 }
                 ]
-                [ viewPlaintiffShareChart model dimens counts
+                [ C.xTicks [ CA.times Time.utc ]
+                , C.xLabels [ CA.times Time.utc ]
+                , C.yLabels [ CA.withGrid, CA.format formatMillions ]
+                , C.series
+                    (toFloat << Time.posixToMillis << .time)
+                    [ C.interpolated (toFloat << .totalAmount)
+                        [ CA.opacity 0.6
+                        , CA.gradient []
+                        ]
+                        [ CA.circle, CA.color "white", CA.borderWidth 1 ]
+                        |> C.named "Amount Awarded"
+                        |> C.format formatDollars
+                    ]
+                    awards
+                , C.each model.hoveringAmounts <|
+                    \p item ->
+                        [ C.tooltip item [] [] [] ]
+                , C.labelAt CA.middle
+                    .max
+                    [ CA.fontSize titleSize ]
+                    [ Svg.text "Plaintiffs awards in Davidson Co. TN by month" ]
+                , C.labelAt CA.middle
+                    .min
+                    [ CA.moveDown 18 ]
+                    [ Svg.text "Month" ]
+                , C.labelAt .min
+                    CA.middle
+                    [ CA.moveLeft 80, CA.rotate 90, CA.moveUp 25 ]
+                    [ Svg.text "Amount awarded ($) in millions" ]
                 ]
-            ]
-        ]
+            )
+        )
 
 
 subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
