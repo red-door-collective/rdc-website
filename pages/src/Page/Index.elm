@@ -293,12 +293,12 @@ topEvictorsChart { width, height } model static =
         series =
             static.data.topEvictors
 
-        ( titleSize, legendSize, spacing ) =
+        { titleSize, legendSize, spacing, tickNum } =
             if width < 600 then
-                ( 12, 8, 2 )
+                { titleSize = 12, legendSize = 8, spacing = 2, tickNum = 4 }
 
             else
-                ( 20, 12, 5 )
+                { titleSize = 20, legendSize = 12, spacing = 5, tickNum = 6 }
     in
     Element.el [ Element.width (px width), Element.height (px height) ]
         (Element.html
@@ -310,6 +310,7 @@ topEvictorsChart { width, height } model static =
                 ]
                 ([ C.xLabels
                     [ CA.format (\num -> dateFormat (Time.millisToPosix (round num)))
+                    , CA.amount tickNum
                     ]
                  , C.yLabels [ CA.withGrid ]
                  , C.labelAt CA.middle
