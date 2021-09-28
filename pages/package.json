@@ -11,5 +11,8 @@
     "elm-pages": "2.1.9",
     "elm-tooling": "^1.4.0",
     "elm-review": "^2.5.5"
+  },
+  "dependencies": {
+    "typeface-fira-sans": "^1.1.13"
   }
 }

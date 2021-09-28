@@ -6,7 +6,6 @@ var storageKey = "store";
 export default {
   load: async function (elmLoaded) {
     const app = await elmLoaded;
-    console.log("App loaded", app);
 
     var urlParams = new URLSearchParams(window.location.search);
     var auth_token = urlParams.get('auth_token');
