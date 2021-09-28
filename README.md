@@ -4,7 +4,7 @@ Currently helping verify detainer warrant data for middle Tennessee - via Middle
 
 ## Features
 
-* Presents [data visualizations](https://detainer-warrants.info/trends) for community awareness
+* Presents [data visualizations](https://reddoorcollective.org) for community awareness
 * Organizer Portal
   * Create direct action campaigns
   * Schedule events for campaigns
@@ -117,7 +117,7 @@ You'll want to set up a small set of users and roles for development.
 
 Run `flask bootstrap` to provision users and roles.
 
-Afterwards, you'll be able to [login](http://localhost:5000/login) to several demo users with varying roles.
+Afterwards, you'll be able to [login](http://localhost:1234/login) to several demo users with varying roles.
 
 1. Superuser - superuser@example.com:123456
 2. Admin - admin@example.com:123456
@@ -130,12 +130,21 @@ To sync the data from our org's Google Spreadsheet, run `flask sync <spreadsheet
 
 If you want just a bit of data to work with locally, pass the `--limit` argument.
 
-Example: `flask sync --sheet-name 'detainer-warrants_15-02-2020' --limit 10` will populate the database with 10 detainer warrants from the spreadsheet titled `detainer-warrants_15-02-2020`.
+Example: `flask sync --limit 10` will populate the database with 10 detainer warrants.
 
 #### Run app
 
-To run the website locally, use `flask run --no-reload` within the `nix-shell`.
+##### API
 
-You'll be able to visit it at http://127.0.0.1:5000/
+To run the API locally, use `flask run --no-reload` within the `nix-shell`.
 
-You can browse api endpoints like detainer warrants at http://127.0.0.1:5000/api/v1/detainer-warrants
+You'll be able to browse endpoints on port `5000` like time series eviction counts at http://127.0.0.1:5000/api/v1/rollup/plaintiffs
+
+##### User Interface
+
+
+To run the User Interface (UI) locally, make sure you're in the `pages` directory.
+
+> If this is your first time running the interface, you will first need to run `npm install`.
+
+Finally, run `npm start`.
