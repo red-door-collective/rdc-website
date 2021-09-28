@@ -41,11 +41,16 @@ import Search exposing (Cursor(..), Search)
 import Session exposing (Session)
 import Settings exposing (Settings)
 import Shared
+import UI.Button as Button
+import UI.Link as Link
+import UI.Palette as Palette
+import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
+import UI.Text as Text
+import UI.TextField as TextField
+import UI.Utils.Focus as Focus
 import Url.Builder exposing (QueryParameter)
 import User exposing (User)
 import View exposing (View)
-import Widget
-import Widget.Icon
 
 
 type alias Model =
@@ -423,17 +428,14 @@ initDatePicker today date =
     }
 
 
-textSearch : SearchInputField -> Element Msg
-textSearch { label, placeholder, query, onChange } =
-    Input.search
-        [ Element.width (fill |> Element.maximum 400)
-        , onEnter SearchWarrants
-        ]
-        { onChange = onChange << Just
-        , text = Maybe.withDefault "" query
-        , placeholder = Nothing
-        , label = Input.labelAbove [] (text label)
-        }
+textSearch : RenderConfig -> SearchInputField -> Element Msg
+textSearch cfg { label, placeholder, query, onChange } =
+    TextField.singlelineText (onChange << Just)
+        label
+        (Maybe.withDefault "" query)
+        |> TextField.setLabelVisible True
+        |> TextField.withOnEnterPressed SearchWarrants
+        |> TextField.renderElement cfg
 
 
 dateSearch : DateSearchField -> Element Msg
@@ -450,14 +452,14 @@ dateSearch { label, onChange, state, today } =
         }
 
 
-searchField : SearchField -> Element Msg
-searchField field =
+searchField : RenderConfig -> SearchField -> Element Msg
+searchField cfg field =
     case field of
         DateSearch dateField ->
             dateSearch dateField
 
         TextSearch inputField ->
-            textSearch inputField
+            textSearch cfg inputField
 
 
 searchFields : Date -> Model -> Search.DetainerWarrants -> List SearchField
@@ -472,8 +474,8 @@ searchFields today model filters =
     ]
 
 
-viewSearchBar : Date -> Model -> Element Msg
-viewSearchBar today model =
+viewSearchBar : RenderConfig -> Date -> Model -> Element Msg
+viewSearchBar cfg today model =
     Element.wrappedRow
         [ Element.width (fill |> maximum 1200)
         , Element.spacing 10
@@ -481,33 +483,23 @@ viewSearchBar today model =
         , Element.centerY
         , Element.centerX
         ]
-        (List.map searchField (searchFields today model model.search.filters)
-            ++ [ Input.button
-                    [ Element.alignBottom
-                    , Background.color Palette.redLight
-                    , Element.focused [ Background.color Palette.red ]
-                    , Element.height fill
-                    , Font.color (Element.rgb 255 255 255)
-                    , Element.padding 10
-                    , Border.rounded 5
-                    , height (px 50)
-                    ]
-                    { onPress = Just SearchWarrants, label = Element.text "Search" }
+        (List.map (searchField cfg) (searchFields today model model.search.filters)
+            ++ [ Button.fromLabel "Search"
+                    |> Button.cmd SearchWarrants Button.primary
+                    |> Button.renderElement cfg
                ]
         )
 
 
-createNewWarrant : Element Msg
-createNewWarrant =
+createNewWarrant : RenderConfig -> Element Msg
+createNewWarrant cfg =
     row [ centerX, spacing 10 ]
-        [ link buttonLinkAttrs
-            { url = "/admin/detainer-warrants/edit"
-            , label = text "Enter New Detainer Warrant"
-            }
-        , link buttonLinkAttrs
-            { url = "/admin/detainer-warrants/bulk-upload"
-            , label = text "Upload via CaseLink CSV"
-            }
+        [ Button.fromLabel "Enter New Detainer Warrant"
+            |> Button.redirect (Link.link <| "/admin/detainer-warrants/edit") Button.primary
+            |> Button.renderElement cfg
+        , Button.fromLabel "Upload via CaseLink CSV"
+            |> Button.redirect (Link.link <| "/admin/detainer-warrants/bulk-upload") Button.primary
+            |> Button.renderElement cfg
         ]
 
 
@@ -550,6 +542,14 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
+    let
+        cfg =
+            RenderConfig.init
+                { width = sharedModel.window.width
+                , height = sharedModel.window.height
+                }
+                RenderConfig.localeEnglish
+    in
     { title = "Admin - Detainer Warrants"
     , body =
         [ row [ centerX, padding 10, Font.size 20, width (fill |> maximum 2000 |> minimum 400) ]
@@ -558,8 +558,8 @@ view maybeUrl sharedModel model static =
                 , spacing 10
                 , Element.inFront (loader model)
                 ]
-                [ createNewWarrant
-                , viewSearchBar static.sharedData.runtime.today model
+                [ createNewWarrant cfg
+                , viewSearchBar cfg static.sharedData.runtime.today model
                 , case model.search.totalMatches of
                     Just total ->
                         if total > 1 then
@@ -574,7 +574,7 @@ view maybeUrl sharedModel model static =
                     Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
 
                   else
-                    viewWarrants model
+                    viewWarrants cfg model
                 ]
             ]
         ]
@@ -594,79 +594,21 @@ loader { infiniteScroll, search } =
         Element.none
 
 
-ascIcon =
-    FeatherIcons.chevronUp
-        |> Widget.Icon.elmFeather FeatherIcons.toHtml
-
-
-sortIconStyle =
-    { size = 20, color = Color.white }
-
-
-descIcon =
-    FeatherIcons.chevronDown
-        |> Widget.Icon.elmFeather FeatherIcons.toHtml
-
-
-noSortIcon =
-    FeatherIcons.chevronDown
-        |> Widget.Icon.elmFeather FeatherIcons.toHtml
-
-
-tableStyle =
-    { elementTable = []
-    , content =
-        { header = buttonStyle
-        , ascIcon = ascIcon
-        , descIcon = descIcon
-        , defaultIcon = noSortIcon
-        }
-    }
-
-
-buttonStyle =
-    { elementButton =
-        [ width (px 40), height (px 40), Background.color Palette.sred, centerX, Font.center ]
-    , ifDisabled = []
-    , ifActive = []
-    , otherwise = []
-    , content =
-        { elementRow = [ centerX, Font.center ]
-        , content =
-            { text = { contentText = [] }
-            , icon = { ifDisabled = sortIconStyle, ifActive = sortIconStyle, otherwise = sortIconStyle }
-            }
-        }
-    }
-
-
-buttonLinkAttrs : List (Element.Attribute Msg)
-buttonLinkAttrs =
-    [ Background.color Palette.white
-    , Font.color Palette.red
-    , Border.rounded 3
-    , Border.color Palette.sred
-    , Border.width 1
-    , padding 10
-    , Font.size 16
-    , Element.mouseOver [ Background.color Palette.redLightest ]
-    , Element.focused [ Background.color Palette.redLightest ]
-    ]
-
-
-viewEditButton : (Int -> TableCellConfig DetainerWarrant Msg) -> Int -> DetainerWarrant -> Element Msg
-viewEditButton toCellConfig index warrant =
+viewEditButton : RenderConfig -> (Int -> TableCellConfig DetainerWarrant Msg) -> Int -> DetainerWarrant -> Element Msg
+viewEditButton cfg toCellConfig index warrant =
     row (tableCellAttrs (toCellConfig index) warrant)
-        [ link
-            (buttonLinkAttrs ++ [ Events.onFocus (SelectWarrant warrant.docketId) ])
-            { url = Url.Builder.relative [ "edit" ] (Endpoint.toQueryArgs [ ( "docket-id", warrant.docketId ) ])
-            , label = text "Edit"
-            }
+        [ Button.fromLabel "Edit"
+            |> Button.redirect
+                (Link.link <|
+                    Url.Builder.relative [ "detainer-warrants", "edit" ] (Endpoint.toQueryArgs [ ( "docket-id", warrant.docketId ) ])
+                )
+                Button.light
+            |> Button.renderElement cfg
         ]
 
 
-viewWarrants : Model -> Element Msg
-viewWarrants model =
+viewWarrants : RenderConfig -> Model -> Element Msg
+viewWarrants cfg model =
     let
         toCellConfig index =
             { toId = .docketId
@@ -724,7 +666,7 @@ viewWarrants model =
               , width = fill
               }
             , { header = viewHeaderCell "Edit"
-              , view = viewEditButton toCellConfig
+              , view = viewEditButton cfg toCellConfig
               , width = fill
               }
             ]
