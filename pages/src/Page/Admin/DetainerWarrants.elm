@@ -164,22 +164,33 @@ type Msg
     | ForTable (Stateful.Msg DetainerWarrant)
     | GotWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
     | InfiniteScrollMsg InfiniteScroll.Msg
+    | InputFreeTextSearch String
+    | OnFreeTextSearch
     | NoOp
 
 
 updateFilters :
+    (Search.DetainerWarrants -> Search.DetainerWarrants)
+    -> Model
+    -> Model
+updateFilters transform model =
+    let
+        search =
+            model.search
+    in
+    { model | search = { search | filters = transform search.filters } }
+
+
+updateFiltersAndReload :
     String
     -> Session
     -> (Search.DetainerWarrants -> Search.DetainerWarrants)
     -> Model
     -> ( Model, Cmd Msg )
-updateFilters domain session transform model =
+updateFiltersAndReload domain session transform model =
     let
-        search =
-            model.search
-
         updatedModel =
-            { model | search = { search | filters = transform search.filters } }
+            updateFilters transform model
     in
     ( updatedModel
     , Cmd.batch
@@ -221,25 +232,25 @@ update pageUrl navKey sharedModel static msg model =
     in
     case msg of
         InputDocketId query ->
-            updateFilters domain session (\filters -> { filters | docketId = query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | docketId = query }) model
 
         InputFileDate query ->
-            updateFilters domain session (\filters -> { filters | fileDate = Maybe.andThen (Result.toMaybe << Date.fromIsoString) query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | fileDate = Maybe.andThen (Result.toMaybe << Date.fromIsoString) query }) model
 
         InputCourtDate query ->
-            updateFilters domain session (\filters -> { filters | courtDate = Maybe.andThen (Result.toMaybe << Date.fromIsoString) query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | courtDate = Maybe.andThen (Result.toMaybe << Date.fromIsoString) query }) model
 
         InputPlaintiff query ->
-            updateFilters domain session (\filters -> { filters | plaintiff = query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | plaintiff = query }) model
 
         InputPlaintiffAttorney query ->
-            updateFilters domain session (\filters -> { filters | plaintiffAttorney = query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | plaintiffAttorney = query }) model
 
         InputDefendant query ->
-            updateFilters domain session (\filters -> { filters | defendant = query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | defendant = query }) model
 
         InputAddress query ->
-            updateFilters domain session (\filters -> { filters | address = query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | address = query }) model
 
         SelectWarrant docketId ->
             ( { model | selected = Just docketId }, Cmd.none )
@@ -313,6 +324,12 @@ update pageUrl navKey sharedModel static msg model =
                     in
                     ( { model | infiniteScroll = infiniteScroll }, cmd )
 
+        InputFreeTextSearch query ->
+            ( updateFilters (\filters -> { filters | freeText = Just query }) model, Cmd.none )
+
+        OnFreeTextSearch ->
+            updateFiltersAndReload domain session identity model
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -366,6 +383,19 @@ viewEmptyResults filters =
         )
 
 
+freeTextSearch : RenderConfig -> Search.DetainerWarrants -> Element Msg
+freeTextSearch cfg filters =
+    TextField.search InputFreeTextSearch
+        "Search"
+        (Maybe.withDefault "" filters.freeText)
+        |> TextField.withIcon
+            (UI.Icon.search "Search")
+        |> TextField.setLabelVisible False
+        |> TextField.withPlaceholder "Search"
+        |> TextField.withOnEnterPressed OnFreeTextSearch
+        |> TextField.renderElement cfg
+
+
 viewDesktop : RenderConfig -> Model -> Element Msg
 viewDesktop cfg model =
     column
@@ -377,6 +407,7 @@ viewDesktop cfg model =
             [ createNewWarrantButton cfg
             , uploadCsvButton cfg
             ]
+        , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
         , row [ width fill ]
             (case model.search.totalMatches of
                 Just total ->
@@ -405,6 +436,7 @@ viewDesktop cfg model =
         ]
 
 
+viewMobile : RenderConfig -> Model -> Element Msg
 viewMobile cfg model =
     column
         [ spacing 10
@@ -419,6 +451,7 @@ viewMobile cfg model =
                 |> Button.redirect (Link.link <| "/admin/detainer-warrants/bulk-upload") Button.primary
                 |> Button.renderElement cfg
             ]
+        , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
         , row [ width fill ]
             (case model.search.totalMatches of
                 Just total ->

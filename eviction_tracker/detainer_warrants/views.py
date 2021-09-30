@@ -45,6 +45,16 @@ def filter_last_name(model, name):
     return model.last_name.ilike(f'%{name}%')
 
 
+@model_filter(fields.String())
+def filter_any_field(model, value):
+    return or_(
+        model._plaintiff.has(Plaintiff.name.ilike(f'%{value}%')),
+        model._plaintiff_attorney.has(Attorney.name.ilike(f'%{value}%')),
+        model._defendants.any(Defendant.name.ilike(f'%{value}%')),
+        model._defendants.any(Defendant.address.ilike(f'%{value}%'))
+    )
+
+
 class AttorneyResourceBase(GenericModelView):
     model = Attorney
     schema = attorney_schema
@@ -278,7 +288,8 @@ class DetainerWarrantResourceBase(GenericModelView):
         court_date=filter_court_date,
         plaintiff=filter_plaintiff_name,
         plaintiff_attorney=filter_plaintiff_attorney_name,
-        address=filter_address
+        address=filter_address,
+        free_text=filter_any_field
     )
 
 
