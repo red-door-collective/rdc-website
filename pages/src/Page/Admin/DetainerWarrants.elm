@@ -6,7 +6,7 @@ import DataSource exposing (DataSource)
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..), TableCellConfig, tableCellAttrs, viewDocketId, viewHeaderCell, viewTextRow)
-import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
+import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paddingXY, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -18,7 +18,7 @@ import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Head
 import Head.Seo as Seo
 import Html
-import Html.Attributes
+import Html.Attributes as Attrs
 import Html.Events
 import Http exposing (Error(..))
 import InfiniteScroll
@@ -48,12 +48,14 @@ import Sprite
 import Svg
 import Svg.Attributes
 import Time
-import UI.Button as Button
+import UI.Button as Button exposing (Button)
 import UI.Effects
+import UI.Icon
 import UI.Link as Link
 import UI.Palette as Palette
 import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
-import UI.Tables.Stateful as Stateful exposing (Filters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter)
+import UI.Size
+import UI.Tables.Stateful as Stateful exposing (Filters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, unsortable)
 import UI.Text as Text
 import UI.TextField as TextField
 import UI.Utils.Focus as Focus
@@ -69,7 +71,7 @@ type alias Model =
     , hovered : Maybe String
     , search : Search Search.DetainerWarrants
     , tableState :
-        Stateful.State Msg DetainerWarrant T.Seven
+        Stateful.State Msg DetainerWarrant T.Eight
     , infiniteScroll : InfiniteScroll.Model Msg
     }
 
@@ -97,7 +99,9 @@ init pageUrl sharedModel static =
       , search = search
       , selected = Nothing
       , hovered = Nothing
-      , tableState = Stateful.stateWithFilters (searchFilters search.filters) Stateful.init
+      , tableState =
+            Stateful.init
+                |> Stateful.stateWithFilters (searchFilters search.filters)
       , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
       }
     , searchWarrants domain maybeCred search
@@ -268,11 +272,16 @@ update pageUrl navKey sharedModel static msg model =
                     { model | search = search }
             in
             if updatedModel.search.previous == Just updatedModel.search.filters then
-                ( { updatedModel
-                    | warrants = model.warrants ++ detainerWarrantsPage.data
+                ( let
+                    warrants =
+                        model.warrants ++ detainerWarrantsPage.data
+                  in
+                  { updatedModel
+                    | warrants = warrants
                     , infiniteScroll =
                         InfiniteScroll.stopLoading model.infiniteScroll
                             |> InfiniteScroll.loadMoreCmd (loadMore domain maybeCred search)
+                    , tableState = Stateful.stateWithItems warrants model.tableState
                   }
                 , Cmd.none
                 )
@@ -283,6 +292,7 @@ update pageUrl navKey sharedModel static msg model =
                     , infiniteScroll =
                         InfiniteScroll.stopLoading model.infiniteScroll
                             |> InfiniteScroll.loadMoreCmd (loadMore domain maybeCred search)
+                    , tableState = Stateful.stateWithItems detainerWarrantsPage.data model.tableState
                   }
                 , Cmd.none
                 )
@@ -311,16 +321,16 @@ error rollbar report =
     Log.error rollbar (\_ -> NoOp) report
 
 
-createNewWarrant : RenderConfig -> Element Msg
-createNewWarrant cfg =
-    row [ centerX, spacing 10 ]
-        [ Button.fromLabel "Enter New Detainer Warrant"
-            |> Button.redirect (Link.link <| "/admin/detainer-warrants/edit") Button.primary
-            |> Button.renderElement cfg
-        , Button.fromLabel "Upload via CaseLink CSV"
-            |> Button.redirect (Link.link <| "/admin/detainer-warrants/bulk-upload") Button.primary
-            |> Button.renderElement cfg
-        ]
+createNewWarrantButton cfg =
+    Button.fromLabel "Enter New Detainer Warrant"
+        |> Button.redirect (Link.link <| "/admin/detainer-warrants/edit") Button.primary
+        |> Button.renderElement cfg
+
+
+uploadCsvButton cfg =
+    Button.fromLabel "Upload via CaseLink CSV"
+        |> Button.redirect (Link.link <| "/admin/detainer-warrants/bulk-upload") Button.primary
+        |> Button.renderElement cfg
 
 
 viewFilter filters =
@@ -355,6 +365,83 @@ viewEmptyResults filters =
         )
 
 
+viewDesktop : RenderConfig -> Model -> Element Msg
+viewDesktop cfg model =
+    column
+        [ spacing 10
+        , width fill
+        ]
+        [ Element.row [ centerX, spacing 10 ]
+            [ createNewWarrantButton cfg
+            , uploadCsvButton cfg
+            ]
+        , row [ width fill ]
+            (case model.search.totalMatches of
+                Just total ->
+                    if total > 1 then
+                        [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " detainer warrants matched your search.") ] ]
+
+                    else
+                        []
+
+                Nothing ->
+                    []
+            )
+        , row [ width fill ]
+            [ if model.search.totalMatches == Just 0 then
+                Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
+
+              else
+                column
+                    [ centerX
+                    , Element.inFront (loader model)
+                    ]
+                    [ viewWarrants cfg model ]
+            ]
+        ]
+
+
+viewMobile cfg model =
+    column
+        [ spacing 10
+        , paddingXY 0 10
+        , width fill
+        ]
+        [ row [ centerX, spacing 10 ]
+            [ Button.fromIcon (UI.Icon.add "Enter New Detainer Warrant")
+                |> Button.redirect (Link.link <| "/admin/detainer-warrants/edit") Button.primary
+                |> Button.renderElement cfg
+            , Button.fromIcon (UI.Icon.download "Upload via CaseLink CSV")
+                |> Button.redirect (Link.link <| "/admin/detainer-warrants/bulk-upload") Button.primary
+                |> Button.renderElement cfg
+            ]
+        , row [ width fill ]
+            (case model.search.totalMatches of
+                Just total ->
+                    if total > 1 then
+                        [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " detainer warrants matched your search.") ] ]
+
+                    else
+                        []
+
+                Nothing ->
+                    []
+            )
+        , row [ width fill ]
+            [ if model.search.totalMatches == Just 0 then
+                Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
+
+              else
+                column
+                    [ width fill
+                    , Element.inFront (loader model)
+                    , height (px 1000)
+                    ]
+                    [ viewWarrants cfg model ]
+            ]
+        ]
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -373,34 +460,15 @@ view maybeUrl sharedModel model static =
     { title = title
     , body =
         [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
-        , row
-            [ padding 10
-            , Font.size 20
-            , width (fill |> minimum 600)
-            ]
-            [ column
-                [ spacing 10
-                , Element.inFront (loader model)
-                , width fill
-                ]
-                [ createNewWarrant cfg
-                , case model.search.totalMatches of
-                    Just total ->
-                        if total > 1 then
-                            paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " detainer warrants matched your search.") ]
+        , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
+            (if RenderConfig.isPortrait cfg then
+                viewMobile cfg model
 
-                        else
-                            Element.none
-
-                    Nothing ->
-                        Element.none
-                , if model.search.totalMatches == Just 0 then
-                    Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
-
-                  else
-                    Element.row [ width fill ] [ viewWarrants cfg model ]
-                ]
-            ]
+             else
+                viewDesktop (RenderConfig.init { width = 800, height = 375 } RenderConfig.localeEnglish) model
+            )
+        , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-desktop") ]
+            (viewDesktop cfg model)
         ]
     }
 
@@ -418,20 +486,22 @@ loader { infiniteScroll, search } =
         Element.none
 
 
-viewEditButton : RenderConfig -> (Int -> TableCellConfig DetainerWarrant Msg) -> Int -> DetainerWarrant -> Element Msg
-viewEditButton cfg toCellConfig index warrant =
-    row (tableCellAttrs (toCellConfig index) warrant)
-        [ Button.fromLabel "Edit"
-            |> Button.redirect
-                (Link.link <|
-                    Url.Builder.relative [ "detainer-warrants", "edit" ] (Endpoint.toQueryArgs [ ( "docket-id", warrant.docketId ) ])
-                )
-                Button.light
-            |> Button.renderElement cfg
-        ]
+viewEditButton : RenderConfig -> DetainerWarrant -> Button Msg
+viewEditButton cfg warrant =
+    Button.fromIcon (UI.Icon.edit "Go to edit page")
+        |> Button.redirect
+            (Link.link <|
+                Url.Builder.relative
+                    [ "detainer-warrants"
+                    , "edit"
+                    ]
+                    (Endpoint.toQueryArgs [ ( "docket-id", warrant.docketId ) ])
+            )
+            Button.primary
+        |> Button.withSize UI.Size.small
 
 
-searchFilters : Search.DetainerWarrants -> Filters Msg DetainerWarrant T.Seven
+searchFilters : Search.DetainerWarrants -> Filters Msg DetainerWarrant T.Eight
 searchFilters filters =
     filtersEmpty
         |> remoteSingleTextFilter filters.docketId InputDocketId
@@ -441,25 +511,23 @@ searchFilters filters =
         |> remoteSingleTextFilter filters.plaintiffAttorney InputPlaintiffAttorney
         |> remoteSingleTextFilter filters.defendant InputDefendant
         |> remoteSingleTextFilter filters.address InputAddress
+        |> localSingleTextFilter Nothing .docketId
 
 
 viewWarrants : RenderConfig -> Model -> Element Msg
 viewWarrants cfg model =
-    column [ centerX ]
-        [ Stateful.table
-            { toExternalMsg = ForTable
-            , columns = DetainerWarrant.tableColumns
-            , toRow = DetainerWarrant.toTableRow
-            , state = model.tableState
+    Stateful.table
+        { toExternalMsg = ForTable
+        , columns = DetainerWarrant.tableColumns
+        , toRow = DetainerWarrant.toTableRow (viewEditButton cfg)
+        , state = model.tableState
+        }
+        |> Stateful.withResponsive
+            { toDetails = DetainerWarrant.toTableDetails (viewEditButton cfg)
+            , toCover = DetainerWarrant.toTableCover
             }
-            |> Stateful.withResponsive
-                { toDetails = DetainerWarrant.toTableDetails
-                , toCover = DetainerWarrant.toTableCover
-                }
-            |> Stateful.withWidth fill
-            |> Stateful.withItems model.warrants
-            |> Stateful.renderElement cfg
-        ]
+        |> Stateful.withWidth fill
+        |> Stateful.renderElement cfg
 
 
 subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg

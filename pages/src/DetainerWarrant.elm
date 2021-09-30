@@ -20,10 +20,11 @@ import Plaintiff exposing (Plaintiff)
 import Search
 import String.Extra
 import Time exposing (Month(..))
-import UI.Tables.Common as Common exposing (Row, cellFromText, columnWidthPixels, columnsEmpty, rowCellText, rowEmpty)
+import UI.Button exposing (Button)
+import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
 import UI.Tables.Stateful exposing (detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter)
 import UI.Text as Text
-import UI.Utils.TypeNumbers exposing (Increase)
+import UI.Utils.TypeNumbers as T
 
 
 type alias DatePickerState =
@@ -703,13 +704,16 @@ tableColumns =
         |> Common.column "Pltf. Attorney" (columnWidthPixels 240)
         |> Common.column "Defendant" (columnWidthPixels 240)
         |> Common.column "Address" (columnWidthPixels 240)
+        |> Common.column "" (columnWidthPixels 100)
 
 
-toTableRow =
-    { toKey = .docketId, view = toTableRowView }
+toTableRow : (DetainerWarrant -> Button msg) -> { toKey : DetainerWarrant -> String, view : DetainerWarrant -> Row msg T.Eight }
+toTableRow toEditButton =
+    { toKey = .docketId, view = toTableRowView toEditButton }
 
 
-toTableRowView { docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, defendants } =
+toTableRowView : (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T.Eight
+toTableRowView toEditButton ({ docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
     rowEmpty
         |> rowCellText (Text.body2 docketId)
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString fileDate))
@@ -718,9 +722,10 @@ toTableRowView { docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, de
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name <| List.head defendants))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .address <| List.head defendants))
+        |> rowCellButton (toEditButton warrant)
 
 
-toTableDetails { docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, defendants } =
+toTableDetails toEditButton ({ docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
     detailsEmpty
         |> detailShown
             { label = "Docket ID"
@@ -750,7 +755,11 @@ toTableDetails { docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, de
             { label = "Address"
             , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .address <| List.head defendants)
             }
+        |> detailShown
+            { label = "Edit"
+            , content = cellFromButton (toEditButton warrant)
+            }
 
 
-toTableCover { docketId } =
-    { title = docketId, caption = Nothing }
+toTableCover { docketId, defendants } =
+    { title = docketId, caption = Maybe.map .address <| List.head defendants }

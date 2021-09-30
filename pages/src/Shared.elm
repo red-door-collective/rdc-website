@@ -1,5 +1,6 @@
 module Shared exposing (Data, Model, Msg, template)
 
+import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
 import DataSource exposing (DataSource)
 import DataSource.Port
@@ -46,6 +47,7 @@ type Msg
         }
     | ToggleMobileMenu
     | GotSession Session
+    | SetWindow Int Int
 
 
 type alias Data =
@@ -141,10 +143,16 @@ update msg model =
                     (Session.navKey session)
             )
 
+        SetWindow width height ->
+            ( { model | window = { width = width, height = height } }, Cmd.none )
+
 
 subscriptions : Path -> Model -> Sub Msg
 subscriptions _ model =
-    Session.changes GotSession (Session.navKey model.session)
+    Sub.batch
+        [ Session.changes GotSession (Session.navKey model.session)
+        , onResize SetWindow
+        ]
 
 
 data =
