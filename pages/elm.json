@@ -45,6 +45,7 @@
             "pablohirafuji/elm-syntax-highlight": "3.4.1",
             "robinheghan/elm-phone-numbers": "1.0.0",
             "rtfeldman/elm-css": "16.1.1",
+            "rtfeldman/elm-iso8601-date-strings": "1.1.4",
             "russelldavies/elm-ui-searchbox": "1.1.0",
             "ryannhg/date-format": "2.3.0",
             "terezka/charts": "18.0.5",

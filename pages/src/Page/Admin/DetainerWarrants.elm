@@ -17,10 +17,12 @@ import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Head
 import Head.Seo as Seo
+import Html
 import Html.Attributes
 import Html.Events
 import Http exposing (Error(..))
 import InfiniteScroll
+import Iso8601
 import Json.Decode as Decode
 import Loader
 import Log
@@ -34,6 +36,7 @@ import Path exposing (Path)
 import QueryParams
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint exposing (Endpoint)
+import Result
 import Rollbar exposing (Rollbar)
 import Route
 import Runtime exposing (Runtime)
@@ -41,25 +44,32 @@ import Search exposing (Cursor(..), Search)
 import Session exposing (Session)
 import Settings exposing (Settings)
 import Shared
+import Sprite
+import Svg
+import Svg.Attributes
+import Time
 import UI.Button as Button
+import UI.Effects
 import UI.Link as Link
 import UI.Palette as Palette
 import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
+import UI.Tables.Stateful as Stateful exposing (Filters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter)
 import UI.Text as Text
 import UI.TextField as TextField
 import UI.Utils.Focus as Focus
+import UI.Utils.TypeNumbers as T exposing (Increase)
 import Url.Builder exposing (QueryParameter)
 import User exposing (User)
 import View exposing (View)
 
 
 type alias Model =
-    { fileDate : DatePickerState
-    , courtDate : DatePickerState
-    , warrants : List DetainerWarrant
+    { warrants : List DetainerWarrant
     , selected : Maybe String
     , hovered : Maybe String
     , search : Search Search.DetainerWarrants
+    , tableState :
+        Stateful.State Msg DetainerWarrant T.Seven
     , infiniteScroll : InfiniteScroll.Model Msg
     }
 
@@ -83,12 +93,11 @@ init pageUrl sharedModel static =
         search =
             { filters = filters, cursor = NewSearch, previous = Just filters, totalMatches = Nothing }
     in
-    ( { fileDate = initDatePicker static.sharedData.runtime.today filters.fileDate
-      , courtDate = initDatePicker static.sharedData.runtime.today filters.courtDate
-      , warrants = []
+    ( { warrants = []
       , search = search
       , selected = Nothing
       , hovered = Nothing
+      , tableState = Stateful.stateWithFilters (searchFilters search.filters) Stateful.init
       , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
       }
     , searchWarrants domain maybeCred search
@@ -139,30 +148,48 @@ queryArgsWithPagination search =
 
 type Msg
     = InputDocketId (Maybe String)
-    | ChangedFileDate ChangeEvent
-    | ChangedCourtDate ChangeEvent
+    | InputFileDate (Maybe String)
+    | InputCourtDate (Maybe String)
     | InputPlaintiff (Maybe String)
     | InputPlaintiffAttorney (Maybe String)
     | InputDefendant (Maybe String)
     | InputAddress (Maybe String)
     | SelectWarrant String
     | HoverWarrant String
-    | SearchWarrants
+    | ForTable (Stateful.Msg DetainerWarrant)
     | GotWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
     | InfiniteScrollMsg InfiniteScroll.Msg
     | NoOp
 
 
 updateFilters :
-    (Search.DetainerWarrants -> Search.DetainerWarrants)
+    String
+    -> Session
+    -> (Search.DetainerWarrants -> Search.DetainerWarrants)
     -> Model
     -> ( Model, Cmd Msg )
-updateFilters transform model =
+updateFilters domain session transform model =
     let
         search =
             model.search
+
+        updatedModel =
+            { model | search = { search | filters = transform search.filters } }
     in
-    ( { model | search = { search | filters = transform search.filters } }, Cmd.none )
+    ( updatedModel
+    , Cmd.batch
+        [ Maybe.withDefault Cmd.none <|
+            Maybe.map
+                (\key ->
+                    Nav.replaceUrl key <|
+                        Url.Builder.absolute
+                            [ "admin", "detainer-warrants" ]
+                            (Endpoint.toQueryArgs <| Search.detainerWarrantsArgs updatedModel.search.filters)
+                )
+                (Session.navKey session)
+        , searchWarrants domain (Session.cred session) updatedModel.search
+        ]
+    )
 
 
 update :
@@ -189,101 +216,25 @@ update pageUrl navKey sharedModel static msg model =
     in
     case msg of
         InputDocketId query ->
-            updateFilters (\filters -> { filters | docketId = query }) model
+            updateFilters domain session (\filters -> { filters | docketId = query }) model
 
-        ChangedFileDate changeEvent ->
-            case changeEvent of
-                DateChanged date ->
-                    let
-                        fileDate =
-                            model.fileDate
+        InputFileDate query ->
+            updateFilters domain session (\filters -> { filters | fileDate = Maybe.andThen (Result.toMaybe << Date.fromIsoString) query }) model
 
-                        updatedFileDate =
-                            { fileDate | date = Just date, dateText = Date.toIsoString date }
-                    in
-                    ( { model | fileDate = updatedFileDate }, Cmd.none )
-
-                TextChanged text ->
-                    ( let
-                        fileDate =
-                            model.fileDate
-
-                        updatedFileDate =
-                            { fileDate
-                                | date =
-                                    Date.fromIsoString text
-                                        |> Result.toMaybe
-                                , dateText = text
-                            }
-                      in
-                      { model | fileDate = updatedFileDate }
-                    , Cmd.none
-                    )
-
-                PickerChanged subMsg ->
-                    let
-                        fileDate =
-                            model.fileDate
-
-                        updatedFileDate =
-                            { fileDate | pickerModel = fileDate.pickerModel |> DatePicker.update subMsg }
-                    in
-                    ( { model | fileDate = updatedFileDate }
-                    , Cmd.none
-                    )
-
-        ChangedCourtDate changeEvent ->
-            case changeEvent of
-                DateChanged date ->
-                    let
-                        courtDate =
-                            model.courtDate
-
-                        updatedCourtDate =
-                            { courtDate | date = Just date, dateText = Date.toIsoString date }
-                    in
-                    ( { model | courtDate = updatedCourtDate }, Cmd.none )
-
-                TextChanged text ->
-                    ( let
-                        courtDate =
-                            model.courtDate
-
-                        updatedCourtDate =
-                            { courtDate
-                                | date =
-                                    Date.fromIsoString text
-                                        |> Result.toMaybe
-                                , dateText = text
-                            }
-                      in
-                      { model | courtDate = updatedCourtDate }
-                    , Cmd.none
-                    )
-
-                PickerChanged subMsg ->
-                    let
-                        courtDate =
-                            model.courtDate
-
-                        updatedCourtDate =
-                            { courtDate | pickerModel = courtDate.pickerModel |> DatePicker.update subMsg }
-                    in
-                    ( { model | courtDate = updatedCourtDate }
-                    , Cmd.none
-                    )
+        InputCourtDate query ->
+            updateFilters domain session (\filters -> { filters | courtDate = Maybe.andThen (Result.toMaybe << Date.fromIsoString) query }) model
 
         InputPlaintiff query ->
-            updateFilters (\filters -> { filters | plaintiff = query }) model
+            updateFilters domain session (\filters -> { filters | plaintiff = query }) model
 
         InputPlaintiffAttorney query ->
-            updateFilters (\filters -> { filters | plaintiffAttorney = query }) model
+            updateFilters domain session (\filters -> { filters | plaintiffAttorney = query }) model
 
         InputDefendant query ->
-            updateFilters (\filters -> { filters | defendant = query }) model
+            updateFilters domain session (\filters -> { filters | defendant = query }) model
 
         InputAddress query ->
-            updateFilters (\filters -> { filters | address = query }) model
+            updateFilters domain session (\filters -> { filters | address = query }) model
 
         SelectWarrant docketId ->
             ( { model | selected = Just docketId }, Cmd.none )
@@ -291,34 +242,12 @@ update pageUrl navKey sharedModel static msg model =
         HoverWarrant docketId ->
             ( { model | hovered = Just docketId }, Cmd.none )
 
-        SearchWarrants ->
+        ForTable subMsg ->
             let
-                updatedModel =
-                    updateFilters
-                        (\filters ->
-                            { filters
-                                | fileDate = model.fileDate.date
-                                , courtDate = model.courtDate.date
-                            }
-                        )
-                        model
-                        |> Tuple.first
+                ( newTableState, newCmd ) =
+                    Stateful.update subMsg model.tableState
             in
-            ( updatedModel
-            , Cmd.batch
-                [ Maybe.withDefault Cmd.none <|
-                    Maybe.map
-                        (\key ->
-                            Nav.replaceUrl key
-                                (Url.Builder.relative
-                                    []
-                                    (Endpoint.toQueryArgs <| Search.detainerWarrantsArgs updatedModel.search.filters)
-                                )
-                        )
-                        (Session.navKey session)
-                , searchWarrants domain (Session.cred session) updatedModel.search
-                ]
-            )
+            ( { model | tableState = newTableState }, UI.Effects.perform newCmd )
 
         GotWarrants (Ok detainerWarrantsPage) ->
             let
@@ -382,115 +311,6 @@ error rollbar report =
     Log.error rollbar (\_ -> NoOp) report
 
 
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
-        )
-
-
-type alias SearchInputField =
-    { label : String
-    , placeholder : String
-    , onChange : Maybe String -> Msg
-    , query : Maybe String
-    }
-
-
-type alias DateSearchField =
-    { label : String
-    , onChange : ChangeEvent -> Msg
-    , state : DatePickerState
-    , today : Date
-    }
-
-
-type SearchField
-    = DateSearch DateSearchField
-    | TextSearch SearchInputField
-
-
-initDatePicker : Date -> Maybe Date -> DatePickerState
-initDatePicker today date =
-    { date = date
-    , dateText = Maybe.withDefault "" <| Maybe.map Date.toIsoString date
-    , pickerModel = DatePicker.init |> DatePicker.setToday today
-    }
-
-
-textSearch : RenderConfig -> SearchInputField -> Element Msg
-textSearch cfg { label, placeholder, query, onChange } =
-    TextField.singlelineText (onChange << Just)
-        label
-        (Maybe.withDefault "" query)
-        |> TextField.setLabelVisible True
-        |> TextField.withOnEnterPressed SearchWarrants
-        |> TextField.renderElement cfg
-
-
-dateSearch : DateSearchField -> Element Msg
-dateSearch { label, onChange, state, today } =
-    DatePicker.input []
-        { onChange = onChange
-        , selected = state.date
-        , text = state.dateText
-        , label =
-            Input.labelAbove [] (text label)
-        , placeholder = Nothing
-        , settings = DatePicker.defaultSettings
-        , model = state.pickerModel
-        }
-
-
-searchField : RenderConfig -> SearchField -> Element Msg
-searchField cfg field =
-    case field of
-        DateSearch dateField ->
-            dateSearch dateField
-
-        TextSearch inputField ->
-            textSearch cfg inputField
-
-
-searchFields : Date -> Model -> Search.DetainerWarrants -> List SearchField
-searchFields today model filters =
-    [ TextSearch { label = "Docket #", placeholder = "", onChange = InputDocketId, query = filters.docketId }
-    , DateSearch { label = "File date", onChange = ChangedFileDate, state = model.fileDate, today = today }
-    , DateSearch { label = "Court date", onChange = ChangedCourtDate, state = model.courtDate, today = today }
-    , TextSearch { label = "Plaintiff", placeholder = "", onChange = InputPlaintiff, query = filters.plaintiff }
-    , TextSearch { label = "Plnt. attorney", placeholder = "", onChange = InputPlaintiffAttorney, query = filters.plaintiffAttorney }
-    , TextSearch { label = "Defendant", placeholder = "", onChange = InputDefendant, query = filters.defendant }
-    , TextSearch { label = "Address", placeholder = "", onChange = InputAddress, query = filters.address }
-    ]
-
-
-viewSearchBar : RenderConfig -> Date -> Model -> Element Msg
-viewSearchBar cfg today model =
-    Element.wrappedRow
-        [ Element.width (fill |> maximum 1200)
-        , Element.spacing 10
-        , Element.padding 10
-        , Element.centerY
-        , Element.centerX
-        ]
-        (List.map (searchField cfg) (searchFields today model model.search.filters)
-            ++ [ Button.fromLabel "Search"
-                    |> Button.cmd SearchWarrants Button.primary
-                    |> Button.renderElement cfg
-               ]
-        )
-
-
 createNewWarrant : RenderConfig -> Element Msg
 createNewWarrant cfg =
     row [ centerX, spacing 10 ]
@@ -550,16 +370,20 @@ view maybeUrl sharedModel model static =
                 }
                 RenderConfig.localeEnglish
     in
-    { title = "Admin - Detainer Warrants"
+    { title = title
     , body =
-        [ row [ centerX, padding 10, Font.size 20, width (fill |> maximum 2000 |> minimum 400) ]
+        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+        , row
+            [ padding 10
+            , Font.size 20
+            , width (fill |> minimum 600)
+            ]
             [ column
-                [ centerX
-                , spacing 10
+                [ spacing 10
                 , Element.inFront (loader model)
+                , width fill
                 ]
                 [ createNewWarrant cfg
-                , viewSearchBar cfg static.sharedData.runtime.today model
                 , case model.search.totalMatches of
                     Just total ->
                         if total > 1 then
@@ -574,7 +398,7 @@ view maybeUrl sharedModel model static =
                     Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
 
                   else
-                    viewWarrants cfg model
+                    Element.row [ width fill ] [ viewWarrants cfg model ]
                 ]
             ]
         ]
@@ -607,70 +431,35 @@ viewEditButton cfg toCellConfig index warrant =
         ]
 
 
+searchFilters : Search.DetainerWarrants -> Filters Msg DetainerWarrant T.Seven
+searchFilters filters =
+    filtersEmpty
+        |> remoteSingleTextFilter filters.docketId InputDocketId
+        |> remoteSingleTextFilter (Maybe.map Date.toIsoString filters.fileDate) InputFileDate
+        |> remoteSingleTextFilter (Maybe.map Date.toIsoString filters.courtDate) InputCourtDate
+        |> remoteSingleTextFilter filters.plaintiff InputPlaintiff
+        |> remoteSingleTextFilter filters.plaintiffAttorney InputPlaintiffAttorney
+        |> remoteSingleTextFilter filters.defendant InputDefendant
+        |> remoteSingleTextFilter filters.address InputAddress
+
+
 viewWarrants : RenderConfig -> Model -> Element Msg
 viewWarrants cfg model =
-    let
-        toCellConfig index =
-            { toId = .docketId
-            , status = .status
-            , maxWidth = Nothing
-            , striped = modBy 2 index == 0
-            , hovered = model.hovered
-            , selected = model.selected
-            , onMouseDown = Just (SelectWarrant << .docketId)
-            , onMouseEnter = Just (HoverWarrant << .docketId)
+    column [ centerX ]
+        [ Stateful.table
+            { toExternalMsg = ForTable
+            , columns = DetainerWarrant.tableColumns
+            , toRow = DetainerWarrant.toTableRow
+            , state = model.tableState
             }
-
-        cell =
-            viewTextRow toCellConfig
-    in
-    Element.indexedTable
-        [ width (fill |> maximum 1400)
-        , height (px 600)
-        , Font.size 14
-        , Element.scrollbarY
-        , Element.htmlAttribute (InfiniteScroll.infiniteScroll InfiniteScrollMsg)
+            |> Stateful.withResponsive
+                { toDetails = DetainerWarrant.toTableDetails
+                , toCover = DetainerWarrant.toTableCover
+                }
+            |> Stateful.withWidth fill
+            |> Stateful.withItems model.warrants
+            |> Stateful.renderElement cfg
         ]
-        { data = model.warrants
-        , columns =
-            [ { header = Element.none
-              , view = DetainerWarrant.viewStatusIcon toCellConfig
-              , width = px 40
-              }
-            , { header = viewHeaderCell "Docket #"
-              , view = viewDocketId toCellConfig
-              , width = Element.fill
-              }
-            , { header = viewHeaderCell "File Date"
-              , view = cell (Maybe.withDefault "" << Maybe.map Date.toIsoString << .fileDate)
-              , width = Element.fill
-              }
-            , { header = viewHeaderCell "Plaintiff"
-              , view = cell (Maybe.withDefault "" << Maybe.map .name << .plaintiff)
-              , width = fill
-              }
-            , { header = viewHeaderCell "Plnt. Attorney"
-              , view = cell (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)
-              , width = fill
-              }
-            , { header = viewHeaderCell "Amount Claimed"
-              , view = cell (Maybe.withDefault "" << Maybe.map (String.append "$" << String.fromFloat) << .amountClaimed)
-              , width = fill
-              }
-            , { header = viewHeaderCell "Address"
-              , view = cell (Maybe.withDefault "" << Maybe.map .address << List.head << .defendants)
-              , width = fill
-              }
-            , { header = viewHeaderCell "Defendant"
-              , view = cell (Maybe.withDefault "" << Maybe.map .name << List.head << .defendants)
-              , width = fill
-              }
-            , { header = viewHeaderCell "Edit"
-              , view = viewEditButton cfg toCellConfig
-              , width = fill
-              }
-            ]
-        }
 
 
 subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
@@ -705,6 +494,10 @@ data =
     DataSource.succeed ()
 
 
+title =
+    "RDC | Admin | Detainer Warrants"
+
+
 head :
     StaticPayload Data RouteParams
     -> List Head.Tag
@@ -715,6 +508,6 @@ head static =
         , image = Logo.smallImage
         , description = "Manage detainer warrants"
         , locale = Nothing
-        , title = "RDC | Admin | Detainer Warrants"
+        , title = title
         }
         |> Seo.website

@@ -184,7 +184,8 @@ view tableOfContents page model toMsg pageView =
             :: pageView.body
             |> Element.column
                 [ width fill
-                , Font.family [ Font.typeface "system" ]
+
+                -- , Font.family [ Font.typeface "system" ]
                 ]
             |> Element.layout [ width fill ]
     , title = pageView.title

@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, ternaryOptions, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
+module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow, toTableRowView, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
 
 import Attorney exposing (Attorney)
 import Courtroom exposing (Courtroom)
@@ -14,10 +14,16 @@ import Element.Font as Font
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
 import Judge exposing (Judge, JudgeForm)
+import Maybe
 import Palette
 import Plaintiff exposing (Plaintiff)
+import Search
 import String.Extra
 import Time exposing (Month(..))
+import UI.Tables.Common as Common exposing (Row, cellFromText, columnWidthPixels, columnsEmpty, rowCellText, rowEmpty)
+import UI.Tables.Stateful exposing (detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter)
+import UI.Text as Text
+import UI.Utils.TypeNumbers exposing (Increase)
 
 
 type alias DatePickerState =
@@ -686,3 +692,65 @@ viewTextRow config toText index warrant =
     Element.row
         (tableCellAttrs (config index) warrant)
         [ Element.paragraph [] [ Element.text (toText warrant) ] ]
+
+
+tableColumns =
+    columnsEmpty
+        |> Common.column "Docket ID" (columnWidthPixels 150)
+        |> Common.column "File date" (columnWidthPixels 150)
+        |> Common.column "Court date" (columnWidthPixels 150)
+        |> Common.column "Plaintiff" (columnWidthPixels 240)
+        |> Common.column "Pltf. Attorney" (columnWidthPixels 240)
+        |> Common.column "Defendant" (columnWidthPixels 240)
+        |> Common.column "Address" (columnWidthPixels 240)
+
+
+toTableRow =
+    { toKey = .docketId, view = toTableRowView }
+
+
+toTableRowView { docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, defendants } =
+    rowEmpty
+        |> rowCellText (Text.body2 docketId)
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString fileDate))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString courtDate))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name <| List.head defendants))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .address <| List.head defendants))
+
+
+toTableDetails { docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, defendants } =
+    detailsEmpty
+        |> detailShown
+            { label = "Docket ID"
+            , content = cellFromText <| Text.body2 docketId
+            }
+        |> detailShown
+            { label = "File date"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString fileDate)
+            }
+        |> detailShown
+            { label = "Court date"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString courtDate)
+            }
+        |> detailShown
+            { label = "Plaintiff"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff)
+            }
+        |> detailShown
+            { label = "Pltf. Attorney"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney)
+            }
+        |> detailShown
+            { label = "Defendant"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name <| List.head defendants)
+            }
+        |> detailShown
+            { label = "Address"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .address <| List.head defendants)
+            }
+
+
+toTableCover { docketId } =
+    { title = docketId, caption = Nothing }
