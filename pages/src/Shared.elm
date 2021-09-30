@@ -21,6 +21,7 @@ import Route exposing (Route)
 import Runtime exposing (Runtime)
 import Session exposing (Session)
 import SharedTemplate exposing (SharedTemplate)
+import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import Url.Builder
 import View exposing (View)
 import View.Header
@@ -61,6 +62,7 @@ type alias Model =
     , session : Session
     , queryParams : Maybe String
     , window : Window
+    , renderConfig : RenderConfig
     }
 
 
@@ -86,6 +88,16 @@ init :
             }
     -> ( Model, Cmd Msg )
 init navigationKey flags maybePagePath =
+    let
+        window =
+            case flags of
+                BrowserFlags value ->
+                    Decode.decodeValue (Decode.field "window" windowDecoder) value
+                        |> Result.withDefault { width = 0, height = 0 }
+
+                PreRenderFlags ->
+                    { width = 0, height = 0 }
+    in
     ( { showMobileMenu = False
       , navigationKey = navigationKey
       , session =
@@ -100,14 +112,13 @@ init navigationKey flags maybePagePath =
                     Session.fromViewer Nothing Nothing
       , queryParams =
             Maybe.andThen (.query << .path) maybePagePath
-      , window =
-            case flags of
-                BrowserFlags value ->
-                    Decode.decodeValue (Decode.field "window" windowDecoder) value
-                        |> Result.withDefault { width = 0, height = 0 }
-
-                PreRenderFlags ->
-                    { width = 0, height = 0 }
+      , window = window
+      , renderConfig =
+            RenderConfig.init
+                { width = window.width
+                , height = window.height
+                }
+                RenderConfig.localeEnglish
       }
     , Cmd.none
     )

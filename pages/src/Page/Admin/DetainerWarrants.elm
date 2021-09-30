@@ -55,7 +55,7 @@ import UI.Link as Link
 import UI.Palette as Palette
 import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
 import UI.Size
-import UI.Tables.Stateful as Stateful exposing (Filters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, unsortable)
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
 import UI.Text as Text
 import UI.TextField as TextField
 import UI.Utils.Focus as Focus
@@ -102,6 +102,7 @@ init pageUrl sharedModel static =
       , tableState =
             Stateful.init
                 |> Stateful.stateWithFilters (searchFilters search.filters)
+                |> Stateful.stateWithSorters sortersInit
       , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
       }
     , searchWarrants domain maybeCred search
@@ -369,6 +370,7 @@ viewDesktop : RenderConfig -> Model -> Element Msg
 viewDesktop cfg model =
     column
         [ spacing 10
+        , padding 10
         , width fill
         ]
         [ Element.row [ centerX, spacing 10 ]
@@ -395,6 +397,8 @@ viewDesktop cfg model =
                 column
                     [ centerX
                     , Element.inFront (loader model)
+                    , height (px 800)
+                    , Element.scrollbarY
                     ]
                     [ viewWarrants cfg model ]
             ]
@@ -436,6 +440,7 @@ viewMobile cfg model =
                     [ width fill
                     , Element.inFront (loader model)
                     , height (px 1000)
+                    , Element.htmlAttribute (InfiniteScroll.infiniteScroll InfiniteScrollMsg)
                     ]
                     [ viewWarrants cfg model ]
             ]
@@ -451,11 +456,7 @@ view :
 view maybeUrl sharedModel model static =
     let
         cfg =
-            RenderConfig.init
-                { width = sharedModel.window.width
-                , height = sharedModel.window.height
-                }
-                RenderConfig.localeEnglish
+            sharedModel.renderConfig
     in
     { title = title
     , body =
@@ -512,6 +513,19 @@ searchFilters filters =
         |> remoteSingleTextFilter filters.defendant InputDefendant
         |> remoteSingleTextFilter filters.address InputAddress
         |> localSingleTextFilter Nothing .docketId
+
+
+sortersInit : Sorters DetainerWarrant T.Eight
+sortersInit =
+    sortersEmpty
+        |> sortBy .docketId
+        |> sortBy (Maybe.withDefault "" << Maybe.map Date.toIsoString << .fileDate)
+        |> sortBy (Maybe.withDefault "" << Maybe.map Date.toIsoString << .courtDate)
+        |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiff)
+        |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)
+        |> sortBy (Maybe.withDefault "" << Maybe.map .name << List.head << .defendants)
+        |> sortBy (Maybe.withDefault "" << Maybe.map .address << List.head << .defendants)
+        |> unsortable
 
 
 viewWarrants : RenderConfig -> Model -> Element Msg
