@@ -26,7 +26,9 @@ type alias DetainerWarrants =
 
 
 type alias Plaintiffs =
-    { name : Maybe String }
+    { name : Maybe String
+    , aliases : Maybe String
+    }
 
 
 type alias Search filters =
@@ -58,6 +60,7 @@ plaintiffsFromString str =
                 |> QueryParams.toDict
     in
     { name = Dict.get "name" params |> Maybe.andThen List.head
+    , aliases = Dict.get "aliases" params |> Maybe.andThen List.head
     }
 
 
@@ -81,7 +84,9 @@ dwFromString str =
 
 plaintiffsDefault : Plaintiffs
 plaintiffsDefault =
-    { name = Nothing }
+    { name = Nothing
+    , aliases = Nothing
+    }
 
 
 toPair : a -> Maybe String -> List ( a, String )
@@ -118,6 +123,7 @@ detainerWarrantsQuery filters =
 plaintiffsArgs : Plaintiffs -> List ( String, String )
 plaintiffsArgs filters =
     toPair "name" filters.name
+        ++ toPair "aliases" filters.aliases
 
 
 plaintiffsQuery : Plaintiffs -> String

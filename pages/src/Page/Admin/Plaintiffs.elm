@@ -28,7 +28,6 @@ import Maybe.Extra
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
-import Palette
 import Path exposing (Path)
 import Plaintiff exposing (Plaintiff)
 import QueryParams
@@ -41,6 +40,18 @@ import Search exposing (Cursor(..), Search)
 import Session exposing (Session)
 import Settings exposing (Settings)
 import Shared
+import Sprite
+import UI.Button as Button exposing (Button)
+import UI.Effects
+import UI.Icon as Icon
+import UI.Link as Link
+import UI.Palette as Palette
+import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
+import UI.Size
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
+import UI.Text as Text
+import UI.TextField as TextField
+import UI.Utils.TypeNumbers as T
 import Url.Builder exposing (QueryParameter)
 import User exposing (User)
 import View exposing (View)
@@ -50,8 +61,7 @@ import Widget.Icon
 
 type alias Model =
     { plaintiffs : List Plaintiff
-    , selected : Maybe String
-    , hovered : Maybe String
+    , tableState : Stateful.State Msg Plaintiff T.Three
     , search : Search Search.Plaintiffs
     , infiniteScroll : InfiniteScroll.Model Msg
     }
@@ -81,12 +91,30 @@ init pageUrl sharedModel static =
     in
     ( { plaintiffs = []
       , search = search
-      , selected = Nothing
-      , hovered = Nothing
+      , tableState =
+            Stateful.init
+                |> Stateful.stateWithFilters (searchFilters search.filters)
+                |> Stateful.stateWithSorters sortersInit
       , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
       }
     , searchPlaintiffs domain maybeCred search
     )
+
+
+searchFilters : Search.Plaintiffs -> Filters Msg Plaintiff T.Three
+searchFilters filters =
+    filtersEmpty
+        |> remoteSingleTextFilter filters.name InputName
+        |> remoteSingleTextFilter filters.aliases InputAliases
+        |> localSingleTextFilter Nothing .name
+
+
+sortersInit : Sorters Plaintiff T.Three
+sortersInit =
+    sortersEmpty
+        |> sortBy .name
+        |> sortBy (String.join ", " << .aliases)
+        |> unsortable
 
 
 searchPlaintiffs : String -> Maybe Cred -> Search Search.Plaintiffs -> Cmd Msg
@@ -133,24 +161,36 @@ queryArgsWithPagination search =
 
 type Msg
     = InputName (Maybe String)
-    | SelectPlaintiff String
-    | HoverPlaintiff String
-    | SearchPlaintiffs
+    | InputAliases (Maybe String)
+    | ForTable (Stateful.Msg Plaintiff)
     | GotPlaintiffs (Result Http.Error (Rest.Collection Plaintiff))
     | InfiniteScrollMsg InfiniteScroll.Msg
     | NoOp
 
 
-updateFilters :
-    (Search.Plaintiffs -> Search.Plaintiffs)
+updateFiltersAndReload :
+    String
+    -> Session
+    -> (Search.Plaintiffs -> Search.Plaintiffs)
     -> Model
     -> ( Model, Cmd Msg )
-updateFilters transform model =
+updateFiltersAndReload domain session transform model =
     let
         search =
             model.search
+
+        updatedModel =
+            { model | search = { search | filters = transform search.filters } }
     in
-    ( { model | search = { search | filters = transform search.filters } }, Cmd.none )
+    ( updatedModel
+    , Cmd.batch
+        [ Maybe.withDefault Cmd.none <|
+            Maybe.map
+                (\key -> Nav.replaceUrl key (Url.Builder.relative [ "plaintiffs" ] (Endpoint.toQueryArgs <| Search.plaintiffsArgs model.search.filters)))
+                (Session.navKey session)
+        , searchPlaintiffs domain (Session.cred session) updatedModel.search
+        ]
+    )
 
 
 update :
@@ -177,22 +217,17 @@ update pageUrl navKey sharedModel static msg model =
     in
     case msg of
         InputName query ->
-            updateFilters (\filters -> { filters | name = query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | name = query }) model
 
-        SelectPlaintiff name ->
-            ( { model | selected = Just name }, Cmd.none )
+        InputAliases query ->
+            updateFiltersAndReload domain session (\filters -> { filters | aliases = query }) model
 
-        HoverPlaintiff name ->
-            ( { model | hovered = Just name }, Cmd.none )
-
-        SearchPlaintiffs ->
-            ( model
-            , Cmd.batch
-                [ Maybe.withDefault Cmd.none <|
-                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ "plaintiffs" ] (Endpoint.toQueryArgs <| Search.plaintiffsArgs model.search.filters))) (Session.navKey session)
-                , searchPlaintiffs domain (Session.cred session) model.search
-                ]
-            )
+        ForTable subMsg ->
+            let
+                ( newTableState, newCmd ) =
+                    Stateful.update subMsg model.tableState
+            in
+            ( { model | tableState = newTableState }, UI.Effects.perform newCmd )
 
         GotPlaintiffs (Ok plaintiffsPage) ->
             let
@@ -210,11 +245,16 @@ update pageUrl navKey sharedModel static msg model =
                     { model | search = search }
             in
             if model.search.previous == Just model.search.filters then
+                let
+                    plaintiffs =
+                        model.plaintiffs ++ plaintiffsPage.data
+                in
                 ( { updatedModel
-                    | plaintiffs = model.plaintiffs ++ plaintiffsPage.data
+                    | plaintiffs = plaintiffs
                     , infiniteScroll =
                         InfiniteScroll.stopLoading model.infiniteScroll
                             |> InfiniteScroll.loadMoreCmd (loadMore domain maybeCred search)
+                    , tableState = Stateful.stateWithItems plaintiffs model.tableState
                   }
                 , Cmd.none
                 )
@@ -225,6 +265,7 @@ update pageUrl navKey sharedModel static msg model =
                     , infiniteScroll =
                         InfiniteScroll.stopLoading model.infiniteScroll
                             |> InfiniteScroll.loadMoreCmd (loadMore domain maybeCred search)
+                    , tableState = Stateful.stateWithItems plaintiffsPage.data model.tableState
                   }
                 , Cmd.none
                 )
@@ -253,86 +294,12 @@ error rollbar report =
     Log.error rollbar (\_ -> NoOp) report
 
 
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
-        )
-
-
-type alias SearchInputField =
-    { label : String
-    , placeholder : String
-    , onChange : Maybe String -> Msg
-    , query : Maybe String
-    }
-
-
-textSearch : SearchInputField -> Element Msg
-textSearch { label, placeholder, query, onChange } =
-    Input.search
-        [ Element.width (fill |> Element.maximum 400)
-        , onEnter SearchPlaintiffs
-        ]
-        { onChange = onChange << Just
-        , text = Maybe.withDefault "" query
-        , placeholder = Nothing
-        , label = Input.labelAbove [] (text label)
-        }
-
-
-searchFields : Model -> Search.Plaintiffs -> List SearchInputField
-searchFields model filters =
-    [ { label = "Name", placeholder = "", onChange = InputName, query = filters.name }
-    ]
-
-
-viewSearchBar : Model -> Element Msg
-viewSearchBar model =
-    Element.row
-        [ Element.width (fill |> maximum 1200)
-        , Element.spacing 10
-        , Element.padding 10
-        , Element.centerY
-        , Element.centerX
-        ]
-        [ column [ centerX ]
-            [ row [ spacing 10 ]
-                (List.map textSearch (searchFields model model.search.filters)
-                    ++ [ Input.button
-                            [ Element.alignBottom
-                            , Background.color Palette.redLight
-                            , Element.focused [ Background.color Palette.red ]
-                            , Element.height fill
-                            , Font.color (Element.rgb 255 255 255)
-                            , Element.padding 10
-                            , Border.rounded 5
-                            , height (px 50)
-                            ]
-                            { onPress = Just SearchPlaintiffs, label = Element.text "Search" }
-                       ]
-                )
-            ]
-        ]
-
-
-createNewPlaintiff : Element Msg
-createNewPlaintiff =
+createNewPlaintiff : RenderConfig -> Element Msg
+createNewPlaintiff cfg =
     row [ centerX ]
-        [ link buttonLinkAttrs
-            { url = Url.Builder.relative [ "plaintiffs", "edit" ] []
-            , label = text "Enter New Plaintiff"
-            }
+        [ Button.fromLabel "Create New Plaintiff"
+            |> Button.redirect (Link.link <| "/admin/plaintiffs/edit") Button.primary
+            |> Button.renderElement cfg
         ]
 
 
@@ -362,6 +329,73 @@ viewEmptyResults filters =
         )
 
 
+viewEditButton : Plaintiff -> Button Msg
+viewEditButton plaintiff =
+    Button.fromIcon (Icon.edit "Go to edit page")
+        |> Button.redirect
+            (Link.link <|
+                Url.Builder.relative
+                    [ "plaintiffs"
+                    , "edit"
+                    ]
+                    (Endpoint.toQueryArgs [ ( "id", String.fromInt plaintiff.id ) ])
+            )
+            Button.primary
+        |> Button.withSize UI.Size.small
+
+
+viewPlaintiffs : RenderConfig -> Model -> Element Msg
+viewPlaintiffs cfg model =
+    Stateful.table
+        { toExternalMsg = ForTable
+        , columns = Plaintiff.tableColumns
+        , toRow = Plaintiff.toTableRow viewEditButton
+        , state = model.tableState
+        }
+        |> Stateful.withResponsive
+            { toDetails = Plaintiff.toTableDetails viewEditButton
+            , toCover = Plaintiff.toTableCover
+            }
+        |> Stateful.withWidth fill
+        |> Stateful.renderElement cfg
+
+
+viewDesktop cfg model =
+    column
+        [ centerX
+        , spacing 10
+        , padding 10
+        ]
+        [ createNewPlaintiff cfg
+        , row [ width fill ]
+            [ case model.search.totalMatches of
+                Just total ->
+                    if total > 1 then
+                        paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " plaintiffs matched your search.") ]
+
+                    else
+                        Element.none
+
+                Nothing ->
+                    Element.none
+            ]
+        , row [ width fill ]
+            [ if model.search.totalMatches == Just 0 then
+                Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
+
+              else
+                column
+                    [ centerX
+                    , Element.inFront (loader model)
+                    , height (px 800)
+                    , Element.scrollbarY
+                    ]
+                    [ viewPlaintiffs cfg model
+                    ]
+            ]
+        ]
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -369,33 +403,10 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = "RDC | Admin | Plaintiffs"
+    { title = title
     , body =
-        [ row [ centerX, padding 10, Font.size 20, width (fill |> maximum 2000 |> minimum 400) ]
-            [ column
-                [ centerX
-                , spacing 10
-                , Element.inFront (loader model)
-                ]
-                [ createNewPlaintiff
-                , viewSearchBar model
-                , case model.search.totalMatches of
-                    Just total ->
-                        if total > 1 then
-                            paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " plaintiffs matched your search.") ]
-
-                        else
-                            Element.none
-
-                    Nothing ->
-                        Element.none
-                , if model.search.totalMatches == Just 0 then
-                    Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
-
-                  else
-                    viewPlaintiffs model
-                ]
-            ]
+        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+        , viewDesktop sharedModel.renderConfig model
         ]
     }
 
@@ -411,152 +422,6 @@ loader { infiniteScroll, search } =
 
     else
         Element.none
-
-
-ascIcon =
-    FeatherIcons.chevronUp
-        |> Widget.Icon.elmFeather FeatherIcons.toHtml
-
-
-sortIconStyle =
-    { size = 20, color = Color.white }
-
-
-descIcon =
-    FeatherIcons.chevronDown
-        |> Widget.Icon.elmFeather FeatherIcons.toHtml
-
-
-noSortIcon =
-    FeatherIcons.chevronDown
-        |> Widget.Icon.elmFeather FeatherIcons.toHtml
-
-
-tableStyle =
-    { elementTable = []
-    , content =
-        { header = buttonStyle
-        , ascIcon = ascIcon
-        , descIcon = descIcon
-        , defaultIcon = noSortIcon
-        }
-    }
-
-
-buttonStyle =
-    { elementButton =
-        [ width (px 40), height (px 40), Background.color Palette.sred, centerX, Font.center ]
-    , ifDisabled = []
-    , ifActive = []
-    , otherwise = []
-    , content =
-        { elementRow = [ centerX, Font.center ]
-        , content =
-            { text = { contentText = [] }
-            , icon = { ifDisabled = sortIconStyle, ifActive = sortIconStyle, otherwise = sortIconStyle }
-            }
-        }
-    }
-
-
-buttonLinkAttrs : List (Element.Attribute Msg)
-buttonLinkAttrs =
-    [ Background.color Palette.white
-    , Font.color Palette.red
-    , Border.rounded 3
-    , Border.color Palette.sred
-    , Border.width 1
-    , padding 10
-    , Font.size 16
-    , Element.mouseOver [ Background.color Palette.redLightest ]
-    , Element.focused [ Background.color Palette.redLightest ]
-    ]
-
-
-viewEditButton : Maybe String -> Int -> Plaintiff -> Element Msg
-viewEditButton hovered index plaintiff =
-    row
-        (tableCellAttrs (modBy 2 index == 0) hovered plaintiff)
-        [ link
-            (buttonLinkAttrs ++ [ Events.onFocus (SelectPlaintiff plaintiff.name) ])
-            { url = Url.Builder.relative [ "plaintiffs", "edit" ] (Endpoint.toQueryArgs [ ( "id", String.fromInt plaintiff.id ) ])
-            , label = text "Edit"
-            }
-        ]
-
-
-tableCellAttrs : Bool -> Maybe String -> Plaintiff -> List (Element.Attribute Msg)
-tableCellAttrs striped hovered plaintiff =
-    [ Element.width (Element.shrink |> maximum 400)
-    , height (px 60)
-    , Element.scrollbarX
-
-    --, Element.clipX
-    , Element.padding 10
-    , Border.solid
-    , Border.color Palette.grayLight
-    , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-    , Events.onMouseDown (SelectPlaintiff plaintiff.name)
-    , Events.onMouseEnter (HoverPlaintiff plaintiff.name)
-    ]
-        ++ (if hovered == Just plaintiff.name then
-                [ Background.color Palette.redLightest ]
-
-            else if striped then
-                [ Background.color Palette.grayBack ]
-
-            else
-                []
-           )
-
-
-viewHeaderCell text =
-    Element.row
-        [ Element.width (Element.shrink |> maximum 200)
-        , Element.padding 10
-        , Font.semiBold
-        , Border.solid
-        , Border.color Palette.grayLight
-        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        ]
-        [ Element.text text ]
-
-
-viewTextRow : Maybe String -> (Plaintiff -> String) -> Int -> Plaintiff -> Element Msg
-viewTextRow hovered toText index plaintiff =
-    Element.row (tableCellAttrs (modBy 2 index == 0) hovered plaintiff)
-        [ Element.text (toText plaintiff) ]
-
-
-viewPlaintiffs : Model -> Element Msg
-viewPlaintiffs model =
-    let
-        cell =
-            viewTextRow model.hovered
-    in
-    Element.indexedTable
-        [ width (fill |> maximum 1400)
-        , height (px 600)
-        , Font.size 14
-        , Element.scrollbarY
-        , Element.htmlAttribute (InfiniteScroll.infiniteScroll InfiniteScrollMsg)
-        ]
-        { data = model.plaintiffs
-        , columns =
-            [ { header = viewHeaderCell "Name"
-              , view = cell <| .name
-              , width = Element.fill
-              }
-            , { header = viewHeaderCell "Aliases"
-              , view = cell <| String.join "," << .aliases
-              , width = Element.fill
-              }
-            , { header = viewHeaderCell "Edit"
-              , view = viewEditButton model.hovered
-              , width = fill
-              }
-            ]
-        }
 
 
 subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
@@ -591,6 +456,10 @@ data =
     DataSource.succeed ()
 
 
+title =
+    "RDC | Admin | Plaintiffs"
+
+
 head :
     StaticPayload Data RouteParams
     -> List Head.Tag
@@ -601,6 +470,6 @@ head static =
         , image = Logo.smallImage
         , description = "Manage plaintiffs"
         , locale = Nothing
-        , title = "Red Door Collective | Admin | Plaintiffs"
+        , title = title
         }
         |> Seo.website

@@ -12,14 +12,12 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Head
 import Head.Seo as Seo
 import Html
 import Html.Attributes as Attrs
-import Html.Events
 import Http exposing (Error(..))
 import InfiniteScroll
 import Iso8601
@@ -27,7 +25,6 @@ import Json.Decode as Decode
 import Loader
 import Log
 import Logo
-import Maybe.Extra
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
@@ -50,7 +47,7 @@ import Svg.Attributes
 import Time
 import UI.Button as Button exposing (Button)
 import UI.Effects
-import UI.Icon
+import UI.Icon as Icon
 import UI.Link as Link
 import UI.Palette as Palette
 import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
@@ -58,8 +55,7 @@ import UI.Size
 import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
 import UI.Text as Text
 import UI.TextField as TextField
-import UI.Utils.Focus as Focus
-import UI.Utils.TypeNumbers as T exposing (Increase)
+import UI.Utils.TypeNumbers as T
 import Url.Builder exposing (QueryParameter)
 import User exposing (User)
 import View exposing (View)
@@ -70,8 +66,7 @@ type alias Model =
     , selected : Maybe String
     , hovered : Maybe String
     , search : Search Search.DetainerWarrants
-    , tableState :
-        Stateful.State Msg DetainerWarrant T.Eight
+    , tableState : Stateful.State Msg DetainerWarrant T.Eight
     , infiniteScroll : InfiniteScroll.Model Msg
     }
 
@@ -389,7 +384,7 @@ freeTextSearch cfg filters =
         "Search"
         (Maybe.withDefault "" filters.freeText)
         |> TextField.withIcon
-            (UI.Icon.search "Search")
+            (Icon.search "Search")
         |> TextField.setLabelVisible False
         |> TextField.withPlaceholder "Search"
         |> TextField.withOnEnterPressed OnFreeTextSearch
@@ -444,10 +439,10 @@ viewMobile cfg model =
         , width fill
         ]
         [ row [ centerX, spacing 10 ]
-            [ Button.fromIcon (UI.Icon.add "Enter New Detainer Warrant")
+            [ Button.fromIcon (Icon.add "Enter New Detainer Warrant")
                 |> Button.redirect (Link.link <| "/admin/detainer-warrants/edit") Button.primary
                 |> Button.renderElement cfg
-            , Button.fromIcon (UI.Icon.download "Upload via CaseLink CSV")
+            , Button.fromIcon (Icon.download "Upload via CaseLink CSV")
                 |> Button.redirect (Link.link <| "/admin/detainer-warrants/bulk-upload") Button.primary
                 |> Button.renderElement cfg
             ]
@@ -520,9 +515,9 @@ loader { infiniteScroll, search } =
         Element.none
 
 
-viewEditButton : RenderConfig -> DetainerWarrant -> Button Msg
-viewEditButton cfg warrant =
-    Button.fromIcon (UI.Icon.edit "Go to edit page")
+viewEditButton : DetainerWarrant -> Button Msg
+viewEditButton warrant =
+    Button.fromIcon (Icon.edit "Go to edit page")
         |> Button.redirect
             (Link.link <|
                 Url.Builder.relative
@@ -566,11 +561,11 @@ viewWarrants cfg model =
     Stateful.table
         { toExternalMsg = ForTable
         , columns = DetainerWarrant.tableColumns
-        , toRow = DetainerWarrant.toTableRow (viewEditButton cfg)
+        , toRow = DetainerWarrant.toTableRow viewEditButton
         , state = model.tableState
         }
         |> Stateful.withResponsive
-            { toDetails = DetainerWarrant.toTableDetails (viewEditButton cfg)
+            { toDetails = DetainerWarrant.toTableDetails viewEditButton
             , toCover = DetainerWarrant.toTableCover
             }
         |> Stateful.withWidth fill
