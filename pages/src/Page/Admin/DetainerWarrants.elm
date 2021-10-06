@@ -25,6 +25,7 @@ import Json.Decode as Decode
 import Loader
 import Log
 import Logo
+import Maybe
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
@@ -55,6 +56,7 @@ import UI.Size
 import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
 import UI.Text as Text
 import UI.TextField as TextField
+import UI.Utils.DateInput exposing (DateInput)
 import UI.Utils.TypeNumbers as T
 import Url.Builder exposing (QueryParameter)
 import User exposing (User)
@@ -148,7 +150,7 @@ queryArgsWithPagination search =
 
 type Msg
     = InputDocketId (Maybe String)
-    | InputFileDate (Maybe String)
+    | InputFileDate (Maybe DateInput)
     | InputCourtDate (Maybe String)
     | InputPlaintiff (Maybe String)
     | InputPlaintiffAttorney (Maybe String)
@@ -203,6 +205,23 @@ updateFiltersAndReload domain session transform model =
     )
 
 
+fromFormattedToPosix date =
+    let
+        day =
+            String.left 2 date
+
+        month =
+            String.slice 3 5 date
+
+        year =
+            String.right 4 date
+
+        isoFormat =
+            String.join "-" [ year, month, day ]
+    in
+    Result.toMaybe <| Iso8601.toTime isoFormat
+
+
 update :
     PageUrl
     -> Maybe Nav.Key
@@ -230,7 +249,7 @@ update pageUrl navKey sharedModel static msg model =
             updateFiltersAndReload domain session (\filters -> { filters | docketId = query }) model
 
         InputFileDate query ->
-            updateFiltersAndReload domain session (\filters -> { filters | fileDate = Maybe.andThen (Result.toMaybe << Date.fromIsoString) query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | fileDate = Maybe.andThen (fromFormattedToPosix << UI.Utils.DateInput.toDD_MM_YYYY "-") query }) model
 
         InputCourtDate query ->
             updateFiltersAndReload domain session (\filters -> { filters | courtDate = Maybe.andThen (Result.toMaybe << Date.fromIsoString) query }) model
@@ -358,7 +377,7 @@ viewFilter filters =
     in
     List.concat
         [ ifNonEmpty "docket number contains " identity filters.docketId
-        , ifNonEmpty "file date is " Date.toIsoString filters.fileDate
+        , ifNonEmpty "file date is " (Date.toIsoString << Date.fromPosix Time.utc) filters.fileDate
         , ifNonEmpty "court date is " Date.toIsoString filters.courtDate
         , ifNonEmpty "plaintiff contains " identity filters.plaintiff
         , ifNonEmpty "plaintiff attorney contains " identity filters.plaintiffAttorney
@@ -534,7 +553,7 @@ searchFilters : Search.DetainerWarrants -> Filters Msg DetainerWarrant T.Eight
 searchFilters filters =
     filtersEmpty
         |> remoteSingleTextFilter filters.docketId InputDocketId
-        |> remoteSingleTextFilter (Maybe.map Date.toIsoString filters.fileDate) InputFileDate
+        |> remoteSingleDateFilter Time.utc filters.fileDate InputFileDate
         |> remoteSingleTextFilter (Maybe.map Date.toIsoString filters.courtDate) InputCourtDate
         |> remoteSingleTextFilter filters.plaintiff InputPlaintiff
         |> remoteSingleTextFilter filters.plaintiffAttorney InputPlaintiffAttorney
@@ -547,7 +566,7 @@ sortersInit : Sorters DetainerWarrant T.Eight
 sortersInit =
     sortersEmpty
         |> sortBy .docketId
-        |> sortBy (Maybe.withDefault "" << Maybe.map Date.toIsoString << .fileDate)
+        |> sortBy (Maybe.withDefault "" << Maybe.map (Date.toIsoString << Date.fromPosix Time.utc) << .fileDate)
         |> sortBy (Maybe.withDefault "" << Maybe.map Date.toIsoString << .courtDate)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiff)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)

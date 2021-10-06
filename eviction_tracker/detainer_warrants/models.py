@@ -3,8 +3,7 @@ from datetime import datetime
 from sqlalchemy import func, text
 from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
-from sqlalchemy.ext.hybrid import hybrid_property
-
+from sqlalchemy.ext.hybrid import Comparator, hybrid_property
 from nameparser import HumanName
 
 
@@ -387,6 +386,11 @@ class Judgement(db.Model, Timestamped):
         return "<Judgement(in_favor_of='%s')>" % (self.in_favor_of)
 
 
+class PosixComparator(Comparator):
+    def __eq__(self, other):
+        return self.__clause_element__() == datetime.fromtimestamp(other).date()
+
+
 class DetainerWarrant(db.Model, Timestamped):
     statuses = {
         'CLOSED': 0,
@@ -412,7 +416,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     __tablename__ = 'detainer_warrants'
     docket_id = Column(db.String(255), primary_key=True)
-    file_date = Column(db.Date)
+    _file_date = Column(db.Date, name="file_date")
     status_id = Column(db.Integer)
     plaintiff_id = Column(db.Integer, db.ForeignKey(
         'plaintiffs.id', ondelete='CASCADE'))
@@ -451,7 +455,23 @@ class DetainerWarrant(db.Model, Timestamped):
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")
 
     def __repr__(self):
-        return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self.file_date)
+        return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self._file_date)
+
+    @hybrid_property
+    def file_date(self):
+        return int(datetime.combine(self._file_date, datetime.min.time()).timestamp())
+
+    @file_date.expression
+    def file_date(cls):
+        return cls._file_date
+
+    @file_date.comparator
+    def file_date(cls):
+        return PosixComparator(cls._file_date)
+
+    @file_date.setter
+    def file_date(self, posix):
+        self._file_date = datetime.fromtimestamp(posix).date()
 
     @property
     def status(self):

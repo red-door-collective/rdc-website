@@ -57,6 +57,7 @@ import Set
 import Settings exposing (Settings)
 import Shared
 import Task
+import Time
 import Url.Builder
 import User exposing (User)
 import View exposing (View)
@@ -261,7 +262,7 @@ initDefendantForm defendant =
 editForm : Date -> DetainerWarrant -> Form
 editForm today warrant =
     { docketId = warrant.docketId
-    , fileDate = initDatePicker warrant.fileDate
+    , fileDate = initDatePicker (Maybe.map (Date.fromPosix Time.utc) warrant.fileDate)
     , status = warrant.status
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm warrant.plaintiff
@@ -2020,20 +2021,20 @@ viewDocketId options form =
 
 viewFileDate : FormOptions -> Form -> Element Msg
 viewFileDate options form =
-    let
-        hasChanges =
-            (Maybe.withDefault False <|
-                Maybe.map ((/=) form.fileDate.date << .fileDate) options.originalWarrant
-            )
-                || (options.originalWarrant == Nothing && form.fileDate.date /= Nothing)
-    in
+    -- let
+    --     hasChanges =
+    --         (Maybe.withDefault False <|
+    --             Maybe.map ((/=) form.fileDate.date << .fileDate) options.originalWarrant
+    --         )
+    --             || (options.originalWarrant == Nothing && form.fileDate.date /= Nothing)
+    -- in
     column [ width fill, padding 10 ]
         [ viewField
             { tooltip = Just FileDateInfo
             , description = "The date the detainer warrant was created in the court system."
             , currentTooltip = options.tooltip
             , children =
-                [ DatePicker.input (withValidation FileDate options.problems (withChanges hasChanges [ centerX, Element.centerY, Border.color Palette.grayLight ]))
+                [ DatePicker.input (withValidation FileDate options.problems (withChanges False [ centerX, Element.centerY, Border.color Palette.grayLight ]))
                     { onChange = ChangedFileDatePicker
                     , selected = form.fileDate.date
                     , text = form.fileDate.dateText

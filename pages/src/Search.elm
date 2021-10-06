@@ -2,8 +2,10 @@ module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detain
 
 import Date exposing (Date)
 import Dict
+import Iso8601
 import QueryParams
 import Rest.Endpoint exposing (toQueryArgs)
+import Time exposing (Posix)
 import Url.Builder
 
 
@@ -15,7 +17,7 @@ type Cursor
 
 type alias DetainerWarrants =
     { docketId : Maybe String
-    , fileDate : Maybe Date
+    , fileDate : Maybe Posix
     , courtDate : Maybe Date
     , plaintiff : Maybe String
     , plaintiffAttorney : Maybe String
@@ -72,7 +74,7 @@ dwFromString str =
                 |> QueryParams.toDict
     in
     { docketId = Dict.get "docket_id" params |> Maybe.andThen List.head
-    , fileDate = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.map Date.fromIsoString |> Maybe.andThen Result.toMaybe
+    , fileDate = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe |> Debug.log "fileDate"
     , courtDate = Dict.get "court_date" params |> Maybe.andThen List.head |> Maybe.map Date.fromIsoString |> Maybe.andThen Result.toMaybe
     , plaintiff = Dict.get "plaintiff" params |> Maybe.andThen List.head
     , plaintiffAttorney = Dict.get "plaintiff_attorney" params |> Maybe.andThen List.head
@@ -103,10 +105,18 @@ toPair key field =
             []
 
 
+posixToString posix =
+    let
+        millis =
+            Time.posixToMillis posix
+    in
+    String.fromInt (round (toFloat millis / 1000))
+
+
 detainerWarrantsArgs : DetainerWarrants -> List ( String, String )
 detainerWarrantsArgs filters =
     toPair "docket_id" filters.docketId
-        ++ toPair "file_date" (Maybe.map Date.toIsoString filters.fileDate)
+        ++ toPair "file_date" (Maybe.map posixToString filters.fileDate)
         ++ toPair "court_date" (Maybe.map Date.toIsoString filters.courtDate)
         ++ toPair "plaintiff" filters.plaintiff
         ++ toPair "plaintiff_attorney" filters.plaintiffAttorney

@@ -19,7 +19,7 @@ import Palette
 import Plaintiff exposing (Plaintiff)
 import Search
 import String.Extra
-import Time exposing (Month(..))
+import Time exposing (Month(..), Posix)
 import UI.Button exposing (Button)
 import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
 import UI.Tables.Stateful exposing (detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter)
@@ -93,7 +93,7 @@ type alias Judgement =
 
 type alias DetainerWarrant =
     { docketId : String
-    , fileDate : Maybe Date
+    , fileDate : Maybe Posix
     , status : Maybe Status
     , plaintiff : Maybe Plaintiff
     , plaintiffAttorney : Maybe Attorney
@@ -522,11 +522,16 @@ dateDecoder =
     Decode.map (Maybe.withDefault (Date.fromCalendarDate 2021 Jan 1) << dateFromString) Decode.string
 
 
+posixDecoder : Decoder Posix
+posixDecoder =
+    Decode.map (Time.millisToPosix << (*) 1000) Decode.int
+
+
 decoder : Decoder DetainerWarrant
 decoder =
     Decode.succeed DetainerWarrant
         |> required "docket_id" string
-        |> required "file_date" (nullable dateDecoder)
+        |> required "file_date" (nullable posixDecoder)
         |> required "status" (nullable statusDecoder)
         |> required "plaintiff" (nullable Plaintiff.decoder)
         |> required "plaintiff_attorney" (nullable Attorney.decoder)
@@ -716,7 +721,7 @@ toTableRowView : (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T
 toTableRowView toEditButton ({ docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
     rowEmpty
         |> rowCellText (Text.body2 docketId)
-        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString fileDate))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map (Date.toIsoString << Date.fromPosix Time.utc) fileDate))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString courtDate))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney))
@@ -733,7 +738,7 @@ toTableDetails toEditButton ({ docketId, fileDate, courtDate, plaintiff, plainti
             }
         |> detailShown
             { label = "File date"
-            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString fileDate)
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map (Date.toIsoString << Date.fromPosix Time.utc) fileDate)
             }
         |> detailShown
             { label = "Court date"
