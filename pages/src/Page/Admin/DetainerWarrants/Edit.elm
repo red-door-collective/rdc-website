@@ -9,6 +9,7 @@ import Color
 import Courtroom exposing (Courtroom)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
+import Date.Extra
 import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
@@ -58,6 +59,7 @@ import Settings exposing (Settings)
 import Shared
 import Task
 import Time
+import Time.Utils
 import Url.Builder
 import User exposing (User)
 import View exposing (View)
@@ -262,12 +264,12 @@ initDefendantForm defendant =
 editForm : Date -> DetainerWarrant -> Form
 editForm today warrant =
     { docketId = warrant.docketId
-    , fileDate = initDatePicker (Maybe.map (Date.fromPosix Time.utc) warrant.fileDate)
+    , fileDate = initDatePicker (Maybe.map Date.Extra.fromPosix warrant.fileDate)
     , status = warrant.status
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm warrant.plaintiff
     , plaintiffAttorney = initAttorneyForm warrant.plaintiffAttorney
-    , courtDate = initDatePicker warrant.courtDate
+    , courtDate = initDatePicker (Maybe.map Date.Extra.fromPosix warrant.courtDate)
     , courtroom = initCourtroomForm warrant.courtroom
     , presidingJudge = initJudgeForm warrant.presidingJudge
     , caresDropdown = Dropdown.init "cares-dropdown"
@@ -315,8 +317,8 @@ judgementFormInit today index existing =
                         | id = Just judgement.id
                         , enteredBy = judgement.enteredBy
                         , courtDate =
-                            { date = judgement.courtDate
-                            , dateText = Maybe.withDefault new.courtDate.dateText <| Maybe.map Date.toIsoString judgement.courtDate
+                            { date = Maybe.map Date.Extra.fromPosix judgement.courtDate
+                            , dateText = Maybe.withDefault new.courtDate.dateText <| Maybe.map Time.Utils.toIsoString judgement.courtDate
                             , pickerModel = DatePicker.init |> DatePicker.setToday today
                             }
                         , conditionsDropdown = Dropdown.init ("judgement-dropdown-" ++ String.fromInt judgement.id)
@@ -2273,20 +2275,20 @@ viewPlaintiffAttorneySearch options form =
 
 viewCourtDate : FormOptions -> Form -> Element Msg
 viewCourtDate options form =
-    let
-        hasChanges =
-            (Maybe.withDefault False <|
-                Maybe.map ((/=) form.courtDate.date << .courtDate) options.originalWarrant
-            )
-                || (options.originalWarrant == Nothing && form.courtDate.dateText /= "")
-    in
+    -- let
+    --     hasChanges =
+    --         (Maybe.withDefault False <|
+    --             Maybe.map ((/=) form.courtDate.date << .courtDate) options.originalWarrant
+    --         )
+    --             || (options.originalWarrant == Nothing && form.courtDate.dateText /= "")
+    -- in
     column [ width fill ]
         [ viewField
             { tooltip = Just CourtDateInfo
             , currentTooltip = options.tooltip
             , description = "The date set for deliberating the judgement of the eviction in court."
             , children =
-                [ DatePicker.input (withValidation CourtDate options.problems (withChanges hasChanges [ Element.centerX, Element.centerY ]))
+                [ DatePicker.input (withValidation CourtDate options.problems (withChanges False [ Element.centerX, Element.centerY ]))
                     { onChange = ChangedCourtDatePicker
                     , selected = form.courtDate.date
                     , text = form.courtDate.dateText

@@ -46,6 +46,7 @@ import Sprite
 import Svg
 import Svg.Attributes
 import Time
+import Time.Utils
 import UI.Button as Button exposing (Button)
 import UI.Effects
 import UI.Icon as Icon
@@ -151,7 +152,7 @@ queryArgsWithPagination search =
 type Msg
     = InputDocketId (Maybe String)
     | InputFileDate (Maybe DateInput)
-    | InputCourtDate (Maybe String)
+    | InputCourtDate (Maybe DateInput)
     | InputPlaintiff (Maybe String)
     | InputPlaintiffAttorney (Maybe String)
     | InputDefendant (Maybe String)
@@ -252,7 +253,7 @@ update pageUrl navKey sharedModel static msg model =
             updateFiltersAndReload domain session (\filters -> { filters | fileDate = Maybe.andThen (fromFormattedToPosix << UI.Utils.DateInput.toDD_MM_YYYY "-") query }) model
 
         InputCourtDate query ->
-            updateFiltersAndReload domain session (\filters -> { filters | courtDate = Maybe.andThen (Result.toMaybe << Date.fromIsoString) query }) model
+            updateFiltersAndReload domain session (\filters -> { filters | courtDate = Maybe.andThen (fromFormattedToPosix << UI.Utils.DateInput.toDD_MM_YYYY "-") query }) model
 
         InputPlaintiff query ->
             updateFiltersAndReload domain session (\filters -> { filters | plaintiff = query }) model
@@ -377,8 +378,8 @@ viewFilter filters =
     in
     List.concat
         [ ifNonEmpty "docket number contains " identity filters.docketId
-        , ifNonEmpty "file date is " (Date.toIsoString << Date.fromPosix Time.utc) filters.fileDate
-        , ifNonEmpty "court date is " Date.toIsoString filters.courtDate
+        , ifNonEmpty "file date is " Time.Utils.toIsoString filters.fileDate
+        , ifNonEmpty "court date is " Time.Utils.toIsoString filters.courtDate
         , ifNonEmpty "plaintiff contains " identity filters.plaintiff
         , ifNonEmpty "plaintiff attorney contains " identity filters.plaintiffAttorney
         , ifNonEmpty "defendant contains " identity filters.defendant
@@ -554,7 +555,7 @@ searchFilters filters =
     filtersEmpty
         |> remoteSingleTextFilter filters.docketId InputDocketId
         |> remoteSingleDateFilter Time.utc filters.fileDate InputFileDate
-        |> remoteSingleTextFilter (Maybe.map Date.toIsoString filters.courtDate) InputCourtDate
+        |> remoteSingleDateFilter Time.utc filters.courtDate InputCourtDate
         |> remoteSingleTextFilter filters.plaintiff InputPlaintiff
         |> remoteSingleTextFilter filters.plaintiffAttorney InputPlaintiffAttorney
         |> remoteSingleTextFilter filters.defendant InputDefendant
@@ -566,8 +567,8 @@ sortersInit : Sorters DetainerWarrant T.Eight
 sortersInit =
     sortersEmpty
         |> sortBy .docketId
-        |> sortBy (Maybe.withDefault "" << Maybe.map (Date.toIsoString << Date.fromPosix Time.utc) << .fileDate)
-        |> sortBy (Maybe.withDefault "" << Maybe.map Date.toIsoString << .courtDate)
+        |> sortBy (Maybe.withDefault "" << Maybe.map Time.Utils.toIsoString << .fileDate)
+        |> sortBy (Maybe.withDefault "" << Maybe.map Time.Utils.toIsoString << .courtDate)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiff)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << List.head << .defendants)

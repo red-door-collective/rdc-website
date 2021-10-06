@@ -1,7 +1,13 @@
-module Date.Extra exposing (fromUSCalString)
+module Date.Extra exposing (fromPosix, fromUSCalString)
 
 import Date exposing (Date)
 import Parser exposing ((|.), (|=), Parser, andThen, chompWhile, getChompedString, int, problem, spaces, succeed, symbol)
+import Time exposing (Posix)
+
+
+fromPosix : Posix -> Date
+fromPosix posix =
+    Date.fromPosix Time.utc posix
 
 
 type alias DateComponents =
