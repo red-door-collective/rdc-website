@@ -186,7 +186,7 @@ updateFiltersAndReload domain session transform model =
     , Cmd.batch
         [ Maybe.withDefault Cmd.none <|
             Maybe.map
-                (\key -> Nav.replaceUrl key (Url.Builder.relative [ "plaintiffs" ] (Endpoint.toQueryArgs <| Search.plaintiffsArgs model.search.filters)))
+                (\key -> Nav.replaceUrl key (Url.Builder.absolute [ "admin", "plaintiffs" ] (Endpoint.toQueryArgs <| Search.plaintiffsArgs updatedModel.search.filters)))
                 (Session.navKey session)
         , searchPlaintiffs domain (Session.cred session) updatedModel.search
         ]
@@ -388,6 +388,7 @@ viewDesktop cfg model =
                     [ centerX
                     , Element.inFront (loader model)
                     , height (px 800)
+                    , width fill
                     , Element.scrollbarY
                     ]
                     [ viewPlaintiffs cfg model
