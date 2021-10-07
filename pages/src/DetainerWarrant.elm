@@ -520,7 +520,7 @@ dateFromString =
 
 posixDecoder : Decoder Posix
 posixDecoder =
-    Decode.map (Time.millisToPosix << (*) 1000) Decode.int
+    Decode.map Time.millisToPosix Decode.int
 
 
 decoder : Decoder DetainerWarrant

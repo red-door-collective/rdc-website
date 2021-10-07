@@ -1,4 +1,4 @@
-module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsQuery, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString, plaintiffsQuery, toPair)
+module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, detainerWarrantsQuery, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString, plaintiffsQuery, toPair)
 
 import Date exposing (Date)
 import Dict
@@ -6,6 +6,7 @@ import Iso8601
 import QueryParams
 import Rest.Endpoint exposing (toQueryArgs)
 import Time exposing (Posix)
+import Time.Utils
 import Url.Builder
 
 
@@ -105,12 +106,8 @@ toPair key field =
             []
 
 
-posixToString posix =
-    let
-        millis =
-            Time.posixToMillis posix
-    in
-    String.fromInt (round (toFloat millis / 1000))
+posixToString =
+    String.fromInt << Time.posixToMillis
 
 
 detainerWarrantsArgs : DetainerWarrants -> List ( String, String )
@@ -118,6 +115,18 @@ detainerWarrantsArgs filters =
     toPair "docket_id" filters.docketId
         ++ toPair "file_date" (Maybe.map posixToString filters.fileDate)
         ++ toPair "court_date" (Maybe.map posixToString filters.courtDate)
+        ++ toPair "plaintiff" filters.plaintiff
+        ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
+        ++ toPair "defendant_name" filters.defendant
+        ++ toPair "address" filters.address
+        ++ toPair "free_text" filters.freeText
+
+
+detainerWarrantsFilterArgs : DetainerWarrants -> List ( String, String )
+detainerWarrantsFilterArgs filters =
+    toPair "docket_id" filters.docketId
+        ++ toPair "file_date" (Maybe.map Time.Utils.toIsoString filters.fileDate)
+        ++ toPair "court_date" (Maybe.map Time.Utils.toIsoString filters.courtDate)
         ++ toPair "plaintiff" filters.plaintiff
         ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
         ++ toPair "defendant_name" filters.defendant

@@ -72,7 +72,7 @@ judges_schema = JudgeSchema(many=True)
 
 class JudgementSchema(Schema):
     id = fields.Int(allow_none=True)
-    court_date = fields.Date(allow_none=True)
+    court_date = fields.Int(allow_none=True)
     awards_possession = fields.Bool(allow_none=True)
     awards_fees = fields.Float(allow_none=True)
     entered_by = fields.String(allow_none=True)
@@ -116,7 +116,7 @@ class DetainerWarrantSchema(Schema):
     file_date = fields.Int(allow_none=True)
     status = fields.String(allow_none=True)
     amount_claimed = fields.Float(allow_none=True)
-    court_date = fields.Date(allow_none=True)
+    court_date = fields.Int(allow_none=True)
     is_cares = fields.Bool(allow_none=True)
     is_legacy = fields.Bool(allow_none=True)
     nonpayment = fields.Bool(allow_none=True)

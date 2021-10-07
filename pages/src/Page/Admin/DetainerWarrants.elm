@@ -198,7 +198,7 @@ updateFiltersAndReload domain session transform model =
                     Nav.replaceUrl key <|
                         Url.Builder.absolute
                             [ "admin", "detainer-warrants" ]
-                            (Endpoint.toQueryArgs <| Search.detainerWarrantsArgs updatedModel.search.filters)
+                            (Endpoint.toQueryArgs <| Search.detainerWarrantsFilterArgs updatedModel.search.filters)
                 )
                 (Session.navKey session)
         , searchWarrants domain (Session.cred session) updatedModel.search

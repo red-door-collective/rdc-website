@@ -266,7 +266,7 @@ def filter_plaintiff_attorney_name(model, plaintiff_attorney_name):
     return model._plaintiff_attorney.has(Attorney.name.ilike(f'%{plaintiff_attorney_name}%'))
 
 
-@model_filter(fields.Date())
+@model_filter(fields.Int())
 def filter_court_date(model, court_date):
     return model._judgements.any(Judgement.court_date == court_date)
 

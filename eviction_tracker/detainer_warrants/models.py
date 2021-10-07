@@ -1,9 +1,9 @@
-from eviction_tracker.database import db, Timestamped, Column, Model, relationship
-from datetime import datetime
+from eviction_tracker.database import db, PosixComparator, in_millis, from_millis, Timestamped, Column, Model, relationship
+from datetime import datetime, date, timezone
 from sqlalchemy import func, text
 from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
-from sqlalchemy.ext.hybrid import Comparator, hybrid_property
+from sqlalchemy.ext.hybrid import hybrid_property
 from nameparser import HumanName
 
 
@@ -213,7 +213,7 @@ class Judgement(db.Model, Timestamped):
     interest_follows_site = Column(db.Boolean)
     dismissal_basis_id = Column(db.Integer)
     with_prejudice = Column(db.Boolean)
-    court_date = Column(db.Date)
+    _court_date = Column(db.Date, name='court_date')
     mediation_letter = Column(db.Boolean)
     court_order_number = Column(db.Integer)
     notes = Column(db.String(255))
@@ -252,6 +252,21 @@ class Judgement(db.Model, Timestamped):
     last_edited_by = relationship(
         'User', back_populates='edited_judgements'
     )
+
+    @hybrid_property
+    def court_date(self):
+        if self._court_date:
+            return in_millis(datetime.combine(self._court_date, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @court_date.comparator
+    def court_date(cls):
+        return PosixComparator(cls._court_date)
+
+    @court_date.setter
+    def court_date(self, posix):
+        self._court_date = from_millis(posix)
 
     @property
     def courtroom(self):
@@ -386,11 +401,6 @@ class Judgement(db.Model, Timestamped):
         return "<Judgement(in_favor_of='%s')>" % (self.in_favor_of)
 
 
-class PosixComparator(Comparator):
-    def __eq__(self, other):
-        return self.__clause_element__() == datetime.fromtimestamp(other).date()
-
-
 class DetainerWarrant(db.Model, Timestamped):
     statuses = {
         'CLOSED': 0,
@@ -423,7 +433,7 @@ class DetainerWarrant(db.Model, Timestamped):
     plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
         'attorneys.id', ondelete=('CASCADE')
     ))
-    court_date = Column(db.Date)
+    _court_date = Column(db.Date, name="court_date")
     court_date_recurring_id = Column(db.Integer)
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
@@ -459,11 +469,10 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @hybrid_property
     def file_date(self):
-        return int(datetime.combine(self._file_date, datetime.min.time()).timestamp())
-
-    @file_date.expression
-    def file_date(cls):
-        return cls._file_date
+        if self._file_date:
+            return in_millis(datetime.combine(self._file_date, datetime.min.time()).timestamp())
+        else:
+            return None
 
     @file_date.comparator
     def file_date(cls):
@@ -471,7 +480,22 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @file_date.setter
     def file_date(self, posix):
-        self._file_date = datetime.fromtimestamp(posix).date()
+        self._file_date = from_millis(posix)
+
+    @hybrid_property
+    def court_date(self):
+        if self._court_date:
+            return in_millis(datetime.combine(self._court_date, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @court_date.comparator
+    def court_date(cls):
+        return PosixComparator(cls._court_date)
+
+    @court_date.setter
+    def court_date(self, posix):
+        self._court_date = from_millis(posix)
 
     @property
     def status(self):
