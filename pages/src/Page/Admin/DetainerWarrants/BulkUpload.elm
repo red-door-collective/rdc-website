@@ -142,6 +142,7 @@ initBulkUpload stubs =
         Stateful.init
             |> Stateful.stateWithFilters searchFilters
             |> Stateful.stateWithSorters sortersInit
+            |> Stateful.stateWithItems stubs
     }
 
 
