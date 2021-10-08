@@ -567,7 +567,7 @@ sortersInit =
     sortersEmpty
         |> sortBy .docketId
         |> sortBy (Maybe.withDefault "" << Maybe.map Time.Utils.toIsoString << .fileDate)
-        |> sortBy (Maybe.withDefault "" << Maybe.map Time.Utils.toIsoString << .courtDate)
+        |> sortBy (Maybe.withDefault "" << Maybe.map Time.Utils.toIsoString << DetainerWarrant.mostRecentCourtDate)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiff)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << List.head << .defendants)

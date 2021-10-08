@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow, toTableRowView)
+module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, mostRecentCourtDate, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow, toTableRowView)
 
 import Attorney exposing (Attorney)
 import Courtroom exposing (Courtroom)
@@ -85,6 +85,7 @@ type alias Judgement =
     { id : Int
     , notes : Maybe String
     , courtDate : Maybe Posix
+    , courtroom : Maybe Courtroom
     , enteredBy : Entrance
     , judge : Maybe Judge
     , conditions : Maybe Conditions
@@ -97,9 +98,6 @@ type alias DetainerWarrant =
     , status : Maybe Status
     , plaintiff : Maybe Plaintiff
     , plaintiffAttorney : Maybe Attorney
-    , courtDate : Maybe Posix
-    , courtroom : Maybe Courtroom
-    , presidingJudge : Maybe Judge
     , amountClaimed : Maybe Float
     , amountClaimedCategory : AmountClaimedCategory
     , isCares : Maybe Bool
@@ -142,6 +140,8 @@ type alias JudgementForm =
     , condition : Maybe ConditionOption
     , enteredBy : Entrance
     , courtDate : DatePickerState
+    , courtroom : Maybe Courtroom
+    , courtroomDropdown : Dropdown.State (Maybe Courtroom)
     , notes : String
     , awardsFees : String
     , awardsPossession : Bool
@@ -266,9 +266,6 @@ type alias DetainerWarrantEdit =
     , status : Maybe Status
     , plaintiff : Maybe Related
     , plaintiffAttorney : Maybe Related
-    , courtDate : Maybe String
-    , courtroom : Maybe Related
-    , presidingJudge : Maybe Related
     , amountClaimed : Maybe Float
     , amountClaimedCategory : AmountClaimedCategory
     , isCares : Maybe Bool
@@ -489,6 +486,7 @@ fromConditions conditions =
         |> required "id" int
         |> required "notes" (nullable string)
         |> required "court_date" (nullable posixDecoder)
+        |> required "courtroom" (nullable Courtroom.decoder)
         |> required "entered_by" entranceDecoder
         |> required "judge" (nullable Judge.decoder)
         |> custom (Decode.succeed conditions)
@@ -530,9 +528,6 @@ decoder =
         |> required "status" (nullable statusDecoder)
         |> required "plaintiff" (nullable Plaintiff.decoder)
         |> required "plaintiff_attorney" (nullable Attorney.decoder)
-        |> required "court_date" (nullable posixDecoder)
-        |> required "courtroom" (nullable Courtroom.decoder)
-        |> required "presiding_judge" (nullable Judge.decoder)
         |> required "amount_claimed" (nullable float)
         |> required "amount_claimed_category" amountClaimedCategoryDecoder
         |> required "is_cares" (nullable bool)
@@ -560,12 +555,17 @@ toTableRow toEditButton =
     { toKey = .docketId, view = toTableRowView toEditButton }
 
 
+mostRecentCourtDate : DetainerWarrant -> Maybe Posix
+mostRecentCourtDate warrant =
+    Maybe.andThen .courtDate <| List.head warrant.judgements
+
+
 toTableRowView : (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T.Eight
-toTableRowView toEditButton ({ docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
+toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
     rowEmpty
         |> rowCellText (Text.body2 docketId)
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString fileDate))
-        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString courtDate))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString (mostRecentCourtDate warrant)))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name <| List.head defendants))
@@ -573,7 +573,7 @@ toTableRowView toEditButton ({ docketId, fileDate, courtDate, plaintiff, plainti
         |> rowCellButton (toEditButton warrant)
 
 
-toTableDetails toEditButton ({ docketId, fileDate, courtDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
+toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
     detailsEmpty
         |> detailShown
             { label = "Docket ID"
@@ -585,7 +585,7 @@ toTableDetails toEditButton ({ docketId, fileDate, courtDate, plaintiff, plainti
             }
         |> detailShown
             { label = "Court date"
-            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString courtDate)
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString (mostRecentCourtDate warrant))
             }
         |> detailShown
             { label = "Plaintiff"

@@ -139,9 +139,6 @@ type alias Form =
     , statusDropdown : Dropdown.State (Maybe Status)
     , plaintiff : PlaintiffForm
     , plaintiffAttorney : AttorneyForm
-    , courtDate : DatePickerState
-    , courtroom : CourtroomForm
-    , presidingJudge : JudgeForm
     , caresDropdown : Dropdown.State (Maybe Bool)
     , isCares : Maybe Bool
     , legacyDropdown : Dropdown.State (Maybe Bool)
@@ -198,7 +195,7 @@ type Tooltip
 
 
 type SaveState
-    = SavingRelatedModels { attorney : Bool, plaintiff : Bool, courtroom : Bool, judge : Bool, defendants : Int }
+    = SavingRelatedModels { attorney : Bool, plaintiff : Bool, defendants : Int }
     | SavingWarrant
     | SavingJudgements { judgements : Int }
     | Done
@@ -251,14 +248,6 @@ initJudgeForm judge =
     }
 
 
-initCourtroomForm : Maybe Courtroom -> CourtroomForm
-initCourtroomForm courtroom =
-    { selection = courtroom
-    , text = Maybe.withDefault "" <| Maybe.map .name courtroom
-    , searchBox = SearchBox.init
-    }
-
-
 initDefendantForm : Maybe Defendant -> DefendantForm
 initDefendantForm defendant =
     { id = Maybe.map .id defendant
@@ -282,9 +271,6 @@ editForm today warrant =
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm warrant.plaintiff
     , plaintiffAttorney = initAttorneyForm warrant.plaintiffAttorney
-    , courtDate = initDatePicker (Maybe.map Date.Extra.fromPosix warrant.courtDate)
-    , courtroom = initCourtroomForm warrant.courtroom
-    , presidingJudge = initJudgeForm warrant.presidingJudge
     , caresDropdown = Dropdown.init "cares-dropdown"
     , isCares = warrant.isCares
     , legacyDropdown = Dropdown.init "legacy-dropdown"
@@ -308,6 +294,8 @@ judgementFormInit today index existing =
             { id = Nothing
             , conditionsDropdown = Dropdown.init ("judgement-dropdown-new-" ++ String.fromInt index)
             , condition = Just PlaintiffOption
+            , courtroom = Nothing
+            , courtroomDropdown = Dropdown.init ("judgement-dropdown-courtroom-" ++ String.fromInt index)
             , notes = ""
             , courtDate = { date = Just today, dateText = Date.toIsoString today, pickerModel = DatePicker.init |> DatePicker.setToday today }
             , enteredBy = Default
@@ -334,6 +322,8 @@ judgementFormInit today index existing =
                             , dateText = Maybe.withDefault new.courtDate.dateText <| Maybe.map Time.Utils.toIsoString judgement.courtDate
                             , pickerModel = DatePicker.init |> DatePicker.setToday today
                             }
+                        , courtroom = judgement.courtroom
+                        , courtroomDropdown = Dropdown.init ("judgement-dropdown-courtroom-" ++ String.fromInt judgement.id)
                         , conditionsDropdown = Dropdown.init ("judgement-dropdown-" ++ String.fromInt judgement.id)
                         , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt judgement.id)
                         , judge =
@@ -391,9 +381,6 @@ initCreate =
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm Nothing
     , plaintiffAttorney = initAttorneyForm Nothing
-    , courtDate = initDatePicker Nothing
-    , courtroom = initCourtroomForm Nothing
-    , presidingJudge = initJudgeForm Nothing
     , caresDropdown = Dropdown.init "cares-dropdown"
     , isCares = Nothing
     , legacyDropdown = Dropdown.init "legacy-dropdown"
@@ -456,12 +443,15 @@ init pageUrl sharedModel static =
       , saveState = Done
       , newFormOnSuccess = False
       }
-    , case docketId of
-        Just id ->
-            getWarrant domain id maybeCred
+    , Cmd.batch
+        [ case docketId of
+            Just id ->
+                getWarrant domain id maybeCred
 
-        _ ->
-            Cmd.none
+            _ ->
+                Cmd.none
+        , Rest.get (Endpoint.courtrooms domain []) maybeCred GotCourtrooms (Rest.collectionDecoder Courtroom.decoder)
+        ]
     )
 
 
@@ -476,13 +466,10 @@ type Msg
     | CloseTooltip
     | ChangedDocketId String
     | ChangedFileDatePicker ChangeEvent
-    | ChangedCourtDatePicker ChangeEvent
     | ChangedPlaintiffSearchBox (SearchBox.ChangeEvent Plaintiff)
     | ChangedPlaintiffAttorneySearchBox (SearchBox.ChangeEvent Attorney)
     | PickedStatus (Maybe (Maybe Status))
     | StatusDropdownMsg (Dropdown.Msg (Maybe Status))
-    | ChangedCourtroomSearchBox (SearchBox.ChangeEvent Courtroom)
-    | ChangedJudgeSearchBox (SearchBox.ChangeEvent Judge)
     | ChangedAmountClaimed String
     | ConfirmAmountClaimed
     | PickedAmountClaimedCategory (Maybe AmountClaimedCategory)
@@ -505,6 +492,8 @@ type Msg
     | AddJudgement
     | RemoveJudgement Int
     | ChangedJudgementCourtDatePicker Int ChangeEvent
+    | PickedCourtroom Int (Maybe (Maybe Courtroom))
+    | CourtroomDropdownMsg Int (Dropdown.Msg (Maybe Courtroom))
     | PickedConditions Int (Maybe (Maybe ConditionOption))
     | ConditionsDropdownMsg Int (Dropdown.Msg (Maybe ConditionOption))
     | ChangedFeesAwarded Int String
@@ -524,7 +513,6 @@ type Msg
     | SubmitAndAddAnother
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
-    | UpsertedCourtroom (Result Http.Error (Rest.Item Courtroom))
     | UpsertedJudge (Result Http.Error (Rest.Item Judge))
     | UpsertedDefendant Int (Result Http.Error (Rest.Item Defendant))
     | UpsertedJudgement Int (Result Http.Error (Rest.Item Judgement))
@@ -704,56 +692,6 @@ update pageUrl navKey sharedModel static msg model =
                         )
                         model
 
-        ChangedCourtDatePicker changeEvent ->
-            case changeEvent of
-                DateChanged date ->
-                    updateForm
-                        (\form ->
-                            let
-                                courtDate =
-                                    form.courtDate
-
-                                updatedCourtDate =
-                                    { courtDate | date = Just date, dateText = Date.toIsoString date }
-                            in
-                            { form | courtDate = updatedCourtDate }
-                        )
-                        model
-
-                TextChanged text ->
-                    updateForm
-                        (\form ->
-                            let
-                                courtDate =
-                                    form.courtDate
-
-                                updatedCourtDate =
-                                    { courtDate
-                                        | date =
-                                            Date.fromIsoString text
-                                                |> Result.toMaybe
-                                                |> Maybe.Extra.orElse courtDate.date
-                                        , dateText = text
-                                    }
-                            in
-                            { form | courtDate = updatedCourtDate }
-                        )
-                        model
-
-                PickerChanged subMsg ->
-                    updateForm
-                        (\form ->
-                            let
-                                courtDate =
-                                    form.courtDate
-
-                                updatedCourtDate =
-                                    { courtDate | pickerModel = courtDate.pickerModel |> DatePicker.update subMsg }
-                            in
-                            { form | courtDate = updatedCourtDate }
-                        )
-                        model
-
         ChangedPlaintiffSearchBox changeEvent ->
             case changeEvent of
                 SearchBox.SelectionChanged person ->
@@ -877,110 +815,6 @@ update pageUrl navKey sharedModel static msg model =
                     ( { form | statusDropdown = newState }, Effects.perform newCmd )
                 )
                 model
-
-        ChangedCourtroomSearchBox changeEvent ->
-            case changeEvent of
-                SearchBox.SelectionChanged selection ->
-                    updateForm
-                        (\form ->
-                            let
-                                courtroom =
-                                    form.courtroom
-
-                                updatedCourtroom =
-                                    { courtroom | selection = Just selection, text = selection.name }
-                            in
-                            { form | courtroom = updatedCourtroom }
-                        )
-                        model
-
-                SearchBox.TextChanged text ->
-                    ( updateFormOnly
-                        (\form ->
-                            let
-                                courtroom =
-                                    form.courtroom
-
-                                updatedCourtroom =
-                                    { courtroom
-                                        | selection = Nothing
-                                        , text = text
-                                        , searchBox = SearchBox.reset courtroom.searchBox
-                                    }
-                            in
-                            { form | courtroom = updatedCourtroom }
-                        )
-                        model
-                    , Rest.get (Endpoint.courtrooms domain [ ( "name", text ) ]) maybeCred GotCourtrooms (Rest.collectionDecoder Courtroom.decoder)
-                    )
-
-                SearchBox.SearchBoxChanged subMsg ->
-                    updateForm
-                        (\form ->
-                            let
-                                courtroom =
-                                    form.courtroom
-
-                                updatedCourtroom =
-                                    { courtroom
-                                        | searchBox = SearchBox.update subMsg courtroom.searchBox
-                                    }
-                            in
-                            { form | courtroom = updatedCourtroom }
-                        )
-                        model
-
-        ChangedJudgeSearchBox changeEvent ->
-            case changeEvent of
-                SearchBox.SelectionChanged person ->
-                    updateForm
-                        (\form ->
-                            let
-                                judge =
-                                    form.presidingJudge
-
-                                updatedJudge =
-                                    { judge | person = Just person }
-                            in
-                            { form | presidingJudge = updatedJudge }
-                        )
-                        model
-
-                SearchBox.TextChanged text ->
-                    ( updateFormOnly
-                        (\form ->
-                            let
-                                judge =
-                                    form.presidingJudge
-
-                                updatedJudge =
-                                    { judge
-                                        | person = Nothing
-                                        , text = text
-                                        , searchBox = SearchBox.reset judge.searchBox
-                                    }
-                            in
-                            { form | presidingJudge = updatedJudge }
-                        )
-                        model
-                    , Rest.get (Endpoint.judges domain [ ( "name", text ) ]) maybeCred GotJudges (Rest.collectionDecoder Judge.decoder)
-                    )
-
-                SearchBox.SearchBoxChanged subMsg ->
-                    updateForm
-                        (\form ->
-                            let
-                                judge =
-                                    form.presidingJudge
-
-                                updatedJudge =
-                                    { judge
-                                        | searchBox = SearchBox.update subMsg judge.searchBox
-                                    }
-                            in
-                            { form | presidingJudge = updatedJudge }
-                        )
-                        model
 
         ChangedAmountClaimed money ->
             updateForm (\form -> { form | amountClaimed = String.replace "$" "" money }) model
@@ -1158,6 +992,36 @@ update pageUrl navKey sharedModel static msg model =
                             )
                         )
                         model
+
+        PickedCourtroom selected option ->
+            updateForm
+                (updateJudgement selected (\judgement -> { judgement | courtroom = Maybe.andThen identity option }))
+                model
+
+        CourtroomDropdownMsg selected subMsg ->
+            updateFormNarrow
+                (\form ->
+                    let
+                        judgementsAndCmds =
+                            List.indexedMap
+                                (\candidate judgement ->
+                                    if selected == candidate then
+                                        let
+                                            ( newState, newCmd ) =
+                                                Dropdown.update cfg subMsg (courtroomDropdown model.courtrooms selected judgement)
+                                        in
+                                        ( { judgement | courtroomDropdown = newState }, Effects.perform newCmd )
+
+                                    else
+                                        ( judgement, Cmd.none )
+                                )
+                                form.judgements
+                    in
+                    ( { form | judgements = List.map Tuple.first judgementsAndCmds }
+                    , Cmd.batch (List.map Tuple.second judgementsAndCmds)
+                    )
+                )
+                model
 
         PickedConditions selected option ->
             updateForm
@@ -1515,44 +1379,20 @@ update pageUrl navKey sharedModel static msg model =
         UpsertedPlaintiff (Err httpError) ->
             ( model, logHttpError httpError )
 
-        UpsertedCourtroom (Ok courtroomItem) ->
-            nextStepSave
-                today
-                domain
-                session
-                (updateFormOnly
-                    (\form -> { form | courtroom = initCourtroomForm (Just courtroomItem.data) })
-                    { model
-                        | saveState =
-                            case model.saveState of
-                                SavingRelatedModels models ->
-                                    SavingRelatedModels { models | courtroom = True }
-
-                                _ ->
-                                    model.saveState
-                    }
-                )
-
-        UpsertedCourtroom (Err httpError) ->
-            ( model, logHttpError httpError )
-
         UpsertedJudge (Ok judgeItem) ->
             nextStepSave
                 today
                 domain
                 session
-                (updateFormOnly
-                    (\form -> { form | presidingJudge = initJudgeForm (Just judgeItem.data) })
-                    { model
-                        | saveState =
-                            case model.saveState of
-                                SavingRelatedModels models ->
-                                    SavingRelatedModels { models | judge = True }
+                { model
+                    | saveState =
+                        case model.saveState of
+                            SavingRelatedModels models ->
+                                SavingRelatedModels models
 
-                                _ ->
-                                    model.saveState
-                    }
-                )
+                            _ ->
+                                model.saveState
+                }
 
         UpsertedJudge (Err httpError) ->
             ( model, logHttpError httpError )
@@ -1737,8 +1577,6 @@ submitForm today domain session model =
                     SavingRelatedModels
                         { attorney = apiForms.attorney == Nothing
                         , plaintiff = apiForms.plaintiff == Nothing
-                        , courtroom = apiForms.courtroom == Nothing
-                        , judge = apiForms.judge == Nothing
                         , defendants = 0
                         }
               }
@@ -1748,8 +1586,6 @@ submitForm today domain session model =
                         |> Maybe.map (List.singleton << upsertAttorney domain maybeCred)
                         |> Maybe.withDefault []
                     , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff domain maybeCred) apiForms.plaintiff
-                    , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertCourtroom domain maybeCred) apiForms.courtroom
-                    , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertJudge domain maybeCred) apiForms.judge
                     , List.indexedMap (upsertDefendant domain maybeCred) apiForms.defendants
                     ]
                 )
@@ -1777,8 +1613,6 @@ nextStepSave today domain session model =
                 SavingRelatedModels models ->
                     if
                         models.attorney
-                            && models.courtroom
-                            && models.judge
                             && models.plaintiff
                             && List.length apiForms.defendants
                             >= models.defendants
@@ -2066,6 +1900,19 @@ amountClaimedDropdown form =
         }
 
 
+courtroomDropdown courtrooms index judgement =
+    basicDropdown
+        { config =
+            { dropdownMsg = CourtroomDropdownMsg index
+            , onSelectMsg = PickedCourtroom index
+            , state = judgement.courtroomDropdown
+            }
+        , selected = Just judgement.courtroom
+        , itemToStr = Maybe.withDefault "-" << Maybe.map .name
+        , items = Nothing :: List.map Just courtrooms
+        }
+
+
 dismissalBasisDropdown index judgement =
     basicDropdown
         { config =
@@ -2207,63 +2054,23 @@ viewPlaintiffAttorneySearch options form =
         ]
 
 
-viewCourtDate : FormOptions -> Form -> Element Msg
-viewCourtDate options form =
+viewCourtroom : FormOptions -> Int -> JudgementForm -> Element Msg
+viewCourtroom options index form =
     -- let
     --     hasChanges =
     --         (Maybe.withDefault False <|
-    --             Maybe.map ((/=) form.courtDate.date << .courtDate) options.originalWarrant
+    --             Maybe.map ((/=) form.courtroom.selection << .courtroom) options.originalWarrant
     --         )
-    --             || (options.originalWarrant == Nothing && form.courtDate.dateText /= "")
+    --             || (options.originalWarrant == Nothing && form.courtroom.text /= "")
     -- in
-    column [ width fill ]
-        [ viewField
-            { tooltip = Just CourtDateInfo
-            , currentTooltip = options.tooltip
-            , description = "The date set for deliberating the judgement of the eviction in court."
-            , children =
-                [ DatePicker.input (withValidation CourtDate options.problems (withChanges False [ Element.centerX, Element.centerY ]))
-                    { onChange = ChangedCourtDatePicker
-                    , selected = form.courtDate.date
-                    , text = form.courtDate.dateText
-                    , label =
-                        Input.labelAbove [] (text "Court Date")
-                    , placeholder = Just <| Input.placeholder [] (text (Date.toIsoString options.today))
-                    , settings = DatePicker.defaultSettings
-                    , model = form.courtDate.pickerModel
-                    }
-                ]
-            }
-        ]
-
-
-viewCourtroom : FormOptions -> Form -> Element Msg
-viewCourtroom options form =
-    let
-        hasChanges =
-            (Maybe.withDefault False <|
-                Maybe.map ((/=) form.courtroom.selection << .courtroom) options.originalWarrant
-            )
-                || (options.originalWarrant == Nothing && form.courtroom.text /= "")
-    in
     column [ width fill ]
         [ viewField
             { tooltip = Just CourtroomInfo
             , currentTooltip = options.tooltip
             , description = "The court room where eviction proceedings will occur."
             , children =
-                [ searchBox (withChanges hasChanges [])
-                    { onChange = ChangedCourtroomSearchBox
-                    , text = form.courtroom.text
-                    , selected = form.courtroom.selection
-                    , options = Just ({ id = -1, name = form.courtroom.text } :: options.courtrooms)
-                    , label =
-                        Input.labelAbove [] (text "Courtroom")
-                    , placeholder = Just <| Input.placeholder [] (text "Search for courtroom")
-                    , toLabel = .name
-                    , filter = \query option -> True
-                    , state = form.courtroom.searchBox
-                    }
+                [ courtroomDropdown options.courtrooms index form
+                    |> Dropdown.renderElement options.renderConfig
                 ]
             }
         ]
@@ -2908,7 +2715,8 @@ viewJudgement options index form =
             , viewJudgeSearch options index form
             ]
         , row [ spacing 5 ]
-            [ viewField
+            [ viewCourtroom options index form
+            , viewField
                 { tooltip = Just (JudgementInfo index Summary)
                 , currentTooltip = options.tooltip
                 , description = "The ruling from the court that will determine if fees or repossession are enforced."
@@ -3051,10 +2859,6 @@ viewForm options formStatus =
                     , formGroup
                         [ viewPlaintiffSearch options form
                         , viewPlaintiffAttorneySearch options form
-                        ]
-                    , formGroup
-                        [ viewCourtDate options form
-                        , viewCourtroom options form
                         ]
                     ]
                 , tile
@@ -3438,16 +3242,7 @@ validateField today (Trimmed form) field =
                 []
 
             CourtDate ->
-                if String.isEmpty form.courtDate.dateText then
-                    []
-
-                else
-                    case Date.fromIsoString form.courtDate.dateText of
-                        Ok _ ->
-                            []
-
-                        Err errorStr ->
-                            [ errorStr ]
+                []
 
             DefendantAddress ->
                 if String.isEmpty form.address then
@@ -3499,13 +3294,12 @@ validateField today (Trimmed form) field =
             ValidJudgement index judgementValidation ->
                 case List.head <| List.take index form.judgements of
                     Just judgement ->
-                        case judgementValidation of
-                            JudgementFileDate ->
-                                if Date.compare (Maybe.withDefault today judgement.courtDate.date) (Maybe.withDefault today form.courtDate.date) == LT then
-                                    [ "Judgement cannot be filed before detainer warrant." ]
-
-                                else
-                                    []
+                        -- case judgementValidation of
+                        --     JudgementFileDate ->
+                        --         if Date.compare (Maybe.withDefault today judgement.courtDate.date) (Maybe.withDefault today form.courtDate.date) == LT then
+                        --             [ "Judgement cannot be filed before detainer warrant." ]
+                        --         else
+                        []
 
                     Nothing ->
                         []
@@ -3530,8 +3324,6 @@ type alias ApiForms =
     , defendants : List Defendant
     , plaintiff : Maybe Plaintiff
     , attorney : Maybe Attorney
-    , judge : Maybe Judge
-    , courtroom : Maybe Courtroom
     , judgements : List JudgementEdit
     }
 
@@ -3579,9 +3371,6 @@ toDetainerWarrant today (Trimmed form) =
         , status = form.status
         , plaintiff = Maybe.map (related << .id) form.plaintiff.person
         , plaintiffAttorney = Maybe.map (related << .id) form.plaintiffAttorney.person
-        , courtDate = Maybe.map Date.toIsoString form.courtDate.date
-        , courtroom = Maybe.map (related << .id) form.courtroom.selection
-        , presidingJudge = Maybe.map (related << .id) form.presidingJudge.person
         , isCares = form.isCares
         , isLegacy = form.isLegacy
         , nonpayment = form.isNonpayment
@@ -3600,10 +3389,6 @@ toDetainerWarrant today (Trimmed form) =
         form.plaintiff.person
     , attorney =
         form.plaintiffAttorney.person
-    , judge =
-        form.presidingJudge.person
-    , courtroom =
-        form.courtroom.selection
     , judgements =
         List.map (DetainerWarrant.editFromForm today) form.judgements
     }
@@ -3672,31 +3457,6 @@ upsertJudgement domain maybeCred warrant index form =
 deleteJudgement : String -> Maybe Cred -> Int -> Int -> Cmd Msg
 deleteJudgement domain maybeCred index id =
     Rest.delete (Endpoint.judgement domain id) maybeCred (DeletedJudgement index)
-
-
-upsertCourtroom : String -> Maybe Cred -> Courtroom -> Cmd Msg
-upsertCourtroom domain maybeCred courtroom =
-    let
-        decoder =
-            Rest.itemDecoder Courtroom.decoder
-
-        postData =
-            Encode.object
-                ([ ( "name", Encode.string courtroom.name )
-                 , defaultDistrict
-                 ]
-                    ++ conditional "id" Encode.int (remoteId courtroom)
-                )
-
-        body =
-            toBody postData
-    in
-    case remoteId courtroom of
-        Just id ->
-            Rest.patch (Endpoint.courtroom domain id) maybeCred body UpsertedCourtroom decoder
-
-        Nothing ->
-            Rest.post (Endpoint.courtrooms domain []) maybeCred body UpsertedCourtroom decoder
 
 
 upsertJudge : String -> Maybe Cred -> Judge -> Cmd Msg
@@ -3839,9 +3599,6 @@ updateDetainerWarrant domain maybeCred form =
                     ++ nullable "status" Encode.string (Maybe.map DetainerWarrant.statusText form.status)
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
                     ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney
-                    ++ nullable "court_date" Encode.string form.courtDate
-                    ++ nullable "courtroom" encodeRelated form.courtroom
-                    ++ nullable "presiding_judge" encodeRelated form.presidingJudge
                     ++ nullable "is_cares" Encode.bool form.isCares
                     ++ nullable "is_legacy" Encode.bool form.isLegacy
                     ++ nullable "nonpayment" Encode.bool form.nonpayment
