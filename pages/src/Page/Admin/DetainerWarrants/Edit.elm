@@ -15,7 +15,6 @@ import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import DetainerWarrant exposing (AmountClaimedCategory, ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
 import Dict exposing (Dict)
-import Dropdown
 import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, inFront, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
@@ -25,7 +24,7 @@ import Element.Input as Input exposing (labelHidden)
 import FeatherIcons
 import Head
 import Head.Seo as Seo
-import Html.Attributes
+import Html.Attributes exposing (selected)
 import Html.Events
 import Http
 import Json.Decode as Decode
@@ -60,7 +59,8 @@ import Task
 import Time
 import Time.Utils
 import UI.Button as Button exposing (Button)
-import UI.Effects
+import UI.Dropdown as Dropdown
+import UI.Effects as Effects
 import UI.Icon as Icon
 import UI.Link as Link
 import UI.Palette as Palette
@@ -608,6 +608,9 @@ update pageUrl navKey sharedModel static msg model =
         today =
             static.sharedData.runtime.today
 
+        cfg =
+            sharedModel.renderConfig
+
         session =
             sharedModel.session
 
@@ -867,15 +870,10 @@ update pageUrl navKey sharedModel static msg model =
             updateFormNarrow
                 (\form ->
                     let
-                        ( state, cmd ) =
-                            Dropdown.update (statusDropdownConfig [])
-                                subMsg
-                                { options = DetainerWarrant.statusOptions
-                                , selectedOption = Just form.status
-                                }
-                                form.statusDropdown
+                        ( newState, newCmd ) =
+                            Dropdown.update cfg subMsg (statusDropdown form)
                     in
-                    ( { form | statusDropdown = state }, cmd )
+                    ( { form | statusDropdown = newState }, Effects.perform newCmd )
                 )
                 model
 
@@ -1021,16 +1019,10 @@ update pageUrl navKey sharedModel static msg model =
             updateFormNarrow
                 (\form ->
                     let
-                        ( state, cmd ) =
-                            Dropdown.update (categoryDropdownConfig [])
-                                subMsg
-                                { options =
-                                    DetainerWarrant.amountClaimedCategoryOptions
-                                , selectedOption = Just form.amountClaimedCategory
-                                }
-                                form.categoryDropdown
+                        ( newState, newCmd ) =
+                            Dropdown.update cfg subMsg (amountClaimedDropdown form)
                     in
-                    ( { form | categoryDropdown = state }, cmd )
+                    ( { form | categoryDropdown = newState }, Effects.perform newCmd )
                 )
                 model
 
@@ -1038,15 +1030,10 @@ update pageUrl navKey sharedModel static msg model =
             updateFormNarrow
                 (\form ->
                     let
-                        ( state, cmd ) =
-                            Dropdown.update (caresDropdownConfig [])
-                                subMsg
-                                { options = DetainerWarrant.ternaryOptions
-                                , selectedOption = Just form.isCares
-                                }
-                                form.caresDropdown
+                        ( newState, newCmd ) =
+                            Dropdown.update cfg subMsg (caresDropdown form)
                     in
-                    ( { form | caresDropdown = state }, cmd )
+                    ( { form | caresDropdown = newState }, Effects.perform newCmd )
                 )
                 model
 
@@ -1059,15 +1046,10 @@ update pageUrl navKey sharedModel static msg model =
             updateFormNarrow
                 (\form ->
                     let
-                        ( state, cmd ) =
-                            Dropdown.update (legacyDropdownConfig [])
-                                subMsg
-                                { options = DetainerWarrant.ternaryOptions
-                                , selectedOption = Just form.isLegacy
-                                }
-                                form.legacyDropdown
+                        ( newState, newCmd ) =
+                            Dropdown.update cfg subMsg (legacyDropdown form)
                     in
-                    ( { form | legacyDropdown = state }, cmd )
+                    ( { form | legacyDropdown = newState }, Effects.perform newCmd )
                 )
                 model
 
@@ -1080,15 +1062,10 @@ update pageUrl navKey sharedModel static msg model =
             updateFormNarrow
                 (\form ->
                     let
-                        ( state, cmd ) =
-                            Dropdown.update (nonpaymentDropdownConfig [])
-                                subMsg
-                                { options = DetainerWarrant.ternaryOptions
-                                , selectedOption = Just form.isNonpayment
-                                }
-                                form.nonpaymentDropdown
+                        ( newState, newCmd ) =
+                            Dropdown.update cfg subMsg (nonpaymentDropdown form)
                     in
-                    ( { form | nonpaymentDropdown = state }, cmd )
+                    ( { form | nonpaymentDropdown = newState }, Effects.perform newCmd )
                 )
                 model
 
@@ -1195,19 +1172,10 @@ update pageUrl navKey sharedModel static msg model =
                                 (\candidate judgement ->
                                     if selected == candidate then
                                         let
-                                            ( state, cmd ) =
-                                                Dropdown.update (dismissalBasisDropdownConfig selected [])
-                                                    subMsg
-                                                    { options = DetainerWarrant.dismissalBasisOptions
-                                                    , selectedOption = Just judgement.dismissalBasis
-                                                    }
-                                                    judgement.dismissalBasisDropdown
+                                            ( newState, newCmd ) =
+                                                Dropdown.update cfg subMsg (dismissalBasisDropdown selected judgement)
                                         in
-                                        ( { judgement
-                                            | dismissalBasisDropdown = state
-                                          }
-                                        , cmd
-                                        )
+                                        ( { judgement | dismissalBasisDropdown = newState }, Effects.perform newCmd )
 
                                     else
                                         ( judgement, Cmd.none )
@@ -1381,19 +1349,10 @@ update pageUrl navKey sharedModel static msg model =
                                 (\candidate judgement ->
                                     if selected == candidate then
                                         let
-                                            ( state, cmd ) =
-                                                Dropdown.update (conditionsDropdownConfig selected [])
-                                                    subMsg
-                                                    { options = DetainerWarrant.conditionsOptions
-                                                    , selectedOption = Just judgement.condition
-                                                    }
-                                                    judgement.conditionsDropdown
+                                            ( newState, newCmd ) =
+                                                Dropdown.update cfg subMsg (conditionsDropdown selected judgement)
                                         in
-                                        ( { judgement
-                                            | conditionsDropdown = state
-                                          }
-                                        , cmd
-                                        )
+                                        ( { judgement | conditionsDropdown = newState }, Effects.perform newCmd )
 
                                     else
                                         ( judgement, Cmd.none )
@@ -1988,13 +1947,14 @@ viewDocketId options form =
                         el [ height (px 41), Element.alignBottom, padding 10, Element.width Element.shrink ] (text ("Docket Number: " ++ docketId))
 
                     Nothing ->
-                        textInput
-                            (withValidation DocketId options.problems [ Input.focusedOnLoad ])
-                            { onChange = ChangedDocketId
-                            , text = form.docketId
-                            , placeholder = Just (Input.placeholder [] (text "12AB34"))
-                            , label = requiredLabel Input.labelAbove "Docket Number"
-                            }
+                        TextField.singlelineText ChangedDocketId
+                            "Docket number"
+                            form.docketId
+                            |> TextField.setLabelVisible True
+                            |> TextField.withPlaceholder "12AB3456"
+                            |> TextField.renderElement options.renderConfig
+
+                -- (withValidation DocketId options.problems [ Input.focusedOnLoad ])
                 ]
             }
         ]
@@ -2031,81 +1991,104 @@ viewFileDate options form =
         ]
 
 
-dropdownConfig label itemToStr dropdownMsg itemPickedMsg attrs =
-    let
-        containerAttrs =
-            [ width (Element.fill |> Element.minimum 250)
-            ]
+basicDropdown { config, itemToStr, selected, items } =
+    Dropdown.basic config
+        |> Dropdown.withItems items
+        |> Dropdown.withSelected selected
+        |> Dropdown.withItemToText itemToStr
+        |> Dropdown.withMaximumListHeight 200
 
-        selectAttrs =
-            [ Border.width 1
-            , Border.rounded 5
-            , Palette.toBorderColor Palette.gray200
-            , paddingXY 16 8
-            , spacing 10
-            , width fill
-            , Element.focused
-                [ Palette.toBorderColor Palette.gray200
-                , Border.shadow { offset = ( 0, 0 ), size = 3, blur = 3, color = Palette.toElementColor Palette.gray }
-                ]
-            ]
-                ++ attrs
 
-        listAttrs =
-            [ Border.width 1
-            , Border.roundEach { topLeft = 0, topRight = 0, bottomLeft = 5, bottomRight = 5 }
-            , width fill
-            , spacing 5
-            , Palette.toBackgroundColor Palette.genericWhite
-            ]
-
-        itemToPrompt item =
-            text (itemToStr item)
-
-        itemToElement selected highlighted item =
-            let
-                bgColor =
-                    if highlighted then
-                        Palette.red300
-
-                    else if selected then
-                        Palette.red
-
-                    else
-                        Palette.genericWhite
-            in
-            el
-                ([ Palette.toBackgroundColor bgColor
-                 , padding 8
-                 , spacing 10
-                 , width fill
-                 ]
-                    ++ (if selected then
-                            []
-
-                        else
-                            [ Element.mouseOver [ Palette.toBackgroundColor Palette.red300 ] ]
-                       )
-                )
-                (text (itemToStr item))
-    in
-    Dropdown.basic
-        { itemsFromModel = .options
-        , selectionFromModel = .selectedOption
-        , dropdownMsg = dropdownMsg
-        , onSelectMsg = itemPickedMsg
-        , itemToPrompt = itemToPrompt
-        , itemToElement = itemToElement
-        }
-        |> Dropdown.withContainerAttributes containerAttrs
-        |> Dropdown.withSelectAttributes selectAttrs
-        |> Dropdown.withListAttributes listAttrs
-        |> Dropdown.withPromptElement (el [] <| text label)
-        |> Dropdown.withOpenCloseButtons
-            { openButton =
-                FeatherIcons.chevronDown |> FeatherIcons.toHtml [] |> Element.html
-            , closeButton = FeatherIcons.chevronUp |> FeatherIcons.toHtml [] |> Element.html
+statusDropdown : Form -> Dropdown.Dropdown (Maybe Status) Msg
+statusDropdown form =
+    basicDropdown
+        { config =
+            { dropdownMsg = StatusDropdownMsg
+            , onSelectMsg = PickedStatus
+            , state = form.statusDropdown
             }
+        , selected = Just form.status
+        , itemToStr = Maybe.withDefault "-" << Maybe.map DetainerWarrant.statusText
+        , items = DetainerWarrant.statusOptions
+        }
+
+
+caresDropdown form =
+    basicDropdown
+        { config =
+            { dropdownMsg = CaresDropdownMsg
+            , onSelectMsg = PickedCares
+            , state = form.caresDropdown
+            }
+        , selected = Just form.isCares
+        , itemToStr = ternaryText
+        , items = DetainerWarrant.ternaryOptions
+        }
+
+
+legacyDropdown form =
+    basicDropdown
+        { config =
+            { dropdownMsg = LegacyDropdownMsg
+            , onSelectMsg = PickedLegacy
+            , state = form.legacyDropdown
+            }
+        , selected = Just form.isLegacy
+        , itemToStr = ternaryText
+        , items = DetainerWarrant.ternaryOptions
+        }
+
+
+nonpaymentDropdown form =
+    basicDropdown
+        { config =
+            { dropdownMsg = NonpaymentDropdownMsg
+            , onSelectMsg = PickedNonpayment
+            , state = form.nonpaymentDropdown
+            }
+        , selected = Just form.isNonpayment
+        , itemToStr = ternaryText
+        , items = DetainerWarrant.ternaryOptions
+        }
+
+
+amountClaimedDropdown form =
+    basicDropdown
+        { config =
+            { dropdownMsg = CategoryDropdownMsg
+            , onSelectMsg = PickedAmountClaimedCategory
+            , state = form.categoryDropdown
+            }
+        , selected = Just form.amountClaimedCategory
+        , itemToStr = DetainerWarrant.amountClaimedCategoryText
+        , items = DetainerWarrant.amountClaimedCategoryOptions
+        }
+
+
+dismissalBasisDropdown index judgement =
+    basicDropdown
+        { config =
+            { dropdownMsg = DismissalBasisDropdownMsg index
+            , onSelectMsg = PickedDismissalBasis index
+            , state = judgement.dismissalBasisDropdown
+            }
+        , selected = Just judgement.dismissalBasis
+        , itemToStr = DetainerWarrant.dismissalBasisOption
+        , items = DetainerWarrant.dismissalBasisOptions
+        }
+
+
+conditionsDropdown index judgement =
+    basicDropdown
+        { config =
+            { dropdownMsg = ConditionsDropdownMsg index
+            , onSelectMsg = PickedConditions index
+            , state = judgement.conditionsDropdown
+            }
+        , selected = Just judgement.condition
+        , itemToStr = Maybe.withDefault "N/A" << Maybe.map DetainerWarrant.conditionText
+        , items = DetainerWarrant.conditionsOptions
+        }
 
 
 ternaryText isCares =
@@ -2130,34 +2113,6 @@ withUnknown fn maybe =
             "Unknown"
 
 
-categoryDropdownConfig =
-    dropdownConfig "Amount Claimed Category" DetainerWarrant.amountClaimedCategoryText CategoryDropdownMsg PickedAmountClaimedCategory
-
-
-statusDropdownConfig =
-    dropdownConfig "Status" (Maybe.withDefault "-" << Maybe.map DetainerWarrant.statusText) StatusDropdownMsg PickedStatus
-
-
-caresDropdownConfig =
-    dropdownConfig "Cares" ternaryText CaresDropdownMsg PickedCares
-
-
-legacyDropdownConfig =
-    dropdownConfig "Legacy" ternaryText LegacyDropdownMsg PickedLegacy
-
-
-nonpaymentDropdownConfig =
-    dropdownConfig "Nonpayment" ternaryText NonpaymentDropdownMsg PickedNonpayment
-
-
-conditionsDropdownConfig index =
-    dropdownConfig "Granted to" (Maybe.withDefault "-" << Maybe.map DetainerWarrant.conditionText) (ConditionsDropdownMsg index) (PickedConditions index)
-
-
-dismissalBasisDropdownConfig index =
-    dropdownConfig "Dismissal based on" DetainerWarrant.dismissalBasisOption (DismissalBasisDropdownMsg index) (PickedDismissalBasis index)
-
-
 viewStatus : FormOptions -> Form -> Element Msg
 viewStatus options form =
     let
@@ -2177,9 +2132,8 @@ viewStatus options form =
             , description = "The current status of the case in the court system."
             , children =
                 [ column [ spacing 5, width fill ]
-                    [ Element.el [] (text "Status")
-                    , Dropdown.view (statusDropdownConfig (withChanges hasChanges [])) { options = DetainerWarrant.statusOptions, selectedOption = Just form.status } form.statusDropdown
-                        |> el []
+                    [ statusDropdown form
+                        |> Dropdown.renderElement options.renderConfig
                     ]
                 ]
             }
@@ -2361,17 +2315,18 @@ viewAmountClaimed options form =
             , currentTooltip = options.tooltip
             , description = "The monetary amount the plaintiff is requesting from the defendant."
             , children =
-                [ textInput (withChanges hasChanges [ Events.onLoseFocus ConfirmAmountClaimed ])
-                    { onChange = ChangedAmountClaimed
-                    , text =
-                        if form.amountClaimed == "" then
-                            form.amountClaimed
+                [ TextField.singlelineText ChangedAmountClaimed
+                    "Amount claimed"
+                    (if form.amountClaimed == "" then
+                        form.amountClaimed
 
-                        else
-                            "$" ++ form.amountClaimed
-                    , label = Input.labelAbove [] (text "Amount Claimed")
-                    , placeholder = Just <| Input.placeholder [] (text "$0.00")
-                    }
+                     else
+                        "$" ++ form.amountClaimed
+                    )
+                    |> TextField.setLabelVisible True
+                    |> TextField.withPlaceholder "$0.00"
+                    |> TextField.withOnEnterPressed ConfirmAmountClaimed
+                    |> TextField.renderElement options.renderConfig
                 ]
             }
         ]
@@ -2397,13 +2352,6 @@ viewAmountClaimedCategory options form =
             , children =
                 [ column [ spacing 5, width fill ]
                     [ el [] (text "Amount Claimed Category")
-                    , Dropdown.view (categoryDropdownConfig (withChanges hasChanges []))
-                        { options =
-                            DetainerWarrant.amountClaimedCategoryOptions
-                        , selectedOption = Just form.amountClaimedCategory
-                        }
-                        form.categoryDropdown
-                        |> el []
                     ]
                 ]
             }
@@ -2427,8 +2375,8 @@ viewCares options form =
             , children =
                 [ column [ spacing 5, width fill ]
                     [ el [] (text "Is C.A.R.E.S. property?")
-                    , Dropdown.view (caresDropdownConfig (withChanges hasChanges [])) { options = DetainerWarrant.ternaryOptions, selectedOption = Just form.isCares } form.caresDropdown
-                        |> el []
+                    , caresDropdown form
+                        |> Dropdown.renderElement options.renderConfig
                     ]
                 ]
             }
@@ -2452,8 +2400,8 @@ viewLegacy options form =
             , children =
                 [ column [ spacing 5, width fill ]
                     [ el [] (text "Is L.E.G.A.C.Y. property?")
-                    , Dropdown.view (legacyDropdownConfig (withChanges hasChanges [])) { options = DetainerWarrant.ternaryOptions, selectedOption = Just form.isLegacy } form.legacyDropdown
-                        |> el []
+                    , legacyDropdown form
+                        |> Dropdown.renderElement options.renderConfig
                     ]
                 ]
             }
@@ -2477,8 +2425,8 @@ viewNonpayment options form =
             , children =
                 [ column [ spacing 5, width fill ]
                     [ el [] (text "Is nonpayment?")
-                    , Dropdown.view (nonpaymentDropdownConfig (withChanges hasChanges [])) { options = DetainerWarrant.ternaryOptions, selectedOption = Just form.isNonpayment } form.nonpaymentDropdown
-                        |> el []
+                    , nonpaymentDropdown form
+                        |> Dropdown.renderElement options.renderConfig
                     ]
                 ]
             }
@@ -2505,19 +2453,15 @@ viewAddress options form =
             , currentTooltip = options.tooltip
             , description = "The address where the defendant or defendants reside."
             , children =
-                [ textInput (withValidation DefendantAddress options.problems (withChanges hasChanges []))
-                    { onChange = ChangedAddress
-                    , text = form.address
-                    , label = requiredLabel Input.labelAbove "Defendant Address"
-                    , placeholder = Just <| Input.placeholder [] (text "123 Street Address, City, Zip Code")
-                    }
+                [ TextField.singlelineText ChangedAddress
+                    "Defendant address"
+                    form.address
+                    |> TextField.setLabelVisible True
+                    |> TextField.withPlaceholder "123 Street Address, City, Zip Code"
+                    |> TextField.renderElement options.renderConfig
                 ]
             }
         ]
-
-
-textInput attrs config =
-    Input.text ([ Palette.toBorderColor Palette.gray200 ] ++ attrs) config
 
 
 viewFirstName : FormOptions -> Int -> DefendantForm -> Element Msg
@@ -2536,12 +2480,13 @@ viewFirstName options index defendant =
             , description = ""
             , currentTooltip = Nothing
             , children =
-                [ textInput (withValidation (DefendantFirstName index) options.problems (withChanges hasChanges []))
-                    { onChange = ChangedFirstName index
-                    , text = defendant.firstName
-                    , label = requiredLabel Input.labelAbove "First Name"
-                    , placeholder = Nothing
-                    }
+                [ TextField.singlelineText (ChangedFirstName index)
+                    "First name"
+                    defendant.firstName
+                    |> TextField.setLabelVisible True
+                    |> TextField.renderElement options.renderConfig
+
+                --(withValidation (DefendantFirstName index) options.problems (withChanges hasChanges []))
                 ]
             }
         ]
@@ -2564,12 +2509,11 @@ viewMiddleName options index defendant =
             , description = ""
             , currentTooltip = Nothing
             , children =
-                [ textInput (withChanges hasChanges [])
-                    { onChange = ChangedMiddleName index
-                    , text = defendant.middleName
-                    , label = Input.labelAbove [] (text "Middle Name")
-                    , placeholder = Nothing
-                    }
+                [ TextField.singlelineText (ChangedMiddleName index)
+                    "Middle name"
+                    defendant.middleName
+                    |> TextField.setLabelVisible True
+                    |> TextField.renderElement options.renderConfig
                 ]
             }
         ]
@@ -2591,13 +2535,13 @@ viewLastName options index defendant =
             , description = ""
             , currentTooltip = Nothing
             , children =
-                [ textInput (withValidation (DefendantLastName index) options.problems (withChanges hasChanges []))
-                    { onChange = ChangedLastName index
-                    , text = defendant.lastName
-                    , label =
-                        requiredLabel Input.labelAbove "Last Name"
-                    , placeholder = Nothing
-                    }
+                [ TextField.singlelineText (ChangedLastName index)
+                    "Last name"
+                    defendant.lastName
+                    |> TextField.setLabelVisible True
+                    |> TextField.renderElement options.renderConfig
+
+                -- (withValidation (DefendantLastName index) options.problems (withChanges hasChanges []))
                 ]
             }
         ]
@@ -2620,12 +2564,11 @@ viewSuffix options index defendant =
             , description = ""
             , currentTooltip = Nothing
             , children =
-                [ textInput (withChanges hasChanges [])
-                    { onChange = ChangedSuffix index
-                    , text = defendant.suffix
-                    , label = Input.labelAbove [] (text "Suffix")
-                    , placeholder = Nothing
-                    }
+                [ TextField.singlelineText (ChangedSuffix index)
+                    "Suffix"
+                    defendant.suffix
+                    |> TextField.setLabelVisible True
+                    |> TextField.renderElement options.renderConfig
                 ]
             }
         ]
@@ -2677,44 +2620,32 @@ viewPotentialPhones options index defendant =
                         , currentTooltip = options.tooltip
                         , description = "Provide a phone number for the tenant so they will be called and texted during upcoming phonebanks and receive notifications about their detainer warrant updates."
                         , children =
-                            [ textInput (withValidation (DefendantPhoneNumber index i) options.problems (withChanges hasChanges []))
-                                { onChange = ChangedPotentialPhones index i
-                                , text = phone
-                                , label =
-                                    if i == 0 then
-                                        Input.labelLeft [ paddingXY 5 0 ] (text "Potential Phone Numbers")
-
-                                    else
-                                        Input.labelHidden "Potential Phone"
-                                , placeholder = Just <| Input.placeholder [] (text "123-456-7890")
-                                }
+                            [ TextField.singlelineText (ChangedPotentialPhones index i)
+                                "Potential phone"
+                                phone
+                                |> TextField.setLabelVisible True
+                                |> TextField.withPlaceholder "123-456-7890"
+                                |> TextField.renderElement options.renderConfig
                             , if i == 0 then
                                 Element.none
 
                               else
-                                Input.button
+                                el
                                     [ padding 2
                                     , Element.alignTop
-                                    , Palette.toFontColor Palette.red
-                                    , Palette.toBorderColor Palette.red
-                                    , Border.width 1
                                     ]
-                                    { onPress = Just <| RemovePhone index i
-                                    , label =
-                                        Element.el
-                                            [ width shrink
-                                            , height shrink
-                                            , padding 0
-                                            ]
-                                            (Element.html (FeatherIcons.x |> FeatherIcons.withSize 16 |> FeatherIcons.toHtml []))
-                                    }
+                                    (Button.fromIcon (Icon.close "Remove phone")
+                                        |> Button.cmd (RemovePhone index i) Button.clear
+                                        |> Button.withSize UI.Size.extraSmall
+                                        |> Button.renderElement options.renderConfig
+                                    )
                             ]
                         }
                     ]
             )
             defendant.potentialPhones
             ++ [ Button.fromIcon (Icon.add "Add phone")
-                    |> Button.cmd (AddPhone index) Button.primary
+                    |> Button.cmd (AddPhone index) Button.clear
                     |> Button.renderElement options.renderConfig
                ]
         )
@@ -2826,12 +2757,13 @@ viewJudgementInterest options index form =
                 , description = "The rate of interest that accrues for fees."
                 , children =
                     [ column [ spacing 5, width fill ]
-                        [ textInput (withChanges False [ Events.onLoseFocus (ConfirmedInterestRate index) ])
-                            { onChange = ChangedInterestRate index
-                            , text = form.interestRate
-                            , label = Input.labelAbove [] (text "Interest Rate")
-                            , placeholder = Just <| Input.placeholder [] (text "0%")
-                            }
+                        [ TextField.singlelineText (ChangedInterestRate index)
+                            "Interest rate"
+                            form.interestRate
+                            |> TextField.setLabelVisible True
+                            |> TextField.withOnEnterPressed (ConfirmedInterestRate index)
+                            |> TextField.withPlaceholder "0%"
+                            |> TextField.renderElement options.renderConfig
                         ]
                     ]
                 }
@@ -2866,17 +2798,18 @@ viewJudgementPlaintiff options index form =
         , description = "Fees the Plaintiff has been awarded."
         , children =
             [ column [ spacing 5, width fill ]
-                [ textInput (withChanges False [ Events.onLoseFocus (ConfirmedFeesAwarded index) ])
-                    { onChange = ChangedFeesAwarded index
-                    , text =
-                        if form.awardsFees == "" then
-                            form.awardsFees
+                [ TextField.singlelineText (ChangedFeesAwarded index)
+                    "Fees awarded"
+                    (if form.awardsFees == "" then
+                        form.awardsFees
 
-                        else
-                            "$" ++ form.awardsFees
-                    , label = Input.labelAbove [] (text "Fees Awarded")
-                    , placeholder = Just <| Input.placeholder [] (text "$0.00")
-                    }
+                     else
+                        "$" ++ form.awardsFees
+                    )
+                    |> TextField.setLabelVisible True
+                    |> TextField.withPlaceholder "$0.00"
+                    |> TextField.withOnEnterPressed (ConfirmedFeesAwarded index)
+                    |> TextField.renderElement options.renderConfig
                 ]
             ]
         }
@@ -2893,12 +2826,8 @@ viewJudgementDefendant options index form =
         , children =
             [ column [ spacing 5, width (fill |> minimum 350) ]
                 [ el [] (text "Basis for dismissal")
-                , Dropdown.view (dismissalBasisDropdownConfig index [])
-                    { options = DetainerWarrant.dismissalBasisOptions
-                    , selectedOption = Just form.dismissalBasis
-                    }
-                    form.dismissalBasisDropdown
-                    |> el [ width fill ]
+                , dismissalBasisDropdown index form
+                    |> Dropdown.renderElement options.renderConfig
                 ]
             ]
         }
@@ -2975,8 +2904,8 @@ viewJudgement options index form =
         , Border.rounded 5
         , inFront
             (row [ Element.alignRight, padding 20 ]
-                [ Button.fromIcon (Icon.remove "Remove Judgement")
-                    |> Button.cmd (RemoveJudgement index) Button.primary
+                [ Button.fromIcon (Icon.close "Remove Judgement")
+                    |> Button.cmd (RemoveJudgement index) Button.clear
                     |> Button.renderElement options.renderConfig
                 ]
             )
@@ -3024,12 +2953,8 @@ viewJudgement options index form =
                 , children =
                     [ column [ spacing 5, width fill ]
                         [ el [] (text "Granted to")
-                        , Dropdown.view (conditionsDropdownConfig index [])
-                            { options = DetainerWarrant.conditionsOptions
-                            , selectedOption = Just form.condition
-                            }
-                            form.conditionsDropdown
-                            |> el []
+                        , conditionsDropdown index form
+                            |> Dropdown.renderElement options.renderConfig
                         ]
                     ]
                 }
@@ -3335,10 +3260,9 @@ subscriptions pageUrl params path model =
 
         Ready form ->
             Sub.batch
-                ([ Dropdown.onOutsideClick form.statusDropdown StatusDropdownMsg
-                 , Dropdown.onOutsideClick form.categoryDropdown CategoryDropdownMsg
-
-                 --  , Dropdown.onOutsideClick form.conditionsDropdown ConditionsDropdownMsg
+                ([-- Dropdown.onOutsideClick form.statusDropdown StatusDropdownMsg
+                  -- , Dropdown.onOutsideClick form.categoryDropdown CategoryDropdownMsg
+                  --  , Dropdown.onOutsideClick form.conditionsDropdown ConditionsDropdownMsg
                  ]
                     ++ Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip)
                 )

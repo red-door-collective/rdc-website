@@ -5,7 +5,6 @@ import Courtroom exposing (Courtroom)
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
-import Dropdown
 import Element exposing (Element, column, fill, height, maximum, minimum, padding, px, row, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -21,6 +20,7 @@ import String.Extra
 import Time exposing (Month(..), Posix)
 import Time.Utils
 import UI.Button exposing (Button)
+import UI.Dropdown as Dropdown
 import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
 import UI.Tables.Stateful exposing (detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter)
 import UI.Text as Text
