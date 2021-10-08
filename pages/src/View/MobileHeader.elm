@@ -6,11 +6,10 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Html.Attributes as Attrs
-import Palette
 import Path exposing (Path)
-import RedDoor
 import Route exposing (Route(..))
 import Session exposing (Session)
+import UI.Palette as Palette
 
 
 headerLink attrs isActive =
@@ -20,7 +19,7 @@ headerLink attrs isActive =
          , Element.htmlAttribute (Attrs.class "responsive-mobile")
          ]
             ++ (if isActive then
-                    [ Font.color Palette.white ]
+                    [ Palette.toFontColor Palette.genericWhite ]
 
                 else
                     []

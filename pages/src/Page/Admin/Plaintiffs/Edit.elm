@@ -35,7 +35,6 @@ import MultiInput
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
-import Palette
 import Path exposing (Path)
 import PhoneNumber
 import PhoneNumber.Countries exposing (countryUS)
@@ -53,19 +52,28 @@ import Set
 import Settings exposing (Settings)
 import Shared
 import Task
+import UI.Button as Button exposing (Button)
+import UI.Effects
+import UI.Icon as Icon
+import UI.Link as Link
+import UI.Palette as Palette
+import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
+import UI.Size
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
+import UI.Text as Text
+import UI.TextField as TextField
+import UI.Utils.DateInput exposing (DateInput)
+import UI.Utils.TypeNumbers as T
 import Url.Builder
 import User exposing (User)
 import View exposing (View)
-import Widget
-import Widget.Customize as Customize
-import Widget.Icon exposing (Icon)
-import Widget.Material as Material
 
 
 type alias FormOptions =
     { tooltip : Maybe Tooltip
     , problems : List Problem
     , originalPlaintiff : Maybe Plaintiff
+    , renderConfig : RenderConfig
     }
 
 
@@ -458,53 +466,6 @@ onEnter msg =
         )
 
 
-palette : Material.Palette
-palette =
-    { primary = Color.rgb255 236 31 39
-    , secondary = Color.rgb255 216 27 96
-    , background = Color.rgb255 255 255 255
-    , surface = Color.rgb255 255 255 255
-    , error = Color.rgb255 156 39 176
-    , on =
-        { primary = Color.rgb255 255 255 255
-        , secondary = Color.rgb255 0 0 0
-        , background = Color.rgb255 0 0 0
-        , surface = Color.rgb255 0 0 0
-        , error = Color.rgb255 255 255 255
-        }
-    }
-
-
-focusedButtonStyles : List (Element.Attr decorative msg)
-focusedButtonStyles =
-    [ Background.color Palette.sred, Font.color Palette.white ]
-
-
-hoveredButtonStyles : List (Element.Attr decorative msg)
-hoveredButtonStyles =
-    [ Background.color Palette.sred, Font.color Palette.white ]
-
-
-helpButton : Tooltip -> Element Msg
-helpButton tooltip =
-    Input.button
-        [ Events.onLoseFocus CloseTooltip
-        , Font.color Palette.sred
-        , padding 10
-        , Element.alignBottom
-        , Border.rounded 3
-        , Element.mouseOver hoveredButtonStyles
-        , Element.focused focusedButtonStyles
-        ]
-        { label =
-            Element.html
-                (FeatherIcons.helpCircle
-                    |> FeatherIcons.toHtml []
-                )
-        , onPress = Just (ChangeTooltip tooltip)
-        }
-
-
 type alias Field =
     { tooltip : Maybe Tooltip
     , description : List (Element Msg)
@@ -514,15 +475,12 @@ type alias Field =
 
 
 requiredStar =
-    el [ Font.color Palette.sred, Element.alignTop, width Element.shrink ] (text "*")
+    el [ Palette.toFontColor Palette.red, Element.alignTop, width Element.shrink ] (text "*")
 
 
 viewField : Field -> Element Msg
 viewField field =
     let
-        help =
-            Maybe.withDefault Element.none <| Maybe.map helpButton field.tooltip
-
         tooltip =
             case field.tooltip of
                 Just tip ->
@@ -533,13 +491,13 @@ viewField field =
     in
     row
         ([ width fill, height fill, spacingXY 5 0, paddingXY 0 10 ] ++ tooltip)
-        (help :: field.children)
+        field.children
 
 
 withChanges hasChanged attrs =
     attrs
         ++ (if hasChanged then
-                [ Border.color Palette.purpleLight ]
+                [ Palette.toBorderColor Palette.yellow300 ]
 
             else
                 []
@@ -569,9 +527,9 @@ withValidation validatedField problems attrs =
     attrs
         ++ (case maybeError of
                 Just errorText ->
-                    [ Border.color Palette.sred
+                    [ Palette.toBorderColor Palette.red
                     , Element.below
-                        (row [ paddingXY 0 10, spacing 5, Font.color Palette.sred, Font.size 14 ]
+                        (row [ paddingXY 0 10, spacing 5, Font.size 14 ]
                             [ FeatherIcons.alertTriangle
                                 |> FeatherIcons.withSize 16
                                 |> FeatherIcons.toHtml []
@@ -588,7 +546,7 @@ withValidation validatedField problems attrs =
 
 
 textInput attrs config =
-    Input.text ([ Border.color Palette.grayLight ] ++ attrs) config
+    Input.text ([] ++ attrs) config
 
 
 requiredLabel labelFn str =
@@ -703,42 +661,25 @@ tile groups =
         , padding 20
         , width fill
         , Border.rounded 3
-        , Border.color Palette.grayLight
+        , Palette.toBorderColor Palette.gray
         , Border.width 1
-        , Border.shadow { offset = ( 0, 10 ), size = 1, blur = 30, color = Palette.grayLight }
+        , Border.shadow { offset = ( 0, 10 ), size = 1, blur = 30, color = Element.rgb 60 60 60 }
         ]
         groups
 
 
-primaryStyles : List (Element.Attr () msg)
-primaryStyles =
-    [ Background.color Palette.sred
-    , Font.color Palette.white
-    , Font.size 20
-    , padding 10
-    , Border.rounded 3
-    ]
+submitAndAddAnother : RenderConfig -> Element Msg
+submitAndAddAnother cfg =
+    Button.fromLabeledOnRightIcon (Icon.add "Save and add another")
+        |> Button.cmd SubmitAndAddAnother Button.clear
+        |> Button.renderElement cfg
 
 
-submitAndAddAnother : Element Msg
-submitAndAddAnother =
-    Input.button
-        [ Background.color Palette.redLightest
-        , Font.color Palette.sred
-        , padding 10
-        , Border.rounded 3
-        , Border.width 1
-        , Border.color Palette.sred
-        , Font.size 22
-        ]
-        { onPress = Just SubmitAndAddAnother, label = text "Submit and add another" }
-
-
-submitButton : Element Msg
-submitButton =
-    Input.button
-        (primaryStyles ++ [ Font.size 22 ])
-        { onPress = Just SubmitForm, label = text "Submit" }
+submitButton : RenderConfig -> Element Msg
+submitButton cfg =
+    Button.fromLabeledOnRightIcon (Icon.check "Save")
+        |> Button.cmd SubmitForm Button.primary
+        |> Button.renderElement cfg
 
 
 viewForm : FormOptions -> FormStatus -> Element Msg
@@ -759,17 +700,18 @@ viewForm options formStatus =
                         ]
                     ]
                 , row [ Element.alignRight, spacing 10 ]
-                    [ submitAndAddAnother
-                    , submitButton
+                    [ submitAndAddAnother options.renderConfig
+                    , submitButton options.renderConfig
                     ]
                 ]
 
 
-formOptions : Model -> FormOptions
-formOptions model =
+formOptions : RenderConfig -> Model -> FormOptions
+formOptions cfg model =
     { tooltip = model.tooltip
     , problems = model.problems
     , originalPlaintiff = model.plaintiff
+    , renderConfig = cfg
     }
 
 
@@ -795,8 +737,8 @@ viewTooltip content =
     textColumn
         [ width (fill |> maximum 600)
         , padding 10
-        , Background.color Palette.red
-        , Font.color Palette.white
+        , Palette.toBackgroundColor Palette.red
+        , Palette.toFontColor Palette.genericWhite
         , Border.rounded 3
         , Font.size 14
         , Border.shadow
@@ -821,6 +763,10 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
+    let
+        cfg =
+            sharedModel.renderConfig
+    in
     { title = title
     , body =
         [ row
@@ -829,18 +775,15 @@ view maybeUrl sharedModel model static =
             , Font.size 20
             , width (fill |> maximum 1200 |> minimum 400)
             , Element.inFront
-                (Input.button
-                    (primaryStyles
-                        ++ [ Font.size 14
-                           , Element.alignRight
-                           , Element.alignTop
-                           , Events.onLoseFocus CloseTooltip
-                           ]
+                (el
+                    ([ Font.size 14
+                     , Element.alignRight
+                     , Element.alignTop
+                     , Events.onLoseFocus CloseTooltip
+                     ]
                         ++ withTooltip PlaintiffInfo model.tooltip [ paragraph [] [ text "The person sueing a tenant for possession or fees." ] ]
                     )
-                    { onPress = Just (ChangeTooltip PlaintiffInfo)
-                    , label = text "What is a Plaintiff?"
-                    }
+                    (Button.fromLabel "Help" |> Button.cmd (ChangeTooltip PlaintiffInfo) Button.primary |> Button.renderElement cfg)
                 )
             ]
             [ column [ centerX, spacing 10 ]
@@ -864,7 +807,7 @@ view maybeUrl sharedModel model static =
                     ]
                 , viewProblems model.problems
                 , row [ width fill ]
-                    [ viewForm (formOptions model) model.form
+                    [ viewForm (formOptions cfg model) model.form
                     ]
                 ]
             ]

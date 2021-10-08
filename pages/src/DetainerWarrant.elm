@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow, toTableRowView, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
+module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow, toTableRowView)
 
 import Attorney exposing (Attorney)
 import Courtroom exposing (Courtroom)
@@ -15,7 +15,6 @@ import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, n
 import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
 import Judge exposing (Judge, JudgeForm)
 import Maybe
-import Palette
 import Plaintiff exposing (Plaintiff)
 import Search
 import String.Extra
@@ -542,158 +541,6 @@ decoder =
         |> required "defendants" (list Defendant.decoder)
         |> required "judgements" (list judgementDecoder)
         |> required "notes" (nullable string)
-
-
-viewStatusIcon : (Int -> TableCellConfig data msg) -> Int -> data -> Element msg
-viewStatusIcon toConfig index warrant =
-    let
-        icon ( letter, fontColor, backgroundColor ) =
-            Element.el
-                [ Element.width (px 20)
-                , Element.height (px 20)
-                , Element.centerX
-                , Border.width 1
-                , Border.rounded 2
-                , Font.color fontColor
-                , Background.color backgroundColor
-                ]
-                (Element.el [ Element.centerX, Element.centerY ]
-                    (text <| letter)
-                )
-
-        config =
-            toConfig index
-    in
-    Element.row
-        (tableCellAttrs config warrant)
-        [ case config.status warrant of
-            Just Pending ->
-                icon ( "P", Palette.gold, Palette.white )
-
-            Just Closed ->
-                icon ( "C", Palette.purple, Palette.white )
-
-            Nothing ->
-                Element.none
-        ]
-
-
-type alias TableCellConfig data msg =
-    { toId : data -> String
-    , status : data -> Maybe Status
-    , onMouseDown : Maybe (data -> msg)
-    , onMouseEnter : Maybe (data -> msg)
-    , maxWidth : Maybe Int
-    , selected : Maybe String
-    , striped : Bool
-    , hovered : Maybe String
-    }
-
-
-tableCellAttrs :
-    TableCellConfig data msg
-    -> data
-    -> List (Element.Attribute msg)
-tableCellAttrs { toId, onMouseDown, onMouseEnter, maxWidth, striped, hovered } warrant =
-    [ Element.width
-        (Element.shrink
-            |> maximum (Maybe.withDefault 200 maxWidth)
-        )
-    , height (fill |> minimum 60)
-    , Element.padding 10
-    , Border.solid
-    , Border.color Palette.grayLight
-    , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
-    ]
-        ++ (case onMouseDown of
-                Just ev ->
-                    [ Events.onMouseDown (ev warrant) ]
-
-                Nothing ->
-                    []
-           )
-        ++ (case onMouseEnter of
-                Just ev ->
-                    [ Events.onMouseEnter (ev warrant) ]
-
-                Nothing ->
-                    []
-           )
-        ++ (if hovered == Just (toId warrant) then
-                [ Background.color Palette.redLightest ]
-
-            else if striped then
-                [ Background.color Palette.grayBack ]
-
-            else
-                []
-           )
-
-
-viewHeaderCell : String -> Element msg
-viewHeaderCell text =
-    Element.row
-        [ Element.width (Element.shrink |> maximum 200)
-        , Element.padding 10
-        , Font.semiBold
-        , Border.solid
-        , Border.color Palette.grayLight
-        , Border.widthEach { bottom = 0, left = 0, right = 0, top = 0 }
-        ]
-        [ Element.text text ]
-
-
-viewDocketId : (Int -> TableCellConfig data msg) -> Int -> data -> Element msg
-viewDocketId toConfig index warrant =
-    let
-        config =
-            toConfig index
-
-        attrs =
-            [ width (Element.shrink |> maximum (Maybe.withDefault 200 config.maxWidth))
-            , height (fill |> minimum 60)
-            , Border.widthEach { bottom = 0, top = 0, right = 0, left = 0 }
-            , Border.color Palette.transparent
-            ]
-    in
-    row
-        (attrs
-            ++ (if config.selected == Just (config.toId warrant) then
-                    [ Border.color Palette.sred
-                    ]
-
-                else
-                    []
-               )
-            ++ (if config.hovered == Just (config.toId warrant) then
-                    [ Background.color Palette.redLightest
-                    ]
-
-                else if config.striped then
-                    [ Background.color Palette.grayBack ]
-
-                else
-                    []
-               )
-        )
-        [ column
-            [ width fill
-            , height (fill |> minimum 60)
-            , padding 10
-            , Border.solid
-            , Border.color Palette.grayLight
-            , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
-            ]
-            [ Element.el [ Element.centerY ] (text (config.toId warrant))
-            ]
-        ]
-
-
-viewTextRow : (Int -> TableCellConfig data msg) -> (data -> String) -> Int -> data -> Element msg
-viewTextRow config toText index warrant =
-    Element.row
-        (tableCellAttrs (config index) warrant)
-        [ Element.paragraph [] [ Element.text (toText warrant) ] ]
 
 
 tableColumns =

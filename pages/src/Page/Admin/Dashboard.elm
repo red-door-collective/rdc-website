@@ -19,7 +19,6 @@ import Logo
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
-import Palette
 import Path exposing (Path)
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
@@ -27,6 +26,16 @@ import Runtime
 import Session exposing (Session)
 import Settings exposing (Settings)
 import Shared
+import UI.Button as Button exposing (Button)
+import UI.Effects
+import UI.Icon as Icon
+import UI.Link as Link
+import UI.Palette as Palette
+import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
+import UI.Size
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
+import UI.Text as Text
+import UI.TextField as TextField
 import User exposing (User)
 import View exposing (View)
 
@@ -93,18 +102,14 @@ onEnter msg =
         )
 
 
-viewCampaign : Campaign -> Element Msg
-viewCampaign campaign =
+viewCampaign : RenderConfig -> Campaign -> Element Msg
+viewCampaign cfg campaign =
     row [ width fill, spacing 10 ]
         [ paragraph [] [ text campaign.name ]
         , paragraph [ Font.semiBold ] [ text ((String.fromInt <| List.length campaign.events) ++ " events") ]
-        , link
-            [ Background.color Palette.sred
-            , Font.color Palette.white
-            , Border.rounded 3
-            , padding 10
-            ]
-            { url = "/admin/campaigns/" ++ String.fromInt campaign.id, label = text "View Campaign" }
+        , Button.fromLabel "View campaign"
+            |> Button.redirect (Link.link <| "/admin/campaigns/" ++ String.fromInt campaign.id) Button.primary
+            |> Button.renderElement cfg
         ]
 
 
@@ -119,6 +124,10 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
+    let
+        cfg =
+            sharedModel.renderConfig
+    in
     { title = title
     , body =
         [ row
@@ -132,7 +141,7 @@ view maybeUrl sharedModel model static =
                     [ paragraph [] [ text "Current campaigns" ]
                     ]
                  ]
-                    ++ List.map viewCampaign model.campaigns
+                    ++ List.map (viewCampaign cfg) model.campaigns
                 )
             ]
         ]

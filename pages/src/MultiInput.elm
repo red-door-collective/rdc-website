@@ -31,7 +31,6 @@ import Html
 import Html.Attributes as Attr
 import Html.Events as Ev
 import Json.Decode as Json
-import Palette
 import Regex exposing (Regex)
 import Set
 import String
@@ -59,7 +58,7 @@ type alias State =
 
 {-| Specific settings for the component's update function.
 You can specify a list of strings that act as separators for the different items.
-{ separators = [ "\n", "\t", ",", " " ] }
+{ separators = [ "\\n", "\\t", ",", " " ] }
 -}
 type alias UpdateConfig =
     { separators : List String
@@ -204,7 +203,7 @@ view conf customAttributes items state =
             , padding 5
             , Border.width 1
             , Border.rounded 3
-            , Border.color Palette.grayLight
+            , Border.color <| Element.rgb255 60 60 60
             , spacing 10
             , width (fill |> minimum 400)
             ]

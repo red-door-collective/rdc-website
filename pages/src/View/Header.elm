@@ -7,11 +7,11 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Html.Attributes as Attrs
-import Palette
 import Path exposing (Path)
 import RedDoor
 import Route exposing (Route(..))
 import Session exposing (Session)
+import UI.Palette as Palette
 import View.MobileHeader
 
 
@@ -22,7 +22,7 @@ headerLink attrs isActive =
          , Element.htmlAttribute (Attrs.class "responsive-desktop")
          ]
             ++ (if isActive then
-                    [ Font.color Palette.white ]
+                    [ Palette.toFontColor Palette.genericWhite ]
 
                 else
                     []

@@ -5,7 +5,7 @@ import Color
 import DataSource exposing (DataSource)
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
-import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..), TableCellConfig, tableCellAttrs, viewDocketId, viewHeaderCell, viewTextRow)
+import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..))
 import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paddingXY, paragraph, px, row, spacing, table, text, textColumn, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -29,7 +29,6 @@ import Maybe
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
-import Palette
 import Path exposing (Path)
 import QueryParams
 import Rest exposing (Cred)

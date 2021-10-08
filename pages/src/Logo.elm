@@ -3,9 +3,9 @@ module Logo exposing (link, smallImage)
 import Element exposing (Element, alignBottom, alignRight, centerX, column, height, paragraph, px, row, shrink, text, width)
 import Element.Font as Font
 import Pages.Url
-import Palette
 import Path
 import RedDoor
+import UI.Palette as Palette
 
 
 smallImage =
@@ -19,7 +19,7 @@ smallImage =
 name : Element msg
 name =
     Element.textColumn [ width Element.shrink, alignBottom ]
-        [ paragraph [ Font.color Palette.red ] [ text "Red" ]
+        [ paragraph [ Palette.toFontColor Palette.red ] [ text "Red" ]
         , paragraph [] [ text "Door" ]
         , paragraph [] [ text "Collective" ]
         ]

@@ -13,7 +13,6 @@ import Date.Extra
 import DateFormat
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
-import Design
 import DetainerWarrant exposing (AmountClaimedCategory, ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status, amountClaimedCategoryText)
 import Dict exposing (Dict)
 import Dropdown
@@ -41,7 +40,6 @@ import Maybe.Extra
 import Page exposing (Page, PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
-import Palette
 import Path exposing (Path)
 import PhoneNumber
 import PhoneNumber.Countries exposing (countryUS)
@@ -60,6 +58,18 @@ import Shared
 import Task
 import Time
 import Time.Utils
+import UI.Button as Button exposing (Button)
+import UI.Effects
+import UI.Icon as Icon
+import UI.Link as Link
+import UI.Palette as Palette
+import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
+import UI.Size
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
+import UI.Text as Text
+import UI.TextField as TextField
+import UI.Utils.DateInput exposing (DateInput)
+import UI.Utils.TypeNumbers as T
 import Url.Builder
 import User exposing (User)
 import View exposing (View)
@@ -95,6 +105,7 @@ type alias FormOptions =
     , today : Date
     , problems : List Problem
     , originalWarrant : Maybe DetainerWarrant
+    , renderConfig : RenderConfig
     }
 
 
@@ -1884,36 +1895,6 @@ onEnter msg =
         )
 
 
-focusedButtonStyles : List (Element.Attr decorative msg)
-focusedButtonStyles =
-    [ Background.color Palette.sred, Font.color Palette.white ]
-
-
-hoveredButtonStyles : List (Element.Attr decorative msg)
-hoveredButtonStyles =
-    [ Background.color Palette.sred, Font.color Palette.white ]
-
-
-helpButton : Tooltip -> Element Msg
-helpButton tooltip =
-    Input.button
-        [ Events.onLoseFocus CloseTooltip
-        , Font.color Palette.sred
-        , padding 10
-        , Element.alignBottom
-        , Border.rounded 3
-        , Element.mouseOver hoveredButtonStyles
-        , Element.focused focusedButtonStyles
-        ]
-        { label =
-            Element.html
-                (FeatherIcons.helpCircle
-                    |> FeatherIcons.toHtml []
-                )
-        , onPress = Just (ChangeTooltip tooltip)
-        }
-
-
 type alias Field =
     { tooltip : Maybe Tooltip
     , description : String
@@ -1923,15 +1904,12 @@ type alias Field =
 
 
 requiredStar =
-    el [ Font.color Palette.sred, Element.alignTop, width Element.shrink ] (text "*")
+    el [ Palette.toFontColor Palette.red, Element.alignTop, width Element.shrink ] (text "*")
 
 
 viewField : Field -> Element Msg
 viewField field =
     let
-        help =
-            Maybe.withDefault Element.none <| Maybe.map helpButton field.tooltip
-
         tooltip =
             case field.tooltip of
                 Just tip ->
@@ -1942,13 +1920,13 @@ viewField field =
     in
     row
         ([ width fill, height fill, spacingXY 5 0, paddingXY 0 10 ] ++ tooltip)
-        (help :: field.children)
+        field.children
 
 
 withChanges hasChanged attrs =
     attrs
         ++ (if hasChanged then
-                [ Border.color Palette.purpleLight ]
+                [ Palette.toBorderColor Palette.yellow300 ]
 
             else
                 []
@@ -1978,9 +1956,9 @@ withValidation validatedField problems attrs =
     attrs
         ++ (case maybeError of
                 Just errorText ->
-                    [ Border.color Palette.sred
+                    [ Palette.toBorderColor Palette.red
                     , Element.below
-                        (row [ paddingXY 0 10, spacing 5, Font.color Palette.sred, Font.size 14 ]
+                        (row [ paddingXY 0 10, spacing 5, Palette.toFontColor Palette.red, Font.size 14 ]
                             [ FeatherIcons.alertTriangle
                                 |> FeatherIcons.withSize 16
                                 |> FeatherIcons.toHtml []
@@ -2036,7 +2014,7 @@ viewFileDate options form =
             , description = "The date the detainer warrant was created in the court system."
             , currentTooltip = options.tooltip
             , children =
-                [ DatePicker.input (withValidation FileDate options.problems (withChanges False [ centerX, Element.centerY, Border.color Palette.grayLight ]))
+                [ DatePicker.input (withValidation FileDate options.problems (withChanges False [ centerX, Element.centerY, Palette.toBorderColor Palette.gray200 ]))
                     { onChange = ChangedFileDatePicker
                     , selected = form.fileDate.date
                     , text = form.fileDate.dateText
@@ -2061,13 +2039,13 @@ dropdownConfig label itemToStr dropdownMsg itemPickedMsg attrs =
         selectAttrs =
             [ Border.width 1
             , Border.rounded 5
-            , Border.color Palette.grayLight
+            , Palette.toBorderColor Palette.gray200
             , paddingXY 16 8
             , spacing 10
             , width fill
             , Element.focused
-                [ Border.color Palette.grayLight
-                , Border.shadow { offset = ( 0, 0 ), size = 3, blur = 3, color = Palette.gray }
+                [ Palette.toBorderColor Palette.gray200
+                , Border.shadow { offset = ( 0, 0 ), size = 3, blur = 3, color = Palette.toElementColor Palette.gray }
                 ]
             ]
                 ++ attrs
@@ -2077,7 +2055,7 @@ dropdownConfig label itemToStr dropdownMsg itemPickedMsg attrs =
             , Border.roundEach { topLeft = 0, topRight = 0, bottomLeft = 5, bottomRight = 5 }
             , width fill
             , spacing 5
-            , Background.color Palette.white
+            , Palette.toBackgroundColor Palette.genericWhite
             ]
 
         itemToPrompt item =
@@ -2087,16 +2065,16 @@ dropdownConfig label itemToStr dropdownMsg itemPickedMsg attrs =
             let
                 bgColor =
                     if highlighted then
-                        Palette.redLight
+                        Palette.red300
 
                     else if selected then
-                        Palette.sred
+                        Palette.red
 
                     else
-                        Palette.white
+                        Palette.genericWhite
             in
             el
-                ([ Background.color bgColor
+                ([ Palette.toBackgroundColor bgColor
                  , padding 8
                  , spacing 10
                  , width fill
@@ -2105,7 +2083,7 @@ dropdownConfig label itemToStr dropdownMsg itemPickedMsg attrs =
                             []
 
                         else
-                            [ Element.mouseOver [ Background.color Palette.redLight ] ]
+                            [ Element.mouseOver [ Palette.toBackgroundColor Palette.red300 ] ]
                        )
                 )
                 (text (itemToStr item))
@@ -2208,7 +2186,7 @@ viewStatus options form =
 
 
 searchBox attrs =
-    SearchBox.input ([ Border.color Palette.grayLight ] ++ attrs)
+    SearchBox.input ([ Palette.toBorderColor Palette.gray200 ] ++ attrs)
 
 
 viewPlaintiffSearch : FormOptions -> Form -> Element Msg
@@ -2538,7 +2516,7 @@ viewAddress options form =
 
 
 textInput attrs config =
-    Input.text ([ Border.color Palette.grayLight ] ++ attrs) config
+    Input.text ([ Palette.toBorderColor Palette.gray200 ] ++ attrs) config
 
 
 viewFirstName : FormOptions -> Int -> DefendantForm -> Element Msg
@@ -2716,8 +2694,8 @@ viewPotentialPhones options index defendant =
                                 Input.button
                                     [ padding 2
                                     , Element.alignTop
-                                    , Font.color Palette.sred
-                                    , Border.color Palette.sred
+                                    , Palette.toFontColor Palette.red
+                                    , Palette.toBorderColor Palette.red
                                     , Border.width 1
                                     ]
                                     { onPress = Just <| RemovePhone index i
@@ -2734,7 +2712,10 @@ viewPotentialPhones options index defendant =
                     ]
             )
             defendant.potentialPhones
-            ++ [ Design.button [] { onPress = Just <| AddPhone index, label = Element.el [ width shrink, height shrink ] (Element.html (FeatherIcons.plus |> FeatherIcons.withSize 15 |> FeatherIcons.toHtml [])) } ]
+            ++ [ Button.fromIcon (Icon.add "Add phone")
+                    |> Button.cmd (AddPhone index) Button.primary
+                    |> Button.renderElement options.renderConfig
+               ]
         )
 
 
@@ -2745,8 +2726,8 @@ viewDefendantForm options index defendant =
         , spacing 10
         , padding 20
         , Border.width 1
-        , Border.color Palette.grayLight
-        , Border.innerGlow Palette.grayLightest 2
+        , Palette.toBorderColor Palette.gray200
+        , Border.innerGlow (Element.rgb255 230 230 230) 2
         , Border.rounded 5
         ]
         [ row [ centerX, spacing 20 ]
@@ -2764,7 +2745,12 @@ viewDefendants options form =
     row [ centerX, width (fill |> maximum 1000), padding 10 ]
         [ column [ width fill, spacing 20 ]
             (List.indexedMap (viewDefendantForm options) form.defendants
-                ++ [ Design.button [ Element.alignRight ] { onPress = Just AddDefendant, label = text "Add Defendant" } ]
+                ++ [ el [ Element.alignRight ]
+                        (Button.fromLabeledOnLeftIcon (Icon.add "Add defendant")
+                            |> Button.cmd AddDefendant Button.primary
+                            |> Button.renderElement options.renderConfig
+                        )
+                   ]
             )
         ]
 
@@ -2773,14 +2759,17 @@ viewJudgements : FormOptions -> Form -> Element Msg
 viewJudgements options form =
     column [ centerX, spacing 20, width (fill |> maximum 1000), padding 10 ]
         (List.indexedMap (viewJudgement options) form.judgements
-            ++ [ Design.button
+            ++ [ el
                     [ if List.isEmpty form.judgements then
                         Element.centerX
 
                       else
                         Element.alignRight
                     ]
-                    { onPress = Just AddJudgement, label = text "Add Judgement" }
+                    (Button.fromLabeledOnLeftIcon (Icon.add "Add judgement")
+                        |> Button.cmd AddJudgement Button.primary
+                        |> Button.renderElement options.renderConfig
+                    )
                ]
         )
 
@@ -2980,21 +2969,14 @@ viewJudgement options index form =
         , spacing 10
         , padding 20
         , Border.width 1
-        , Border.color Palette.grayLight
-        , Border.innerGlow Palette.grayLightest 2
+        , Palette.toBorderColor Palette.gray200
+        , Border.innerGlow (Element.rgb255 230 230 230) 2
         , Border.rounded 5
         , inFront
             (row [ Element.alignRight, padding 20 ]
-                [ Design.button []
-                    { onPress = Just (RemoveJudgement index)
-                    , label =
-                        Element.el
-                            [ width shrink
-                            , height shrink
-                            , padding 0
-                            ]
-                            (Element.html (FeatherIcons.x |> FeatherIcons.withSize 16 |> FeatherIcons.toHtml []))
-                    }
+                [ Button.fromIcon (Icon.remove "Remove Judgement")
+                    |> Button.cmd (RemoveJudgement index) Button.primary
+                    |> Button.renderElement options.renderConfig
                 ]
             )
         ]
@@ -3015,7 +2997,7 @@ viewJudgement options index form =
                                 [ Element.htmlAttribute (Html.Attributes.id (judgementInfoText index JudgementFileDateDetail))
                                 , centerX
                                 , Element.centerY
-                                , Border.color Palette.grayLight
+                                , Palette.toBorderColor Palette.gray200
                                 ]
                             )
                         )
@@ -3146,32 +3128,25 @@ tile groups =
         , padding 20
         , width fill
         , Border.rounded 3
-        , Border.color Palette.grayLight
+        , Palette.toBorderColor Palette.gray200
         , Border.width 1
-        , Border.shadow { offset = ( 0, 10 ), size = 1, blur = 30, color = Palette.grayLight }
+        , Border.shadow { offset = ( 0, 10 ), size = 1, blur = 30, color = Element.rgb255 200 200 200 }
         ]
         groups
 
 
-submitAndAddAnother : Element Msg
-submitAndAddAnother =
-    Input.button
-        [ Background.color Palette.redLightest
-        , Font.color Palette.sred
-        , padding 10
-        , Border.rounded 3
-        , Border.width 1
-        , Border.color Palette.sred
-        , Font.size 22
-        ]
-        { onPress = Just SubmitAndAddAnother, label = text "Submit and add another" }
+submitAndAddAnother : RenderConfig -> Element Msg
+submitAndAddAnother cfg =
+    Button.fromLabeledOnRightIcon (Icon.add "Save and add another")
+        |> Button.cmd SubmitAndAddAnother Button.clear
+        |> Button.renderElement cfg
 
 
-submitButton : Element Msg
-submitButton =
-    Design.button
-        [ Font.size 22 ]
-        { onPress = Just SubmitForm, label = text "Submit" }
+submitButton : RenderConfig -> Element Msg
+submitButton cfg =
+    Button.fromLabeledOnRightIcon (Icon.check "Save")
+        |> Button.cmd SubmitForm Button.primary
+        |> Button.renderElement cfg
 
 
 viewForm : FormOptions -> FormStatus -> Element Msg
@@ -3224,14 +3199,14 @@ viewForm options formStatus =
                     [ viewNotes options form
                     ]
                 , row [ Element.alignRight, spacing 10 ]
-                    [ submitAndAddAnother
-                    , submitButton
+                    [ submitAndAddAnother options.renderConfig
+                    , submitButton options.renderConfig
                     ]
                 ]
 
 
-formOptions : Date -> Model -> FormOptions
-formOptions today model =
+formOptions : RenderConfig -> Date -> Model -> FormOptions
+formOptions cfg today model =
     { plaintiffs = model.plaintiffs
     , attorneys = model.attorneys
     , judges = model.judges
@@ -3241,6 +3216,7 @@ formOptions today model =
     , today = today
     , problems = model.problems
     , originalWarrant = model.warrant
+    , renderConfig = cfg
     }
 
 
@@ -3266,8 +3242,8 @@ viewTooltip str =
     textColumn
         [ width (fill |> maximum 600)
         , padding 10
-        , Background.color Palette.red
-        , Font.color Palette.white
+        , Palette.toBackgroundColor Palette.red
+        , Palette.toFontColor Palette.genericWhite
         , Border.rounded 3
         , Font.size 14
         , Border.shadow
@@ -3296,6 +3272,10 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
+    let
+        cfg =
+            sharedModel.renderConfig
+    in
     { title = title
     , body =
         [ row
@@ -3304,15 +3284,16 @@ view maybeUrl sharedModel model static =
             , Font.size 20
             , width (fill |> maximum 1200 |> minimum 400)
             , Element.inFront
-                (Design.button
-                    ([ Font.size 14
-                     , Element.alignRight
+                (el
+                    ([ Element.alignRight
                      , Element.alignTop
-                     , Events.onLoseFocus CloseTooltip
                      ]
                         ++ withTooltip DetainerWarrantInfo model.tooltip "In some states, such as Tennessee, when a property owner wants to evict a tenant, he must first give notice, known as a detainer warrant. A detainer warrant is not the same as an arrest warrant, however. It is the document that informs the tenant about the court date set in the eviction proceeding. The notification gives the tenant the opportunity to appear in court and tell the judge her side of the story."
                     )
-                    { onPress = Just (ChangeTooltip DetainerWarrantInfo), label = text "What is a Detainer Warrant?" }
+                    (Button.fromLabel "Help"
+                        |> Button.cmd (ChangeTooltip DetainerWarrantInfo) Button.primary
+                        |> Button.renderElement cfg
+                    )
                 )
             ]
             [ column [ centerX, spacing 10 ]
@@ -3336,7 +3317,7 @@ view maybeUrl sharedModel model static =
                     ]
                 , viewProblems model.problems
                 , row [ width fill ]
-                    [ viewForm (formOptions static.sharedData.runtime.today model) model.form
+                    [ viewForm (formOptions cfg static.sharedData.runtime.today model) model.form
                     ]
                 ]
             ]
