@@ -26,6 +26,7 @@ import Runtime
 import Session exposing (Session)
 import Settings exposing (Settings)
 import Shared
+import Sprite
 import UI.Button as Button exposing (Button)
 import UI.Effects
 import UI.Icon as Icon
@@ -105,7 +106,8 @@ onEnter msg =
 viewCampaign : RenderConfig -> Campaign -> Element Msg
 viewCampaign cfg campaign =
     row [ width fill, spacing 10 ]
-        [ paragraph [] [ text campaign.name ]
+        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+        , paragraph [] [ text campaign.name ]
         , paragraph [ Font.semiBold ] [ text ((String.fromInt <| List.length campaign.events) ++ " events") ]
         , Button.fromLabel "View campaign"
             |> Button.redirect (Link.link <| "/admin/campaigns/" ++ String.fromInt campaign.id) Button.primary

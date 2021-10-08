@@ -31,6 +31,7 @@ import Runtime
 import Session exposing (Session)
 import Set exposing (Set)
 import Shared
+import Sprite
 import Task
 import UI.Button as Button
 import UI.Effects
@@ -802,7 +803,8 @@ view maybeUrl sharedModel model static =
     in
     { title = title
     , body =
-        [ column [ width fill, spacing 10, padding 10 ]
+        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+        , column [ width fill, spacing 10, padding 10 ]
             [ row [ width fill ]
                 [ case model of
                     ReadyForCsv { error } ->

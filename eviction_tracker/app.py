@@ -237,12 +237,12 @@ def round_dec(dec):
     return int(round(dec))
 
 
-def millisTimestamp(dt):
+def millis_timestamp(dt):
     return round(dt.timestamp() * 1000)
 
 
 def millis(d):
-    return millisTimestamp(datetime.combine(d, datetime.min.time()))
+    return millis_timestamp(datetime.combine(d, datetime.min.time()))
 
 
 def register_extensions(app):
@@ -290,7 +290,7 @@ def register_extensions(app):
         end_dt = date.today()
         dates = [(dt, next_month(dt))
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
-        counts = [{'time': millisTimestamp(start), 'total_warrants': count_between_dates(
+        counts = [{'time': millis_timestamp(start), 'total_warrants': count_between_dates(
             start, end)} for start, end in dates]
 
         return flask.jsonify(counts)
@@ -310,7 +310,7 @@ def register_extensions(app):
                 eviction_count = evictions_between_dates(
                     start, end, plaintiff.id)
                 plaintiff_evictions = counts[plaintiff.name]
-                stats = {'date': millisTimestamp(
+                stats = {'date': millis_timestamp(
                     start), 'eviction_count': eviction_count}
                 counts[plaintiff.name] = plaintiff_evictions + [stats]
 
@@ -400,7 +400,7 @@ def register_extensions(app):
         end_dt = date.today()
         dates = [(dt, next_month(dt))
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
-        awards = [{'time': millisTimestamp(start), 'total_amount': round_dec(amount_awarded_between(
+        awards = [{'time': millis_timestamp(start), 'total_amount': round_dec(amount_awarded_between(
             start, end))} for start, end in dates]
         return flask.jsonify({'data': awards})
 
@@ -409,7 +409,7 @@ def register_extensions(app):
         last_warrant = db.session.query(DetainerWarrant).order_by(
             desc(DetainerWarrant.updated_at)).first()
         return flask.jsonify({
-            'last_detainer_warrant_update': millisTimestamp(last_warrant.updated_at) if last_warrant else None
+            'last_detainer_warrant_update': last_warrant.updated_at if last_warrant else None
         })
 
     @app.route('/api/v1/current_user')

@@ -51,6 +51,7 @@ import Session exposing (Session)
 import Set
 import Settings exposing (Settings)
 import Shared
+import Sprite
 import Task
 import UI.Button as Button exposing (Button)
 import UI.Effects
@@ -769,7 +770,8 @@ view maybeUrl sharedModel model static =
     in
     { title = title
     , body =
-        [ row
+        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+        , row
             [ centerX
             , padding 20
             , Font.size 20
