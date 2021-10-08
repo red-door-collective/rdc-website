@@ -2269,37 +2269,6 @@ viewCourtroom options form =
         ]
 
 
-viewPresidingJudgeSearch : FormOptions -> Form -> Element Msg
-viewPresidingJudgeSearch options form =
-    let
-        hasChanges =
-            (Maybe.withDefault False <|
-                Maybe.map ((/=) form.presidingJudge.person << .presidingJudge) options.originalWarrant
-            )
-                || (options.originalWarrant == Nothing && form.presidingJudge.text /= "")
-    in
-    column [ width fill ]
-        [ viewField
-            { tooltip = Just PresidingJudgeInfo
-            , currentTooltip = options.tooltip
-            , description = "The judge that will be presiding over the court case."
-            , children =
-                [ searchBox (withChanges hasChanges [])
-                    { onChange = ChangedJudgeSearchBox
-                    , text = form.presidingJudge.text
-                    , selected = form.presidingJudge.person
-                    , options = Just ({ id = -1, name = form.presidingJudge.text, aliases = [] } :: options.judges)
-                    , label = Input.labelAbove [] (text "Presiding Judge")
-                    , placeholder = Just <| Input.placeholder [] (text "Search for judge")
-                    , toLabel = \person -> person.name
-                    , filter = \query option -> True
-                    , state = form.presidingJudge.searchBox
-                    }
-                ]
-            }
-        ]
-
-
 viewAmountClaimed : FormOptions -> Form -> Element Msg
 viewAmountClaimed options form =
     let
@@ -2991,13 +2960,11 @@ viewJudgementNotes options index form =
             , currentTooltip = options.tooltip
             , description = "Any additional notes you have about this particular judgement go here!"
             , children =
-                [ Input.multiline (withChanges hasChanges [])
-                    { onChange = ChangedJudgementNotes index
-                    , text = form.notes
-                    , label = Input.labelAbove [] (text "Notes")
-                    , placeholder = Just <| Input.placeholder [] (text "Add any notes from the judgement sheet or any comments you think is noteworthy.")
-                    , spellcheck = True
-                    }
+                [ TextField.multilineText (ChangedJudgementNotes index)
+                    "Notes"
+                    form.notes
+                    |> TextField.withPlaceholder "Add any notes from the judgement sheet or any comments you think is noteworthy."
+                    |> TextField.renderElement options.renderConfig
                 ]
             }
         ]
@@ -3019,13 +2986,11 @@ viewNotes options form =
             , currentTooltip = options.tooltip
             , description = "Any additional notes you have about this case go here! This is a great place to leave feedback for the form as well, perhaps there's another field or field option we need to provide."
             , children =
-                [ Input.multiline (withChanges hasChanges [])
-                    { onChange = ChangedNotes
-                    , text = form.notes
-                    , label = Input.labelAbove [] (text "Notes")
-                    , placeholder = Just <| Input.placeholder [] (text "Add anything you think is noteworthy.")
-                    , spellcheck = True
-                    }
+                [ TextField.multilineText ChangedNotes
+                    "Notes"
+                    form.notes
+                    |> TextField.withPlaceholder "Add anything you think is noteworthy."
+                    |> TextField.renderElement options.renderConfig
                 ]
             }
         ]
@@ -3090,7 +3055,6 @@ viewForm options formStatus =
                     , formGroup
                         [ viewCourtDate options form
                         , viewCourtroom options form
-                        , viewPresidingJudgeSearch options form
                         ]
                     ]
                 , tile
