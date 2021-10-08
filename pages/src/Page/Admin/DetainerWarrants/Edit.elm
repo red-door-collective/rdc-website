@@ -59,6 +59,7 @@ import Task
 import Time
 import Time.Utils
 import UI.Button as Button exposing (Button)
+import UI.Checkbox as Checkbox
 import UI.Dropdown as Dropdown
 import UI.Effects as Effects
 import UI.Icon as Icon
@@ -508,8 +509,8 @@ type Msg
     | ConditionsDropdownMsg Int (Dropdown.Msg (Maybe ConditionOption))
     | ChangedFeesAwarded Int String
     | ConfirmedFeesAwarded Int
-    | ToggleJudgmentPossession Int Bool
-    | ToggleJudgmentInterest Int Bool
+    | ToggleJudgementPossession Int Bool
+    | ToggleJudgementInterest Int Bool
     | ChangedInterestRate Int String
     | ConfirmedInterestRate Int
     | ToggleInterestFollowSite Int Bool
@@ -1394,12 +1395,12 @@ update pageUrl navKey sharedModel static msg model =
                 )
                 model
 
-        ToggleJudgmentPossession selected checked ->
+        ToggleJudgementPossession selected checked ->
             updateForm
                 (updateJudgement selected (\judgement -> { judgement | awardsPossession = checked }))
                 model
 
-        ToggleJudgmentInterest selected checked ->
+        ToggleJudgementInterest selected checked ->
             updateForm
                 (updateJudgement selected (\judgement -> { judgement | hasInterest = checked }))
                 model
@@ -2716,13 +2717,11 @@ viewJudgementInterest options index form =
                 , description = "Do the fees claimed have interest?"
                 , children =
                     [ column [ spacing 5, width fill ]
-                        [ Input.checkbox
-                            []
-                            { onChange = ToggleJudgmentInterest index
-                            , icon = Input.defaultCheckbox
-                            , checked = form.hasInterest
-                            , label = Input.labelAbove [] (text "Fees Have Interest")
-                            }
+                        [ Checkbox.checkbox
+                            "Fees have interest"
+                            (ToggleJudgementInterest index)
+                            form.hasInterest
+                            |> Checkbox.renderElement options.renderConfig
                         ]
                     ]
                 }
@@ -2733,13 +2732,11 @@ viewJudgementInterest options index form =
                     , description = "Does the interest rate follow from the website?"
                     , children =
                         [ column [ spacing 5, width fill ]
-                            [ Input.checkbox
-                                []
-                                { onChange = ToggleInterestFollowSite index
-                                , icon = Input.defaultCheckbox
-                                , checked = form.interestFollowsSite
-                                , label = Input.labelAbove [] (text "Interest Rate Follows Site")
-                                }
+                            [ Checkbox.checkbox
+                                "Interest rate follows site"
+                                (ToggleInterestFollowSite index)
+                                form.interestFollowsSite
+                                |> Checkbox.renderElement options.renderConfig
                             ]
                         ]
                     }
@@ -2778,13 +2775,11 @@ viewJudgementPossession options index form =
         , description = "Has the Plaintiff claimed the residence?"
         , children =
             [ column [ spacing 5, width fill ]
-                [ Input.checkbox
-                    []
-                    { onChange = ToggleJudgmentPossession index
-                    , icon = Input.defaultCheckbox
-                    , checked = form.awardsPossession
-                    , label = Input.labelAbove [] (text "Possession Awarded")
-                    }
+                [ Checkbox.checkbox
+                    "Possession awarded"
+                    (ToggleJudgementPossession index)
+                    form.awardsPossession
+                    |> Checkbox.renderElement options.renderConfig
                 ]
             ]
         }
@@ -2837,13 +2832,11 @@ viewJudgementDefendant options index form =
         , description = "Whether or not the dismissal is made with prejudice."
         , children =
             [ row [ spacing 5, width fill ]
-                [ Input.checkbox
-                    []
-                    { onChange = ToggledWithPrejudice index
-                    , icon = Input.defaultCheckbox
-                    , checked = form.withPrejudice
-                    , label = Input.labelRight [] (text "Dismissal is with prejudice")
-                    }
+                [ Checkbox.checkbox
+                    "Dismissal is with prejudice"
+                    (ToggledWithPrejudice index)
+                    form.withPrejudice
+                    |> Checkbox.renderElement options.renderConfig
                 ]
             ]
         }
