@@ -12,7 +12,7 @@ import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import DetainerWarrant exposing (AmountClaimedCategory, ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, Status)
 import Dict
-import Element exposing (Element, below, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
+import Element exposing (Element, alignBottom, below, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -1702,7 +1702,7 @@ withValidation validatedField problems attrs =
 
 viewDocketId : FormOptions -> Form -> Element Msg
 viewDocketId options form =
-    column [ width fill, height fill, paddingXY 0 10 ]
+    column [ width (fill |> maximum 215), height fill, paddingXY 0 10 ]
         [ viewField
             { tooltip = Just DocketIdInfo
             , description = "This is the unique id for a detainer warrant. Please take care when entering this."
@@ -1710,7 +1710,7 @@ viewDocketId options form =
             , children =
                 [ case options.docketId of
                     Just docketId ->
-                        el [ height (px 41), Element.alignBottom, padding 10, Element.width Element.shrink ] (text ("Docket Number: " ++ docketId))
+                        el [ height (px 41), Element.alignBottom, padding 10, Element.width Element.shrink ] (text ("Docket # " ++ docketId))
 
                     Nothing ->
                         TextField.singlelineText ChangedDocketId
@@ -1735,20 +1735,19 @@ viewFileDate options form =
     --         )
     --             || (options.originalWarrant == Nothing && form.fileDate.date /= Nothing)
     -- in
-    column [ width fill, padding 10 ]
+    column [ width (fill |> maximum 150), padding 10 ]
         [ viewField
             { tooltip = Just FileDateInfo
             , description = "The date the detainer warrant was created in the court system."
             , currentTooltip = options.tooltip
             , children =
-                [ DatePicker.input (withValidation FileDate options.problems (withChanges False [ centerX, Element.centerY, Palette.toBorderColor Palette.gray200 ]))
+                [ DatePicker.input (withValidation FileDate options.problems (withChanges False (boxAttrs ++ [ centerX, Element.centerY ])))
                     { onChange = ChangedFileDatePicker
                     , selected = form.fileDate.date
                     , text = form.fileDate.dateText
-                    , label =
-                        Input.labelAbove [] (text "File Date")
+                    , label = defaultLabel "File date"
                     , placeholder =
-                        Just <| Input.placeholder [] <| text <| Date.toIsoString options.today
+                        Just <| Input.placeholder labelAttrs <| text <| Date.toIsoString options.today
                     , settings = DatePicker.defaultSettings
                     , model = form.fileDate.pickerModel
                     }
@@ -1885,14 +1884,15 @@ ternaryText isCares =
 
 viewStatus : FormOptions -> Form -> Element Msg
 viewStatus options form =
-    column [ width shrink ]
+    column [ width (fill |> maximum 200) ]
         [ viewField
             { tooltip = Just StatusInfo
             , currentTooltip = options.tooltip
             , description = "The current status of the case in the court system."
             , children =
                 [ column [ spacing 5, width fill ]
-                    [ statusDropdown form
+                    [ el labelAttrs (text "Status")
+                    , statusDropdown form
                         |> Dropdown.renderElement options.renderConfig
                     ]
                 ]
@@ -1900,8 +1900,34 @@ viewStatus options form =
         ]
 
 
+boxAttrs =
+    [ Palette.toBorderColor Palette.gray300
+    , Palette.toBackgroundColor Palette.gray200
+    , Palette.toFontColor Palette.genericBlack
+    , Font.semiBold
+    , paddingXY 18 16
+    , Border.rounded 8
+    , Font.size 14
+    , Font.family [ Font.typeface "Fira Sans", Font.sansSerif ]
+    , Element.focused
+        [ Border.color <| Palette.toElementColor Palette.blue300
+        ]
+    ]
+
+
 searchBox attrs =
-    SearchBox.input ([ Palette.toBorderColor Palette.gray200 ] ++ attrs)
+    SearchBox.input
+        (boxAttrs
+            ++ attrs
+        )
+
+
+labelAttrs =
+    [ Palette.toFontColor Palette.gray700, Font.size 12 ]
+
+
+defaultLabel str =
+    Input.labelAbove labelAttrs (text str)
 
 
 viewPlaintiffSearch : FormOptions -> Form -> Element Msg
@@ -1924,10 +1950,20 @@ viewPlaintiffSearch options form =
                     , text = form.plaintiff.text
                     , selected = form.plaintiff.person
                     , options = Just ({ id = -1, name = form.plaintiff.text, aliases = [] } :: options.plaintiffs)
-                    , label = Input.labelAbove [] (text "Plaintiff")
+                    , label = defaultLabel "Plaintiff"
                     , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff")
-                    , toLabel = \person -> person.name
-                    , filter = \_ _ -> True
+                    , toLabel =
+                        \person ->
+                            if List.isEmpty person.aliases then
+                                person.name
+
+                            else
+                                person.name ++ " (" ++ String.join ", " person.aliases ++ ")"
+                    , filter =
+                        \query plaintiff ->
+                            (plaintiff.name :: plaintiff.aliases)
+                                |> List.map String.toLower
+                                |> List.any (String.contains (String.toLower query))
                     , state = form.plaintiff.searchBox
                     }
                 ]
@@ -1955,7 +1991,7 @@ viewPlaintiffAttorneySearch options form =
                     , text = form.plaintiffAttorney.text
                     , selected = form.plaintiffAttorney.person
                     , options = Just ({ id = -1, name = form.plaintiffAttorney.text, aliases = [] } :: options.attorneys)
-                    , label = Input.labelAbove [] (text "Plaintiff Attorney")
+                    , label = defaultLabel "Plaintiff Attorney"
                     , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff attorney")
                     , toLabel = \person -> person.name
                     , filter = \_ _ -> True
@@ -1981,8 +2017,11 @@ viewCourtroom options index form =
             , currentTooltip = options.tooltip
             , description = "The court room where eviction proceedings will occur."
             , children =
-                [ courtroomDropdown options.courtrooms index form
-                    |> Dropdown.renderElement options.renderConfig
+                [ column [ spacing 5, width fill ]
+                    [ el labelAttrs (text "Courtroom")
+                    , courtroomDropdown options.courtrooms index form
+                        |> Dropdown.renderElement options.renderConfig
+                    ]
                 ]
             }
         ]
@@ -2022,7 +2061,9 @@ viewAmountClaimedCategory options form =
             , description = "Plaintiffs may ask for payment, repossession, or more."
             , children =
                 [ column [ spacing 5, width fill ]
-                    [ el [] (text "Amount Claimed Category")
+                    [ el labelAttrs (text "Amount Claimed Category")
+                    , amountClaimedDropdown form
+                        |> Dropdown.renderElement options.renderConfig
                     ]
                 ]
             }
@@ -2038,7 +2079,7 @@ viewCares options form =
             , description = "C.A.R.E.S. was an aid package provided during the pandemic. If a docket number has a \"Notice,\" check to see whether the property falls under the CARES act"
             , children =
                 [ column [ spacing 5, width fill ]
-                    [ el [] (text "Is C.A.R.E.S. property?")
+                    [ el labelAttrs (text "Is C.A.R.E.S. property?")
                     , caresDropdown form
                         |> Dropdown.renderElement options.renderConfig
                     ]
@@ -2056,7 +2097,7 @@ viewLegacy options form =
             , description = "L.E.G.A.C.Y. is a special court created for handling evictions during the pandemic. Looks up cases listed under \"LEGACY Case DW Numbers\" tab and check if the case is there or not."
             , children =
                 [ column [ spacing 5, width fill ]
-                    [ el [] (text "Is L.E.G.A.C.Y. property?")
+                    [ el labelAttrs (text "Is L.E.G.A.C.Y. property?")
                     , legacyDropdown form
                         |> Dropdown.renderElement options.renderConfig
                     ]
@@ -2074,7 +2115,7 @@ viewNonpayment options form =
             , description = "People can be evicted for a number of reasons, including non-payment of rent. We want to know if people are being evicted for this reason because those cases should go to the diversionary court. We assume cases that request $$ are for non-payment but this box is sometimes checked on eviction forms."
             , children =
                 [ column [ spacing 5, width fill ]
-                    [ el [] (text "Is nonpayment?")
+                    [ el labelAttrs (text "Is nonpayment?")
                     , nonpaymentDropdown form
                         |> Dropdown.renderElement options.renderConfig
                     ]
@@ -2083,8 +2124,8 @@ viewNonpayment options form =
         ]
 
 
-requiredLabel labelFn str =
-    labelFn [] (row [ spacing 5 ] [ text str, requiredStar ])
+requiredLabel labelFn attrs str =
+    labelFn attrs (row [ spacing 5 ] [ text str, requiredStar ])
 
 
 viewAddress : FormOptions -> Form -> Element Msg
@@ -2100,6 +2141,7 @@ viewAddress options form =
                     form.address
                     |> TextField.setLabelVisible True
                     |> TextField.withPlaceholder "123 Street Address, City, Zip Code"
+                    |> TextField.withWidth TextField.widthFull
                     |> TextField.renderElement options.renderConfig
                 ]
             }
@@ -2258,8 +2300,8 @@ viewDefendantForm options index defendant =
         , spacing 10
         , padding 20
         , Border.width 1
-        , Palette.toBorderColor Palette.gray200
-        , Border.innerGlow (Element.rgb255 230 230 230) 2
+        , Palette.toBorderColor Palette.gray300
+        , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
         , Border.rounded 5
         ]
         [ row [ centerX, spacing 20 ]
@@ -2298,7 +2340,7 @@ viewJudgements options form =
                       else
                         Element.alignRight
                     ]
-                    (Button.fromLabeledOnLeftIcon (Icon.add "Add judgement")
+                    (Button.fromLabeledOnLeftIcon (Icon.add "Add hearing")
                         |> Button.cmd AddJudgement Button.primary
                         |> Button.renderElement options.renderConfig
                     )
@@ -2315,13 +2357,17 @@ viewJudgementInterest options index form =
                 , currentTooltip = options.tooltip
                 , description = "Do the fees claimed have interest?"
                 , children =
-                    [ column [ spacing 5, width fill ]
-                        [ Checkbox.checkbox
+                    [ el
+                        [ width (fill |> minimum 200)
+
+                        -- , paddingEach { top = 17, bottom = 0, left = 0, right = 0 }
+                        ]
+                        (Checkbox.checkbox
                             "Fees have interest"
                             (ToggleJudgementInterest index)
                             form.hasInterest
                             |> Checkbox.renderElement options.renderConfig
-                        ]
+                        )
                     ]
                 }
             , if form.hasInterest then
@@ -2373,13 +2419,16 @@ viewJudgementPossession options index form =
         , currentTooltip = options.tooltip
         , description = "Has the Plaintiff claimed the residence?"
         , children =
-            [ column [ spacing 5, width fill ]
-                [ Checkbox.checkbox
+            [ el
+                [ width (fill |> minimum 200)
+                , paddingEach { top = 17, bottom = 0, left = 0, right = 0 }
+                ]
+                (Checkbox.checkbox
                     "Possession awarded"
                     (ToggleJudgementPossession index)
                     form.awardsPossession
                     |> Checkbox.renderElement options.renderConfig
-                ]
+                )
             ]
         }
 
@@ -2391,20 +2440,18 @@ viewJudgementPlaintiff options index form =
         , currentTooltip = options.tooltip
         , description = "Fees the Plaintiff has been awarded."
         , children =
-            [ column [ spacing 5, width fill ]
-                [ TextField.singlelineText (ChangedFeesAwarded index)
-                    "Fees awarded"
-                    (if form.awardsFees == "" then
-                        form.awardsFees
+            [ TextField.singlelineText (ChangedFeesAwarded index)
+                "Fees awarded"
+                (if form.awardsFees == "" then
+                    form.awardsFees
 
-                     else
-                        "$" ++ form.awardsFees
-                    )
-                    |> TextField.setLabelVisible True
-                    |> TextField.withPlaceholder "$0.00"
-                    |> TextField.withOnEnterPressed (ConfirmedFeesAwarded index)
-                    |> TextField.renderElement options.renderConfig
-                ]
+                 else
+                    "$" ++ form.awardsFees
+                )
+                |> TextField.setLabelVisible True
+                |> TextField.withPlaceholder "$0.00"
+                |> TextField.withOnEnterPressed (ConfirmedFeesAwarded index)
+                |> TextField.renderElement options.renderConfig
             ]
         }
     , viewJudgementPossession options index form
@@ -2419,7 +2466,7 @@ viewJudgementDefendant options index form =
         , description = "Why is the case being dismissed?"
         , children =
             [ column [ spacing 5, width (fill |> minimum 350) ]
-                [ el [] (text "Basis for dismissal")
+                [ el labelAttrs (text "Basis for dismissal")
                 , dismissalBasisDropdown index form
                     |> Dropdown.renderElement options.renderConfig
                 ]
@@ -2430,13 +2477,16 @@ viewJudgementDefendant options index form =
         , currentTooltip = options.tooltip
         , description = "Whether or not the dismissal is made with prejudice."
         , children =
-            [ row [ spacing 5, width fill ]
-                [ Checkbox.checkbox
+            [ el
+                [ width (fill |> minimum 200)
+                , paddingEach { top = 17, bottom = 0, left = 0, right = 0 }
+                ]
+                (Checkbox.checkbox
                     "Dismissal is with prejudice"
                     (ToggledWithPrejudice index)
                     form.withPrejudice
                     |> Checkbox.renderElement options.renderConfig
-                ]
+                )
             ]
         }
     ]
@@ -2464,7 +2514,7 @@ viewJudgeSearch options index form =
                     , text = form.judge.text
                     , selected = form.judge.person
                     , options = Just ({ id = -1, name = form.judge.text, aliases = [] } :: options.judges)
-                    , label = Input.labelAbove [] (text "Judge")
+                    , label = defaultLabel "Judge"
                     , placeholder = Just <| Input.placeholder [] (text "Search for judge")
                     , toLabel = \person -> person.name
                     , filter = \_ _ -> True
@@ -2491,8 +2541,8 @@ viewJudgement options index form =
         , spacing 10
         , padding 20
         , Border.width 1
-        , Palette.toBorderColor Palette.gray200
-        , Border.innerGlow (Element.rgb255 230 230 230) 2
+        , Palette.toBorderColor Palette.gray300
+        , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
         , Border.rounded 5
         , inFront
             (row [ Element.alignRight, padding 20 ]
@@ -2516,59 +2566,74 @@ viewJudgement options index form =
                             options.problems
                             (withChanges
                                 hasChanges
-                                [ Element.htmlAttribute (Html.Attributes.id (judgementInfoText index JudgementFileDateDetail))
-                                , centerX
-                                , Element.centerY
-                                , Palette.toBorderColor Palette.gray200
-                                ]
+                                (boxAttrs
+                                    ++ [ Element.htmlAttribute (Html.Attributes.id (judgementInfoText index JudgementFileDateDetail))
+                                       , centerX
+                                       , Element.centerY
+                                       ]
+                                )
                             )
                         )
                         { onChange = ChangedJudgementCourtDatePicker index
                         , selected = form.courtDate.date
                         , text = form.courtDate.dateText
                         , label =
-                            requiredLabel Input.labelAbove "Court Date"
+                            requiredLabel Input.labelAbove labelAttrs "Court date"
                         , placeholder =
-                            Just <| Input.placeholder [] <| text <| Date.toIsoString <| options.today
+                            Just <| Input.placeholder labelAttrs <| text <| Date.toIsoString <| options.today
                         , settings = DatePicker.defaultSettings
                         , model = form.courtDate.pickerModel
                         }
                     ]
                 }
-            , viewJudgeSearch options index form
+            , viewCourtroom options index form
             ]
         , row [ spacing 5 ]
-            [ viewCourtroom options index form
-            , viewField
-                { tooltip = Just (JudgementInfo index Summary)
-                , currentTooltip = options.tooltip
-                , description = "The ruling from the court that will determine if fees or repossession are enforced."
-                , children =
-                    [ column [ spacing 5, width fill ]
-                        [ el [] (text "Granted to")
-                        , conditionsDropdown index form
-                            |> Dropdown.renderElement options.renderConfig
+            [ viewJudgeSearch options index form
+            ]
+        , column
+            [ spacing 5
+            , Border.width 1
+            , Border.rounded 5
+            , width fill
+            , padding 20
+            , Palette.toBorderColor Palette.gray300
+            , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
+            ]
+            [ row [ spacing 5, width fill ]
+                [ paragraph [ Font.center, centerX ] [ text "Judgement" ] ]
+            , row [ spacing 5, width fill ]
+                [ viewField
+                    { tooltip = Just (JudgementInfo index Summary)
+                    , currentTooltip = options.tooltip
+                    , description = "The ruling from the court that will determine if fees or repossession are enforced."
+                    , children =
+                        [ column [ spacing 5, width (fill |> maximum 200) ]
+                            [ el labelAttrs (text "Granted to")
+                            , conditionsDropdown index form
+                                |> Dropdown.renderElement options.renderConfig
+                            ]
                         ]
-                    ]
-                }
+                    }
+                ]
+            , row [ spacing 5, width fill ]
+                (case form.condition of
+                    Just PlaintiffOption ->
+                        viewJudgementPlaintiff options index form
+
+                    Just DefendantOption ->
+                        viewJudgementDefendant options index form
+
+                    Nothing ->
+                        [ Element.none ]
+                )
+            , if form.awardsFees /= "" && form.condition == Just PlaintiffOption then
+                viewJudgementInterest options index form
+
+              else
+                Element.none
+            , viewJudgementNotes options index form
             ]
-        , row [ spacing 5 ]
-            (case form.condition of
-                Just PlaintiffOption ->
-                    viewJudgementPlaintiff options index form
-
-                Just DefendantOption ->
-                    viewJudgementDefendant options index form
-
-                Nothing ->
-                    [ Element.none ]
-            )
-        , if form.awardsFees /= "" && form.condition == Just PlaintiffOption then
-            viewJudgementInterest options index form
-
-          else
-            Element.none
-        , viewJudgementNotes options index form
         ]
 
 
@@ -2584,6 +2649,7 @@ viewJudgementNotes options index form =
                     "Notes"
                     form.notes
                     |> TextField.withPlaceholder "Add any notes from the judgement sheet or any comments you think is noteworthy."
+                    |> TextField.withWidth TextField.widthFull
                     |> TextField.renderElement options.renderConfig
                 ]
             }
@@ -2602,6 +2668,7 @@ viewNotes options form =
                     "Notes"
                     form.notes
                     |> TextField.withPlaceholder "Add anything you think is noteworthy."
+                    |> TextField.withWidth TextField.widthFull
                     |> TextField.renderElement options.renderConfig
                 ]
             }
@@ -2624,9 +2691,9 @@ tile groups =
         , padding 20
         , width fill
         , Border.rounded 3
-        , Palette.toBorderColor Palette.gray200
+        , Palette.toBorderColor Palette.gray400
         , Border.width 1
-        , Border.shadow { offset = ( 0, 10 ), size = 1, blur = 30, color = Element.rgb255 200 200 200 }
+        , Border.shadow { offset = ( 0, 10 ), size = 1, blur = 30, color = Palette.toElementColor Palette.gray400 }
         ]
         groups
 
@@ -2683,7 +2750,7 @@ viewForm options formStatus =
                     , viewDefendants options form
                     ]
                 , tile
-                    [ paragraph [ Font.center, centerX ] [ text "Judgements" ]
+                    [ paragraph [ Font.center, centerX ] [ text "Hearings" ]
                     , viewJudgements options form
                     ]
                 , tile
