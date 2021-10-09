@@ -1,20 +1,15 @@
 module DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, DetainerWarrantEdit, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, decoder, mostRecentCourtDate, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
 
 import Attorney exposing (Attorney)
-import Courtroom exposing (Courtroom)
-import Date exposing (Date)
 import Defendant exposing (Defendant)
-import Form.State exposing (DatePickerState)
 import Json.Decode as Decode exposing (Decoder, bool, float, list, nullable, string)
-import Json.Decode.Pipeline exposing (custom, optional, required)
-import Judge exposing (Judge, JudgeForm)
+import Json.Decode.Pipeline exposing (required)
 import Judgement exposing (Judgement)
 import Maybe
 import Plaintiff exposing (Plaintiff)
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
 import UI.Button exposing (Button)
-import UI.Dropdown as Dropdown
 import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
 import UI.Tables.Stateful exposing (detailShown, detailsEmpty)
 import UI.Text as Text

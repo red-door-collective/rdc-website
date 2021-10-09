@@ -2,7 +2,6 @@ module Page.Admin.DetainerWarrants.Edit exposing (Data, Model, Msg, page)
 
 import Attorney exposing (Attorney)
 import Browser.Dom
-import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
 import Courtroom exposing (Courtroom)
 import DataSource exposing (DataSource)
@@ -12,7 +11,7 @@ import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import DetainerWarrant exposing (AmountClaimedCategory, DetainerWarrant, DetainerWarrantEdit, Status)
 import Dict
-import Element exposing (Element, alignBottom, below, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
+import Element exposing (Element, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -22,7 +21,6 @@ import Head
 import Head.Seo as Seo
 import Html.Attributes exposing (selected)
 import Http
-import Json.Decode as Decode
 import Json.Encode as Encode
 import Judge exposing (Judge)
 import Judgement exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm)
@@ -152,8 +150,7 @@ type JudgementDetail
 
 
 type Tooltip
-    = DetainerWarrantInfo
-    | DocketIdInfo
+    = DocketIdInfo
     | FileDateInfo
     | StatusInfo
     | PlaintiffInfo
@@ -432,7 +429,6 @@ getWarrant domain id maybeCred =
 type Msg
     = GotDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
     | ToggleHelp
-    | HideHelp
     | ChangedDocketId String
     | ChangedFileDatePicker ChangeEvent
     | ChangedPlaintiffSearchBox (SearchBox.ChangeEvent Plaintiff)
@@ -598,9 +594,6 @@ update pageUrl navKey sharedModel static msg model =
               }
             , Cmd.none
             )
-
-        HideHelp ->
-            ( { model | showHelp = False }, Cmd.none )
 
         ChangedDocketId id ->
             updateForm (\form -> { form | docketId = id }) model
@@ -1634,7 +1627,7 @@ viewField showHelp field =
     let
         tooltip =
             case field.tooltip of
-                Just tip ->
+                Just _ ->
                     withTooltip showHelp field.description
 
                 Nothing ->
@@ -2876,41 +2869,6 @@ subscriptions pageUrl params path model =
                 )
 
 
-isOutsideTooltip : String -> Decode.Decoder Bool
-isOutsideTooltip tooltipId =
-    Decode.oneOf
-        [ Decode.field "id" Decode.string
-            |> Decode.andThen
-                (\id ->
-                    if tooltipId == id then
-                        Decode.succeed False
-
-                    else
-                        Decode.fail "continue"
-                )
-        , Decode.lazy (\_ -> isOutsideTooltip tooltipId |> Decode.field "parentNode")
-        , Decode.succeed True
-        ]
-
-
-outsideTarget : String -> Msg -> Decode.Decoder Msg
-outsideTarget tooltipId msg =
-    Decode.field "target" (isOutsideTooltip tooltipId)
-        |> Decode.andThen
-            (\isOutside ->
-                if isOutside then
-                    Decode.succeed msg
-
-                else
-                    Decode.fail "inside dropdown"
-            )
-
-
-onOutsideClick : Tooltip -> Sub Msg
-onOutsideClick tip =
-    onMouseDown (outsideTarget (tooltipToString tip) HideHelp)
-
-
 judgementInfoText : Int -> JudgementDetail -> String
 judgementInfoText index detail =
     "judgement-"
@@ -2947,61 +2905,6 @@ judgementInfoText index detail =
            )
         ++ "-"
         ++ String.fromInt index
-
-
-tooltipToString : Tooltip -> String
-tooltipToString tip =
-    case tip of
-        DetainerWarrantInfo ->
-            "detainer-warrant-info"
-
-        DocketIdInfo ->
-            "docket-id-info"
-
-        FileDateInfo ->
-            "file-date-info"
-
-        StatusInfo ->
-            "status-info"
-
-        PlaintiffInfo ->
-            "plaintiff-info"
-
-        PlaintiffAttorneyInfo ->
-            "plaintiff-attorney-info"
-
-        CourtroomInfo ->
-            "courtroom-info"
-
-        PresidingJudgeInfo ->
-            "presiding-judge-info"
-
-        AmountClaimedInfo ->
-            "amount-claimed-info"
-
-        AmountClaimedCategoryInfo ->
-            "amount-claimed-category-info"
-
-        CaresInfo ->
-            "cares-info"
-
-        LegacyInfo ->
-            "legacy-info"
-
-        NonpaymentInfo ->
-            "nonpayment-info"
-
-        AddressInfo ->
-            "address-info"
-
-        PotentialPhoneNumbersInfo index ->
-            "potential-phone-numbers-info-" ++ String.fromInt index
-
-        JudgementInfo index detail ->
-            judgementInfoText index detail
-
-        NotesInfo ->
-            "notes-info"
 
 
 

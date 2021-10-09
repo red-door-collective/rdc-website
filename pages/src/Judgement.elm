@@ -1,9 +1,9 @@
-module Judgement exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm, entranceText)
+module Judgement exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm)
 
 import Courtroom exposing (Courtroom)
 import Date exposing (Date)
 import Form.State exposing (DatePickerState)
-import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
+import Json.Decode as Decode exposing (Decoder, bool, float, int, nullable, string)
 import Json.Decode.Pipeline exposing (custom, optional, required)
 import Judge exposing (Judge, JudgeForm)
 import String.Extra
