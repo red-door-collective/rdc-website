@@ -1,4 +1,4 @@
-module StructuredData exposing (StructuredData(..), aboutPage, additionalName, article, article_, computerLanguage, elmLang, encode, person, softwareSourceCode)
+module StructuredData exposing (StructuredData(..), aboutPage, article, elmLang, person, softwareSourceCode)
 
 import Json.Encode as Encode
 import Pages.Url
@@ -120,39 +120,6 @@ person :
             }
 person info =
     StructuredData "Person" [ ( "name", Encode.string info.name ) ]
-
-
-additionalName : String -> StructuredData memberOf { possibleFields | additionalName : () } -> StructuredData memberOf possibleFields
-additionalName value (StructuredData typeName fields) =
-    StructuredData typeName (( "additionalName", Encode.string value ) :: fields)
-
-
-{-| <https://schema.org/Article>
--}
-article_ :
-    { title : String
-    , description : String
-    , author : String
-    , publisher : StructuredData { personOrOrganization : () } possibleFieldsPublisher
-    , url : String
-    , imageUrl : String
-    , datePublished : String
-    , mainEntityOfPage : Encode.Value
-    }
-    -> Encode.Value
-article_ info =
-    Encode.object
-        [ ( "@context", Encode.string "http://schema.org/" )
-        , ( "@type", Encode.string "Article" )
-        , ( "headline", Encode.string info.title )
-        , ( "description", Encode.string info.description )
-        , ( "image", Encode.string info.imageUrl )
-        , ( "author", Encode.string info.author )
-        , ( "publisher", encode info.publisher )
-        , ( "url", Encode.string info.url )
-        , ( "datePublished", Encode.string info.datePublished )
-        , ( "mainEntityOfPage", info.mainEntityOfPage )
-        ]
 
 
 encode : StructuredData memberOf possibleFieldsPublisher -> Encode.Value

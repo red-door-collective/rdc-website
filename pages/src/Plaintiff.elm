@@ -1,10 +1,10 @@
-module Plaintiff exposing (Plaintiff, decoder, tableColumns, toTableCover, toTableDetails, toTableRow, toTableRowView)
+module Plaintiff exposing (Plaintiff, decoder, tableColumns, toTableCover, toTableDetails, toTableRow)
 
-import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
-import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
-import UI.Button as Button exposing (Button)
+import Json.Decode as Decode exposing (Decoder, int, list, string)
+import Json.Decode.Pipeline exposing (required)
+import UI.Button exposing (Button)
 import UI.Tables.Common as Common exposing (Columns, Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
-import UI.Tables.Stateful exposing (detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter)
+import UI.Tables.Stateful exposing (detailShown, detailsEmpty)
 import UI.Text as Text
 import UI.Utils.TypeNumbers as T
 

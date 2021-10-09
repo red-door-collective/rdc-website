@@ -3,63 +3,47 @@ module Page.Admin.DetainerWarrants exposing (Data, Model, Msg, page)
 import Browser.Navigation as Nav
 import Color
 import DataSource exposing (DataSource)
-import Date exposing (Date)
-import DatePicker exposing (ChangeEvent(..))
-import DetainerWarrant exposing (DatePickerState, DetainerWarrant, Status(..))
-import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paddingXY, paragraph, px, row, spacing, table, text, textColumn, width)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
+import DetainerWarrant exposing (DetainerWarrant)
+import Element exposing (Element, centerX, column, fill, height, padding, paddingXY, paragraph, px, row, spacing, text, textColumn, width)
 import Element.Font as Font
-import Element.Input as Input
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Head
 import Head.Seo as Seo
-import Html
 import Html.Attributes as Attrs
-import Http exposing (Error(..))
+import Http
 import InfiniteScroll
 import Iso8601
-import Json.Decode as Decode
 import Loader
 import Log
 import Logo
 import Maybe
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
 import Path exposing (Path)
 import QueryParams
 import Rest exposing (Cred)
-import Rest.Endpoint as Endpoint exposing (Endpoint)
+import Rest.Endpoint as Endpoint
 import Result
 import Rollbar exposing (Rollbar)
-import Route
-import Runtime exposing (Runtime)
+import Runtime
 import Search exposing (Cursor(..), Search)
 import Session exposing (Session)
-import Settings exposing (Settings)
 import Shared
 import Sprite
-import Svg
-import Svg.Attributes
 import Time
 import Time.Utils
 import UI.Button as Button exposing (Button)
 import UI.Effects
 import UI.Icon as Icon
 import UI.Link as Link
-import UI.Palette as Palette
-import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
+import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import UI.Size
-import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
-import UI.Text as Text
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
 import UI.TextField as TextField
 import UI.Utils.DateInput exposing (DateInput)
 import UI.Utils.TypeNumbers as T
-import Url.Builder exposing (QueryParameter)
-import User exposing (User)
+import Url.Builder
 import View exposing (View)
 
 
@@ -156,8 +140,6 @@ type Msg
     | InputPlaintiffAttorney (Maybe String)
     | InputDefendant (Maybe String)
     | InputAddress (Maybe String)
-    | SelectWarrant String
-    | HoverWarrant String
     | ForTable (Stateful.Msg DetainerWarrant)
     | GotWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
     | InfiniteScrollMsg InfiniteScroll.Msg
@@ -265,12 +247,6 @@ update pageUrl navKey sharedModel static msg model =
 
         InputAddress query ->
             updateFiltersAndReload domain session (\filters -> { filters | address = query }) model
-
-        SelectWarrant docketId ->
-            ( { model | selected = Just docketId }, Cmd.none )
-
-        HoverWarrant docketId ->
-            ( { model | hovered = Just docketId }, Cmd.none )
 
         ForTable subMsg ->
             let

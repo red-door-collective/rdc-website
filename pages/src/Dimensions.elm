@@ -1,11 +1,6 @@
-module Dimensions exposing (Attributes, Dimensions, init, isMobile)
+module Dimensions exposing (Dimensions)
 
 import Element
-
-
-init : Attributes -> Dimensions
-init attributes =
-    Dimensions attributes
 
 
 type alias Attributes =
@@ -17,7 +12,3 @@ type alias Attributes =
 
 type Dimensions
     = Dimensions Attributes
-
-
-isMobile (Dimensions { width }) =
-    width <= 1000

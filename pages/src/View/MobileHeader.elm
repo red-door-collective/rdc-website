@@ -1,10 +1,8 @@
 module View.MobileHeader exposing (view)
 
-import Element exposing (Element, alignRight, column, el, fill, height, link, padding, px, row, spacing, text, width)
+import Element exposing (Element, column, fill, link, padding, spacing, width)
 import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import Html.Attributes as Attrs
 import Path exposing (Path)
 import Route exposing (Route(..))

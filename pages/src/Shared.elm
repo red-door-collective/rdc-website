@@ -2,16 +2,13 @@ module Shared exposing (Data, Model, Msg, template)
 
 import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
-import DataSource exposing (DataSource)
+import DataSource
 import DataSource.Port
-import Element exposing (Element, fill, width)
-import Element.Font as Font
+import Element exposing (fill, width)
 import Html exposing (Html)
-import Html.Styled
-import Http
 import Json.Encode as Encode
 import OptimizedDecoder as Decode exposing (Decoder, int, string)
-import OptimizedDecoder.Pipeline exposing (optional, required)
+import OptimizedDecoder.Pipeline exposing (required)
 import Pages.Flags exposing (Flags(..))
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
@@ -22,10 +19,8 @@ import Runtime exposing (Runtime)
 import Session exposing (Session)
 import SharedTemplate exposing (SharedTemplate)
 import UI.RenderConfig as RenderConfig exposing (RenderConfig)
-import Url.Builder
 import View exposing (View)
 import View.Header
-import View.MobileHeader
 import Viewer
 
 

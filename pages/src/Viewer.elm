@@ -5,10 +5,7 @@ be able to render the menu bar (username and avatar), along with Cred so it's
 impossible to have a Viewer if you aren't logged in.
 -}
 
-import Email exposing (Email)
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (custom, required)
-import Json.Encode as Encode exposing (Value)
 import OptimizedDecoder
 import Rest exposing (Cred)
 

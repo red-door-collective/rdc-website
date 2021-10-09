@@ -5,35 +5,22 @@ module Page.Login exposing (Data, Model, Msg, page)
 
 import Browser.Navigation as Nav
 import DataSource exposing (DataSource)
-import DataSource.Port
-import Element exposing (Element, centerX, column, fill, maximum, minimum, padding, row, shrink, spacing, text, width)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
-import Element.Input as Input
+import Element exposing (Element, centerX, column, fill, maximum, padding, row, spacing, text, width)
 import Head
 import Head.Seo as Seo
-import Html.Events
 import Http
-import Json.Decode
 import Json.Encode as Encode
 import Logo
-import OptimizedDecoder as Decode exposing (Decoder, decodeString, field, string)
-import OptimizedDecoder.Pipeline exposing (optional)
-import Page exposing (Page, PageWithState, StaticPayload)
+import OptimizedDecoder exposing (field)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
 import Path exposing (Path)
-import Rest exposing (Cred)
-import Rest.Static
-import Route exposing (Route)
-import Runtime exposing (Runtime)
+import Rest
+import Runtime
 import Session exposing (Session)
 import Shared
 import UI.Button as Button
-import UI.Palette as Palette
-import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
-import UI.Text as Text
+import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import UI.TextField as TextField
 import View exposing (View)
 import Viewer exposing (Viewer)
@@ -68,20 +55,6 @@ loginForm cfg form =
             |> Button.withDisabledIf (form.password == "")
             |> Button.renderElement cfg
         ]
-
-
-loginTitle : RenderConfig -> Element Msg
-loginTitle cfg =
-    "Log in"
-        |> String.split "\n"
-        |> Text.multiline Text.heading5
-        -- UI.Text
-        |> Text.withColor (Palette.color Palette.hueGray Palette.shade600)
-        |> Text.renderElement cfg
-        |> Element.el
-            [ Element.paddingXY 0 20
-            , Element.width fill
-            ]
 
 
 type alias RouteParams =
@@ -170,23 +143,6 @@ init pageUrl sharedModel static =
 
 
 -- VIEW
-
-
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Json.Decode.field "key" Json.Decode.string
-                |> Json.Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Json.Decode.succeed msg
-
-                        else
-                            Json.Decode.fail "Not the enter key"
-                    )
-            )
-        )
 
 
 title =

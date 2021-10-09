@@ -2,42 +2,25 @@ module Page.Admin.Dashboard exposing (Data, Model, Msg, page)
 
 import Browser.Navigation as Nav
 import Campaign exposing (Campaign)
-import Color
 import DataSource exposing (DataSource)
-import DetainerWarrant exposing (DetainerWarrant)
-import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, text, textColumn, width)
-import Element.Background as Background
-import Element.Border as Border
+import Element exposing (Element, centerX, column, fill, height, maximum, minimum, padding, paragraph, px, row, spacing, text, width)
 import Element.Font as Font
-import Element.Input as Input
 import Head
 import Head.Seo as Seo
-import Html.Events
 import Http
-import Json.Decode as Decode
 import Logo
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
 import Path exposing (Path)
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Runtime
-import Session exposing (Session)
-import Settings exposing (Settings)
+import Session
 import Shared
 import Sprite
-import UI.Button as Button exposing (Button)
-import UI.Effects
-import UI.Icon as Icon
+import UI.Button as Button
 import UI.Link as Link
-import UI.Palette as Palette
-import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
-import UI.Size
-import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
-import UI.Text as Text
-import UI.TextField as TextField
-import User exposing (User)
+import UI.RenderConfig exposing (RenderConfig)
 import View exposing (View)
 
 
@@ -82,25 +65,8 @@ update pageUrl navKey sharedModel payload msg model =
                 Ok campaignsPage ->
                     ( { model | campaigns = campaignsPage.data }, Cmd.none )
 
-                Err errMsg ->
+                Err _ ->
                     ( model, Cmd.none )
-
-
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
-        )
 
 
 viewCampaign : RenderConfig -> Campaign -> Element Msg

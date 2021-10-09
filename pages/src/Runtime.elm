@@ -1,7 +1,7 @@
-module Runtime exposing (Environment, RollbarToken, Runtime, codeVersion, decode, decodeCodeVersion, decodeDate, decodeEnvironment, decodeToken, default, domain, environment, rollbarToken)
+module Runtime exposing (Environment, RollbarToken, Runtime, codeVersion, decodeCodeVersion, decodeDate, decodeEnvironment, decodeToken, domain, environment, rollbarToken)
 
 import Date exposing (Date)
-import OptimizedDecoder as Decode exposing (Decoder, field)
+import OptimizedDecoder as Decode exposing (Decoder)
 import Result
 import Time exposing (Month(..))
 
@@ -114,12 +114,3 @@ decodeDate =
                     |> Result.map Decode.succeed
                     |> Result.withDefault (Decode.succeed default.today)
             )
-
-
-decode : Decoder Runtime
-decode =
-    Decode.map4 Runtime
-        (field "environment" decodeEnvironment)
-        (field "rollbarToken" decodeToken)
-        (field "codeVersion" decodeCodeVersion)
-        (field "today" decodeDate)

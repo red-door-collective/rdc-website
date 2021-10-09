@@ -7,9 +7,8 @@ import Head.Seo as Seo
 import Http
 import Log
 import Logo
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (PageWithState, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
 import Path exposing (Path)
 import Rest
 import Rollbar exposing (Rollbar)

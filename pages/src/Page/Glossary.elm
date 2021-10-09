@@ -12,7 +12,7 @@ import Markdown.Html
 import MarkdownCodec
 import MarkdownRenderer
 import OptimizedDecoder
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (Page, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
 import Path
@@ -222,12 +222,12 @@ blogRenderer =
         | html =
             Markdown.Html.oneOf
                 [ Markdown.Html.tag "legend"
-                    (\title renderedChildren ->
+                    (\title _ ->
                         viewLegend title
                     )
                     |> Markdown.Html.withAttribute "title"
                 , Markdown.Html.tag "sized-image"
-                    (\title widthInPx heightInPx src alt renderedChildren ->
+                    (\title widthInPx heightInPx src alt _ ->
                         viewSizedImage title widthInPx heightInPx src alt
                     )
                     |> Markdown.Html.withOptionalAttribute "title"

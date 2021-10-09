@@ -3,60 +3,40 @@ module Page.Admin.Plaintiffs exposing (Data, Model, Msg, page)
 import Browser.Navigation as Nav
 import Color
 import DataSource exposing (DataSource)
-import Date exposing (Date)
-import DatePicker exposing (ChangeEvent(..))
-import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, table, text, textColumn, width)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
+import Element exposing (Element, centerX, column, fill, height, padding, paragraph, px, row, spacing, text, textColumn, width)
 import Element.Font as Font
-import Element.Input as Input
-import FeatherIcons
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Head
 import Head.Seo as Seo
-import Html.Attributes
-import Html.Events
-import Http exposing (Error(..))
+import Http
 import InfiniteScroll
-import Json.Decode as Decode
 import Loader
 import Log
 import Logo
-import Maybe.Extra
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
 import Path exposing (Path)
 import Plaintiff exposing (Plaintiff)
 import QueryParams
 import Rest exposing (Cred)
-import Rest.Endpoint as Endpoint exposing (Endpoint)
+import Rest.Endpoint as Endpoint
 import Rollbar exposing (Rollbar)
-import Route
-import Runtime exposing (Runtime)
+import Runtime
 import Search exposing (Cursor(..), Search)
 import Session exposing (Session)
-import Settings exposing (Settings)
 import Shared
 import Sprite
 import UI.Button as Button exposing (Button)
 import UI.Effects
 import UI.Icon as Icon
 import UI.Link as Link
-import UI.Palette as Palette
-import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
+import UI.RenderConfig exposing (RenderConfig)
 import UI.Size
-import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
-import UI.Text as Text
-import UI.TextField as TextField
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
 import UI.Utils.TypeNumbers as T
-import Url.Builder exposing (QueryParameter)
-import User exposing (User)
+import Url.Builder
 import View exposing (View)
-import Widget
-import Widget.Icon
 
 
 type alias Model =
@@ -164,7 +144,6 @@ type Msg
     | InputAliases (Maybe String)
     | ForTable (Stateful.Msg Plaintiff)
     | GotPlaintiffs (Result Http.Error (Rest.Collection Plaintiff))
-    | InfiniteScrollMsg InfiniteScroll.Msg
     | NoOp
 
 
@@ -272,18 +251,6 @@ update pageUrl navKey sharedModel static msg model =
 
         GotPlaintiffs (Err httpError) ->
             ( model, logHttpError httpError )
-
-        InfiniteScrollMsg subMsg ->
-            case model.search.cursor of
-                End ->
-                    ( model, Cmd.none )
-
-                _ ->
-                    let
-                        ( infiniteScroll, cmd ) =
-                            InfiniteScroll.update InfiniteScrollMsg subMsg model.infiniteScroll
-                    in
-                    ( { model | infiniteScroll = infiniteScroll }, cmd )
 
         NoOp ->
             ( model, Cmd.none )

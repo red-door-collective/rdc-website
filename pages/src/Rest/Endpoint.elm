@@ -1,4 +1,4 @@
-module Rest.Endpoint exposing (Endpoint, amountAwardedHistory, attorney, attorneys, attorneysSearch, campaign, campaigns, courtroom, courtrooms, currentUser, defendant, defendants, defendantsSearch, detainerWarrant, detainerWarrantStats, detainerWarrants, detainerWarrantsSearch, event, evictionStats, judge, judgement, judgements, judges, login, logout, plaintiff, plaintiffAttorneyStats, plaintiffs, plaintiffsSearch, request, toQueryArgs, users)
+module Rest.Endpoint exposing (Endpoint, attorney, attorneys, attorneysSearch, campaigns, courtrooms, defendant, defendants, defendantsSearch, detainerWarrant, detainerWarrantsSearch, judgement, judgements, judges, login, logout, plaintiff, plaintiffs, plaintiffsSearch, request, toQueryArgs)
 
 import Http
 import Url.Builder exposing (QueryParameter, string)
@@ -71,11 +71,6 @@ logout domain =
     url domain [ "accounts", "logout" ] []
 
 
-detainerWarrants : String -> Endpoint
-detainerWarrants domain =
-    url domain [ "detainer-warrants" ] []
-
-
 type alias Param =
     ( String, String )
 
@@ -130,11 +125,6 @@ judges domain =
     url domain [ "judges", "" ] << toQueryArgs
 
 
-judge : String -> Int -> Endpoint
-judge domain id =
-    url domain [ "judges", String.fromInt id ] []
-
-
 defendants : String -> List Param -> Endpoint
 defendants domain =
     url domain [ "defendants", "" ] << toQueryArgs
@@ -165,55 +155,10 @@ courtrooms domain =
     url domain [ "courtrooms", "" ] << toQueryArgs
 
 
-courtroom : String -> Int -> Endpoint
-courtroom domain id =
-    url domain [ "courtrooms", String.fromInt id ] []
-
-
 campaigns : String -> Endpoint
 campaigns domain =
     url domain [ "campaigns", "" ] []
 
 
-campaign : String -> Int -> Endpoint
-campaign domain id =
-    url domain [ "campaigns", String.fromInt id ] []
-
-
-event : String -> Int -> Endpoint
-event domain id =
-    url domain [ "events", String.fromInt id ] []
-
-
-users : String -> Endpoint
-users domain =
-    url domain [ "users" ] []
-
-
-currentUser : String -> Endpoint
-currentUser domain =
-    url domain [ "current_user" ] []
-
-
 
 -- STATS ENDPOINTS
-
-
-detainerWarrantStats : String -> Endpoint
-detainerWarrantStats domain =
-    url domain [ "rollup", "detainer-warrants" ] []
-
-
-amountAwardedHistory : String -> Endpoint
-amountAwardedHistory domain =
-    url domain [ "rollup", "amount-awarded", "history" ] []
-
-
-plaintiffAttorneyStats : String -> Endpoint
-plaintiffAttorneyStats domain =
-    url domain [ "plaintiff-attorneys" ] []
-
-
-evictionStats : String -> Endpoint
-evictionStats domain =
-    url domain [ "plaintiffs" ] []

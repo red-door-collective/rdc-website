@@ -1,7 +1,7 @@
 module Site exposing (config)
 
 import Cloudinary
-import DataSource exposing (DataSource)
+import DataSource
 import Head
 import MimeType
 import Pages.Manifest as Manifest

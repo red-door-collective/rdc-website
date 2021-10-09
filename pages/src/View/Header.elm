@@ -1,6 +1,6 @@
 module View.Header exposing (..)
 
-import Element exposing (Element, alignRight, centerY, column, el, fill, height, link, padding, paddingXY, px, row, spacing, text, width)
+import Element exposing (Element, alignRight, centerY, column, el, fill, height, link, padding, paddingXY, px, row, spacing, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font

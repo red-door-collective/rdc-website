@@ -3,18 +3,15 @@ module Page.Blog exposing (Data, Model, Msg, page)
 import Article
 import DataSource
 import Date
-import Element exposing (Color, Element, alignBottom, alignLeft, alignRight, centerX, column, fill, height, image, maximum, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
-import Element.Background as Background
+import Element exposing (Element, centerX, column, fill, height, image, maximum, minimum, padding, paddingXY, paragraph, rgb255, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Head
 import Head.Seo as Seo
-import Html
 import Html.Attributes as Attr
-import List.Extra
 import Logo
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Url
 import Path
@@ -36,10 +33,10 @@ page =
         }
         |> Page.buildWithLocalState
             { view = view
-            , init = \_ _ staticPayload -> ( { hoveringOn = Nothing }, Cmd.none )
+            , init = \_ _ _ -> ( { hoveringOn = Nothing }, Cmd.none )
             , update = update
             , subscriptions =
-                \maybePageUrl routeParams path model ->
+                \_ _ _ _ ->
                     Sub.none
             }
 
@@ -161,10 +158,6 @@ blogGrid model articles =
         , spacingXY 0 60
         ]
         (List.indexedMap (blogCard model) (List.reverse articles))
-
-
-red =
-    rgb255 236 31 39
 
 
 sortByPublished articles =

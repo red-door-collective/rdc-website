@@ -1,13 +1,10 @@
-module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, detainerWarrantsQuery, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString, plaintiffsQuery, toPair)
+module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString)
 
-import Date exposing (Date)
 import Dict
 import Iso8601
 import QueryParams
-import Rest.Endpoint exposing (toQueryArgs)
 import Time exposing (Posix)
 import Time.Utils
-import Url.Builder
 
 
 type Cursor
@@ -134,17 +131,7 @@ detainerWarrantsFilterArgs filters =
         ++ toPair "free_text" filters.freeText
 
 
-detainerWarrantsQuery : DetainerWarrants -> String
-detainerWarrantsQuery filters =
-    Url.Builder.toQuery (toQueryArgs (detainerWarrantsArgs filters))
-
-
 plaintiffsArgs : Plaintiffs -> List ( String, String )
 plaintiffsArgs filters =
     toPair "name" filters.name
         ++ toPair "aliases" filters.aliases
-
-
-plaintiffsQuery : Plaintiffs -> String
-plaintiffsQuery filters =
-    Url.Builder.toQuery (toQueryArgs (plaintiffsArgs filters))

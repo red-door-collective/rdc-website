@@ -1,72 +1,41 @@
 module Page.Admin.Plaintiffs.Edit exposing (Data, Model, Msg, page)
 
-import Browser.Dom
 import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
-import Campaign exposing (Campaign)
-import Color
 import DataSource exposing (DataSource)
-import Date exposing (Date)
-import DateFormat
-import DatePicker exposing (ChangeEvent(..))
-import Defendant exposing (Defendant)
 import Dict
-import Dropdown
-import Element exposing (Element, below, centerX, column, el, fill, focusStyle, height, image, inFront, link, maximum, minimum, padding, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
-import Element.Background as Background
+import Element exposing (Element, below, centerX, column, el, fill, height, maximum, minimum, padding, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width)
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
-import Element.Input as Input exposing (labelHidden)
+import Element.Input as Input
 import FeatherIcons
 import Head
 import Head.Seo as Seo
-import Html.Attributes
-import Html.Events
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
-import List.Extra as List
 import Log
 import Logo
-import Mask
-import Maybe.Extra
 import MultiInput
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
 import Path exposing (Path)
-import PhoneNumber
-import PhoneNumber.Countries exposing (countryUS)
 import Plaintiff exposing (Plaintiff)
 import QueryParams
-import Regex exposing (Regex)
+import Regex
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Rollbar exposing (Rollbar)
-import Route
-import Runtime exposing (Runtime)
-import SearchBox
+import Runtime
 import Session exposing (Session)
-import Set
-import Settings exposing (Settings)
 import Shared
 import Sprite
-import Task
-import UI.Button as Button exposing (Button)
-import UI.Effects
+import UI.Button as Button
 import UI.Icon as Icon
-import UI.Link as Link
 import UI.Palette as Palette
-import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
-import UI.Size
-import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
-import UI.Text as Text
-import UI.TextField as TextField
-import UI.Utils.DateInput exposing (DateInput)
-import UI.Utils.TypeNumbers as T
+import UI.RenderConfig exposing (RenderConfig)
 import Url.Builder
-import User exposing (User)
 import View exposing (View)
 
 
@@ -96,7 +65,6 @@ type Tooltip
     = PlaintiffInfo
     | NameInfo
     | AliasesInfo
-    | NotesInfo
 
 
 type SaveState
@@ -205,7 +173,6 @@ type Msg
     | CloseTooltip
     | ChangedName String
     | ChangedAliases MultiInput.Msg
-    | ChangedNotes String
     | SubmitForm
     | SubmitAndAddAnother
     | CreatedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
@@ -225,19 +192,6 @@ updateForm transform model =
       }
     , Cmd.none
     )
-
-
-updateFormOnly : (Form -> Form) -> Model -> Model
-updateFormOnly transform model =
-    { model
-        | form =
-            case model.form of
-                Initializing _ ->
-                    model.form
-
-                Ready oldForm ->
-                    Ready (transform oldForm)
-    }
 
 
 updateFormNarrow : (Form -> ( Form, Cmd Msg )) -> Model -> ( Model, Cmd Msg )
@@ -293,9 +247,6 @@ update pageUrl navKey sharedModel static msg model =
         session =
             sharedModel.session
 
-        maybeCred =
-            Session.cred session
-
         rollbar =
             Log.reporting static.sharedData.runtime
 
@@ -346,11 +297,6 @@ update pageUrl navKey sharedModel static msg model =
                     in
                     ( { form | aliases = nextItems, aliasesState = nextState }, Cmd.map ChangedAliases nextCmd )
                 )
-                model
-
-        ChangedNotes notes ->
-            updateForm
-                (\form -> { form | notes = notes })
                 model
 
         SubmitForm ->
@@ -419,10 +365,6 @@ toPlaintiff id (Trimmed form) =
 
 nextStepSave : Session -> Model -> ( Model, Cmd Msg )
 nextStepSave session model =
-    let
-        maybeCred =
-            Session.cred session
-    in
     case validate model.form of
         Ok form ->
             let
@@ -448,23 +390,6 @@ nextStepSave session model =
 
         Err _ ->
             ( model, Cmd.none )
-
-
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
-        )
 
 
 type alias Field =
@@ -493,16 +418,6 @@ viewField field =
     row
         ([ width fill, height fill, spacingXY 5 0, paddingXY 0 10 ] ++ tooltip)
         field.children
-
-
-withChanges hasChanged attrs =
-    attrs
-        ++ (if hasChanged then
-                [ Palette.toBorderColor Palette.yellow300 ]
-
-            else
-                []
-           )
 
 
 withValidation : ValidatedField -> List Problem -> List (Element.Attr () msg) -> List (Element.Attr () msg)
@@ -613,39 +528,6 @@ viewAliases options form =
         ]
 
 
-viewNotes : FormOptions -> Form -> Element Msg
-viewNotes options form =
-    -- let
-    --     hasChanges =
-    --         (Maybe.withDefault False <|
-    --             Maybe.map ((/=) form.notes) <|
-    --                 Maybe.andThen .notes options.originalPlaintiff
-    --         )
-    --             || (options.originalPlaintiff == Nothing && form.notes /= "")
-    -- in
-    column [ width fill ]
-        [ viewField
-            { tooltip = Just NotesInfo
-            , currentTooltip = options.tooltip
-            , description =
-                [ paragraph []
-                    [ text "Any additional notes you have about this case go here!"
-                    , text "This is a great place to leave feedback for the form as well, perhaps there's another field or field option we need to provide."
-                    ]
-                ]
-            , children =
-                [ Input.multiline (withChanges False [])
-                    { onChange = ChangedNotes
-                    , text = form.notes
-                    , label = Input.labelAbove [] (text "Notes")
-                    , placeholder = Just <| Input.placeholder [] (text "Add anything you think is noteworthy.")
-                    , spellcheck = True
-                    }
-                ]
-            }
-        ]
-
-
 formGroup : List (Element Msg) -> Element Msg
 formGroup group =
     row
@@ -720,7 +602,7 @@ viewProblem : Problem -> Element Msg
 viewProblem problem =
     paragraph []
         [ case problem of
-            InvalidEntry _ value ->
+            InvalidEntry _ _ ->
                 Element.none
 
             ServerError err ->
@@ -881,9 +763,6 @@ tooltipToString tip =
         AliasesInfo ->
             "aliases-info"
 
-        NotesInfo ->
-            "notes-info"
-
 
 
 -- FORM
@@ -967,30 +846,9 @@ conditional fieldName fn field =
     Maybe.withDefault [] <| Maybe.map (\f -> [ ( fieldName, fn f ) ]) field
 
 
-nullable fieldName fn field =
-    Maybe.withDefault [ ( fieldName, Encode.null ) ] <| Maybe.map (\f -> [ ( fieldName, fn f ) ]) field
-
-
 toBody body =
     Encode.object [ ( "data", body ) ]
         |> Http.jsonBody
-
-
-remoteId : { a | id : number } -> Maybe number
-remoteId resource =
-    if resource.id == -1 then
-        Nothing
-
-    else
-        Just resource.id
-
-
-defaultDistrict =
-    ( "district_id", Encode.int 1 )
-
-
-encodeRelated record =
-    Encode.object [ ( "id", Encode.int record.id ) ]
 
 
 updatePlaintiff : String -> Maybe Cred -> Model -> Plaintiff -> Cmd Msg

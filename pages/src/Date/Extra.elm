@@ -1,7 +1,7 @@
 module Date.Extra exposing (fromPosix, fromUSCalString)
 
 import Date exposing (Date)
-import Parser exposing ((|.), (|=), Parser, andThen, chompWhile, getChompedString, int, problem, spaces, succeed, symbol)
+import Parser exposing ((|.), (|=), Parser, andThen, chompWhile, getChompedString, int, problem, succeed, symbol)
 import Time exposing (Posix)
 
 

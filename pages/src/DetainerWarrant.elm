@@ -1,28 +1,22 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, mostRecentCourtDate, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow, toTableRowView)
+module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm, judgementDecoder, mostRecentCourtDate, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
 
 import Attorney exposing (Attorney)
 import Courtroom exposing (Courtroom)
 import Date exposing (Date)
-import DatePicker exposing (ChangeEvent(..))
+import DatePicker
 import Defendant exposing (Defendant)
-import Element exposing (Element, column, fill, height, maximum, minimum, padding, px, row, text, width)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
-import Element.Font as Font
-import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
-import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
+import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
+import Json.Decode.Pipeline exposing (custom, optional, required)
 import Judge exposing (Judge, JudgeForm)
 import Maybe
 import Plaintiff exposing (Plaintiff)
-import Search
 import String.Extra
-import Time exposing (Month(..), Posix)
+import Time exposing (Posix)
 import Time.Utils
 import UI.Button exposing (Button)
 import UI.Dropdown as Dropdown
 import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
-import UI.Tables.Stateful exposing (detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter)
+import UI.Tables.Stateful exposing (detailShown, detailsEmpty)
 import UI.Text as Text
 import UI.Utils.TypeNumbers as T
 
@@ -508,11 +502,6 @@ judgementDecoder =
                         Decode.succeed Nothing
             )
         |> Decode.andThen fromConditions
-
-
-dateFromString : String -> Maybe Date
-dateFromString =
-    Result.toMaybe << Date.fromIsoString
 
 
 posixDecoder : Decoder Posix

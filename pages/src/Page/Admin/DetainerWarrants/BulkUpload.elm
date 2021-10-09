@@ -7,11 +7,9 @@ import DataSource exposing (DataSource)
 import Date exposing (Date)
 import Date.Extra
 import Defendant exposing (Defendant)
-import DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, Status)
+import DetainerWarrant exposing (DetainerWarrant, Status)
 import Dict exposing (Dict)
-import Element exposing (Element, centerX, column, fill, height, maximum, padding, paragraph, px, row, shrink, spacing, text, width)
-import Element.Font as Font
-import Element.Input as Input
+import Element exposing (Element, centerX, column, fill, height, padding, paragraph, px, row, shrink, spacing, text, width)
 import File exposing (File)
 import File.Select as Select
 import Head
@@ -19,9 +17,8 @@ import Head.Seo as Seo
 import Http exposing (Error(..))
 import Json.Encode
 import Logo
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
 import Path exposing (Path)
 import Plaintiff exposing (Plaintiff)
 import Progress exposing (Tracking)
@@ -29,22 +26,17 @@ import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Runtime
 import Session exposing (Session)
-import Set exposing (Set)
+import Set
 import Shared
 import Sprite
 import Task
 import UI.Button as Button
 import UI.Effects
 import UI.Icon as Icon
-import UI.Link as Link
-import UI.Palette as Palette
-import UI.RenderConfig as RenderConfig exposing (Locale, RenderConfig)
-import UI.Size
-import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
-import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailHidden, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
+import UI.RenderConfig exposing (RenderConfig)
+import UI.Tables.Common as Common exposing (Row, cellFromText, columnWidthPixels, columnsEmpty, rowCellText, rowEmpty)
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, sortBy, sortersEmpty)
 import UI.Text as Text
-import UI.TextField as TextField
-import UI.Utils.DateInput exposing (DateInput)
 import UI.Utils.TypeNumbers as T
 import View exposing (View)
 
@@ -390,7 +382,7 @@ update pageUrl navKey sharedModel static msg model =
         ( BulkUpload subMsg, ReadyForBulkSave state ) ->
             updateAfterCsvUpload static sharedModel.session subMsg state
 
-        ( _, _ ) ->
+        _ ->
             ( model, Cmd.none )
 
 
