@@ -85,7 +85,7 @@ type alias FormOptions =
     , attorneys : List Attorney
     , judges : List Judge
     , courtrooms : List Courtroom
-    , tooltip : Maybe Tooltip
+    , showHelp : Bool
     , docketId : Maybe String
     , today : Date
     , problems : List Problem
@@ -179,7 +179,7 @@ type SaveState
 type alias Model =
     { warrant : Maybe DetainerWarrant
     , docketId : Maybe String
-    , tooltip : Maybe Tooltip
+    , showHelp : Bool
     , problems : List Problem
     , form : FormStatus
     , plaintiffs : List Plaintiff
@@ -394,7 +394,7 @@ init pageUrl sharedModel static =
     in
     ( { warrant = Nothing
       , docketId = docketId
-      , tooltip = Nothing
+      , showHelp = False
       , problems = []
       , form =
             case docketId of
@@ -429,8 +429,8 @@ getWarrant domain id maybeCred =
 
 type Msg
     = GotDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
-    | ChangeTooltip Tooltip
-    | CloseTooltip
+    | ToggleHelp
+    | HideHelp
     | ChangedDocketId String
     | ChangedFileDatePicker ChangeEvent
     | ChangedPlaintiffSearchBox (SearchBox.ChangeEvent Plaintiff)
@@ -590,20 +590,15 @@ update pageUrl navKey sharedModel static msg model =
                 Err httpError ->
                     ( model, logHttpError httpError )
 
-        ChangeTooltip selection ->
+        ToggleHelp ->
             ( { model
-                | tooltip =
-                    if Just selection == model.tooltip then
-                        Nothing
-
-                    else
-                        Just selection
+                | showHelp = not model.showHelp
               }
             , Cmd.none
             )
 
-        CloseTooltip ->
-            ( { model | tooltip = Nothing }, Cmd.none )
+        HideHelp ->
+            ( { model | showHelp = False }, Cmd.none )
 
         ChangedDocketId id ->
             updateForm (\form -> { form | docketId = id }) model
@@ -1625,7 +1620,6 @@ type alias Field =
     { tooltip : Maybe Tooltip
     , description : String
     , children : List (Element Msg)
-    , currentTooltip : Maybe Tooltip
     }
 
 
@@ -1633,20 +1627,24 @@ requiredStar =
     el [ Palette.toFontColor Palette.red, Element.alignTop, width Element.shrink ] (text "*")
 
 
-viewField : Field -> Element Msg
-viewField field =
+viewField : Bool -> Field -> Element Msg
+viewField showHelp field =
     let
         tooltip =
             case field.tooltip of
                 Just tip ->
-                    withTooltip tip field.currentTooltip field.description
+                    withTooltip showHelp field.description
 
                 Nothing ->
                     []
     in
-    row
-        ([ width fill, height fill, spacingXY 5 0, paddingXY 0 10 ] ++ tooltip)
-        field.children
+    column
+        [ width fill
+        , height fill
+        , spacingXY 5 5
+        , paddingXY 0 10
+        ]
+        (field.children ++ tooltip)
 
 
 withChanges hasChanged attrs =
@@ -1703,10 +1701,9 @@ withValidation validatedField problems attrs =
 viewDocketId : FormOptions -> Form -> Element Msg
 viewDocketId options form =
     column [ width (fill |> maximum 215), height fill, paddingXY 0 10 ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just DocketIdInfo
             , description = "This is the unique id for a detainer warrant. Please take care when entering this."
-            , currentTooltip = options.tooltip
             , children =
                 [ case options.docketId of
                     Just docketId ->
@@ -1736,10 +1733,9 @@ viewFileDate options form =
     --             || (options.originalWarrant == Nothing && form.fileDate.date /= Nothing)
     -- in
     column [ width (fill |> maximum 150), padding 10 ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just FileDateInfo
             , description = "The date the detainer warrant was created in the court system."
-            , currentTooltip = options.tooltip
             , children =
                 [ DatePicker.input (withValidation FileDate options.problems (withChanges False (boxAttrs ++ [ centerX, Element.centerY ])))
                     { onChange = ChangedFileDatePicker
@@ -1885,9 +1881,8 @@ ternaryText isCares =
 viewStatus : FormOptions -> Form -> Element Msg
 viewStatus options form =
     column [ width (fill |> maximum 200) ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just StatusInfo
-            , currentTooltip = options.tooltip
             , description = "The current status of the case in the court system."
             , children =
                 [ column [ spacing 5, width fill ]
@@ -1940,9 +1935,8 @@ viewPlaintiffSearch options form =
                 || (options.originalWarrant == Nothing && form.plaintiff.text /= "")
     in
     row [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just PlaintiffInfo
-            , currentTooltip = options.tooltip
             , description = "The plaintiff is typically the landlord seeking money or possession from the defendant (tenant)."
             , children =
                 [ searchBox (withChanges hasChanges [])
@@ -1981,9 +1975,8 @@ viewPlaintiffAttorneySearch options form =
                 || (options.originalWarrant == Nothing && form.plaintiffAttorney.text /= "")
     in
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just PlaintiffAttorneyInfo
-            , currentTooltip = options.tooltip
             , description = "The plaintiff attorney is the legal representation for the plaintiff in this eviction process."
             , children =
                 [ searchBox (withChanges hasChanges [])
@@ -2012,9 +2005,8 @@ viewCourtroom options index form =
     --             || (options.originalWarrant == Nothing && form.courtroom.text /= "")
     -- in
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just CourtroomInfo
-            , currentTooltip = options.tooltip
             , description = "The court room where eviction proceedings will occur."
             , children =
                 [ column [ spacing 5, width fill ]
@@ -2029,10 +2021,9 @@ viewCourtroom options index form =
 
 viewAmountClaimed : FormOptions -> Form -> Element Msg
 viewAmountClaimed options form =
-    column [ width fill ]
-        [ viewField
+    column [ width (fill |> maximum 215) ]
+        [ viewField options.showHelp
             { tooltip = Just AmountClaimedInfo
-            , currentTooltip = options.tooltip
             , description = "The monetary amount the plaintiff is requesting from the defendant."
             , children =
                 [ TextField.singlelineText ChangedAmountClaimed
@@ -2054,10 +2045,9 @@ viewAmountClaimed options form =
 
 viewAmountClaimedCategory : FormOptions -> Form -> Element Msg
 viewAmountClaimedCategory options form =
-    column [ width fill ]
-        [ viewField
+    column [ width (fill |> maximum 200) ]
+        [ viewField options.showHelp
             { tooltip = Just AmountClaimedCategoryInfo
-            , currentTooltip = options.tooltip
             , description = "Plaintiffs may ask for payment, repossession, or more."
             , children =
                 [ column [ spacing 5, width fill ]
@@ -2073,9 +2063,8 @@ viewAmountClaimedCategory options form =
 viewCares : FormOptions -> Form -> Element Msg
 viewCares options form =
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just CaresInfo
-            , currentTooltip = options.tooltip
             , description = "C.A.R.E.S. was an aid package provided during the pandemic. If a docket number has a \"Notice,\" check to see whether the property falls under the CARES act"
             , children =
                 [ column [ spacing 5, width fill ]
@@ -2091,9 +2080,8 @@ viewCares options form =
 viewLegacy : FormOptions -> Form -> Element Msg
 viewLegacy options form =
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just LegacyInfo
-            , currentTooltip = options.tooltip
             , description = "L.E.G.A.C.Y. is a special court created for handling evictions during the pandemic. Looks up cases listed under \"LEGACY Case DW Numbers\" tab and check if the case is there or not."
             , children =
                 [ column [ spacing 5, width fill ]
@@ -2109,9 +2097,8 @@ viewLegacy options form =
 viewNonpayment : FormOptions -> Form -> Element Msg
 viewNonpayment options form =
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just NonpaymentInfo
-            , currentTooltip = options.tooltip
             , description = "People can be evicted for a number of reasons, including non-payment of rent. We want to know if people are being evicted for this reason because those cases should go to the diversionary court. We assume cases that request $$ are for non-payment but this box is sometimes checked on eviction forms."
             , children =
                 [ column [ spacing 5, width fill ]
@@ -2131,9 +2118,8 @@ requiredLabel labelFn attrs str =
 viewAddress : FormOptions -> Form -> Element Msg
 viewAddress options form =
     row [ width (fill |> maximum 800) ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just AddressInfo
-            , currentTooltip = options.tooltip
             , description = "The address where the defendant or defendants reside."
             , children =
                 [ TextField.singlelineText ChangedAddress
@@ -2151,10 +2137,9 @@ viewAddress options form =
 viewFirstName : FormOptions -> Int -> DefendantForm -> Element Msg
 viewFirstName options index defendant =
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Nothing
             , description = ""
-            , currentTooltip = Nothing
             , children =
                 [ TextField.singlelineText (ChangedFirstName index)
                     "First name"
@@ -2171,10 +2156,9 @@ viewFirstName options index defendant =
 viewMiddleName : FormOptions -> Int -> DefendantForm -> Element Msg
 viewMiddleName options index defendant =
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Nothing
             , description = ""
-            , currentTooltip = Nothing
             , children =
                 [ TextField.singlelineText (ChangedMiddleName index)
                     "Middle name"
@@ -2189,10 +2173,9 @@ viewMiddleName options index defendant =
 viewLastName : FormOptions -> Int -> DefendantForm -> Element Msg
 viewLastName options index defendant =
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Nothing
             , description = ""
-            , currentTooltip = Nothing
             , children =
                 [ TextField.singlelineText (ChangedLastName index)
                     "Last name"
@@ -2209,10 +2192,9 @@ viewLastName options index defendant =
 viewSuffix : FormOptions -> Int -> DefendantForm -> Element Msg
 viewSuffix options index defendant =
     column [ width (fill |> maximum 100) ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Nothing
             , description = ""
-            , currentTooltip = Nothing
             , children =
                 [ TextField.singlelineText (ChangedSuffix index)
                     "Suffix"
@@ -2252,14 +2234,13 @@ viewPotentialPhones options index defendant =
                             )
                         )
                     ]
-                    [ viewField
+                    [ viewField options.showHelp
                         { tooltip =
                             if i == 0 then
                                 Just <| PotentialPhoneNumbersInfo index
 
                             else
                                 Nothing
-                        , currentTooltip = options.tooltip
                         , description = "Provide a phone number for the tenant so they will be called and texted during upcoming phonebanks and receive notifications about their detainer warrant updates."
                         , children =
                             [ TextField.singlelineText (ChangedPotentialPhones index i)
@@ -2352,9 +2333,8 @@ viewJudgementInterest : FormOptions -> Int -> JudgementForm -> Element Msg
 viewJudgementInterest options index form =
     column []
         [ row [ spacing 5 ]
-            [ viewField
+            [ viewField options.showHelp
                 { tooltip = Just (JudgementInfo index FeesHaveInterestInfo)
-                , currentTooltip = options.tooltip
                 , description = "Do the fees claimed have interest?"
                 , children =
                     [ el
@@ -2371,9 +2351,8 @@ viewJudgementInterest options index form =
                     ]
                 }
             , if form.hasInterest then
-                viewField
+                viewField options.showHelp
                     { tooltip = Just (JudgementInfo index InterestRateFollowsSiteInfo)
-                    , currentTooltip = options.tooltip
                     , description = "Does the interest rate follow from the website?"
                     , children =
                         [ column [ spacing 5, width fill ]
@@ -2393,9 +2372,8 @@ viewJudgementInterest options index form =
             Element.none
 
           else
-            viewField
+            viewField options.showHelp
                 { tooltip = Just (JudgementInfo index InterestRateInfo)
-                , currentTooltip = options.tooltip
                 , description = "The rate of interest that accrues for fees."
                 , children =
                     [ column [ spacing 5, width fill ]
@@ -2414,9 +2392,8 @@ viewJudgementInterest options index form =
 
 viewJudgementPossession : FormOptions -> Int -> JudgementForm -> Element Msg
 viewJudgementPossession options index form =
-    viewField
+    viewField options.showHelp
         { tooltip = Just (JudgementInfo index PossessionAwardedInfo)
-        , currentTooltip = options.tooltip
         , description = "Has the Plaintiff claimed the residence?"
         , children =
             [ el
@@ -2435,9 +2412,8 @@ viewJudgementPossession options index form =
 
 viewJudgementPlaintiff : FormOptions -> Int -> JudgementForm -> List (Element Msg)
 viewJudgementPlaintiff options index form =
-    [ viewField
+    [ viewField options.showHelp
         { tooltip = Just (JudgementInfo index FeesAwardedInfo)
-        , currentTooltip = options.tooltip
         , description = "Fees the Plaintiff has been awarded."
         , children =
             [ TextField.singlelineText (ChangedFeesAwarded index)
@@ -2460,9 +2436,8 @@ viewJudgementPlaintiff options index form =
 
 viewJudgementDefendant : FormOptions -> Int -> JudgementForm -> List (Element Msg)
 viewJudgementDefendant options index form =
-    [ viewField
+    [ viewField options.showHelp
         { tooltip = Just (JudgementInfo index DismissalBasisInfo)
-        , currentTooltip = options.tooltip
         , description = "Why is the case being dismissed?"
         , children =
             [ column [ spacing 5, width (fill |> minimum 350) ]
@@ -2472,9 +2447,8 @@ viewJudgementDefendant options index form =
                 ]
             ]
         }
-    , viewField
+    , viewField options.showHelp
         { tooltip = Just (JudgementInfo index WithPrejudiceInfo)
-        , currentTooltip = options.tooltip
         , description = "Whether or not the dismissal is made with prejudice."
         , children =
             [ el
@@ -2504,9 +2478,8 @@ viewJudgeSearch options index form =
         --     || (options.originalWarrant == Nothing && form.presidingJudge.text /= "")
     in
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just PresidingJudgeInfo
-            , currentTooltip = options.tooltip
             , description = "The judge that will be presiding over the court case."
             , children =
                 [ searchBox (withChanges hasChanges [])
@@ -2555,9 +2528,8 @@ viewJudgement options index form =
         [ row
             [ spacing 5
             ]
-            [ viewField
+            [ viewField options.showHelp
                 { tooltip = Just (JudgementInfo index JudgementFileDateDetail)
-                , currentTooltip = options.tooltip
                 , description = "The date this judgement was filed."
                 , children =
                     [ DatePicker.input
@@ -2603,9 +2575,8 @@ viewJudgement options index form =
             [ row [ spacing 5, width fill ]
                 [ paragraph [ Font.center, centerX ] [ text "Judgement" ] ]
             , row [ spacing 5, width fill ]
-                [ viewField
+                [ viewField options.showHelp
                     { tooltip = Just (JudgementInfo index Summary)
-                    , currentTooltip = options.tooltip
                     , description = "The ruling from the court that will determine if fees or repossession are enforced."
                     , children =
                         [ column [ spacing 5, width (fill |> maximum 200) ]
@@ -2640,15 +2611,15 @@ viewJudgement options index form =
 viewJudgementNotes : FormOptions -> Int -> JudgementForm -> Element Msg
 viewJudgementNotes options index form =
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just (JudgementInfo index JudgementNotesDetail)
-            , currentTooltip = options.tooltip
             , description = "Any additional notes you have about this particular judgement go here!"
             , children =
                 [ TextField.multilineText (ChangedJudgementNotes index)
                     "Notes"
                     form.notes
                     |> TextField.withPlaceholder "Add any notes from the judgement sheet or any comments you think is noteworthy."
+                    |> TextField.setLabelVisible True
                     |> TextField.withWidth TextField.widthFull
                     |> TextField.renderElement options.renderConfig
                 ]
@@ -2659,15 +2630,15 @@ viewJudgementNotes options index form =
 viewNotes : FormOptions -> Form -> Element Msg
 viewNotes options form =
     column [ width fill ]
-        [ viewField
+        [ viewField options.showHelp
             { tooltip = Just NotesInfo
-            , currentTooltip = options.tooltip
             , description = "Any additional notes you have about this case go here! This is a great place to leave feedback for the form as well, perhaps there's another field or field option we need to provide."
             , children =
                 [ TextField.multilineText ChangedNotes
                     "Notes"
                     form.notes
                     |> TextField.withPlaceholder "Add anything you think is noteworthy."
+                    |> TextField.setLabelVisible True
                     |> TextField.withWidth TextField.widthFull
                     |> TextField.renderElement options.renderConfig
                 ]
@@ -2769,7 +2740,7 @@ formOptions cfg today model =
     , attorneys = model.attorneys
     , judges = model.judges
     , courtrooms = model.courtrooms
-    , tooltip = model.tooltip
+    , showHelp = model.showHelp
     , docketId = model.docketId
     , today = today
     , problems = model.problems
@@ -2798,9 +2769,9 @@ viewProblems problems =
 viewTooltip : String -> Element Msg
 viewTooltip str =
     textColumn
-        [ width (fill |> maximum 600)
+        [ width (fill |> maximum 280)
         , padding 10
-        , Palette.toBackgroundColor Palette.red
+        , Palette.toBackgroundColor Palette.blue600
         , Palette.toFontColor Palette.genericWhite
         , Border.rounded 3
         , Font.size 14
@@ -2810,10 +2781,10 @@ viewTooltip str =
         [ paragraph [] [ text str ] ]
 
 
-withTooltip : Tooltip -> Maybe Tooltip -> String -> List (Element.Attribute Msg)
-withTooltip candidate active str =
-    if Just candidate == active then
-        [ below (viewTooltip str) ]
+withTooltip : Bool -> String -> List (Element Msg)
+withTooltip showHelp str =
+    if showHelp then
+        [ viewTooltip str ]
 
     else
         []
@@ -2842,35 +2813,38 @@ view maybeUrl sharedModel model static =
             , padding 20
             , Font.size 20
             , width (fill |> maximum 1200 |> minimum 400)
-            , Element.inFront
-                (el
-                    ([ Element.alignRight
-                     , Element.alignTop
-                     ]
-                        ++ withTooltip DetainerWarrantInfo model.tooltip "In some states, such as Tennessee, when a property owner wants to evict a tenant, he must first give notice, known as a detainer warrant. A detainer warrant is not the same as an arrest warrant, however. It is the document that informs the tenant about the court date set in the eviction proceeding. The notification gives the tenant the opportunity to appear in court and tell the judge her side of the story."
-                    )
-                    (Button.fromLabel "Help"
-                        |> Button.cmd (ChangeTooltip DetainerWarrantInfo) Button.primary
-                        |> Button.renderElement cfg
-                    )
-                )
             ]
             [ column [ centerX, spacing 10 ]
                 [ row
                     [ width fill
                     ]
-                    [ column [ centerX, width (px 300) ]
-                        [ paragraph [ Font.center, centerX, width Element.shrink ]
-                            [ text
-                                ((case model.docketId of
-                                    Just _ ->
-                                        "Edit"
-
-                                    Nothing ->
-                                        "Create"
-                                 )
-                                    ++ " Detainer Warrant"
+                    [ column [ centerX, width fill ]
+                        [ row
+                            [ width fill
+                            , Element.inFront
+                                (el
+                                    [ paddingEach { top = 0, bottom = 5, left = 0, right = 0 }
+                                    , Element.alignRight
+                                    ]
+                                    (Button.fromLabel "Help"
+                                        |> Button.cmd ToggleHelp Button.primary
+                                        |> Button.withSize UI.Size.small
+                                        |> Button.renderElement cfg
+                                    )
                                 )
+                            ]
+                            [ paragraph [ Font.center, centerX, width Element.shrink ]
+                                [ text
+                                    ((case model.docketId of
+                                        Just _ ->
+                                            "Edit"
+
+                                        Nothing ->
+                                            "Create"
+                                     )
+                                        ++ " Detainer Warrant"
+                                    )
+                                ]
                             ]
                         ]
                     ]
@@ -2896,7 +2870,7 @@ subscriptions pageUrl params path model =
                   -- , Dropdown.onOutsideClick form.categoryDropdown CategoryDropdownMsg
                   --  , Dropdown.onOutsideClick form.conditionsDropdown ConditionsDropdownMsg
                  ]
-                    ++ Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip)
+                 -- ++ Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip)
                 )
 
 
@@ -2932,7 +2906,7 @@ outsideTarget tooltipId msg =
 
 onOutsideClick : Tooltip -> Sub Msg
 onOutsideClick tip =
-    onMouseDown (outsideTarget (tooltipToString tip) CloseTooltip)
+    onMouseDown (outsideTarget (tooltipToString tip) HideHelp)
 
 
 judgementInfoText : Int -> JudgementDetail -> String
