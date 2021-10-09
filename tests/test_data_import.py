@@ -85,17 +85,10 @@ class TestDataImport(TestCase):
         warrant = db.session.query(DetainerWarrant).first()
 
         self.assertEqual(warrant.docket_id, example['Docket #'])
-        self.assertEqual(warrant.file_date, date_as_str(
-            example['File_date'], '%m/%d/%y'))
         self.assertEqual(warrant.status, example['Status'])
         self.assertEqual(warrant.plaintiff.name, example['Plaintiff'])
         self.assertEqual(warrant.plaintiff_attorney.name,
                          example['Plaintiff_atty'])
-        self.assertEqual(warrant.court_date,
-                         date_as_str(example['Court_date'], '%m/%d/%Y'))
-        self.assertEqual(warrant.courtroom.name, example['Courtroom'])
-        self.assertEqual(warrant.presiding_judge.name,
-                         example['Presiding_judge'])
         self.assertEqual(warrant.amount_claimed, Decimal('2239'))
         self.assertEqual(warrant.amount_claimed_category,
                          example['Amount_claimed_cat'])
