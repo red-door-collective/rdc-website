@@ -74,7 +74,7 @@ def _from_workbook(defaults, court_date, raw_judgement):
     courtroom = None
     if judgement[COURTROOM]:
         courtroom, _ = get_or_create(
-            db.session, Courtroom, name=judgement[COURTROOM], defaults=defaults)
+            db.session, Courtroom, name=judgement[COURTROOM].upper(), defaults=defaults)
 
     judge = None
     if judgement[JUDGE]:
@@ -191,7 +191,7 @@ def _from_dw_wb_row(raw_warrant):
         courtroom = None
         if warrant[DW_COURTROOM]:
             courtroom, _ = get_or_create(
-                db.session, Courtroom, name=warrant[DW_COURTROOM], defaults=defaults)
+                db.session, Courtroom, name=warrant[DW_COURTROOM].upper(), defaults=defaults)
 
         court_date = warrant[DW_COURT_DATE]
         court_date_final = '11/3/2020' if court_date == '11/3' else court_date
