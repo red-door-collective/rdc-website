@@ -105,8 +105,6 @@ def insert_warrant(defaults, docket_id, listing):
     dw_values = dict(docket_id=docket_id,
                      plaintiff_id=plaintiff.id if plaintiff else None,
                      plaintiff_attorney_id=attorney.id if attorney else None,
-                     court_date=court_date,
-                     courtroom_id=courtroom.id if courtroom else None,
                      last_edited_by_id=-1
                      )
 
@@ -136,7 +134,7 @@ def insert_warrant(defaults, docket_id, listing):
         return
 
     Judgement.create(
-        court_date=court_date,
+        _court_date=court_date,
         detainer_warrant_id=docket_id,
         courtroom_id=courtroom.id if courtroom else None,
         plaintiff_id=plaintiff.id if plaintiff else None,
