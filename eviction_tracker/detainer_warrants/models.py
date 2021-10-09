@@ -1,10 +1,9 @@
-from eviction_tracker.database import db, Timestamped, Column, Model, relationship
-from datetime import datetime
+from eviction_tracker.database import db, PosixComparator, in_millis, from_millis, Timestamped, Column, Model, relationship
+from datetime import datetime, date, timezone
 from sqlalchemy import func, text
 from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
-
 from nameparser import HumanName
 
 
@@ -135,7 +134,6 @@ class Courtroom(db.Model, Timestamped):
         'districts.id'), nullable=False)
 
     district = relationship('District', back_populates='courtrooms')
-    cases = relationship('DetainerWarrant', back_populates='_courtroom')
     _judgements = relationship('Judgement', back_populates='_courtroom')
 
     def __repr__(self):
@@ -178,7 +176,6 @@ class Judge(db.Model, Timestamped):
         'districts.id'), nullable=False)
 
     district = relationship('District', back_populates='judges')
-    cases = relationship('DetainerWarrant', back_populates='_presiding_judge')
     _rulings = relationship('Judgement', back_populates='_judge')
 
     def __repr__(self):
@@ -214,7 +211,7 @@ class Judgement(db.Model, Timestamped):
     interest_follows_site = Column(db.Boolean)
     dismissal_basis_id = Column(db.Integer)
     with_prejudice = Column(db.Boolean)
-    court_date = Column(db.Date)
+    _court_date = Column(db.Date, name='court_date')
     mediation_letter = Column(db.Boolean)
     court_order_number = Column(db.Integer)
     notes = Column(db.String(255))
@@ -253,6 +250,21 @@ class Judgement(db.Model, Timestamped):
     last_edited_by = relationship(
         'User', back_populates='edited_judgements'
     )
+
+    @hybrid_property
+    def court_date(self):
+        if self._court_date:
+            return in_millis(datetime.combine(self._court_date, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @court_date.comparator
+    def court_date(cls):
+        return PosixComparator(cls._court_date)
+
+    @court_date.setter
+    def court_date(self, posix):
+        self._court_date = from_millis(posix)
 
     @property
     def courtroom(self):
@@ -412,17 +424,14 @@ class DetainerWarrant(db.Model, Timestamped):
 
     __tablename__ = 'detainer_warrants'
     docket_id = Column(db.String(255), primary_key=True)
-    file_date = Column(db.Date)
+    _file_date = Column(db.Date, name="file_date")
     status_id = Column(db.Integer)
     plaintiff_id = Column(db.Integer, db.ForeignKey(
         'plaintiffs.id', ondelete='CASCADE'))
     plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
         'attorneys.id', ondelete=('CASCADE')
     ))
-    court_date = Column(db.Date)
     court_date_recurring_id = Column(db.Integer)
-    courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
-    presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
     amount_claimed = Column(db.Numeric(scale=2))  # USD
     amount_claimed_category_id = Column(
         db.Integer, nullable=False, default=3, server_default=text("3"))
@@ -436,8 +445,6 @@ class DetainerWarrant(db.Model, Timestamped):
     _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
     _plaintiff_attorney = relationship(
         'Attorney', back_populates='detainer_warrants')
-    _courtroom = relationship('Courtroom', back_populates='cases')
-    _presiding_judge = relationship('Judge', back_populates='cases')
 
     _defendants = relationship('Defendant',
                                secondary=detainer_warrant_defendants,
@@ -451,7 +458,37 @@ class DetainerWarrant(db.Model, Timestamped):
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")
 
     def __repr__(self):
-        return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self.file_date)
+        return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self._file_date)
+
+    @hybrid_property
+    def file_date(self):
+        if self._file_date:
+            return in_millis(datetime.combine(self._file_date, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @file_date.comparator
+    def file_date(cls):
+        return PosixComparator(cls._file_date)
+
+    @file_date.setter
+    def file_date(self, posix):
+        self._file_date = from_millis(posix)
+
+    @hybrid_property
+    def court_date(self):
+        if self._court_date:
+            return in_millis(datetime.combine(self._court_date, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @court_date.comparator
+    def court_date(cls):
+        return PosixComparator(cls._court_date)
+
+    @court_date.setter
+    def court_date(self, posix):
+        self._court_date = from_millis(posix)
 
     @property
     def status(self):
@@ -522,18 +559,6 @@ class DetainerWarrant(db.Model, Timestamped):
             self._courtroom = db.session.query(Courtroom).get(c_id)
         else:
             self._courtroom = courtroom
-
-    @property
-    def presiding_judge(self):
-        return self._presiding_judge
-
-    @presiding_judge.setter
-    def presiding_judge(self, judge):
-        j_id = judge and judge.get('id')
-        if (j_id):
-            self._presiding_judge = db.session.query(Judge).get(j_id)
-        else:
-            self._presiding_judge = judge
 
     @property
     def defendants(self):

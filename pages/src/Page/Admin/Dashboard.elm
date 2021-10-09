@@ -2,32 +2,25 @@ module Page.Admin.Dashboard exposing (Data, Model, Msg, page)
 
 import Browser.Navigation as Nav
 import Campaign exposing (Campaign)
-import Color
 import DataSource exposing (DataSource)
-import DetainerWarrant exposing (DetainerWarrant)
-import Element exposing (Element, centerX, column, fill, height, image, link, maximum, minimum, padding, paragraph, px, row, spacing, text, textColumn, width)
-import Element.Background as Background
-import Element.Border as Border
+import Element exposing (Element, centerX, column, fill, height, maximum, minimum, padding, paragraph, px, row, spacing, text, width)
 import Element.Font as Font
-import Element.Input as Input
 import Head
 import Head.Seo as Seo
-import Html.Events
 import Http
-import Json.Decode as Decode
 import Logo
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
-import Palette
 import Path exposing (Path)
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Runtime
-import Session exposing (Session)
-import Settings exposing (Settings)
+import Session
 import Shared
-import User exposing (User)
+import Sprite
+import UI.Button as Button
+import UI.Link as Link
+import UI.RenderConfig exposing (RenderConfig)
 import View exposing (View)
 
 
@@ -72,39 +65,19 @@ update pageUrl navKey sharedModel payload msg model =
                 Ok campaignsPage ->
                     ( { model | campaigns = campaignsPage.data }, Cmd.none )
 
-                Err errMsg ->
+                Err _ ->
                     ( model, Cmd.none )
 
 
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
-        )
-
-
-viewCampaign : Campaign -> Element Msg
-viewCampaign campaign =
+viewCampaign : RenderConfig -> Campaign -> Element Msg
+viewCampaign cfg campaign =
     row [ width fill, spacing 10 ]
-        [ paragraph [] [ text campaign.name ]
+        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+        , paragraph [] [ text campaign.name ]
         , paragraph [ Font.semiBold ] [ text ((String.fromInt <| List.length campaign.events) ++ " events") ]
-        , link
-            [ Background.color Palette.sred
-            , Font.color Palette.white
-            , Border.rounded 3
-            , padding 10
-            ]
-            { url = "/admin/campaigns/" ++ String.fromInt campaign.id, label = text "View Campaign" }
+        , Button.fromLabel "View campaign"
+            |> Button.redirect (Link.link <| "/admin/campaigns/" ++ String.fromInt campaign.id) Button.primary
+            |> Button.renderElement cfg
         ]
 
 
@@ -119,6 +92,10 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
+    let
+        cfg =
+            sharedModel.renderConfig
+    in
     { title = title
     , body =
         [ row
@@ -132,7 +109,7 @@ view maybeUrl sharedModel model static =
                     [ paragraph [] [ text "Current campaigns" ]
                     ]
                  ]
-                    ++ List.map viewCampaign model.campaigns
+                    ++ List.map (viewCampaign cfg) model.campaigns
                 )
             ]
         ]

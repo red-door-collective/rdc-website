@@ -8,15 +8,13 @@ module Rest.Static exposing
     , amountAwardedMonthDecoder
     , api
     , detainerWarrantsPerMonthDecoder
-    , evictionHistoryDecoder
     , plaintiffAttorneyWarrantCountDecoder
     , rollupMetadataDecoder
     , storageDecoder
-    , topEvictorDecoder
     )
 
-import OptimizedDecoder as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
-import OptimizedDecoder.Pipeline exposing (optional, required)
+import OptimizedDecoder as Decode exposing (Decoder, int, string)
+import OptimizedDecoder.Pipeline exposing (required)
 import Rest exposing (Cred(..))
 import Time
 import Url.Builder
@@ -95,20 +93,6 @@ rollupMetadataDecoder : Decoder RollupMetadata
 rollupMetadataDecoder =
     Decode.succeed RollupMetadata
         |> required "last_detainer_warrant_update" posix
-
-
-evictionHistoryDecoder : Decoder EvictionHistory
-evictionHistoryDecoder =
-    Decode.succeed EvictionHistory
-        |> required "date" float
-        |> required "eviction_count" float
-
-
-topEvictorDecoder : Decoder TopEvictor
-topEvictorDecoder =
-    Decode.succeed TopEvictor
-        |> required "name" string
-        |> required "history" (list evictionHistoryDecoder)
 
 
 detainerWarrantsPerMonthDecoder : Decoder DetainerWarrantsPerMonth

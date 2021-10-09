@@ -1,16 +1,13 @@
 module View.MobileHeader exposing (view)
 
-import Element exposing (Element, alignRight, column, el, fill, height, link, padding, px, row, spacing, text, width)
+import Element exposing (Element, column, fill, link, padding, spacing, width)
 import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
 import Html.Attributes as Attrs
-import Palette
 import Path exposing (Path)
-import RedDoor
 import Route exposing (Route(..))
 import Session exposing (Session)
+import UI.Palette as Palette
 
 
 headerLink attrs isActive =
@@ -20,7 +17,7 @@ headerLink attrs isActive =
          , Element.htmlAttribute (Attrs.class "responsive-mobile")
          ]
             ++ (if isActive then
-                    [ Font.color Palette.white ]
+                    [ Palette.toFontColor Palette.genericWhite ]
 
                 else
                     []
@@ -52,21 +49,21 @@ view session page =
         (if String.startsWith "/admin" <| Path.toAbsolute page.path then
             [ headerLink []
                 (page.route == Just Admin__Dashboard)
-                { url = "/admin/dashboard/"
+                { url = "/admin/dashboard"
                 , label = Element.text "Dashboard"
                 }
             , headerLink []
                 (page.route == Just Admin__DetainerWarrants)
-                { url = "/admin/detainer-warrants/"
+                { url = "/admin/detainer-warrants"
                 , label = Element.text "Detainer Warrants"
                 }
             , headerLink []
                 (page.route == Just Admin__Plaintiffs)
-                { url = "/admin/plaintiffs/"
+                { url = "/admin/plaintiffs"
                 , label = Element.text "Plaintiffs"
                 }
             , noPreloadLink []
-                { url = "/logout/"
+                { url = "/logout"
                 , label = Element.text "Logout"
                 }
             ]
@@ -79,30 +76,30 @@ view session page =
                 }
             , headerLink []
                 (page.route == Just Blog)
-                { url = "/blog/"
+                { url = "/blog"
                 , label = Element.text "Blog"
                 }
             , headerLink []
                 (page.route == Just About)
-                { url = "/about/"
+                { url = "/about"
                 , label = Element.text "About"
                 }
             , headerLink []
                 (page.route == Just Glossary)
-                { url = "/glossary/"
+                { url = "/glossary"
                 , label = Element.text "Glossary"
                 }
             , if Session.isLoggedIn session then
                 headerLink []
                     False
-                    { url = "/admin/dashboard/"
+                    { url = "/admin/dashboard"
                     , label = Element.text "Admin"
                     }
 
               else
                 headerLink []
                     (page.route == Just Login)
-                    { url = "/login/"
+                    { url = "/login"
                     , label = Element.text "Login"
                     }
             ]

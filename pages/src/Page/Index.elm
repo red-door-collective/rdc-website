@@ -1,6 +1,5 @@
 module Page.Index exposing (Data, Model, Msg, page)
 
-import Array exposing (Array)
 import Browser.Navigation
 import Chart as C
 import Chart.Attributes as CA
@@ -9,44 +8,30 @@ import Chart.Item as CI
 import DataSource exposing (DataSource)
 import DataSource.Http
 import DataSource.Port
-import DateFormat exposing (format, monthNameAbbreviated)
+import DateFormat
 import Dict
-import Element exposing (Device, Element, fill, px, row)
-import Element.Background as Background
-import Element.Border as Border
+import Element exposing (Element, fill, px, row)
 import Element.Font as Font
-import Element.Region as Region
 import FormatNumber
 import FormatNumber.Locales exposing (usLocale)
 import Head
 import Head.Seo as Seo
-import Html exposing (Html)
 import Html.Attributes as Attrs
 import Json.Encode
 import List.Extra
-import Log
 import Logo
-import OptimizedDecoder as Decode exposing (float, int, list, string)
-import OptimizedDecoder.Pipeline exposing (decode, optional, required)
-import Page exposing (Page, StaticPayload)
+import OptimizedDecoder as Decode exposing (float, list, string)
+import OptimizedDecoder.Pipeline exposing (decode, required)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Pages.Secrets as Secrets
 import Path exposing (Path)
-import Rest
-import Rest.Endpoint as Endpoint
 import Rest.Static exposing (AmountAwardedMonth, DetainerWarrantsPerMonth, EvictionHistory, PlaintiffAttorneyWarrantCount, RollupMetadata, TopEvictor)
-import Rollbar exposing (Rollbar)
-import Runtime exposing (Runtime)
-import Session exposing (Session)
+import Runtime
 import Shared
-import Svg exposing (Svg)
-import Time exposing (Month(..))
-import Time.Extra as Time exposing (Parts, partsToPosix)
-import TypedSvg exposing (circle, g, rect, style, svg, text_)
-import TypedSvg.Attributes as Attr exposing (class, dy, stroke, textAnchor, transform, viewBox)
-import TypedSvg.Attributes.InPx exposing (cx, cy, height, r, width, x, y)
-import TypedSvg.Core exposing (Svg, text)
-import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
+import Svg
+import Time
+import TypedSvg.Attributes.InPx exposing (height, r, width, y)
 import View exposing (View)
 
 
@@ -244,7 +229,6 @@ init pageUrl sharedModel payload =
 type Msg
     = HoverOnBar (List (CI.One Datum CI.Bar))
     | OnHoverAmounts (List (CI.Many AmountAwardedMonth CI.Any))
-    | NoOp
 
 
 update :
@@ -262,9 +246,6 @@ update pageUrl navKey sharedModel payload msg model =
 
         OnHoverAmounts hovering ->
             ( { model | hoveringAmounts = hovering }, Cmd.none )
-
-        NoOp ->
-            ( model, Cmd.none )
 
 
 topEvictorsChart : Dimensions -> Model -> StaticPayload Data RouteParams -> Element Msg
@@ -352,19 +333,6 @@ dateFormatLong =
     DateFormat.format [ DateFormat.monthNameFull, DateFormat.text " ", DateFormat.dayOfMonthNumber, DateFormat.text ", ", DateFormat.yearNumber ] Time.utc
 
 
-formatY : EvictionHistory -> String
-formatY info =
-    String.fromFloat info.evictionCount
-
-
-formatMonth : Time.Posix -> String
-formatMonth time =
-    format
-        [ monthNameAbbreviated ]
-        Time.utc
-        time
-
-
 
 -- BAR CHART
 
@@ -431,7 +399,7 @@ viewBarChart model dimens allWarrants =
                     [ CA.moveLeft 60, CA.rotate 90 ]
                     [ Svg.text "# of Detainer warrants" ]
                 , C.each model.hoveringOnBar <|
-                    \p item ->
+                    \_ item ->
                         [ C.tooltip item [] [] [] ]
                 ]
         )
@@ -643,7 +611,7 @@ viewAmountAwardedChart model dimens awards =
                     ]
                     awards
                 , C.each model.hoveringAmounts <|
-                    \p item ->
+                    \_ item ->
                         [ C.tooltip item [] [] [] ]
                 , C.labelAt CA.middle
                     .max

@@ -1,17 +1,17 @@
 module View.Header exposing (..)
 
-import Element exposing (Element, alignRight, centerY, column, el, fill, height, link, padding, paddingXY, px, row, spacing, text, width)
+import Element exposing (Element, alignRight, centerY, column, el, fill, height, link, padding, paddingXY, px, row, spacing, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Html.Attributes as Attrs
-import Palette
 import Path exposing (Path)
 import RedDoor
 import Route exposing (Route(..))
 import Session exposing (Session)
+import UI.Palette as Palette
 import View.MobileHeader
 
 
@@ -22,7 +22,7 @@ headerLink attrs isActive =
          , Element.htmlAttribute (Attrs.class "responsive-desktop")
          ]
             ++ (if isActive then
-                    [ Font.color Palette.white ]
+                    [ Palette.toFontColor Palette.genericWhite ]
 
                 else
                     []
@@ -97,26 +97,26 @@ view showMobileMenu session toggleMobileMenuMsg page =
                                 RedDoor.view RedDoor.default
                     }
                 , sectionLink []
-                    { url = "/admin/dashboard/"
+                    { url = "/admin/dashboard"
                     , label = Element.text "RDC Admin"
                     }
                 , headerLink [ alignRight ]
                     (page.route == Just Admin__Dashboard)
-                    { url = "/admin/dashboard/"
+                    { url = "/admin/dashboard"
                     , label = Element.text "Dashboard"
                     }
                 , headerLink []
                     (page.route == Just Admin__DetainerWarrants)
-                    { url = "/admin/detainer-warrants/"
+                    { url = "/admin/detainer-warrants"
                     , label = Element.text "Detainer Warrants"
                     }
                 , headerLink []
                     (page.route == Just Admin__Plaintiffs)
-                    { url = "/admin/plaintiffs/"
+                    { url = "/admin/plaintiffs"
                     , label = Element.text "Plaintiffs"
                     }
                 , noPreloadLink []
-                    { url = "/logout/"
+                    { url = "/logout"
                     , label = Element.text "Logout"
                     }
                 ]
@@ -133,12 +133,12 @@ view showMobileMenu session toggleMobileMenuMsg page =
                     }
                 , headerLink [ alignRight ]
                     (page.route == Just Blog)
-                    { url = "/blog/"
+                    { url = "/blog"
                     , label = Element.text "Blog"
                     }
                 , headerLink []
                     (page.route == Just About)
-                    { url = "/about/"
+                    { url = "/about"
                     , label = Element.text "About"
                     }
                 , headerLink []
@@ -149,14 +149,14 @@ view showMobileMenu session toggleMobileMenuMsg page =
                 , if Session.isLoggedIn session then
                     headerLink []
                         False
-                        { url = "/admin/dashboard/"
+                        { url = "/admin/dashboard"
                         , label = Element.text "Admin"
                         }
 
                   else
                     headerLink []
                         (page.route == Just Login)
-                        { url = "/login/"
+                        { url = "/login"
                         , label = Element.text "Login"
                         }
                 ]

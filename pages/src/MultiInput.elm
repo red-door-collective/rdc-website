@@ -21,7 +21,7 @@ For a better feel of what you can do with this component, visit the [demo here](
 
 import Browser.Dom as Dom
 import Browser.Events
-import Element exposing (Element, alpha, column, el, fill, height, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, transparent, width)
+import Element exposing (Element, column, el, fill, minimum, padding, paddingXY, rgb255, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (onMouseDown)
@@ -31,8 +31,7 @@ import Html
 import Html.Attributes as Attr
 import Html.Events as Ev
 import Json.Decode as Json
-import Palette
-import Regex exposing (Regex)
+import Regex
 import Set
 import String
 import Task
@@ -59,7 +58,7 @@ type alias State =
 
 {-| Specific settings for the component's update function.
 You can specify a list of strings that act as separators for the different items.
-{ separators = [ "\n", "\t", ",", " " ] }
+{ separators = [ "\\n", "\\t", ",", " " ][ "\n", "\t", ",", " " ] }
 -}
 type alias UpdateConfig =
     { separators : List String
@@ -204,7 +203,7 @@ view conf customAttributes items state =
             , padding 5
             , Border.width 1
             , Border.rounded 3
-            , Border.color Palette.grayLight
+            , Border.color <| Element.rgb255 60 60 60
             , spacing 10
             , width (fill |> minimum 400)
             ]
@@ -213,10 +212,6 @@ view conf customAttributes items state =
                    ]
             )
         ]
-
-
-pre attrs =
-    column ([] ++ attrs)
 
 
 {-| Renders an expanding text area (that is, a textarea element inspired by [this article](https://alistapart.com/article/expanding-text-areas-made-elegant)) used to hold the next item

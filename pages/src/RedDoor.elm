@@ -2,11 +2,10 @@ module RedDoor exposing (Dimensions, default, view)
 
 import Color
 import Svg exposing (Svg)
-import TypedSvg exposing (circle, g, rect, style, svg, text_)
-import TypedSvg.Attributes as Attr exposing (class, dy, fill, stroke, textAnchor, transform, viewBox)
+import TypedSvg exposing (circle, g, rect, svg)
+import TypedSvg.Attributes exposing (fill, viewBox)
 import TypedSvg.Attributes.InPx exposing (cx, cy, height, r, width, x, y)
-import TypedSvg.Core exposing (text)
-import TypedSvg.Types exposing (AnchorAlignment(..), Paint(..), Transform(..), em)
+import TypedSvg.Types exposing (Paint(..))
 
 
 type alias Dimensions =

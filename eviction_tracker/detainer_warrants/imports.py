@@ -11,10 +11,7 @@ FILE_DATE = 'File_date'
 STATUS = 'Status'
 PLAINTIFF = 'Plaintiff'
 PLTF_ATTORNEY = 'Plaintiff_atty'
-COURT_DATE = 'Court_date'
 RECURRING_COURT_DATE = 'Any_day'
-COURTROOM = 'Courtroom'
-JUDGE = 'Presiding_judge'
 AMT_CLAIMED = 'Amount_claimed_num'
 AMT_CLAIMED_CAT = 'Amount_claimed_cat'
 IS_CARES = 'CARES'
@@ -86,18 +83,7 @@ def _from_workbook_row(raw_warrant, defaults):
         plaintiff, _ = get_or_create(
             db.session, Plaintiff, name=warrant[PLAINTIFF], defaults=defaults)
 
-    court_date = warrant[COURT_DATE]
     recurring_court_date = warrant[RECURRING_COURT_DATE]
-
-    courtroom = None
-    if warrant[COURTROOM]:
-        courtroom, _ = get_or_create(
-            db.session, Courtroom, name=warrant[COURTROOM], defaults=defaults)
-
-    presiding_judge = None
-    if warrant[JUDGE]:
-        presiding_judge, _ = get_or_create(
-            db.session, Judge, name=warrant[JUDGE], defaults=defaults)
 
     amount_claimed = Decimal(str(warrant[AMT_CLAIMED]).replace(
         '$', '').replace(',', '')) if warrant[AMT_CLAIMED] else None
@@ -117,11 +103,8 @@ def _from_workbook_row(raw_warrant, defaults):
                      status_id=DetainerWarrant.statuses[status],
                      plaintiff_id=plaintiff.id if plaintiff else None,
                      plaintiff_attorney_id=attorney.id if attorney else None,
-                     court_date='11/3/2020' if court_date == '11/3' else court_date,
                      court_date_recurring_id=DetainerWarrant.recurring_court_dates[
                          recurring_court_date.upper()] if recurring_court_date else None,
-                     courtroom_id=courtroom.id if courtroom else None,
-                     presiding_judge_id=presiding_judge.id if presiding_judge else None,
                      amount_claimed=amount_claimed,
                      amount_claimed_category_id=DetainerWarrant.amount_claimed_categories[
                          amount_claimed_category.upper()],

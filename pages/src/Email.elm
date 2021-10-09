@@ -1,8 +1,4 @@
-module Email exposing (Email, decoder, encode, toString)
-
-import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode exposing (Value)
-
+module Email exposing (Email)
 
 {-| An email address.
 Having this as a custom type that's separate from String makes certain
@@ -19,20 +15,7 @@ call updateEmailAddress password email and it would compile (and never
 work properly).
 This way, we make it impossible for a bug like that to compile!
 -}
+
+
 type Email
     = Email String
-
-
-toString : Email -> String
-toString (Email str) =
-    str
-
-
-encode : Email -> Value
-encode (Email str) =
-    Encode.string str
-
-
-decoder : Decoder Email
-decoder =
-    Decode.map Email Decode.string

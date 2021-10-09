@@ -72,7 +72,7 @@ judges_schema = JudgeSchema(many=True)
 
 class JudgementSchema(Schema):
     id = fields.Int(allow_none=True)
-    court_date = fields.Date(allow_none=True)
+    court_date = fields.Int(allow_none=True)
     awards_possession = fields.Bool(allow_none=True)
     awards_fees = fields.Float(allow_none=True)
     entered_by = fields.String(allow_none=True)
@@ -107,16 +107,14 @@ judgements_schema = JudgementSchema(many=True)
 class DetainerWarrantSchema(Schema):
     plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
-    courtroom = fields.Nested(CourtroomSchema, allow_none=True)
-    presiding_judge = fields.Nested(JudgeSchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
     judgements = fields.Nested(JudgementSchema, many=True)
     last_edited_by = fields.Nested(serializers.UserSchema)
 
-    file_date = fields.Date(allow_none=True)
+    file_date = fields.Int(allow_none=True)
     status = fields.String(allow_none=True)
     amount_claimed = fields.Float(allow_none=True)
-    court_date = fields.Date(allow_none=True)
+    court_date = fields.Int(allow_none=True)
     is_cares = fields.Bool(allow_none=True)
     is_legacy = fields.Bool(allow_none=True)
     nonpayment = fields.Bool(allow_none=True)
@@ -124,7 +122,7 @@ class DetainerWarrantSchema(Schema):
 
     class Meta:
         fields = ("docket_id", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
-                  "judgements", "last_edited_by", "plaintiff", "plaintiff_attorney", "courtroom", "presiding_judge", "defendants",
+                  "judgements", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
                   "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "created_at", "updated_at")
 
 

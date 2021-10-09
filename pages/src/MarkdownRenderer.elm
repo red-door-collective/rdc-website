@@ -1,4 +1,4 @@
-module MarkdownRenderer exposing (renderer, view)
+module MarkdownRenderer exposing (renderer)
 
 import Element
     exposing
@@ -7,16 +7,11 @@ import Element
         , centerX
         , centerY
         , clip
-        , clipX
-        , clipY
         , column
         , el
         , fill
         , height
         , link
-        , maximum
-        , minimum
-        , newTabLink
         , padding
         , paddingEach
         , paddingXY
@@ -26,7 +21,6 @@ import Element
         , row
         , spacing
         , spacingXY
-        , table
         , text
         , width
         )
@@ -35,103 +29,11 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import Html exposing (Attribute, Html)
+import Html
 import Html.Attributes
-import Markdown.Block as Block exposing (Block, Inline, ListItem(..), Task(..))
+import Markdown.Block as Block exposing (ListItem(..), Task(..))
 import Markdown.Html
-import Markdown.Parser
 import Markdown.Renderer
-import SyntaxHighlight
-
-
-buildToc : List Block -> TableOfContents
-buildToc blocks =
-    let
-        headings =
-            gatherHeadings blocks
-    in
-    headings
-        |> List.map Tuple.second
-        |> List.map
-            (\styledList ->
-                { anchorId = styledList |> inlinesToId
-                , name = styledToString styledList
-                , level = 1
-                }
-            )
-
-
-tocView : TableOfContents -> Element msg
-tocView toc =
-    Element.column
-        [ Element.alignTop
-        , Element.spacing 20
-        ]
-        [ Element.el [ Font.bold, Font.size 22 ] (Element.text "Table of Contents")
-        , Element.column [ Element.spacing 10 ]
-            (toc
-                |> List.map
-                    (\headingBlock ->
-                        Element.link [ Font.color (Element.rgb255 100 100 100) ]
-                            { url = "#" ++ headingBlock.anchorId
-                            , label = Element.text headingBlock.name
-                            }
-                    )
-            )
-        ]
-
-
-styledToString : List Inline -> String
-styledToString inlines =
-    --List.map .string list
-    --|> String.join "-"
-    -- TODO do I need to hyphenate?
-    inlines
-        |> Block.extractInlineText
-
-
-inlinesToId : List Inline -> String
-inlinesToId list =
-    list
-        |> Block.extractInlineText
-        |> String.split " "
-        |> String.join "-"
-
-
-gatherHeadings : List Block -> List ( Block.HeadingLevel, List Inline )
-gatherHeadings blocks =
-    List.filterMap
-        (\block ->
-            case block of
-                Block.Heading level content ->
-                    Just ( level, content )
-
-                _ ->
-                    Nothing
-        )
-        blocks
-
-
-type alias TableOfContents =
-    List { anchorId : String, name : String, level : Int }
-
-
-view : String -> Result String ( TableOfContents, List (Element msg) )
-view markdown =
-    case
-        markdown
-            |> Markdown.Parser.parse
-    of
-        Ok okAst ->
-            case Markdown.Renderer.render renderer okAst of
-                Ok rendered ->
-                    Ok ( buildToc okAst, rendered )
-
-                Err errors ->
-                    Err errors
-
-        Err error ->
-            Err (error |> List.map Markdown.Parser.deadEndToString |> String.join "\n")
 
 
 renderer : Markdown.Renderer.Renderer (Element msg)
@@ -150,7 +52,7 @@ renderer =
     , strikethrough = \content -> paragraph [ width fill, Font.strike ] content
     , codeSpan = code
     , link =
-        \{ title, destination } body ->
+        \{ destination } body ->
             Element.newTabLink []
                 { url = destination
                 , label =
@@ -235,21 +137,17 @@ renderer =
             , width fill
             ]
     , tableHeaderCell =
-        \maybeAlignment children ->
+        \_ children ->
             paragraph
                 tableBorder
                 children
     , tableCell =
-        \maybeAlignment children ->
+        \_ children ->
             paragraph
                 tableBorder
                 children
     , html = Markdown.Html.oneOf []
     }
-
-
-alternateTableRowBackground =
-    rgb255 245 247 249
 
 
 tableBorder =

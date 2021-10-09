@@ -5,34 +5,56 @@ module Page.Login exposing (Data, Model, Msg, page)
 
 import Browser.Navigation as Nav
 import DataSource exposing (DataSource)
-import DataSource.Port
 import Element exposing (Element, centerX, column, fill, maximum, padding, row, spacing, text, width)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
-import Element.Input as Input
 import Head
 import Head.Seo as Seo
-import Html.Events
 import Http
-import Json.Decode
 import Json.Encode as Encode
 import Logo
-import OptimizedDecoder as Decode exposing (Decoder, decodeString, field, string)
-import OptimizedDecoder.Pipeline exposing (optional)
-import Page exposing (Page, PageWithState, StaticPayload)
+import OptimizedDecoder exposing (field)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
-import Palette
 import Path exposing (Path)
-import Rest exposing (Cred)
-import Rest.Static
-import Route exposing (Route)
-import Runtime exposing (Runtime)
+import Rest
+import Runtime
 import Session exposing (Session)
 import Shared
+import UI.Button as Button
+import UI.RenderConfig as RenderConfig exposing (RenderConfig)
+import UI.TextField as TextField
 import View exposing (View)
 import Viewer exposing (Viewer)
+
+
+loginForm : RenderConfig -> Form -> Element Msg
+loginForm cfg form =
+    Element.column
+        [ Element.centerY
+        , Element.centerX
+        , Element.spacingXY 8 24
+        , Element.padding 32
+        , width (fill |> maximum 400)
+        ]
+        [ TextField.username EnteredEmail
+            "Email"
+            form.email
+            |> TextField.withPlaceholder "your.name@reddoorcollective.org"
+            |> TextField.setLabelVisible True
+            |> TextField.withWidth TextField.widthFull
+            |> TextField.renderElement cfg
+        , TextField.currentPassword EnteredPassword
+            "Password"
+            form.password
+            |> TextField.withPlaceholder "********"
+            |> TextField.setLabelVisible True
+            |> TextField.withWidth TextField.widthFull
+            |> TextField.withOnEnterPressed GetCredentials
+            |> TextField.renderElement cfg
+        , Button.fromLabel "Log in"
+            |> Button.cmd GetCredentials Button.primary
+            |> Button.withDisabledIf (form.password == "")
+            |> Button.renderElement cfg
+        ]
 
 
 type alias RouteParams =
@@ -123,23 +145,6 @@ init pageUrl sharedModel static =
 -- VIEW
 
 
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Json.Decode.field "key" Json.Decode.string
-                |> Json.Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Json.Decode.succeed msg
-
-                        else
-                            Json.Decode.fail "Not the enter key"
-                    )
-            )
-        )
-
-
 title =
     "Red Door Collective | Login"
 
@@ -153,22 +158,21 @@ view :
 view maybeUrl sharedModel model static =
     { title = title
     , body =
-        [ column [ width (fill |> maximum 1000), centerX, spacing 20, padding 20 ]
-            [ row [ Font.size 24, centerX ] [ text "Sign in" ]
-            , row [ centerX ] (List.map viewProblem model.problems)
-            , viewForm model.form
+        [ column [ width fill, centerX, spacing 20, padding 20 ]
+            [ row [ centerX ] (List.map viewProblem model.problems)
+            , row [ width fill ]
+                [ loginForm
+                    (RenderConfig.init
+                        { width = sharedModel.window.width
+                        , height = sharedModel.window.height
+                        }
+                        RenderConfig.localeEnglish
+                    )
+                    model.form
+                ]
             ]
         ]
     }
-
-
-primaryButton =
-    Input.button
-        [ Background.color Palette.sred
-        , Font.color Palette.white
-        , padding 10
-        , Border.rounded 5
-        ]
 
 
 viewProblem : Problem -> Element msg
@@ -185,39 +189,12 @@ viewProblem problem =
     column [] [ text errorMessage ]
 
 
-viewForm : Form -> Element Msg
-viewForm form =
-    column [ centerX, spacing 20 ]
-        [ row []
-            [ Input.email
-                []
-                { onChange = EnteredEmail
-                , placeholder = Just <| Input.placeholder [] (text "Email")
-                , text = form.email
-                , label = Input.labelHidden "Email"
-                }
-            ]
-        , row []
-            [ Input.currentPassword
-                [ onEnter SubmittedForm ]
-                { onChange = EnteredPassword
-                , text = form.password
-                , placeholder = Just <| Input.placeholder [] (text "Password")
-                , label = Input.labelHidden "Password"
-                , show = False
-                }
-            ]
-        , row [ Element.alignRight ]
-            [ primaryButton { onPress = Just SubmittedForm, label = text "Sign in" } ]
-        ]
-
-
 
 -- UPDATE
 
 
 type Msg
-    = SubmittedForm
+    = GetCredentials
     | EnteredEmail String
     | EnteredPassword String
     | CompletedLogin (Result Http.Error Viewer)
@@ -233,7 +210,7 @@ update :
     -> ( Model, Cmd Msg )
 update pageUrl navKey sharedModel payload msg model =
     case msg of
-        SubmittedForm ->
+        GetCredentials ->
             case validate model.form of
                 Ok validForm ->
                     ( { model | problems = [] }

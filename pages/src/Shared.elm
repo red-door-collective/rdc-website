@@ -1,16 +1,14 @@
 module Shared exposing (Data, Model, Msg, template)
 
+import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
-import DataSource exposing (DataSource)
+import DataSource
 import DataSource.Port
-import Element exposing (Element, fill, width)
-import Element.Font as Font
+import Element exposing (fill, width)
 import Html exposing (Html)
-import Html.Styled
-import Http
 import Json.Encode as Encode
 import OptimizedDecoder as Decode exposing (Decoder, int, string)
-import OptimizedDecoder.Pipeline exposing (optional, required)
+import OptimizedDecoder.Pipeline exposing (required)
 import Pages.Flags exposing (Flags(..))
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
@@ -20,10 +18,9 @@ import Route exposing (Route)
 import Runtime exposing (Runtime)
 import Session exposing (Session)
 import SharedTemplate exposing (SharedTemplate)
-import Url.Builder
+import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import View exposing (View)
 import View.Header
-import View.MobileHeader
 import Viewer
 
 
@@ -46,6 +43,7 @@ type Msg
         }
     | ToggleMobileMenu
     | GotSession Session
+    | SetWindow Int Int
 
 
 type alias Data =
@@ -59,6 +57,7 @@ type alias Model =
     , session : Session
     , queryParams : Maybe String
     , window : Window
+    , renderConfig : RenderConfig
     }
 
 
@@ -84,6 +83,16 @@ init :
             }
     -> ( Model, Cmd Msg )
 init navigationKey flags maybePagePath =
+    let
+        window =
+            case flags of
+                BrowserFlags value ->
+                    Decode.decodeValue (Decode.field "window" windowDecoder) value
+                        |> Result.withDefault { width = 0, height = 0 }
+
+                PreRenderFlags ->
+                    { width = 0, height = 0 }
+    in
     ( { showMobileMenu = False
       , navigationKey = navigationKey
       , session =
@@ -98,14 +107,13 @@ init navigationKey flags maybePagePath =
                     Session.fromViewer Nothing Nothing
       , queryParams =
             Maybe.andThen (.query << .path) maybePagePath
-      , window =
-            case flags of
-                BrowserFlags value ->
-                    Decode.decodeValue (Decode.field "window" windowDecoder) value
-                        |> Result.withDefault { width = 0, height = 0 }
-
-                PreRenderFlags ->
-                    { width = 0, height = 0 }
+      , window = window
+      , renderConfig =
+            RenderConfig.init
+                { width = window.width
+                , height = window.height
+                }
+                RenderConfig.localeEnglish
       }
     , Cmd.none
     )
@@ -141,10 +149,16 @@ update msg model =
                     (Session.navKey session)
             )
 
+        SetWindow width height ->
+            ( { model | window = { width = width, height = height } }, Cmd.none )
+
 
 subscriptions : Path -> Model -> Sub Msg
 subscriptions _ model =
-    Session.changes GotSession (Session.navKey model.session)
+    Sub.batch
+        [ Session.changes GotSession (Session.navKey model.session)
+        , onResize SetWindow
+        ]
 
 
 data =
@@ -184,7 +198,8 @@ view tableOfContents page model toMsg pageView =
             :: pageView.body
             |> Element.column
                 [ width fill
-                , Font.family [ Font.typeface "system" ]
+
+                -- , Font.family [ Font.typeface "system" ]
                 ]
             |> Element.layout [ width fill ]
     , title = pageView.title

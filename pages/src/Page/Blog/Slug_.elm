@@ -2,12 +2,10 @@ module Page.Blog.Slug_ exposing (Data, Model, Msg, page)
 
 import Article
 import Cloudinary
-import Data.Author as Author exposing (Author)
+import Data.Author as Author
 import DataSource exposing (DataSource)
 import Date exposing (Date)
-import Element exposing (Element, alignLeft, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, maximum, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, textColumn, width, wrappedRow)
-import Element.Background as Background
-import Element.Border as Border
+import Element exposing (Element, alignLeft, alignRight, alignTop, centerX, column, fill, fillPortion, height, maximum, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, textColumn, width, wrappedRow)
 import Element.Font as Font
 import Head
 import Head.Seo as Seo
@@ -19,7 +17,7 @@ import MarkdownRenderer
 import OptimizedDecoder
 import Page exposing (Page, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url exposing (Url)
+import Pages.Url
 import Path
 import Shared
 import Site
@@ -100,10 +98,6 @@ view maybeUrl sharedModel static =
             ]
         ]
     }
-
-
-absPath url =
-    Pages.Url.toString url
 
 
 authorView author static =
@@ -284,12 +278,12 @@ blogRenderer =
         | html =
             Markdown.Html.oneOf
                 [ Markdown.Html.tag "legend"
-                    (\title renderedChildren ->
+                    (\title _ ->
                         viewLegend title
                     )
                     |> Markdown.Html.withAttribute "title"
                 , Markdown.Html.tag "sized-image"
-                    (\title widthInPx heightInPx src alt renderedChildren ->
+                    (\title widthInPx heightInPx src alt _ ->
                         viewSizedImage title widthInPx heightInPx src alt
                     )
                     |> Markdown.Html.withOptionalAttribute "title"

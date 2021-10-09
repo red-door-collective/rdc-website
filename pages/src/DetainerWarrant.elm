@@ -1,23 +1,24 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), TableCellConfig, amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, dateDecoder, dateFromString, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisText, editFromForm, judgementDecoder, statusFromText, statusOptions, statusText, tableCellAttrs, ternaryOptions, viewDocketId, viewHeaderCell, viewStatusIcon, viewTextRow)
+module DetainerWarrant exposing (AmountClaimedCategory(..), ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm, judgementDecoder, mostRecentCourtDate, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
 
 import Attorney exposing (Attorney)
 import Courtroom exposing (Courtroom)
 import Date exposing (Date)
-import DatePicker exposing (ChangeEvent(..))
+import DatePicker
 import Defendant exposing (Defendant)
-import Dropdown
-import Element exposing (Element, column, fill, height, maximum, minimum, padding, px, row, text, width)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
-import Element.Font as Font
-import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, list, nullable, string)
-import Json.Decode.Pipeline exposing (custom, hardcoded, optional, required)
+import Json.Decode as Decode exposing (Decoder, bool, float, int, list, nullable, string)
+import Json.Decode.Pipeline exposing (custom, optional, required)
 import Judge exposing (Judge, JudgeForm)
-import Palette
+import Maybe
 import Plaintiff exposing (Plaintiff)
 import String.Extra
-import Time exposing (Month(..))
+import Time exposing (Posix)
+import Time.Utils
+import UI.Button exposing (Button)
+import UI.Dropdown as Dropdown
+import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
+import UI.Tables.Stateful exposing (detailShown, detailsEmpty)
+import UI.Text as Text
+import UI.Utils.TypeNumbers as T
 
 
 type alias DatePickerState =
@@ -77,7 +78,8 @@ type Conditions
 type alias Judgement =
     { id : Int
     , notes : Maybe String
-    , courtDate : Maybe Date
+    , courtDate : Maybe Posix
+    , courtroom : Maybe Courtroom
     , enteredBy : Entrance
     , judge : Maybe Judge
     , conditions : Maybe Conditions
@@ -86,13 +88,10 @@ type alias Judgement =
 
 type alias DetainerWarrant =
     { docketId : String
-    , fileDate : Maybe Date
+    , fileDate : Maybe Posix
     , status : Maybe Status
     , plaintiff : Maybe Plaintiff
     , plaintiffAttorney : Maybe Attorney
-    , courtDate : Maybe Date
-    , courtroom : Maybe Courtroom
-    , presidingJudge : Maybe Judge
     , amountClaimed : Maybe Float
     , amountClaimedCategory : AmountClaimedCategory
     , isCares : Maybe Bool
@@ -135,6 +134,8 @@ type alias JudgementForm =
     , condition : Maybe ConditionOption
     , enteredBy : Entrance
     , courtDate : DatePickerState
+    , courtroom : Maybe Courtroom
+    , courtroomDropdown : Dropdown.State (Maybe Courtroom)
     , notes : String
     , awardsFees : String
     , awardsPossession : Bool
@@ -259,9 +260,6 @@ type alias DetainerWarrantEdit =
     , status : Maybe Status
     , plaintiff : Maybe Related
     , plaintiffAttorney : Maybe Related
-    , courtDate : Maybe String
-    , courtroom : Maybe Related
-    , presidingJudge : Maybe Related
     , amountClaimed : Maybe Float
     , amountClaimedCategory : AmountClaimedCategory
     , isCares : Maybe Bool
@@ -481,7 +479,8 @@ fromConditions conditions =
     Decode.succeed Judgement
         |> required "id" int
         |> required "notes" (nullable string)
-        |> required "court_date" (nullable dateDecoder)
+        |> required "court_date" (nullable posixDecoder)
+        |> required "courtroom" (nullable Courtroom.decoder)
         |> required "entered_by" entranceDecoder
         |> required "judge" (nullable Judge.decoder)
         |> custom (Decode.succeed conditions)
@@ -505,27 +504,19 @@ judgementDecoder =
         |> Decode.andThen fromConditions
 
 
-dateFromString : String -> Maybe Date
-dateFromString =
-    Result.toMaybe << Date.fromIsoString
-
-
-dateDecoder : Decoder Date
-dateDecoder =
-    Decode.map (Maybe.withDefault (Date.fromCalendarDate 2021 Jan 1) << dateFromString) Decode.string
+posixDecoder : Decoder Posix
+posixDecoder =
+    Decode.map Time.millisToPosix Decode.int
 
 
 decoder : Decoder DetainerWarrant
 decoder =
     Decode.succeed DetainerWarrant
         |> required "docket_id" string
-        |> required "file_date" (nullable dateDecoder)
+        |> required "file_date" (nullable posixDecoder)
         |> required "status" (nullable statusDecoder)
         |> required "plaintiff" (nullable Plaintiff.decoder)
         |> required "plaintiff_attorney" (nullable Attorney.decoder)
-        |> required "court_date" (nullable dateDecoder)
-        |> required "courtroom" (nullable Courtroom.decoder)
-        |> required "presiding_judge" (nullable Judge.decoder)
         |> required "amount_claimed" (nullable float)
         |> required "amount_claimed_category" amountClaimedCategoryDecoder
         |> required "is_cares" (nullable bool)
@@ -536,153 +527,76 @@ decoder =
         |> required "notes" (nullable string)
 
 
-viewStatusIcon : (Int -> TableCellConfig data msg) -> Int -> data -> Element msg
-viewStatusIcon toConfig index warrant =
-    let
-        icon ( letter, fontColor, backgroundColor ) =
-            Element.el
-                [ Element.width (px 20)
-                , Element.height (px 20)
-                , Element.centerX
-                , Border.width 1
-                , Border.rounded 2
-                , Font.color fontColor
-                , Background.color backgroundColor
-                ]
-                (Element.el [ Element.centerX, Element.centerY ]
-                    (text <| letter)
-                )
-
-        config =
-            toConfig index
-    in
-    Element.row
-        (tableCellAttrs config warrant)
-        [ case config.status warrant of
-            Just Pending ->
-                icon ( "P", Palette.gold, Palette.white )
-
-            Just Closed ->
-                icon ( "C", Palette.purple, Palette.white )
-
-            Nothing ->
-                Element.none
-        ]
+tableColumns =
+    columnsEmpty
+        |> Common.column "Docket ID" (columnWidthPixels 150)
+        |> Common.column "File date" (columnWidthPixels 150)
+        |> Common.column "Court date" (columnWidthPixels 150)
+        |> Common.column "Plaintiff" (columnWidthPixels 240)
+        |> Common.column "Pltf. Attorney" (columnWidthPixels 240)
+        |> Common.column "Defendant" (columnWidthPixels 240)
+        |> Common.column "Address" (columnWidthPixels 240)
+        |> Common.column "" (columnWidthPixels 100)
 
 
-type alias TableCellConfig data msg =
-    { toId : data -> String
-    , status : data -> Maybe Status
-    , onMouseDown : Maybe (data -> msg)
-    , onMouseEnter : Maybe (data -> msg)
-    , maxWidth : Maybe Int
-    , selected : Maybe String
-    , striped : Bool
-    , hovered : Maybe String
-    }
+toTableRow : (DetainerWarrant -> Button msg) -> { toKey : DetainerWarrant -> String, view : DetainerWarrant -> Row msg T.Eight }
+toTableRow toEditButton =
+    { toKey = .docketId, view = toTableRowView toEditButton }
 
 
-tableCellAttrs :
-    TableCellConfig data msg
-    -> data
-    -> List (Element.Attribute msg)
-tableCellAttrs { toId, onMouseDown, onMouseEnter, maxWidth, striped, hovered } warrant =
-    [ Element.width
-        (Element.shrink
-            |> maximum (Maybe.withDefault 200 maxWidth)
-        )
-    , height (fill |> minimum 60)
-    , Element.padding 10
-    , Border.solid
-    , Border.color Palette.grayLight
-    , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
-    ]
-        ++ (case onMouseDown of
-                Just ev ->
-                    [ Events.onMouseDown (ev warrant) ]
-
-                Nothing ->
-                    []
-           )
-        ++ (case onMouseEnter of
-                Just ev ->
-                    [ Events.onMouseEnter (ev warrant) ]
-
-                Nothing ->
-                    []
-           )
-        ++ (if hovered == Just (toId warrant) then
-                [ Background.color Palette.redLightest ]
-
-            else if striped then
-                [ Background.color Palette.grayBack ]
-
-            else
-                []
-           )
+mostRecentCourtDate : DetainerWarrant -> Maybe Posix
+mostRecentCourtDate warrant =
+    Maybe.andThen .courtDate <| List.head warrant.judgements
 
 
-viewHeaderCell : String -> Element msg
-viewHeaderCell text =
-    Element.row
-        [ Element.width (Element.shrink |> maximum 200)
-        , Element.padding 10
-        , Font.semiBold
-        , Border.solid
-        , Border.color Palette.grayLight
-        , Border.widthEach { bottom = 0, left = 0, right = 0, top = 0 }
-        ]
-        [ Element.text text ]
+toTableRowView : (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T.Eight
+toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
+    rowEmpty
+        |> rowCellText (Text.body2 docketId)
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString fileDate))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString (mostRecentCourtDate warrant)))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name <| List.head defendants))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .address <| List.head defendants))
+        |> rowCellButton (toEditButton warrant)
 
 
-viewDocketId : (Int -> TableCellConfig data msg) -> Int -> data -> Element msg
-viewDocketId toConfig index warrant =
-    let
-        config =
-            toConfig index
-
-        attrs =
-            [ width (Element.shrink |> maximum (Maybe.withDefault 200 config.maxWidth))
-            , height (fill |> minimum 60)
-            , Border.widthEach { bottom = 0, top = 0, right = 0, left = 0 }
-            , Border.color Palette.transparent
-            ]
-    in
-    row
-        (attrs
-            ++ (if config.selected == Just (config.toId warrant) then
-                    [ Border.color Palette.sred
-                    ]
-
-                else
-                    []
-               )
-            ++ (if config.hovered == Just (config.toId warrant) then
-                    [ Background.color Palette.redLightest
-                    ]
-
-                else if config.striped then
-                    [ Background.color Palette.grayBack ]
-
-                else
-                    []
-               )
-        )
-        [ column
-            [ width fill
-            , height (fill |> minimum 60)
-            , padding 10
-            , Border.solid
-            , Border.color Palette.grayLight
-            , Border.widthEach { bottom = 0, left = 0, right = 0, top = 1 }
-            ]
-            [ Element.el [ Element.centerY ] (text (config.toId warrant))
-            ]
-        ]
+toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
+    detailsEmpty
+        |> detailShown
+            { label = "Docket ID"
+            , content = cellFromText <| Text.body2 docketId
+            }
+        |> detailShown
+            { label = "File date"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString fileDate)
+            }
+        |> detailShown
+            { label = "Court date"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString (mostRecentCourtDate warrant))
+            }
+        |> detailShown
+            { label = "Plaintiff"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff)
+            }
+        |> detailShown
+            { label = "Pltf. Attorney"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney)
+            }
+        |> detailShown
+            { label = "Defendant"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name <| List.head defendants)
+            }
+        |> detailShown
+            { label = "Address"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .address <| List.head defendants)
+            }
+        |> detailShown
+            { label = "Edit"
+            , content = cellFromButton (toEditButton warrant)
+            }
 
 
-viewTextRow : (Int -> TableCellConfig data msg) -> (data -> String) -> Int -> data -> Element msg
-viewTextRow config toText index warrant =
-    Element.row
-        (tableCellAttrs (config index) warrant)
-        [ Element.paragraph [] [ Element.text (toText warrant) ] ]
+toTableCover { docketId, defendants } =
+    { title = docketId, caption = Maybe.map .address <| List.head defendants }

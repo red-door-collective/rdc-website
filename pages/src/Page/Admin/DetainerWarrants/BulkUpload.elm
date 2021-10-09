@@ -7,12 +7,9 @@ import DataSource exposing (DataSource)
 import Date exposing (Date)
 import Date.Extra
 import Defendant exposing (Defendant)
-import Design
-import DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, Status)
+import DetainerWarrant exposing (DetainerWarrant, Status)
 import Dict exposing (Dict)
-import Element exposing (Element, centerX, column, fill, height, maximum, padding, paragraph, px, row, shrink, spacing, text, width)
-import Element.Font as Font
-import Element.Input as Input
+import Element exposing (Element, centerX, column, fill, height, padding, paragraph, px, row, shrink, spacing, text, width)
 import File exposing (File)
 import File.Select as Select
 import Head
@@ -20,9 +17,8 @@ import Head.Seo as Seo
 import Http exposing (Error(..))
 import Json.Encode
 import Logo
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
 import Path exposing (Path)
 import Plaintiff exposing (Plaintiff)
 import Progress exposing (Tracking)
@@ -30,9 +26,18 @@ import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Runtime
 import Session exposing (Session)
-import Set exposing (Set)
+import Set
 import Shared
+import Sprite
 import Task
+import UI.Button as Button
+import UI.Effects
+import UI.Icon as Icon
+import UI.RenderConfig exposing (RenderConfig)
+import UI.Tables.Common as Common exposing (Row, cellFromText, columnWidthPixels, columnsEmpty, rowCellText, rowEmpty)
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, detailShown, detailsEmpty, filtersEmpty, localSingleTextFilter, sortBy, sortersEmpty)
+import UI.Text as Text
+import UI.Utils.TypeNumbers as T
 import View exposing (View)
 
 
@@ -59,6 +64,7 @@ type alias UploadState =
     , plaintiffs : Dict String (RemoteData Plaintiff)
     , warrants : Dict String (RemoteData DetainerWarrant)
     , saveState : SaveState
+    , tableState : Stateful.State Msg DetainerWarrantStub T.Six
     }
 
 
@@ -102,6 +108,7 @@ type CsvUploadMsg
 
 type BulkUploadMsg
     = SaveWarrants
+    | ForTable (Stateful.Msg DetainerWarrantStub)
     | InsertedAttorney String (Result Http.Error (Rest.Item Attorney))
     | InsertedPlaintiff String (Result Http.Error (Rest.Item Plaintiff))
     | InsertedDefendant String (Result Http.Error (Rest.Item Defendant))
@@ -123,6 +130,11 @@ initBulkUpload stubs =
     , defendants = collectRelated .defendants stubs
     , warrants = collectRelated (Just << .docketId) stubs
     , saveState = NotStarted
+    , tableState =
+        Stateful.init
+            |> Stateful.stateWithFilters searchFilters
+            |> Stateful.stateWithSorters sortersInit
+            |> Stateful.stateWithItems stubs
     }
 
 
@@ -220,6 +232,13 @@ updateAfterCsvUpload static session msg state =
     case msg of
         SaveWarrants ->
             saveWarrants domain session state
+
+        ForTable subMsg ->
+            let
+                ( newTableState, newCmd ) =
+                    Stateful.update subMsg state.tableState
+            in
+            ( ReadyForBulkSave { state | tableState = newTableState }, UI.Effects.perform newCmd )
 
         InsertedAttorney name result ->
             let
@@ -363,7 +382,7 @@ update pageUrl navKey sharedModel static msg model =
         ( BulkUpload subMsg, ReadyForBulkSave state ) ->
             updateAfterCsvUpload static sharedModel.session subMsg state
 
-        ( _, _ ) ->
+        _ ->
             ( model, Cmd.none )
 
 
@@ -626,57 +645,100 @@ head static =
         |> Seo.website
 
 
-viewWarrants : List DetainerWarrantStub -> Element Msg
-viewWarrants warrants =
-    let
-        toCellConfig index =
-            { toId = .docketId
-            , status = .status
-            , striped = modBy 2 index == 0
-            , hovered = Nothing
-            , selected = Nothing
-            , maxWidth = Just 300
-            , onMouseDown = Nothing
-            , onMouseEnter = Nothing
+viewWarrants : RenderConfig -> Stateful.State Msg DetainerWarrantStub T.Six -> Element Msg
+viewWarrants cfg tableState =
+    Stateful.table
+        { toExternalMsg = BulkUpload << ForTable
+        , columns = tableColumns
+        , toRow = toTableRow
+        , state = tableState
+        }
+        |> Stateful.withResponsive
+            { toDetails = toTableDetails
+            , toCover = toTableCover
+            }
+        |> Stateful.withWidth fill
+        |> Stateful.renderElement cfg
+
+
+tableColumns =
+    columnsEmpty
+        |> Common.column "Docket ID" (columnWidthPixels 150)
+        |> Common.column "Status" (columnWidthPixels 150)
+        |> Common.column "File date" (columnWidthPixels 150)
+        |> Common.column "Plaintiff" (columnWidthPixels 240)
+        |> Common.column "Pltf. Attorney" (columnWidthPixels 240)
+        |> Common.column "Defendant" (columnWidthPixels 240)
+
+
+toTableRow : { toKey : DetainerWarrantStub -> String, view : DetainerWarrantStub -> Row msg T.Six }
+toTableRow =
+    { toKey = .docketId, view = toTableRowView }
+
+
+toTableRowView : DetainerWarrantStub -> Row msg T.Six
+toTableRowView { docketId, fileDate, status, plaintiff, plaintiffAttorney, defendants } =
+    rowEmpty
+        |> rowCellText (Text.body2 docketId)
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map DetainerWarrant.statusText status))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString fileDate))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" plaintiff))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" plaintiffAttorney))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" defendants))
+
+
+toTableDetails { docketId, status, fileDate, plaintiff, plaintiffAttorney, defendants } =
+    detailsEmpty
+        |> detailShown
+            { label = "Docket ID"
+            , content = cellFromText <| Text.body2 docketId
+            }
+        |> detailShown
+            { label = "Status"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map DetainerWarrant.statusText status)
+            }
+        |> detailShown
+            { label = "File date"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map Date.toIsoString fileDate)
+            }
+        |> detailShown
+            { label = "Plaintiff"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" plaintiff)
+            }
+        |> detailShown
+            { label = "Pltf. Attorney"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" plaintiffAttorney)
+            }
+        |> detailShown
+            { label = "Defendant"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" defendants)
             }
 
-        cell =
-            DetainerWarrant.viewTextRow toCellConfig
-    in
-    Element.indexedTable
-        [ width fill
-        , height (px 600)
-        , Font.size 14
-        , Element.scrollbarY
-        ]
-        { data = warrants
-        , columns =
-            [ { header = Element.none
-              , view = DetainerWarrant.viewStatusIcon toCellConfig
-              , width = px 40
-              }
-            , { header = DetainerWarrant.viewHeaderCell "Docket #"
-              , view = DetainerWarrant.viewDocketId toCellConfig
-              , width = Element.fill
-              }
-            , { header = DetainerWarrant.viewHeaderCell "File Date"
-              , view = cell (Maybe.withDefault "" << Maybe.map Date.toIsoString << .fileDate)
-              , width = Element.fill
-              }
-            , { header = DetainerWarrant.viewHeaderCell "Plaintiff"
-              , view = cell (Maybe.withDefault "" << .plaintiff)
-              , width = fill
-              }
-            , { header = DetainerWarrant.viewHeaderCell "Plnt. Attorney"
-              , view = cell (Maybe.withDefault "" << .plaintiffAttorney)
-              , width = fill
-              }
-            , { header = DetainerWarrant.viewHeaderCell "Defendant"
-              , view = cell (Maybe.withDefault "" << .defendants)
-              , width = fill
-              }
-            ]
-        }
+
+toTableCover { docketId, fileDate } =
+    { title = docketId, caption = Maybe.map Date.toIsoString fileDate }
+
+
+searchFilters : Filters Msg DetainerWarrantStub T.Six
+searchFilters =
+    filtersEmpty
+        |> localSingleTextFilter Nothing .docketId
+        |> localSingleTextFilter Nothing (Maybe.withDefault "" << Maybe.map DetainerWarrant.statusText << .status)
+        |> localSingleTextFilter Nothing (Maybe.withDefault "" << Maybe.map Date.toIsoString << .fileDate)
+        |> localSingleTextFilter Nothing (Maybe.withDefault "" << .plaintiff)
+        |> localSingleTextFilter Nothing (Maybe.withDefault "" << .plaintiffAttorney)
+        |> localSingleTextFilter Nothing (Maybe.withDefault "" << .defendants)
+
+
+sortersInit : Sorters DetainerWarrantStub T.Six
+sortersInit =
+    sortersEmpty
+        |> sortBy .docketId
+        |> sortBy (Maybe.withDefault "" << Maybe.map DetainerWarrant.statusText << .status)
+        |> sortBy (Maybe.withDefault "" << Maybe.map Date.toIsoString << .fileDate)
+        |> sortBy (Maybe.withDefault "" << .plaintiff)
+        |> sortBy (Maybe.withDefault "" << .plaintiffAttorney)
+        |> sortBy (Maybe.withDefault "" << .defendants)
 
 
 decodeWarrants : String -> Result Csv.Decode.Error (List DetainerWarrantStub)
@@ -728,9 +790,14 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
+    let
+        cfg =
+            sharedModel.renderConfig
+    in
     { title = title
     , body =
-        [ column [ width fill, spacing 10, padding 10 ]
+        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+        , column [ width fill, spacing 10, padding 10 ]
             [ row [ width fill ]
                 [ case model of
                     ReadyForCsv { error } ->
@@ -739,17 +806,18 @@ view maybeUrl sharedModel model static =
                                 Element.text (Csv.Decode.errorToString errMsg)
 
                             Nothing ->
-                                Design.button [ centerX ] { onPress = Just (CsvUpload CsvRequested), label = text "Load CSV" }
+                                Button.fromLabeledOnLeftIcon (Icon.download "Upload CSV")
+                                    |> Button.cmd (CsvUpload CsvRequested) Button.primary
+                                    |> Button.renderElement cfg
 
                     ReadyForBulkSave state ->
                         column [ width fill ]
                             [ row [ width fill ]
                                 [ case state.saveState of
                                     NotStarted ->
-                                        Design.button [ centerX ]
-                                            { onPress = Just (BulkUpload SaveWarrants)
-                                            , label = text "Save Warrants"
-                                            }
+                                        Button.fromLabel "Save Detainer Warrants"
+                                            |> Button.cmd (BulkUpload SaveWarrants) Button.primary
+                                            |> Button.renderElement cfg
 
                                     SavingWarrants tracking ->
                                         let
@@ -766,7 +834,7 @@ view maybeUrl sharedModel model static =
                                         paragraph [ centerX ] [ text "Finished!" ]
                                 ]
                             , row [ width fill ]
-                                [ viewWarrants state.stubs
+                                [ viewWarrants cfg state.tableState
                                 ]
                             ]
                 ]
