@@ -10,13 +10,14 @@ import Date exposing (Date)
 import Date.Extra
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
-import DetainerWarrant exposing (AmountClaimedCategory, ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, Status)
+import DetainerWarrant exposing (AmountClaimedCategory, DetainerWarrant, DetainerWarrantEdit, Status)
 import Dict
 import Element exposing (Element, alignBottom, below, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Form.State exposing (DatePickerState)
 import Head
 import Head.Seo as Seo
 import Html.Attributes exposing (selected)
@@ -24,6 +25,7 @@ import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Judge exposing (Judge)
+import Judgement exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm)
 import List.Extra as List
 import Log
 import Logo
@@ -1847,8 +1849,8 @@ dismissalBasisDropdown index judgement =
             , state = judgement.dismissalBasisDropdown
             }
         , selected = Just judgement.dismissalBasis
-        , itemToStr = DetainerWarrant.dismissalBasisOption
-        , items = DetainerWarrant.dismissalBasisOptions
+        , itemToStr = Judgement.dismissalBasisOption
+        , items = Judgement.dismissalBasisOptions
         }
 
 
@@ -1860,8 +1862,8 @@ conditionsDropdown index judgement =
             , state = judgement.conditionsDropdown
             }
         , selected = Just judgement.condition
-        , itemToStr = Maybe.withDefault "N/A" << Maybe.map DetainerWarrant.conditionText
-        , items = DetainerWarrant.conditionsOptions
+        , itemToStr = Maybe.withDefault "N/A" << Maybe.map Judgement.conditionText
+        , items = Judgement.conditionsOptions
         }
 
 
@@ -3232,7 +3234,7 @@ toDetainerWarrant today (Trimmed form) =
     , attorney =
         form.plaintiffAttorney.person
     , judgements =
-        List.map (DetainerWarrant.editFromForm today) form.judgements
+        List.map (Judgement.editFromForm today) form.judgements
     }
 
 
@@ -3283,7 +3285,7 @@ upsertJudgement : String -> Maybe Cred -> DetainerWarrantEdit -> Int -> Judgemen
 upsertJudgement domain maybeCred warrant index form =
     let
         decoder =
-            Rest.itemDecoder DetainerWarrant.judgementDecoder
+            Rest.itemDecoder Judgement.decoder
 
         body =
             toBody (encodeJudgement warrant form)
