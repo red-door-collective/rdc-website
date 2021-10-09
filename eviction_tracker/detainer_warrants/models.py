@@ -134,7 +134,6 @@ class Courtroom(db.Model, Timestamped):
         'districts.id'), nullable=False)
 
     district = relationship('District', back_populates='courtrooms')
-    cases = relationship('DetainerWarrant', back_populates='_courtroom')
     _judgements = relationship('Judgement', back_populates='_courtroom')
 
     def __repr__(self):
@@ -177,7 +176,6 @@ class Judge(db.Model, Timestamped):
         'districts.id'), nullable=False)
 
     district = relationship('District', back_populates='judges')
-    cases = relationship('DetainerWarrant', back_populates='_presiding_judge')
     _rulings = relationship('Judgement', back_populates='_judge')
 
     def __repr__(self):
@@ -433,10 +431,7 @@ class DetainerWarrant(db.Model, Timestamped):
     plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
         'attorneys.id', ondelete=('CASCADE')
     ))
-    _court_date = Column(db.Date, name="court_date")
     court_date_recurring_id = Column(db.Integer)
-    courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
-    presiding_judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
     amount_claimed = Column(db.Numeric(scale=2))  # USD
     amount_claimed_category_id = Column(
         db.Integer, nullable=False, default=3, server_default=text("3"))
@@ -450,8 +445,6 @@ class DetainerWarrant(db.Model, Timestamped):
     _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
     _plaintiff_attorney = relationship(
         'Attorney', back_populates='detainer_warrants')
-    _courtroom = relationship('Courtroom', back_populates='cases')
-    _presiding_judge = relationship('Judge', back_populates='cases')
 
     _defendants = relationship('Defendant',
                                secondary=detainer_warrant_defendants,
@@ -566,18 +559,6 @@ class DetainerWarrant(db.Model, Timestamped):
             self._courtroom = db.session.query(Courtroom).get(c_id)
         else:
             self._courtroom = courtroom
-
-    @property
-    def presiding_judge(self):
-        return self._presiding_judge
-
-    @presiding_judge.setter
-    def presiding_judge(self, judge):
-        j_id = judge and judge.get('id')
-        if (j_id):
-            self._presiding_judge = db.session.query(Judge).get(j_id)
-        else:
-            self._presiding_judge = judge
 
     @property
     def defendants(self):

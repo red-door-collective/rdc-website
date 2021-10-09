@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import Comparator, hybrid_property
 from .extensions import db
 from datetime import datetime, date, timezone
+import numbers
 
 # Alias common SQLAlchemy names
 Column = db.Column
@@ -34,8 +35,10 @@ class PosixComparator(Comparator):
     def operate(self, op, other=None):
         if other is None:
             return op(self.__clause_element__())
-        else:
+        elif isinstance(other, numbers.Number):
             return op(self.__clause_element__(), from_millis(other))
+        else:
+            return op(self.__clause_element__(), other)
 
 
 class Timestamped():
@@ -58,8 +61,10 @@ class Timestamped():
 
     @created_at.setter
     def created_at(self, posix):
-        self._created_at = datetime.fromtimestamp(
-            posix / 1000, tz=timezone.utc)
+        if isinstance(posix, datetime):
+            self._created_at = posix
+        else:
+            self._created_at = from_millis(posix)
 
     @hybrid_property
     def updated_at(self):
@@ -74,4 +79,7 @@ class Timestamped():
 
     @updated_at.setter
     def updated_at(self, posix):
-        self._updated_at = from_millis(posix)
+        if isinstance(posix, datetime):
+            self._updated_at = posix
+        else:
+            self._updated_at = from_millis(posix)

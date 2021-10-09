@@ -23,6 +23,10 @@ JUDGEMENT = "Judgement"
 JUDGE = "Judge"
 JUDGEMENT_BASIS = "Judgement Basis"
 
+DW_COURT_DATE = 'Court_date'
+DW_COURTROOM = 'Courtroom'
+DW_JUDGE = 'Presiding_judge'
+
 
 def extract_dismissal_basis(outcome, basis):
     if basis == "ftp" or basis == "failure to prosecute":
@@ -173,15 +177,32 @@ def _from_dw_wb_row(raw_warrant):
 
     outcome = warrant['Judgement'].lower() if warrant['Judgement'] else None
     if outcome and len(dw._judgements) == 0:
+        defaults = district_defaults()
         in_favor_of = 'PLAINTIFF' if 'poss' in outcome or 'fees' in outcome else 'DEFENDANT'
         awards_possession = 'poss' in outcome
         awards_fees = dw.amount_claimed if 'fees' in outcome or 'payment' in outcome else None
+
+        presiding_judge = None
+        if warrant[DW_JUDGE]:
+            presiding_judge, _ = get_or_create(
+                db.session, Judge, name=warrant[DW_JUDGE], defaults=defaults)
+
+        courtroom = None
+        if warrant[DW_COURTROOM]:
+            courtroom, _ = get_or_create(
+                db.session, Courtroom, name=warrant[DW_COURTROOM], defaults=defaults)
+
+        court_date = warrant[DW_COURT_DATE]
+        court_date_final = '11/3/2020' if court_date == '11/3' else court_date
 
         judgement = Judgement.create(
             detainer_warrant_id=dw.docket_id,
             in_favor_of_id=Judgement.parties[in_favor_of],
             awards_possession=awards_possession,
-            awards_fees=awards_fees
+            awards_fees=awards_fees,
+            courtroom_id=courtroom.id if courtroom else None,
+            judge_id=presiding_judge.id if presiding_judge else None,
+            _court_date=court_date_final
         )
 
         db.session.add(judgement)
