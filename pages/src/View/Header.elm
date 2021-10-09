@@ -85,7 +85,13 @@ view showMobileMenu session toggleMobileMenuMsg page =
             , Font.size 28
             , spacing 10
             , padding 10
-            , Background.color (Element.rgb255 255 87 87)
+            , Background.color
+                (if String.startsWith "/admin" <| Path.toAbsolute page.path then
+                    Palette.toElementColor Palette.gray500
+
+                 else
+                    Element.rgb255 255 87 87
+                )
             , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
             ]
             ((if String.startsWith "/admin" <| Path.toAbsolute page.path then
