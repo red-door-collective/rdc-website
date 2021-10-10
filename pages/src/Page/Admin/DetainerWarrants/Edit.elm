@@ -2028,6 +2028,7 @@ boxAttrs =
 searchBox attrs =
     SearchBox.input
         (boxAttrs
+            ++ [ width fill ]
             ++ attrs
         )
 
@@ -2602,7 +2603,7 @@ viewJudgeSearch options index form =
                     , text = form.judge.text
                     , selected = form.judge.person
                     , options = Just ({ id = -1, name = form.judge.text, aliases = [] } :: options.judges)
-                    , label = defaultLabel "Judge"
+                    , label = defaultLabel "Presiding judge"
                     , placeholder = Just <| Input.placeholder [] (text "Search for judge")
                     , toLabel = \person -> person.name
                     , filter = \_ _ -> True
@@ -2675,10 +2676,10 @@ viewJudgement options index form =
                 }
             , viewCourtroom options index form
             ]
-        , row [ spacing 5 ]
-            [ viewJudgeSearch options index form
-            , viewPlaintiffSearch (ChangedJudgementPlaintiffSearchBox index) options form.plaintiff
+        , wrappedRow [ spacing 5, width fill ]
+            [ viewPlaintiffSearch (ChangedJudgementPlaintiffSearchBox index) options form.plaintiff
             , viewAttorneySearch (ChangedJudgementAttorneySearchBox index) options form.plaintiffAttorney
+            , viewJudgeSearch options index form
             ]
         , column
             [ spacing 5
