@@ -218,7 +218,11 @@ initDefendantForm defendant =
 editForm : Date -> DetainerWarrant -> Form
 editForm today warrant =
     { docketId = warrant.docketId
-    , fileDate = initDatePicker (Maybe.map Date.Extra.fromPosix warrant.fileDate)
+    , fileDate =
+        { date = Maybe.map Date.Extra.fromPosix warrant.fileDate
+        , dateText = Maybe.withDefault (Date.toIsoString today) <| Maybe.map Time.Utils.toIsoString warrant.fileDate
+        , pickerModel = DatePicker.init |> DatePicker.setToday today
+        }
     , status = warrant.status
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm warrant.plaintiff
@@ -341,10 +345,10 @@ judgementFormInit today index existing =
             new
 
 
-initCreate : Form
-initCreate =
+initCreate : Date -> Form
+initCreate today =
     { docketId = ""
-    , fileDate = initDatePicker Nothing
+    , fileDate = { date = Just today, dateText = Date.toIsoString today, pickerModel = DatePicker.init |> DatePicker.setToday today }
     , status = Nothing
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm Nothing
@@ -377,6 +381,9 @@ init :
     -> ( Model, Cmd Msg )
 init pageUrl sharedModel static =
     let
+        today =
+            static.sharedData.runtime.today
+
         domain =
             Runtime.domain static.sharedData.runtime.environment
 
@@ -403,7 +410,7 @@ init pageUrl sharedModel static =
                     Initializing id
 
                 Nothing ->
-                    Ready initCreate
+                    Ready <| initCreate today
       , plaintiffs = []
       , attorneys = []
       , judges = []
@@ -2614,8 +2621,7 @@ viewJudgeSearch options index form =
         ]
 
 
-viewJudgement : FormOptions -> Int -> JudgementForm -> Element Msg
-viewJudgement options index form =
+viewCourtDate options index form =
     let
         hasChanges =
             True
@@ -2625,6 +2631,40 @@ viewJudgement options index form =
         -- )
         --     || (options.originalWarrant == Nothing && form.judgement /= defaultCategory)
     in
+    viewField options.showHelp
+        { tooltip = Just (JudgementInfo index JudgementFileDateDetail)
+        , description = "The date this judgement was filed."
+        , children =
+            [ DatePicker.input
+                (withValidation
+                    (ValidJudgement index JudgementFileDate)
+                    options.problems
+                    (withChanges
+                        hasChanges
+                        (boxAttrs
+                            ++ [ Element.htmlAttribute (Html.Attributes.id (judgementInfoText index JudgementFileDateDetail))
+                               , centerX
+                               , Element.centerY
+                               ]
+                        )
+                    )
+                )
+                { onChange = ChangedJudgementCourtDatePicker index
+                , selected = form.date
+                , text = form.dateText
+                , label =
+                    requiredLabel Input.labelAbove labelAttrs "Court date"
+                , placeholder =
+                    Just <| Input.placeholder labelAttrs <| text <| Date.toIsoString <| options.today
+                , settings = DatePicker.defaultSettings
+                , model = form.pickerModel
+                }
+            ]
+        }
+
+
+viewJudgement : FormOptions -> Int -> JudgementForm -> Element Msg
+viewJudgement options index form =
     column
         [ width fill
         , spacing 10
@@ -2644,36 +2684,7 @@ viewJudgement options index form =
         [ row
             [ spacing 5
             ]
-            [ viewField options.showHelp
-                { tooltip = Just (JudgementInfo index JudgementFileDateDetail)
-                , description = "The date this judgement was filed."
-                , children =
-                    [ DatePicker.input
-                        (withValidation
-                            (ValidJudgement index JudgementFileDate)
-                            options.problems
-                            (withChanges
-                                hasChanges
-                                (boxAttrs
-                                    ++ [ Element.htmlAttribute (Html.Attributes.id (judgementInfoText index JudgementFileDateDetail))
-                                       , centerX
-                                       , Element.centerY
-                                       ]
-                                )
-                            )
-                        )
-                        { onChange = ChangedJudgementCourtDatePicker index
-                        , selected = form.courtDate.date
-                        , text = form.courtDate.dateText
-                        , label =
-                            requiredLabel Input.labelAbove labelAttrs "Court date"
-                        , placeholder =
-                            Just <| Input.placeholder labelAttrs <| text <| Date.toIsoString <| options.today
-                        , settings = DatePicker.defaultSettings
-                        , model = form.courtDate.pickerModel
-                        }
-                    ]
-                }
+            [ viewCourtDate options index form.courtDate
             , viewCourtroom options index form
             ]
         , wrappedRow [ spacing 5, width fill ]
