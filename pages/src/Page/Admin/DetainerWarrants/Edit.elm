@@ -34,7 +34,7 @@ import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import PhoneNumber
 import PhoneNumber.Countries exposing (countryUS)
-import Plaintiff exposing (Plaintiff)
+import Plaintiff exposing (Plaintiff, PlaintiffForm)
 import QueryParams
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
@@ -91,13 +91,6 @@ type alias FormOptions =
     , problems : List Problem
     , originalWarrant : Maybe DetainerWarrant
     , renderConfig : RenderConfig
-    }
-
-
-type alias PlaintiffForm =
-    { person : Maybe Plaintiff
-    , text : String
-    , searchBox : SearchBox.State
     }
 
 
@@ -274,6 +267,7 @@ judgementFormInit today index existing =
             , dismissalBasis = FailureToProsecute
             , withPrejudice = False
             , judge = { text = "", person = Nothing, searchBox = SearchBox.init }
+            , plaintiff = { text = "", person = Nothing, searchBox = SearchBox.init }
             }
     in
     case existing of
@@ -292,6 +286,13 @@ judgementFormInit today index existing =
                         , courtroomDropdown = Dropdown.init ("judgement-dropdown-courtroom-" ++ String.fromInt judgement.id)
                         , conditionsDropdown = Dropdown.init ("judgement-dropdown-" ++ String.fromInt judgement.id)
                         , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt judgement.id)
+                        , plaintiff =
+                            { text =
+                                Maybe.withDefault "" <|
+                                    Maybe.map .name judgement.plaintiff
+                            , person = judgement.plaintiff
+                            , searchBox = SearchBox.init
+                            }
                         , judge =
                             { text =
                                 Maybe.withDefault "" <|
@@ -471,6 +472,7 @@ type Msg
     | DismissalBasisDropdownMsg Int (Dropdown.Msg DismissalBasis)
     | PickedDismissalBasis Int (Maybe DismissalBasis)
     | ToggledWithPrejudice Int Bool
+    | ChangedJudgementPlaintiffSearchBox Int (SearchBox.ChangeEvent Plaintiff)
     | ChangedJudgementJudgeSearchBox Int (SearchBox.ChangeEvent Judge)
     | ChangedJudgementNotes Int String
     | ChangedNotes String
@@ -1240,6 +1242,64 @@ update pageUrl navKey sharedModel static msg model =
                 (updateJudgement selected (\judgement -> { judgement | interestFollowsSite = checked }))
                 model
 
+        ChangedJudgementPlaintiffSearchBox selected changeEvent ->
+            case changeEvent of
+                SearchBox.SelectionChanged person ->
+                    updateForm
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    plaintiff =
+                                        form.plaintiff
+
+                                    updatedPlaintiff =
+                                        { plaintiff | person = Just person }
+                                in
+                                { form | plaintiff = updatedPlaintiff }
+                            )
+                        )
+                        model
+
+                SearchBox.TextChanged text ->
+                    ( updateFormOnly
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    plaintiff =
+                                        form.plaintiff
+
+                                    updatedPlaintiff =
+                                        { plaintiff
+                                            | person = Nothing
+                                            , text = text
+                                            , searchBox = SearchBox.reset plaintiff.searchBox
+                                        }
+                                in
+                                { form | plaintiff = updatedPlaintiff }
+                            )
+                        )
+                        model
+                    , Rest.get (Endpoint.plaintiffs domain [ ( "name", text ) ]) maybeCred GotPlaintiffs (Rest.collectionDecoder Plaintiff.decoder)
+                    )
+
+                SearchBox.SearchBoxChanged subMsg ->
+                    updateForm
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    plaintiff =
+                                        form.plaintiff
+
+                                    updatedPlaintiff =
+                                        { plaintiff
+                                            | searchBox = SearchBox.update subMsg plaintiff.searchBox
+                                        }
+                                in
+                                { form | plaintiff = updatedPlaintiff }
+                            )
+                        )
+                        model
+
         ChangedJudgementJudgeSearchBox selected changeEvent ->
             case changeEvent of
                 SearchBox.SelectionChanged person ->
@@ -1920,14 +1980,14 @@ defaultLabel str =
     Input.labelAbove labelAttrs (text str)
 
 
-viewPlaintiffSearch : FormOptions -> Form -> Element Msg
-viewPlaintiffSearch options form =
+viewPlaintiffSearch : (SearchBox.ChangeEvent Plaintiff -> Msg) -> FormOptions -> PlaintiffForm -> Element Msg
+viewPlaintiffSearch onChange options form =
     let
         hasChanges =
             (Maybe.withDefault False <|
-                Maybe.map ((/=) form.plaintiff.person << .plaintiff) options.originalWarrant
+                Maybe.map ((/=) form.person << .plaintiff) options.originalWarrant
             )
-                || (options.originalWarrant == Nothing && form.plaintiff.text /= "")
+                || (options.originalWarrant == Nothing && form.text /= "")
     in
     row [ width fill ]
         [ viewField options.showHelp
@@ -1935,10 +1995,10 @@ viewPlaintiffSearch options form =
             , description = "The plaintiff is typically the landlord seeking money or possession from the defendant (tenant)."
             , children =
                 [ searchBox (withChanges hasChanges [])
-                    { onChange = ChangedPlaintiffSearchBox
-                    , text = form.plaintiff.text
-                    , selected = form.plaintiff.person
-                    , options = Just ({ id = -1, name = form.plaintiff.text, aliases = [] } :: options.plaintiffs)
+                    { onChange = onChange
+                    , text = form.text
+                    , selected = form.person
+                    , options = Just ({ id = -1, name = form.text, aliases = [] } :: options.plaintiffs)
                     , label = defaultLabel "Plaintiff"
                     , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff")
                     , toLabel =
@@ -1953,7 +2013,7 @@ viewPlaintiffSearch options form =
                             (plaintiff.name :: plaintiff.aliases)
                                 |> List.map String.toLower
                                 |> List.any (String.contains (String.toLower query))
-                    , state = form.plaintiff.searchBox
+                    , state = form.searchBox
                     }
                 ]
             }
@@ -2557,6 +2617,9 @@ viewJudgement options index form =
             ]
         , row [ spacing 5 ]
             [ viewJudgeSearch options index form
+            , viewPlaintiffSearch (ChangedJudgementPlaintiffSearchBox index) options form.plaintiff
+
+            -- , viewPlaintiffAttorneySearch options form
             ]
         , column
             [ spacing 5
@@ -2694,7 +2757,7 @@ viewForm options formStatus =
                         , viewStatus options form
                         ]
                     , formGroup
-                        [ viewPlaintiffSearch options form
+                        [ viewPlaintiffSearch ChangedPlaintiffSearchBox options form.plaintiff
                         , viewPlaintiffAttorneySearch options form
                         ]
                     ]
@@ -3304,6 +3367,7 @@ encodeJudgement warrant judgement =
                  else
                     Nothing
                 )
+            ++ nullable "plaintiff" encodeRelated judgement.plaintiff
             ++ nullable "judge" encodeRelated judgement.judge
         )
 

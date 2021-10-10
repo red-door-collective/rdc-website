@@ -6,6 +6,7 @@ import Form.State exposing (DatePickerState)
 import Json.Decode as Decode exposing (Decoder, bool, float, int, nullable, string)
 import Json.Decode.Pipeline exposing (custom, optional, required)
 import Judge exposing (Judge, JudgeForm)
+import Plaintiff exposing (Plaintiff, PlaintiffForm)
 import String.Extra
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
@@ -53,6 +54,7 @@ type alias JudgementEdit =
     , enteredBy : Maybe String
     , courtDate : Maybe String
     , inFavorOf : Maybe String
+    , plaintiff : Maybe Plaintiff
     , judge : Maybe Judge
 
     -- Plaintiff Favor
@@ -85,6 +87,7 @@ type alias JudgementForm =
     , dismissalBasisDropdown : Dropdown.State DismissalBasis
     , dismissalBasis : DismissalBasis
     , withPrejudice : Bool
+    , plaintiff : PlaintiffForm
     , judge : JudgeForm
     }
 
@@ -95,6 +98,7 @@ type alias Judgement =
     , courtDate : Maybe Posix
     , courtroom : Maybe Courtroom
     , enteredBy : Entrance
+    , plaintiff : Maybe Plaintiff
     , judge : Maybe Judge
     , conditions : Maybe Conditions
     }
@@ -225,6 +229,8 @@ editFromForm today form =
 
         else
             Nothing
+    , plaintiff =
+        form.plaintiff.person
     , judge =
         form.judge.person
     }
@@ -326,6 +332,7 @@ fromConditions conditions =
         |> required "court_date" (nullable posixDecoder)
         |> required "courtroom" (nullable Courtroom.decoder)
         |> required "entered_by" entranceDecoder
+        |> required "plaintiff" (nullable Plaintiff.decoder)
         |> required "judge" (nullable Judge.decoder)
         |> custom (Decode.succeed conditions)
 
