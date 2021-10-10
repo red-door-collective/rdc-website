@@ -1,5 +1,6 @@
 module Judgement exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm)
 
+import Attorney exposing (Attorney, AttorneyForm)
 import Courtroom exposing (Courtroom)
 import Date exposing (Date)
 import Form.State exposing (DatePickerState)
@@ -55,6 +56,7 @@ type alias JudgementEdit =
     , courtDate : Maybe String
     , inFavorOf : Maybe String
     , plaintiff : Maybe Plaintiff
+    , plaintiffAttorney : Maybe Attorney
     , judge : Maybe Judge
 
     -- Plaintiff Favor
@@ -88,6 +90,7 @@ type alias JudgementForm =
     , dismissalBasis : DismissalBasis
     , withPrejudice : Bool
     , plaintiff : PlaintiffForm
+    , plaintiffAttorney : AttorneyForm
     , judge : JudgeForm
     }
 
@@ -99,6 +102,7 @@ type alias Judgement =
     , courtroom : Maybe Courtroom
     , enteredBy : Entrance
     , plaintiff : Maybe Plaintiff
+    , plaintiffAttorney : Maybe Attorney
     , judge : Maybe Judge
     , conditions : Maybe Conditions
     }
@@ -231,6 +235,8 @@ editFromForm today form =
             Nothing
     , plaintiff =
         form.plaintiff.person
+    , plaintiffAttorney =
+        form.plaintiffAttorney.person
     , judge =
         form.judge.person
     }
@@ -333,6 +339,7 @@ fromConditions conditions =
         |> required "courtroom" (nullable Courtroom.decoder)
         |> required "entered_by" entranceDecoder
         |> required "plaintiff" (nullable Plaintiff.decoder)
+        |> required "plaintiff_attorney" (nullable Attorney.decoder)
         |> required "judge" (nullable Judge.decoder)
         |> custom (Decode.succeed conditions)
 
