@@ -47,12 +47,7 @@ view session page =
         -- , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
         ]
         (if String.startsWith "/admin" <| Path.toAbsolute page.path then
-            [ headerLink []
-                (page.route == Just Admin__Dashboard)
-                { url = "/admin/dashboard"
-                , label = Element.text "Dashboard"
-                }
-            , headerLink []
+            [ headerLink [ ]
                 (page.route == Just Admin__DetainerWarrants)
                 { url = "/admin/detainer-warrants"
                 , label = Element.text "Detainer Warrants"
@@ -92,7 +87,7 @@ view session page =
             , if Session.isLoggedIn session then
                 headerLink []
                     False
-                    { url = "/admin/dashboard"
+                    { url = "/admin/detainer-warrants"
                     , label = Element.text "Admin"
                     }
 

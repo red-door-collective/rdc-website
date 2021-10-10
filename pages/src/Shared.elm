@@ -140,7 +140,7 @@ update msg model =
                     (\key ->
                         Nav.replaceUrl key
                             (if Session.isLoggedIn session then
-                                "/admin/dashboard"
+                                "/admin/detainer-warrants"
 
                              else
                                 "/"

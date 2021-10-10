@@ -103,15 +103,10 @@ view showMobileMenu session toggleMobileMenuMsg page =
                                 RedDoor.view RedDoor.default
                     }
                 , sectionLink []
-                    { url = "/admin/dashboard"
+                    { url = "/admin/detainer-warrants"
                     , label = Element.text "RDC Admin"
                     }
                 , headerLink [ alignRight ]
-                    (page.route == Just Admin__Dashboard)
-                    { url = "/admin/dashboard"
-                    , label = Element.text "Dashboard"
-                    }
-                , headerLink []
                     (page.route == Just Admin__DetainerWarrants)
                     { url = "/admin/detainer-warrants"
                     , label = Element.text "Detainer Warrants"
@@ -155,7 +150,7 @@ view showMobileMenu session toggleMobileMenuMsg page =
                 , if Session.isLoggedIn session then
                     headerLink []
                         False
-                        { url = "/admin/dashboard"
+                        { url = "/admin/detainer-warrants"
                         , label = Element.text "Admin"
                         }
 
