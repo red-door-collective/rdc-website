@@ -1,8 +1,7 @@
 module Page.Admin.DetainerWarrants.Edit exposing (Data, Model, Msg, page)
 
-import Attorney exposing (Attorney)
+import Attorney exposing (Attorney, AttorneyForm)
 import Browser.Dom
-import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
 import Courtroom exposing (Courtroom)
 import DataSource exposing (DataSource)
@@ -10,20 +9,21 @@ import Date exposing (Date)
 import Date.Extra
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
-import DetainerWarrant exposing (AmountClaimedCategory, ConditionOption(..), Conditions(..), DatePickerState, DetainerWarrant, DetainerWarrantEdit, DismissalBasis(..), Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, Status)
+import DetainerWarrant exposing (AmountClaimedCategory, DetainerWarrant, DetainerWarrantEdit, Status)
 import Dict
-import Element exposing (Element, alignBottom, below, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, shrink, spacing, spacingXY, text, textColumn, width, wrappedRow)
+import Element exposing (Element, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Form.State exposing (DatePickerState)
 import Head
 import Head.Seo as Seo
 import Html.Attributes exposing (selected)
 import Http
-import Json.Decode as Decode
 import Json.Encode as Encode
 import Judge exposing (Judge)
+import Judgement exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm)
 import List.Extra as List
 import Log
 import Logo
@@ -34,7 +34,7 @@ import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import PhoneNumber
 import PhoneNumber.Countries exposing (countryUS)
-import Plaintiff exposing (Plaintiff)
+import Plaintiff exposing (Plaintiff, PlaintiffForm)
 import QueryParams
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
@@ -94,20 +94,6 @@ type alias FormOptions =
     }
 
 
-type alias PlaintiffForm =
-    { person : Maybe Plaintiff
-    , text : String
-    , searchBox : SearchBox.State
-    }
-
-
-type alias AttorneyForm =
-    { person : Maybe Attorney
-    , text : String
-    , searchBox : SearchBox.State
-    }
-
-
 type alias Form =
     { docketId : String
     , fileDate : DatePickerState
@@ -150,8 +136,7 @@ type JudgementDetail
 
 
 type Tooltip
-    = DetainerWarrantInfo
-    | DocketIdInfo
+    = DocketIdInfo
     | FileDateInfo
     | StatusInfo
     | PlaintiffInfo
@@ -233,7 +218,11 @@ initDefendantForm defendant =
 editForm : Date -> DetainerWarrant -> Form
 editForm today warrant =
     { docketId = warrant.docketId
-    , fileDate = initDatePicker (Maybe.map Date.Extra.fromPosix warrant.fileDate)
+    , fileDate =
+        { date = Maybe.map Date.Extra.fromPosix warrant.fileDate
+        , dateText = Maybe.withDefault (Date.toIsoString today) <| Maybe.map Time.Utils.toIsoString warrant.fileDate
+        , pickerModel = DatePicker.init |> DatePicker.setToday today
+        }
     , status = warrant.status
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm warrant.plaintiff
@@ -274,6 +263,8 @@ judgementFormInit today index existing =
             , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt index)
             , dismissalBasis = FailureToProsecute
             , withPrejudice = False
+            , plaintiff = { text = "", person = Nothing, searchBox = SearchBox.init }
+            , plaintiffAttorney = { text = "", person = Nothing, searchBox = SearchBox.init }
             , judge = { text = "", person = Nothing, searchBox = SearchBox.init }
             }
     in
@@ -293,6 +284,20 @@ judgementFormInit today index existing =
                         , courtroomDropdown = Dropdown.init ("judgement-dropdown-courtroom-" ++ String.fromInt judgement.id)
                         , conditionsDropdown = Dropdown.init ("judgement-dropdown-" ++ String.fromInt judgement.id)
                         , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt judgement.id)
+                        , plaintiff =
+                            { text =
+                                Maybe.withDefault "" <|
+                                    Maybe.map .name judgement.plaintiff
+                            , person = judgement.plaintiff
+                            , searchBox = SearchBox.init
+                            }
+                        , plaintiffAttorney =
+                            { text =
+                                Maybe.withDefault "" <|
+                                    Maybe.map .name judgement.plaintiffAttorney
+                            , person = judgement.plaintiffAttorney
+                            , searchBox = SearchBox.init
+                            }
                         , judge =
                             { text =
                                 Maybe.withDefault "" <|
@@ -340,10 +345,10 @@ judgementFormInit today index existing =
             new
 
 
-initCreate : Form
-initCreate =
+initCreate : Date -> Form
+initCreate today =
     { docketId = ""
-    , fileDate = initDatePicker Nothing
+    , fileDate = { date = Just today, dateText = Date.toIsoString today, pickerModel = DatePicker.init |> DatePicker.setToday today }
     , status = Nothing
     , statusDropdown = Dropdown.init "status-dropdown"
     , plaintiff = initPlaintiffForm Nothing
@@ -376,6 +381,9 @@ init :
     -> ( Model, Cmd Msg )
 init pageUrl sharedModel static =
     let
+        today =
+            static.sharedData.runtime.today
+
         domain =
             Runtime.domain static.sharedData.runtime.environment
 
@@ -402,7 +410,7 @@ init pageUrl sharedModel static =
                     Initializing id
 
                 Nothing ->
-                    Ready initCreate
+                    Ready <| initCreate today
       , plaintiffs = []
       , attorneys = []
       , judges = []
@@ -430,7 +438,6 @@ getWarrant domain id maybeCred =
 type Msg
     = GotDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
     | ToggleHelp
-    | HideHelp
     | ChangedDocketId String
     | ChangedFileDatePicker ChangeEvent
     | ChangedPlaintiffSearchBox (SearchBox.ChangeEvent Plaintiff)
@@ -473,6 +480,8 @@ type Msg
     | DismissalBasisDropdownMsg Int (Dropdown.Msg DismissalBasis)
     | PickedDismissalBasis Int (Maybe DismissalBasis)
     | ToggledWithPrejudice Int Bool
+    | ChangedJudgementPlaintiffSearchBox Int (SearchBox.ChangeEvent Plaintiff)
+    | ChangedJudgementAttorneySearchBox Int (SearchBox.ChangeEvent Attorney)
     | ChangedJudgementJudgeSearchBox Int (SearchBox.ChangeEvent Judge)
     | ChangedJudgementNotes Int String
     | ChangedNotes String
@@ -596,9 +605,6 @@ update pageUrl navKey sharedModel static msg model =
               }
             , Cmd.none
             )
-
-        HideHelp ->
-            ( { model | showHelp = False }, Cmd.none )
 
         ChangedDocketId id ->
             updateForm (\form -> { form | docketId = id }) model
@@ -1245,6 +1251,122 @@ update pageUrl navKey sharedModel static msg model =
                 (updateJudgement selected (\judgement -> { judgement | interestFollowsSite = checked }))
                 model
 
+        ChangedJudgementPlaintiffSearchBox selected changeEvent ->
+            case changeEvent of
+                SearchBox.SelectionChanged person ->
+                    updateForm
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    plaintiff =
+                                        form.plaintiff
+
+                                    updatedPlaintiff =
+                                        { plaintiff | person = Just person }
+                                in
+                                { form | plaintiff = updatedPlaintiff }
+                            )
+                        )
+                        model
+
+                SearchBox.TextChanged text ->
+                    ( updateFormOnly
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    plaintiff =
+                                        form.plaintiff
+
+                                    updatedPlaintiff =
+                                        { plaintiff
+                                            | person = Nothing
+                                            , text = text
+                                            , searchBox = SearchBox.reset plaintiff.searchBox
+                                        }
+                                in
+                                { form | plaintiff = updatedPlaintiff }
+                            )
+                        )
+                        model
+                    , Rest.get (Endpoint.plaintiffs domain [ ( "name", text ) ]) maybeCred GotPlaintiffs (Rest.collectionDecoder Plaintiff.decoder)
+                    )
+
+                SearchBox.SearchBoxChanged subMsg ->
+                    updateForm
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    plaintiff =
+                                        form.plaintiff
+
+                                    updatedPlaintiff =
+                                        { plaintiff
+                                            | searchBox = SearchBox.update subMsg plaintiff.searchBox
+                                        }
+                                in
+                                { form | plaintiff = updatedPlaintiff }
+                            )
+                        )
+                        model
+
+        ChangedJudgementAttorneySearchBox selected changeEvent ->
+            case changeEvent of
+                SearchBox.SelectionChanged person ->
+                    updateForm
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    plaintiffAttorney =
+                                        form.plaintiffAttorney
+
+                                    updatedPlaintiff =
+                                        { plaintiffAttorney | person = Just person }
+                                in
+                                { form | plaintiffAttorney = updatedPlaintiff }
+                            )
+                        )
+                        model
+
+                SearchBox.TextChanged text ->
+                    ( updateFormOnly
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    plaintiffAttorney =
+                                        form.plaintiffAttorney
+
+                                    updatedAttorney =
+                                        { plaintiffAttorney
+                                            | person = Nothing
+                                            , text = text
+                                            , searchBox = SearchBox.reset plaintiffAttorney.searchBox
+                                        }
+                                in
+                                { form | plaintiffAttorney = updatedAttorney }
+                            )
+                        )
+                        model
+                    , Rest.get (Endpoint.attorneys domain [ ( "name", text ) ]) maybeCred GotAttorneys (Rest.collectionDecoder Attorney.decoder)
+                    )
+
+                SearchBox.SearchBoxChanged subMsg ->
+                    updateForm
+                        (updateJudgement selected
+                            (\form ->
+                                let
+                                    plaintiffAttorney =
+                                        form.plaintiffAttorney
+
+                                    updatedAttorney =
+                                        { plaintiffAttorney
+                                            | searchBox = SearchBox.update subMsg plaintiffAttorney.searchBox
+                                        }
+                                in
+                                { form | plaintiffAttorney = updatedAttorney }
+                            )
+                        )
+                        model
+
         ChangedJudgementJudgeSearchBox selected changeEvent ->
             case changeEvent of
                 SearchBox.SelectionChanged person ->
@@ -1632,7 +1754,7 @@ viewField showHelp field =
     let
         tooltip =
             case field.tooltip of
-                Just tip ->
+                Just _ ->
                     withTooltip showHelp field.description
 
                 Nothing ->
@@ -1847,8 +1969,8 @@ dismissalBasisDropdown index judgement =
             , state = judgement.dismissalBasisDropdown
             }
         , selected = Just judgement.dismissalBasis
-        , itemToStr = DetainerWarrant.dismissalBasisOption
-        , items = DetainerWarrant.dismissalBasisOptions
+        , itemToStr = Judgement.dismissalBasisOption
+        , items = Judgement.dismissalBasisOptions
         }
 
 
@@ -1860,8 +1982,8 @@ conditionsDropdown index judgement =
             , state = judgement.conditionsDropdown
             }
         , selected = Just judgement.condition
-        , itemToStr = Maybe.withDefault "N/A" << Maybe.map DetainerWarrant.conditionText
-        , items = DetainerWarrant.conditionsOptions
+        , itemToStr = Maybe.withDefault "N/A" << Maybe.map Judgement.conditionText
+        , items = Judgement.conditionsOptions
         }
 
 
@@ -1913,6 +2035,7 @@ boxAttrs =
 searchBox attrs =
     SearchBox.input
         (boxAttrs
+            ++ [ width fill ]
             ++ attrs
         )
 
@@ -1925,14 +2048,14 @@ defaultLabel str =
     Input.labelAbove labelAttrs (text str)
 
 
-viewPlaintiffSearch : FormOptions -> Form -> Element Msg
-viewPlaintiffSearch options form =
+viewPlaintiffSearch : (SearchBox.ChangeEvent Plaintiff -> Msg) -> FormOptions -> PlaintiffForm -> Element Msg
+viewPlaintiffSearch onChange options form =
     let
         hasChanges =
             (Maybe.withDefault False <|
-                Maybe.map ((/=) form.plaintiff.person << .plaintiff) options.originalWarrant
+                Maybe.map ((/=) form.person << .plaintiff) options.originalWarrant
             )
-                || (options.originalWarrant == Nothing && form.plaintiff.text /= "")
+                || (options.originalWarrant == Nothing && form.text /= "")
     in
     row [ width fill ]
         [ viewField options.showHelp
@@ -1940,10 +2063,10 @@ viewPlaintiffSearch options form =
             , description = "The plaintiff is typically the landlord seeking money or possession from the defendant (tenant)."
             , children =
                 [ searchBox (withChanges hasChanges [])
-                    { onChange = ChangedPlaintiffSearchBox
-                    , text = form.plaintiff.text
-                    , selected = form.plaintiff.person
-                    , options = Just ({ id = -1, name = form.plaintiff.text, aliases = [] } :: options.plaintiffs)
+                    { onChange = onChange
+                    , text = form.text
+                    , selected = form.person
+                    , options = Just ({ id = -1, name = form.text, aliases = [] } :: options.plaintiffs)
                     , label = defaultLabel "Plaintiff"
                     , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff")
                     , toLabel =
@@ -1958,21 +2081,21 @@ viewPlaintiffSearch options form =
                             (plaintiff.name :: plaintiff.aliases)
                                 |> List.map String.toLower
                                 |> List.any (String.contains (String.toLower query))
-                    , state = form.plaintiff.searchBox
+                    , state = form.searchBox
                     }
                 ]
             }
         ]
 
 
-viewPlaintiffAttorneySearch : FormOptions -> Form -> Element Msg
-viewPlaintiffAttorneySearch options form =
+viewAttorneySearch : (SearchBox.ChangeEvent Attorney -> Msg) -> FormOptions -> AttorneyForm -> Element Msg
+viewAttorneySearch onChange options form =
     let
         hasChanges =
             (Maybe.withDefault False <|
-                Maybe.map ((/=) form.plaintiffAttorney.person << .plaintiffAttorney) options.originalWarrant
+                Maybe.map ((/=) form.person << .plaintiffAttorney) options.originalWarrant
             )
-                || (options.originalWarrant == Nothing && form.plaintiffAttorney.text /= "")
+                || (options.originalWarrant == Nothing && form.text /= "")
     in
     column [ width fill ]
         [ viewField options.showHelp
@@ -1980,15 +2103,15 @@ viewPlaintiffAttorneySearch options form =
             , description = "The plaintiff attorney is the legal representation for the plaintiff in this eviction process."
             , children =
                 [ searchBox (withChanges hasChanges [])
-                    { onChange = ChangedPlaintiffAttorneySearchBox
-                    , text = form.plaintiffAttorney.text
-                    , selected = form.plaintiffAttorney.person
-                    , options = Just ({ id = -1, name = form.plaintiffAttorney.text, aliases = [] } :: options.attorneys)
+                    { onChange = onChange
+                    , text = form.text
+                    , selected = form.person
+                    , options = Just ({ id = -1, name = form.text, aliases = [] } :: options.attorneys)
                     , label = defaultLabel "Plaintiff Attorney"
                     , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff attorney")
                     , toLabel = \person -> person.name
                     , filter = \_ _ -> True
-                    , state = form.plaintiffAttorney.searchBox
+                    , state = form.searchBox
                     }
                 ]
             }
@@ -2487,7 +2610,7 @@ viewJudgeSearch options index form =
                     , text = form.judge.text
                     , selected = form.judge.person
                     , options = Just ({ id = -1, name = form.judge.text, aliases = [] } :: options.judges)
-                    , label = defaultLabel "Judge"
+                    , label = defaultLabel "Presiding judge"
                     , placeholder = Just <| Input.placeholder [] (text "Search for judge")
                     , toLabel = \person -> person.name
                     , filter = \_ _ -> True
@@ -2498,8 +2621,7 @@ viewJudgeSearch options index form =
         ]
 
 
-viewJudgement : FormOptions -> Int -> JudgementForm -> Element Msg
-viewJudgement options index form =
+viewCourtDate options index form =
     let
         hasChanges =
             True
@@ -2509,6 +2631,40 @@ viewJudgement options index form =
         -- )
         --     || (options.originalWarrant == Nothing && form.judgement /= defaultCategory)
     in
+    viewField options.showHelp
+        { tooltip = Just (JudgementInfo index JudgementFileDateDetail)
+        , description = "The date this judgement was filed."
+        , children =
+            [ DatePicker.input
+                (withValidation
+                    (ValidJudgement index JudgementFileDate)
+                    options.problems
+                    (withChanges
+                        hasChanges
+                        (boxAttrs
+                            ++ [ Element.htmlAttribute (Html.Attributes.id (judgementInfoText index JudgementFileDateDetail))
+                               , centerX
+                               , Element.centerY
+                               ]
+                        )
+                    )
+                )
+                { onChange = ChangedJudgementCourtDatePicker index
+                , selected = form.date
+                , text = form.dateText
+                , label =
+                    requiredLabel Input.labelAbove labelAttrs "Court date"
+                , placeholder =
+                    Just <| Input.placeholder labelAttrs <| text <| Date.toIsoString <| options.today
+                , settings = DatePicker.defaultSettings
+                , model = form.pickerModel
+                }
+            ]
+        }
+
+
+viewJudgement : FormOptions -> Int -> JudgementForm -> Element Msg
+viewJudgement options index form =
     column
         [ width fill
         , spacing 10
@@ -2528,40 +2684,13 @@ viewJudgement options index form =
         [ row
             [ spacing 5
             ]
-            [ viewField options.showHelp
-                { tooltip = Just (JudgementInfo index JudgementFileDateDetail)
-                , description = "The date this judgement was filed."
-                , children =
-                    [ DatePicker.input
-                        (withValidation
-                            (ValidJudgement index JudgementFileDate)
-                            options.problems
-                            (withChanges
-                                hasChanges
-                                (boxAttrs
-                                    ++ [ Element.htmlAttribute (Html.Attributes.id (judgementInfoText index JudgementFileDateDetail))
-                                       , centerX
-                                       , Element.centerY
-                                       ]
-                                )
-                            )
-                        )
-                        { onChange = ChangedJudgementCourtDatePicker index
-                        , selected = form.courtDate.date
-                        , text = form.courtDate.dateText
-                        , label =
-                            requiredLabel Input.labelAbove labelAttrs "Court date"
-                        , placeholder =
-                            Just <| Input.placeholder labelAttrs <| text <| Date.toIsoString <| options.today
-                        , settings = DatePicker.defaultSettings
-                        , model = form.courtDate.pickerModel
-                        }
-                    ]
-                }
+            [ viewCourtDate options index form.courtDate
             , viewCourtroom options index form
             ]
-        , row [ spacing 5 ]
-            [ viewJudgeSearch options index form
+        , wrappedRow [ spacing 5, width fill ]
+            [ viewPlaintiffSearch (ChangedJudgementPlaintiffSearchBox index) options form.plaintiff
+            , viewAttorneySearch (ChangedJudgementAttorneySearchBox index) options form.plaintiffAttorney
+            , viewJudgeSearch options index form
             ]
         , column
             [ spacing 5
@@ -2699,8 +2828,8 @@ viewForm options formStatus =
                         , viewStatus options form
                         ]
                     , formGroup
-                        [ viewPlaintiffSearch options form
-                        , viewPlaintiffAttorneySearch options form
+                        [ viewPlaintiffSearch ChangedPlaintiffSearchBox options form.plaintiff
+                        , viewAttorneySearch ChangedPlaintiffAttorneySearchBox options form.plaintiffAttorney
                         ]
                     ]
                 , tile
@@ -2874,41 +3003,6 @@ subscriptions pageUrl params path model =
                 )
 
 
-isOutsideTooltip : String -> Decode.Decoder Bool
-isOutsideTooltip tooltipId =
-    Decode.oneOf
-        [ Decode.field "id" Decode.string
-            |> Decode.andThen
-                (\id ->
-                    if tooltipId == id then
-                        Decode.succeed False
-
-                    else
-                        Decode.fail "continue"
-                )
-        , Decode.lazy (\_ -> isOutsideTooltip tooltipId |> Decode.field "parentNode")
-        , Decode.succeed True
-        ]
-
-
-outsideTarget : String -> Msg -> Decode.Decoder Msg
-outsideTarget tooltipId msg =
-    Decode.field "target" (isOutsideTooltip tooltipId)
-        |> Decode.andThen
-            (\isOutside ->
-                if isOutside then
-                    Decode.succeed msg
-
-                else
-                    Decode.fail "inside dropdown"
-            )
-
-
-onOutsideClick : Tooltip -> Sub Msg
-onOutsideClick tip =
-    onMouseDown (outsideTarget (tooltipToString tip) HideHelp)
-
-
 judgementInfoText : Int -> JudgementDetail -> String
 judgementInfoText index detail =
     "judgement-"
@@ -2945,61 +3039,6 @@ judgementInfoText index detail =
            )
         ++ "-"
         ++ String.fromInt index
-
-
-tooltipToString : Tooltip -> String
-tooltipToString tip =
-    case tip of
-        DetainerWarrantInfo ->
-            "detainer-warrant-info"
-
-        DocketIdInfo ->
-            "docket-id-info"
-
-        FileDateInfo ->
-            "file-date-info"
-
-        StatusInfo ->
-            "status-info"
-
-        PlaintiffInfo ->
-            "plaintiff-info"
-
-        PlaintiffAttorneyInfo ->
-            "plaintiff-attorney-info"
-
-        CourtroomInfo ->
-            "courtroom-info"
-
-        PresidingJudgeInfo ->
-            "presiding-judge-info"
-
-        AmountClaimedInfo ->
-            "amount-claimed-info"
-
-        AmountClaimedCategoryInfo ->
-            "amount-claimed-category-info"
-
-        CaresInfo ->
-            "cares-info"
-
-        LegacyInfo ->
-            "legacy-info"
-
-        NonpaymentInfo ->
-            "nonpayment-info"
-
-        AddressInfo ->
-            "address-info"
-
-        PotentialPhoneNumbersInfo index ->
-            "potential-phone-numbers-info-" ++ String.fromInt index
-
-        JudgementInfo index detail ->
-            judgementInfoText index detail
-
-        NotesInfo ->
-            "notes-info"
 
 
 
@@ -3232,7 +3271,7 @@ toDetainerWarrant today (Trimmed form) =
     , attorney =
         form.plaintiffAttorney.person
     , judgements =
-        List.map (DetainerWarrant.editFromForm today) form.judgements
+        List.map (Judgement.editFromForm today) form.judgements
     }
 
 
@@ -3283,7 +3322,7 @@ upsertJudgement : String -> Maybe Cred -> DetainerWarrantEdit -> Int -> Judgemen
 upsertJudgement domain maybeCred warrant index form =
     let
         decoder =
-            Rest.itemDecoder DetainerWarrant.judgementDecoder
+            Rest.itemDecoder Judgement.decoder
 
         body =
             toBody (encodeJudgement warrant form)
@@ -3399,6 +3438,8 @@ encodeJudgement warrant judgement =
                  else
                     Nothing
                 )
+            ++ nullable "plaintiff" encodeRelated judgement.plaintiff
+            ++ nullable "plaintiff_attorney" encodeRelated judgement.plaintiffAttorney
             ++ nullable "judge" encodeRelated judgement.judge
         )
 

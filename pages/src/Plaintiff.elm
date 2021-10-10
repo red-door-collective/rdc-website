@@ -1,7 +1,8 @@
-module Plaintiff exposing (Plaintiff, decoder, tableColumns, toTableCover, toTableDetails, toTableRow)
+module Plaintiff exposing (Plaintiff, PlaintiffForm, decoder, tableColumns, toTableCover, toTableDetails, toTableRow)
 
 import Json.Decode as Decode exposing (Decoder, int, list, string)
 import Json.Decode.Pipeline exposing (required)
+import SearchBox
 import UI.Button exposing (Button)
 import UI.Tables.Common as Common exposing (Columns, Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
 import UI.Tables.Stateful exposing (detailShown, detailsEmpty)
@@ -13,6 +14,13 @@ type alias Plaintiff =
     { id : Int
     , name : String
     , aliases : List String
+    }
+
+
+type alias PlaintiffForm =
+    { person : Maybe Plaintiff
+    , text : String
+    , searchBox : SearchBox.State
     }
 
 
