@@ -8,9 +8,11 @@ logger = logging.getLogger(__name__)
 
 def log_on_exception(func):
     def inner(*arg):
+        res = None
         try:
             res = func(*arg)
         except:
+            print(res)
             logger.error("uncaught exception: %s", traceback.format_exc())
         return res
     return inner

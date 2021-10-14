@@ -8,6 +8,7 @@ from itertools import chain
 import gspread
 from gspread_formatting import *
 from datetime import datetime, date, timedelta
+from ..database import from_millis
 import usaddress
 from eviction_tracker.monitoring import log_on_exception
 import jellyfish
@@ -83,14 +84,17 @@ def _to_spreadsheet_row(warrant):
     return [dw if dw else '' for dw in list(chain.from_iterable([
         [
             warrant.docket_id,
-            date_str(warrant.file_date) if warrant.file_date else '',
+            date_str(warrant._file_date) if warrant._file_date else '',
             warrant.status,
             warrant.plaintiff.name if warrant.plaintiff else '',
             warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
-            date_str(warrant.court_date) if warrant.court_date else '',
+            date_str(
+                warrant.judgements[0]._court_date) if len(warrant.judgements) > 0 and warrant.judgements[0]._court_date else '',
             warrant.recurring_court_date if warrant.recurring_court_date else '',
-            warrant.courtroom.name if warrant.courtroom else '',
-            warrant.presiding_judge.name if warrant.presiding_judge else '',
+            warrant.judgements[0].courtroom.name if len(
+                warrant.judgements) > 0 and warrant.judgements[0].courtroom else '',
+            warrant.judgements[0].judge.name if len(
+                warrant.judgements) > 0 and warrant.judgements[0].judge else '',
             str(warrant.amount_claimed) if warrant.amount_claimed else '',
             warrant.amount_claimed_category,
             warrant.is_cares,
@@ -102,7 +106,7 @@ def _to_spreadsheet_row(warrant):
         ],
         list(chain.from_iterable([defendant_columns(safelist(
             warrant.defendants).get(index)) for index in range(4)])),
-        [warrant.judgements[-1].summary if len(warrant.judgements) > 0 else '',
+        [warrant.judgements[0].summary if len(warrant.judgements) > 0 else '',
          warrant.notes
          ]
     ]))]
@@ -116,7 +120,6 @@ def get_or_create_sheet(wb, name, rows=100, cols=25):
             title=name, rows=str(rows), cols=str(cols))
 
 
-@log_on_exception
 def to_spreadsheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
@@ -155,9 +158,9 @@ def defendant_names_column_newline(warrant):
 def _to_judgement_row(judgement):
     return [dw if dw else '' for dw in
             [
-                date_str(judgement.court_date) if judgement.court_date else '',
+                date_str(judgement._court_date) if judgement._court_date else '',
                 judgement.detainer_warrant_id,
-                judgement.detainer_warrant.courtroom.name if judgement.detainer_warrant.courtroom else '',
+                judgement.courtroom.name if judgement.courtroom else '',
                 judgement.plaintiff.name if judgement.plaintiff else '',
                 judgement.plaintiff_attorney.name if judgement.plaintiff_attorney else '',
                 defendant_names_column(judgement.detainer_warrant),
@@ -174,13 +177,12 @@ def _to_judgement_row(judgement):
             ]]
 
 
-@log_on_exception
 def to_judgement_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
     judgements = Judgement.query.filter(
         Judgement.detainer_warrant_id.ilike('%\G\T%')
-    ).join(Courtroom).order_by(Judgement.court_date, Courtroom.name)
+    ).join(Courtroom).order_by(Judgement._court_date, Courtroom.name)
 
     total = judgements.count()
 
@@ -231,7 +233,7 @@ def _to_court_watch_row(warrant):
 
     return [dw if dw else '' for dw in list(chain.from_iterable([
         [
-            date_str(warrant.court_date) if warrant.court_date else '',
+            date_str(warrant._court_date) if warrant._court_date else '',
             warrant.docket_id,
             warrant.defendants[0].name if len(
                 warrant.defendants) > 0 else '',
@@ -243,7 +245,8 @@ def _to_court_watch_row(warrant):
         [
             warrant.plaintiff.name if warrant.plaintiff else '',
             warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
-            warrant.courtroom.name if warrant.courtroom else '',
+            warrant.judgements[0].courtroom.name if len(
+                warrant).judgements > 0 and warrant.judgements[0].courtroom else '',
             warrant.notes
         ]
     ]))]
@@ -257,15 +260,14 @@ def _try_court_watch_row(warrant):
         return bad_export_row(warrant)
 
 
-@log_on_exception
 def to_court_watch_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    warrants = DetainerWarrant.query.filter(
+    warrants = DetainerWarrant.query.join(Judgement).filter(
         DetainerWarrant.docket_id.ilike('%\G\T%'),
-        DetainerWarrant.court_date != None,
-        DetainerWarrant.court_date >= date.today()
-    ).order_by(DetainerWarrant.plaintiff_id.desc(), DetainerWarrant.court_date.desc())
+        Judgement._court_date != None,
+        Judgement._court_date >= date.today()
+    ).order_by(DetainerWarrant.plaintiff_id.desc(), Judgement._court_date.desc())
 
     total = warrants.count()
 
@@ -353,8 +355,8 @@ def to_courtroom_entry_workbook(date, service_account_key=None):
         return
 
     judgements = Judgement.query.filter(
-        Judgement.court_date != None,
-        Judgement.court_date == date,
+        Judgement._court_date != None,
+        Judgement._court_date == date,
     ).order_by(Judgement.court_order_number)
 
     _to_courtroom_entry_sheet(wb, date, courtroom_1a, judgements)
