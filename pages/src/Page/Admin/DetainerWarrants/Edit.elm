@@ -44,6 +44,7 @@ import SearchBox
 import Session exposing (Session)
 import Set
 import Shared
+import SplitButton
 import Sprite
 import Task
 import Time.Utils
@@ -91,6 +92,7 @@ type alias FormOptions =
     , problems : List Problem
     , originalWarrant : Maybe DetainerWarrant
     , renderConfig : RenderConfig
+    , navigationOnSuccess : NavigationOnSuccess
     }
 
 
@@ -114,6 +116,7 @@ type alias Form =
     , defendants : List DefendantForm
     , judgements : List JudgementForm
     , notes : String
+    , saveButtonState : SplitButton.State NavigationOnSuccess
     }
 
 
@@ -161,6 +164,13 @@ type SaveState
     | Done
 
 
+type NavigationOnSuccess
+    = Remain
+    | PreviousWarrant
+    | NextWarrant
+    | NewWarrant
+
+
 type alias Model =
     { warrant : Maybe DetainerWarrant
     , docketId : Maybe String
@@ -172,7 +182,7 @@ type alias Model =
     , judges : List Judge
     , courtrooms : List Courtroom
     , saveState : SaveState
-    , newFormOnSuccess : Bool
+    , navigationOnSuccess : NavigationOnSuccess
     }
 
 
@@ -240,6 +250,7 @@ editForm today warrant =
     , defendants = List.map (initDefendantForm << Just) warrant.defendants
     , judgements = List.indexedMap (\index j -> judgementFormInit today index (Just j)) warrant.judgements
     , notes = Maybe.withDefault "" warrant.notes
+    , saveButtonState = SplitButton.init "save-button"
     }
 
 
@@ -366,6 +377,7 @@ initCreate today =
     , defendants = [ initDefendantForm Nothing ]
     , judgements = []
     , notes = ""
+    , saveButtonState = SplitButton.init "save-button"
     }
 
 
@@ -416,7 +428,7 @@ init pageUrl sharedModel static =
       , judges = []
       , courtrooms = []
       , saveState = Done
-      , newFormOnSuccess = False
+      , navigationOnSuccess = Remain
       }
     , Cmd.batch
         [ case docketId of
@@ -485,8 +497,9 @@ type Msg
     | ChangedJudgementJudgeSearchBox Int (SearchBox.ChangeEvent Judge)
     | ChangedJudgementNotes Int String
     | ChangedNotes String
-    | SubmitForm
-    | SubmitAndAddAnother
+    | SplitButtonMsg (SplitButton.Msg NavigationOnSuccess)
+    | PickedSaveOption (Maybe NavigationOnSuccess)
+    | Save
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
     | UpsertedDefendant Int (Result Http.Error (Rest.Item Defendant))
@@ -1435,11 +1448,22 @@ update pageUrl navKey sharedModel static msg model =
                 (\form -> { form | notes = notes })
                 model
 
-        SubmitForm ->
-            submitForm today domain session model
+        SplitButtonMsg subMsg ->
+            updateFormNarrow
+                (\form ->
+                    let
+                        ( newState, newCmd ) =
+                            SplitButton.update (saveConfig cfg) subMsg form.saveButtonState
+                    in
+                    ( { form | saveButtonState = newState }, newCmd )
+                )
+                model
 
-        SubmitAndAddAnother ->
-            submitFormAndAddAnother today domain session model
+        PickedSaveOption option ->
+            ( { model | navigationOnSuccess = Maybe.withDefault model.navigationOnSuccess option }, Cmd.none )
+
+        Save ->
+            submitForm today domain session model
 
         UpsertedPlaintiff (Ok plaintiffItem) ->
             nextStepSave
@@ -1618,11 +1642,6 @@ updateJudgement selected fn form =
     }
 
 
-submitFormAndAddAnother : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
-submitFormAndAddAnother today domain session model =
-    Tuple.mapFirst (\m -> { m | newFormOnSuccess = True }) (submitForm today domain session model)
-
-
 submitForm : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
 submitForm today domain session model =
     let
@@ -1636,7 +1655,7 @@ submitForm today domain session model =
                     toDetainerWarrant today validForm
             in
             ( { model
-                | newFormOnSuccess = False
+                | navigationOnSuccess = Remain
                 , problems = []
                 , saveState =
                     SavingRelatedModels
@@ -1657,7 +1676,7 @@ submitForm today domain session model =
             )
 
         Err problems ->
-            ( { model | newFormOnSuccess = False, problems = problems }
+            ( { model | navigationOnSuccess = Remain, problems = problems }
             , Cmd.none
             )
 
@@ -1725,13 +1744,22 @@ nextStepSave today domain session model =
 
                 Done ->
                     ( model
-                    , if model.newFormOnSuccess then
-                        Maybe.withDefault Cmd.none <|
-                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
+                    , case model.navigationOnSuccess of
+                        Remain ->
+                            Maybe.withDefault Cmd.none <|
+                                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ apiForms.detainerWarrant.docketId ] [])) (Session.navKey session)
 
-                      else
-                        Maybe.withDefault Cmd.none <|
-                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ apiForms.detainerWarrant.docketId ] [])) (Session.navKey session)
+                        NewWarrant ->
+                            Maybe.withDefault Cmd.none <|
+                                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
+
+                        PreviousWarrant ->
+                            Maybe.withDefault Cmd.none <|
+                                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
+
+                        NextWarrant ->
+                            Maybe.withDefault Cmd.none <|
+                                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
                     )
 
         Err _ ->
@@ -2798,20 +2826,6 @@ tile groups =
         groups
 
 
-submitAndAddAnother : RenderConfig -> Element Msg
-submitAndAddAnother cfg =
-    Button.fromLabeledOnRightIcon (Icon.add "Save and add another")
-        |> Button.cmd SubmitAndAddAnother Button.clear
-        |> Button.renderElement cfg
-
-
-submitButton : RenderConfig -> Element Msg
-submitButton cfg =
-    Button.fromLabeledOnRightIcon (Icon.check "Save")
-        |> Button.cmd SubmitForm Button.primary
-        |> Button.renderElement cfg
-
-
 viewForm : FormOptions -> FormStatus -> Element Msg
 viewForm options formStatus =
     case formStatus of
@@ -2856,11 +2870,40 @@ viewForm options formStatus =
                 , tile
                     [ viewNotes options form
                     ]
-                , row [ Element.alignRight, spacing 10 ]
-                    [ submitAndAddAnother options.renderConfig
-                    , submitButton options.renderConfig
-                    ]
+                , row [ Element.alignRight, spacing 10, paddingEach { top = 0, bottom = 100, left = 0, right = 0 } ]
+                    [ SplitButton.view (saveConfig options.renderConfig) options.navigationOnSuccess saveOptions form.saveButtonState ]
                 ]
+
+
+saveConfig : RenderConfig -> SplitButton.Config NavigationOnSuccess Msg
+saveConfig cfg =
+    { itemToText = navigationOptionToText
+    , dropdownMsg = SplitButtonMsg
+    , onSelect = PickedSaveOption
+    , onEnter = Save
+    , renderConfig = cfg
+    }
+
+
+saveOptions : List NavigationOnSuccess
+saveOptions =
+    [ Remain, NewWarrant, PreviousWarrant, NextWarrant ]
+
+
+navigationOptionToText : NavigationOnSuccess -> String
+navigationOptionToText navigationOnSuccess =
+    case navigationOnSuccess of
+        Remain ->
+            "Save"
+
+        NewWarrant ->
+            "Save and add another"
+
+        PreviousWarrant ->
+            "Save and go to previous"
+
+        NextWarrant ->
+            "Save and go to next"
 
 
 formOptions : RenderConfig -> Date -> Model -> FormOptions
@@ -2875,6 +2918,7 @@ formOptions cfg today model =
     , problems = model.problems
     , originalWarrant = model.warrant
     , renderConfig = cfg
+    , navigationOnSuccess = model.navigationOnSuccess
     }
 
 
