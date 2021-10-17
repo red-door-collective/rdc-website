@@ -280,10 +280,11 @@ class DetainerWarrantResourceBase(GenericModelView):
     authorization = AllowDefendant()
 
     pagination = CursorPagination()
-    sorting = Sorting('created_at', default='-created_at')
+    sorting = Sorting('order_number', default='-order_number')
     filtering = Filtering(
         docket_id=filter_docket_id,
         defendant_name=filter_defendant_name,
+        order_number=operator.eq,
         file_date=ColumnFilter(operator.eq),
         court_date=filter_court_date,
         plaintiff=filter_plaintiff_name,

@@ -37,6 +37,8 @@ class PosixComparator(Comparator):
             return op(self.__clause_element__())
         elif isinstance(other, numbers.Number):
             return op(self.__clause_element__(), from_millis(other))
+        elif isinstance(other, str) and other.isnumeric():
+            return op(self.__clause_element__(), from_millis(int(other)))
         else:
             return op(self.__clause_element__(), other)
 

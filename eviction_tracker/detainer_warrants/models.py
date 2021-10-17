@@ -423,7 +423,8 @@ class DetainerWarrant(db.Model, Timestamped):
     }
 
     __tablename__ = 'detainer_warrants'
-    docket_id = Column(db.String(255), primary_key=True)
+    _docket_id = Column(db.String(255), primary_key=True, name="docket_id")
+    order_number = Column(db.BigInteger, nullable=False)
     _file_date = Column(db.Date, name="file_date")
     status_id = Column(db.Integer)
     plaintiff_id = Column(db.Integer, db.ForeignKey(
@@ -459,6 +460,16 @@ class DetainerWarrant(db.Model, Timestamped):
 
     def __repr__(self):
         return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self._file_date)
+
+    @hybrid_property
+    def docket_id(self):
+        return self._docket_id
+
+    @docket_id.setter
+    def docket_id(self, id):
+        self._docket_id = id
+        self.order_number = int(
+            self.docket_id.replace('GT', '').replace('GC', ''))
 
     @hybrid_property
     def file_date(self):
