@@ -1,6 +1,7 @@
-module Date.Extra exposing (fromPosix, fromUSCalString)
+module Date.Extra exposing (fromPosix, fromUSCalString, toPosix)
 
 import Date exposing (Date)
+import Iso8601
 import Parser exposing ((|.), (|=), Parser, andThen, chompWhile, getChompedString, int, problem, succeed, symbol)
 import Time exposing (Posix)
 
@@ -8,6 +9,11 @@ import Time exposing (Posix)
 fromPosix : Posix -> Date
 fromPosix posix =
     Date.fromPosix Time.utc posix
+
+
+toPosix : Date -> Maybe Posix
+toPosix =
+    Result.toMaybe << Iso8601.toTime << Date.toIsoString
 
 
 type alias DateComponents =

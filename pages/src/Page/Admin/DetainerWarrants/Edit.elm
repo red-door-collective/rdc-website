@@ -37,7 +37,7 @@ import PhoneNumber.Countries exposing (countryUS)
 import Plaintiff exposing (Plaintiff, PlaintiffForm)
 import QueryParams
 import Rest exposing (Cred)
-import Rest.Endpoint as Endpoint
+import Rest.Endpoint as Endpoint exposing (toQueryArgs)
 import Rollbar exposing (Rollbar)
 import Runtime
 import SearchBox
@@ -47,6 +47,7 @@ import Shared
 import SplitButton
 import Sprite
 import Task
+import Time
 import Time.Utils
 import UI.Button as Button
 import UI.Checkbox as Checkbox
@@ -173,6 +174,8 @@ type NavigationOnSuccess
 
 type alias Model =
     { warrant : Maybe DetainerWarrant
+    , cursor : Maybe String
+    , nextWarrant : Maybe DetainerWarrant
     , docketId : Maybe String
     , showHelp : Bool
     , problems : List Problem
@@ -413,6 +416,8 @@ init pageUrl sharedModel static =
                     Nothing
     in
     ( { warrant = Nothing
+      , cursor = Nothing
+      , nextWarrant = Nothing
       , docketId = docketId
       , showHelp = False
       , problems = []
@@ -449,6 +454,7 @@ getWarrant domain id maybeCred =
 
 type Msg
     = GotDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
+    | GotDetainerWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
     | ToggleHelp
     | ChangedDocketId String
     | ChangedFileDatePicker ChangeEvent
@@ -607,7 +613,25 @@ update pageUrl navKey sharedModel static msg model =
         GotDetainerWarrant result ->
             case result of
                 Ok warrantPage ->
-                    ( { model | warrant = Just warrantPage.data, form = Ready (editForm today warrantPage.data) }, Cmd.none )
+                    ( { model
+                        | warrant = Just warrantPage.data
+                        , cursor = Just warrantPage.meta.cursor
+                        , form = Ready (editForm today warrantPage.data)
+                      }
+                    , Cmd.none
+                    )
+
+                Err httpError ->
+                    ( model, logHttpError httpError )
+
+        GotDetainerWarrants result ->
+            case result of
+                Ok warrantPage ->
+                    ( { model
+                        | nextWarrant = List.head warrantPage.data
+                      }
+                    , Cmd.none
+                    )
 
                 Err httpError ->
                     ( model, logHttpError httpError )
@@ -1588,6 +1612,7 @@ update pageUrl navKey sharedModel static msg model =
                 session
                 { model
                     | warrant = Just detainerWarrantItem.data
+                    , cursor = Just detainerWarrantItem.meta.cursor
                 }
 
         CreatedDetainerWarrant (Err httpError) ->
@@ -1642,6 +1667,29 @@ updateJudgement selected fn form =
     }
 
 
+fetchAdjacentDetainerWarrant : String -> Maybe Cred -> Model -> Cmd Msg
+fetchAdjacentDetainerWarrant domain maybeCred model =
+    let
+        cursor =
+            ( "cursor", Maybe.withDefault "" model.cursor )
+
+        limit =
+            ( "limit", "1" )
+    in
+    case model.navigationOnSuccess of
+        Remain ->
+            Cmd.none
+
+        NewWarrant ->
+            Cmd.none
+
+        NextWarrant ->
+            Rest.get (Endpoint.detainerWarrantsSearch domain [ limit, cursor ]) maybeCred GotDetainerWarrants (Rest.collectionDecoder DetainerWarrant.decoder)
+
+        PreviousWarrant ->
+            Rest.get (Endpoint.detainerWarrantsSearch domain [ limit, cursor, ( "sort", "order_number" ) ]) maybeCred GotDetainerWarrants (Rest.collectionDecoder DetainerWarrant.decoder)
+
+
 submitForm : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
 submitForm today domain session model =
     let
@@ -1655,8 +1703,7 @@ submitForm today domain session model =
                     toDetainerWarrant today validForm
             in
             ( { model
-                | navigationOnSuccess = Remain
-                , problems = []
+                | problems = []
                 , saveState =
                     SavingRelatedModels
                         { attorney = apiForms.attorney == Nothing
@@ -1671,12 +1718,13 @@ submitForm today domain session model =
                         |> Maybe.withDefault []
                     , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff domain maybeCred) apiForms.plaintiff
                     , List.indexedMap (upsertDefendant domain maybeCred) apiForms.defendants
+                    , List.singleton <| fetchAdjacentDetainerWarrant domain maybeCred model
                     ]
                 )
             )
 
         Err problems ->
-            ( { model | navigationOnSuccess = Remain, problems = problems }
+            ( { model | problems = problems }
             , Cmd.none
             )
 
@@ -1743,23 +1791,35 @@ nextStepSave today domain session model =
                         ( model, Cmd.none )
 
                 Done ->
+                    let
+                        currentPath =
+                            [ "admin", "detainer-warrants", "edit" ]
+                    in
                     ( model
-                    , case model.navigationOnSuccess of
-                        Remain ->
-                            Maybe.withDefault Cmd.none <|
-                                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ apiForms.detainerWarrant.docketId ] [])) (Session.navKey session)
+                    , Cmd.batch
+                        (case model.navigationOnSuccess of
+                            Remain ->
+                                [ Maybe.withDefault Cmd.none <|
+                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", apiForms.detainerWarrant.docketId ) ]))) (Session.navKey session)
+                                ]
 
-                        NewWarrant ->
-                            Maybe.withDefault Cmd.none <|
-                                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
+                            NewWarrant ->
+                                [ Maybe.withDefault Cmd.none <|
+                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath [])) (Session.navKey session)
+                                ]
 
-                        PreviousWarrant ->
-                            Maybe.withDefault Cmd.none <|
-                                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
+                            PreviousWarrant ->
+                                [ Maybe.withDefault Cmd.none <|
+                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", Maybe.withDefault "" <| Maybe.map .docketId model.nextWarrant ) ]))) (Session.navKey session)
+                                , Maybe.withDefault Cmd.none <| Maybe.map (\warrant -> getWarrant domain warrant.docketId maybeCred) model.nextWarrant
+                                ]
 
-                        NextWarrant ->
-                            Maybe.withDefault Cmd.none <|
-                                Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
+                            NextWarrant ->
+                                [ Maybe.withDefault Cmd.none <|
+                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", Maybe.withDefault "" <| Maybe.map .docketId model.nextWarrant ) ]))) (Session.navKey session)
+                                , Maybe.withDefault Cmd.none <| Maybe.map (\warrant -> getWarrant domain warrant.docketId maybeCred) model.nextWarrant
+                                ]
+                        )
                     )
 
         Err _ ->
@@ -3292,7 +3352,7 @@ toDetainerWarrant : Date -> TrimmedForm -> ApiForms
 toDetainerWarrant today (Trimmed form) =
     { detainerWarrant =
         { docketId = form.docketId
-        , fileDate = Maybe.map Date.toIsoString form.fileDate.date
+        , fileDate = Maybe.andThen Date.Extra.toPosix form.fileDate.date
         , status = form.status
         , plaintiff = Maybe.map (related << .id) form.plaintiff.person
         , plaintiffAttorney = Maybe.map (related << .id) form.plaintiffAttorney.person
@@ -3458,7 +3518,7 @@ encodeJudgement warrant judgement =
          , ( "detainer_warrant", Encode.object [ ( "docket_id", Encode.string warrant.docketId ) ] )
          ]
             ++ conditional "id" Encode.int judgement.id
-            ++ nullable "court_date" Encode.string judgement.courtDate
+            ++ nullable "court_date" Time.Utils.posixEncoder judgement.courtDate
             ++ nullable "in_favor_of" Encode.string judgement.inFavorOf
             ++ nullable "notes" Encode.string judgement.notes
             ++ nullable "entered_by" Encode.string judgement.enteredBy
@@ -3497,7 +3557,7 @@ updateDetainerWarrant domain maybeCred form =
                  , ( "defendants", Encode.list encodeRelated form.defendants )
                  , ( "amount_claimed_category", Encode.string (DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory) )
                  ]
-                    ++ nullable "file_date" Encode.string form.fileDate
+                    ++ nullable "file_date" Time.Utils.posixEncoder form.fileDate
                     ++ nullable "status" Encode.string (Maybe.map DetainerWarrant.statusText form.status)
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
                     ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney

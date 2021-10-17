@@ -484,7 +484,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @file_date.setter
     def file_date(self, posix):
-        self._file_date = from_millis(posix)
+        self._file_date = from_millis(posix) if posix else None
 
     @hybrid_property
     def court_date(self):
@@ -499,7 +499,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @court_date.setter
     def court_date(self, posix):
-        self._court_date = from_millis(posix)
+        self._court_date = from_millis(posix) if posix else None
 
     @property
     def status(self):

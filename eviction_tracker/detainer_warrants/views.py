@@ -62,7 +62,7 @@ class AttorneyResourceBase(GenericModelView):
     authentication = HeaderUserAuthentication()
     authorization = Protected()
 
-    pagination = CursorPagination()
+    pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
@@ -92,7 +92,7 @@ class DefendantResourceBase(GenericModelView):
     authentication = HeaderUserAuthentication()
     authorization = Protected()
 
-    pagination = CursorPagination()
+    pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('id', default='-id')
     filtering = Filtering(
         first_name=filter_first_name,
@@ -124,7 +124,7 @@ class CourtroomResourceBase(GenericModelView):
     authentication = HeaderUserAuthentication()
     authorization = Protected()
 
-    pagination = CursorPagination()
+    pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
@@ -154,7 +154,7 @@ class PlaintiffResourceBase(GenericModelView):
     authentication = HeaderUserAuthentication()
     authorization = Protected()
 
-    pagination = CursorPagination()
+    pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
@@ -184,7 +184,7 @@ class JudgeResourceBase(GenericModelView):
     authentication = HeaderUserAuthentication()
     authorization = Protected()
 
-    pagination = CursorPagination()
+    pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
@@ -214,7 +214,7 @@ class JudgementResourceBase(GenericModelView):
     authentication = HeaderUserAuthentication()
     authorization = Protected()
 
-    pagination = CursorPagination()
+    pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('court_date', default='-court_date')
 
 
@@ -279,7 +279,7 @@ class DetainerWarrantResourceBase(GenericModelView):
     authentication = HeaderUserAuthentication()
     authorization = AllowDefendant()
 
-    pagination = CursorPagination()
+    pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('order_number', default='-order_number')
     filtering = Filtering(
         docket_id=filter_docket_id,
@@ -318,7 +318,7 @@ class PhoneNumberVerificationResourceBase(GenericModelView):
     authentication = HeaderUserAuthentication()
     authorization = Protected()
 
-    pagination = CursorPagination()
+    pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('phone_number', default='phone_number')
 
 

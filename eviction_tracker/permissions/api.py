@@ -9,6 +9,7 @@ from flask_resty import (
     GenericModelView,
     CursorPaginationBase,
     RelayCursorPagination,
+    LimitPagination,
     Filtering,
     Sorting,
     meta,
@@ -73,9 +74,9 @@ class OnlyMe(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
             raise ApiError(403, {"code": "invalid_user"})
 
 
-class CursorPagination(RelayCursorPagination):
-    def get_limit(self):
-        return 100
+class CursorPagination(RelayCursorPagination, LimitPagination):
+    # def get_limit(self):
+    #     return 100
 
     def get_page(self, query, view):
         items = super().get_page(query, view)

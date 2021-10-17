@@ -3,6 +3,7 @@ module Judgement exposing (ConditionOption(..), Conditions(..), DismissalBasis(.
 import Attorney exposing (Attorney, AttorneyForm)
 import Courtroom exposing (Courtroom)
 import Date exposing (Date)
+import Date.Extra
 import Form.State exposing (DatePickerState)
 import Json.Decode as Decode exposing (Decoder, bool, float, int, nullable, string)
 import Json.Decode.Pipeline exposing (custom, optional, required)
@@ -53,7 +54,7 @@ type alias JudgementEdit =
     { id : Maybe Int
     , notes : Maybe String
     , enteredBy : Maybe String
-    , courtDate : Maybe String
+    , courtDate : Maybe Posix
     , inFavorOf : Maybe String
     , plaintiff : Maybe Plaintiff
     , plaintiffAttorney : Maybe Attorney
@@ -182,8 +183,7 @@ editFromForm today form =
         else
             Just form.notes
     , courtDate =
-        form.courtDate.date
-            |> Maybe.map Date.toIsoString
+        Maybe.andThen Date.Extra.toPosix form.courtDate.date
     , enteredBy = Just <| entranceText form.enteredBy
     , inFavorOf =
         Maybe.map
