@@ -103,6 +103,7 @@ def insert_warrant(defaults, docket_id, listing):
                   for defendant in listing['defendants']]
 
     dw_values = dict(docket_id=docket_id,
+                     order_number=DetainerWarrant.calc_order_number(docket_id),
                      plaintiff_id=plaintiff.id if plaintiff else None,
                      plaintiff_attorney_id=attorney.id if attorney else None,
                      last_edited_by_id=-1

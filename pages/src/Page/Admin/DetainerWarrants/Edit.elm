@@ -37,15 +37,17 @@ import PhoneNumber.Countries exposing (countryUS)
 import Plaintiff exposing (Plaintiff, PlaintiffForm)
 import QueryParams
 import Rest exposing (Cred)
-import Rest.Endpoint as Endpoint
+import Rest.Endpoint as Endpoint exposing (toQueryArgs)
 import Rollbar exposing (Rollbar)
 import Runtime
 import SearchBox
 import Session exposing (Session)
 import Set
 import Shared
+import SplitButton
 import Sprite
 import Task
+import Time
 import Time.Utils
 import UI.Button as Button
 import UI.Checkbox as Checkbox
@@ -57,6 +59,7 @@ import UI.RenderConfig exposing (RenderConfig)
 import UI.Size
 import UI.TextField as TextField
 import Url.Builder
+import User exposing (NavigationOnSuccess(..), User)
 import View exposing (View)
 
 
@@ -91,6 +94,7 @@ type alias FormOptions =
     , problems : List Problem
     , originalWarrant : Maybe DetainerWarrant
     , renderConfig : RenderConfig
+    , navigationOnSuccess : NavigationOnSuccess
     }
 
 
@@ -114,6 +118,7 @@ type alias Form =
     , defendants : List DefendantForm
     , judgements : List JudgementForm
     , notes : String
+    , saveButtonState : SplitButton.State NavigationOnSuccess
     }
 
 
@@ -163,6 +168,9 @@ type SaveState
 
 type alias Model =
     { warrant : Maybe DetainerWarrant
+    , cursor : Maybe String
+    , profile : Maybe User
+    , nextWarrant : Maybe DetainerWarrant
     , docketId : Maybe String
     , showHelp : Bool
     , problems : List Problem
@@ -172,7 +180,7 @@ type alias Model =
     , judges : List Judge
     , courtrooms : List Courtroom
     , saveState : SaveState
-    , newFormOnSuccess : Bool
+    , navigationOnSuccess : NavigationOnSuccess
     }
 
 
@@ -240,6 +248,7 @@ editForm today warrant =
     , defendants = List.map (initDefendantForm << Just) warrant.defendants
     , judgements = List.indexedMap (\index j -> judgementFormInit today index (Just j)) warrant.judgements
     , notes = Maybe.withDefault "" warrant.notes
+    , saveButtonState = SplitButton.init "save-button"
     }
 
 
@@ -366,6 +375,7 @@ initCreate today =
     , defendants = [ initDefendantForm Nothing ]
     , judgements = []
     , notes = ""
+    , saveButtonState = SplitButton.init "save-button"
     }
 
 
@@ -401,6 +411,9 @@ init pageUrl sharedModel static =
                     Nothing
     in
     ( { warrant = Nothing
+      , cursor = Nothing
+      , profile = Nothing
+      , nextWarrant = Nothing
       , docketId = docketId
       , showHelp = False
       , problems = []
@@ -416,7 +429,7 @@ init pageUrl sharedModel static =
       , judges = []
       , courtrooms = []
       , saveState = Done
-      , newFormOnSuccess = False
+      , navigationOnSuccess = Remain
       }
     , Cmd.batch
         [ case docketId of
@@ -426,6 +439,7 @@ init pageUrl sharedModel static =
             _ ->
                 Cmd.none
         , Rest.get (Endpoint.courtrooms domain []) maybeCred GotCourtrooms (Rest.collectionDecoder Courtroom.decoder)
+        , Rest.get (Endpoint.currentUser domain) maybeCred GotProfile User.decoder
         ]
     )
 
@@ -437,6 +451,7 @@ getWarrant domain id maybeCred =
 
 type Msg
     = GotDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
+    | GotDetainerWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
     | ToggleHelp
     | ChangedDocketId String
     | ChangedFileDatePicker ChangeEvent
@@ -485,8 +500,10 @@ type Msg
     | ChangedJudgementJudgeSearchBox Int (SearchBox.ChangeEvent Judge)
     | ChangedJudgementNotes Int String
     | ChangedNotes String
-    | SubmitForm
-    | SubmitAndAddAnother
+    | SplitButtonMsg (SplitButton.Msg NavigationOnSuccess)
+    | PickedSaveOption (Maybe NavigationOnSuccess)
+    | GotProfile (Result Http.Error User)
+    | Save
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
     | UpsertedDefendant Int (Result Http.Error (Rest.Item Defendant))
@@ -594,7 +611,25 @@ update pageUrl navKey sharedModel static msg model =
         GotDetainerWarrant result ->
             case result of
                 Ok warrantPage ->
-                    ( { model | warrant = Just warrantPage.data, form = Ready (editForm today warrantPage.data) }, Cmd.none )
+                    ( { model
+                        | warrant = Just warrantPage.data
+                        , cursor = Just warrantPage.meta.cursor
+                        , form = Ready (editForm today warrantPage.data)
+                      }
+                    , Cmd.none
+                    )
+
+                Err httpError ->
+                    ( model, logHttpError httpError )
+
+        GotDetainerWarrants result ->
+            case result of
+                Ok warrantPage ->
+                    ( { model
+                        | nextWarrant = List.head warrantPage.data
+                      }
+                    , Cmd.none
+                    )
 
                 Err httpError ->
                     ( model, logHttpError httpError )
@@ -1435,11 +1470,51 @@ update pageUrl navKey sharedModel static msg model =
                 (\form -> { form | notes = notes })
                 model
 
-        SubmitForm ->
-            submitForm today domain session model
+        SplitButtonMsg subMsg ->
+            updateFormNarrow
+                (\form ->
+                    let
+                        ( newState, newCmd ) =
+                            SplitButton.update (saveConfig cfg) subMsg form.saveButtonState
+                    in
+                    ( { form | saveButtonState = newState }, newCmd )
+                )
+                model
 
-        SubmitAndAddAnother ->
-            submitFormAndAddAnother today domain session model
+        PickedSaveOption option ->
+            ( { model | navigationOnSuccess = Maybe.withDefault model.navigationOnSuccess option }
+            , case ( model.profile, option ) of
+                ( Just user, Just nav ) ->
+                    let
+                        body =
+                            toBody
+                                (Encode.object
+                                    [ ( "id", Encode.int user.id )
+                                    , ( "preferred_navigation"
+                                      , Encode.string <| User.navigationToText nav
+                                      )
+                                    ]
+                                )
+                    in
+                    Rest.patch (Endpoint.user domain user.id) maybeCred body GotProfile User.decoder
+
+                ( _, _ ) ->
+                    Cmd.none
+            )
+
+        GotProfile (Ok user) ->
+            ( { model
+                | profile = Just user
+                , navigationOnSuccess = user.preferredNavigation
+              }
+            , Cmd.none
+            )
+
+        GotProfile (Err httpError) ->
+            ( model, Cmd.none )
+
+        Save ->
+            submitForm today domain session model
 
         UpsertedPlaintiff (Ok plaintiffItem) ->
             nextStepSave
@@ -1564,6 +1639,7 @@ update pageUrl navKey sharedModel static msg model =
                 session
                 { model
                     | warrant = Just detainerWarrantItem.data
+                    , cursor = Just detainerWarrantItem.meta.cursor
                 }
 
         CreatedDetainerWarrant (Err httpError) ->
@@ -1618,9 +1694,27 @@ updateJudgement selected fn form =
     }
 
 
-submitFormAndAddAnother : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
-submitFormAndAddAnother today domain session model =
-    Tuple.mapFirst (\m -> { m | newFormOnSuccess = True }) (submitForm today domain session model)
+fetchAdjacentDetainerWarrant : String -> Maybe Cred -> Model -> Cmd Msg
+fetchAdjacentDetainerWarrant domain maybeCred model =
+    let
+        cursor =
+            ( "cursor", Maybe.withDefault "" model.cursor )
+
+        limit =
+            ( "limit", "1" )
+    in
+    case model.navigationOnSuccess of
+        Remain ->
+            Cmd.none
+
+        NewWarrant ->
+            Cmd.none
+
+        NextWarrant ->
+            Rest.get (Endpoint.detainerWarrantsSearch domain [ limit, cursor ]) maybeCred GotDetainerWarrants (Rest.collectionDecoder DetainerWarrant.decoder)
+
+        PreviousWarrant ->
+            Rest.get (Endpoint.detainerWarrantsSearch domain [ limit, cursor, ( "sort", "order_number" ) ]) maybeCred GotDetainerWarrants (Rest.collectionDecoder DetainerWarrant.decoder)
 
 
 submitForm : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
@@ -1636,8 +1730,7 @@ submitForm today domain session model =
                     toDetainerWarrant today validForm
             in
             ( { model
-                | newFormOnSuccess = False
-                , problems = []
+                | problems = []
                 , saveState =
                     SavingRelatedModels
                         { attorney = apiForms.attorney == Nothing
@@ -1652,12 +1745,13 @@ submitForm today domain session model =
                         |> Maybe.withDefault []
                     , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff domain maybeCred) apiForms.plaintiff
                     , List.indexedMap (upsertDefendant domain maybeCred) apiForms.defendants
+                    , List.singleton <| fetchAdjacentDetainerWarrant domain maybeCred model
                     ]
                 )
             )
 
         Err problems ->
-            ( { model | newFormOnSuccess = False, problems = problems }
+            ( { model | problems = problems }
             , Cmd.none
             )
 
@@ -1724,14 +1818,37 @@ nextStepSave today domain session model =
                         ( model, Cmd.none )
 
                 Done ->
+                    let
+                        currentPath =
+                            [ "admin", "detainer-warrants", "edit" ]
+                    in
                     ( model
-                    , if model.newFormOnSuccess then
-                        Maybe.withDefault Cmd.none <|
-                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [] [])) (Session.navKey session)
+                    , Cmd.batch
+                        (Rest.get (Endpoint.currentUser domain) maybeCred GotProfile User.decoder
+                            :: (case model.navigationOnSuccess of
+                                    Remain ->
+                                        [ Maybe.withDefault Cmd.none <|
+                                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", apiForms.detainerWarrant.docketId ) ]))) (Session.navKey session)
+                                        ]
 
-                      else
-                        Maybe.withDefault Cmd.none <|
-                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ apiForms.detainerWarrant.docketId ] [])) (Session.navKey session)
+                                    NewWarrant ->
+                                        [ Maybe.withDefault Cmd.none <|
+                                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath [])) (Session.navKey session)
+                                        ]
+
+                                    PreviousWarrant ->
+                                        [ Maybe.withDefault Cmd.none <|
+                                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", Maybe.withDefault "" <| Maybe.map .docketId model.nextWarrant ) ]))) (Session.navKey session)
+                                        , Maybe.withDefault Cmd.none <| Maybe.map (\warrant -> getWarrant domain warrant.docketId maybeCred) model.nextWarrant
+                                        ]
+
+                                    NextWarrant ->
+                                        [ Maybe.withDefault Cmd.none <|
+                                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", Maybe.withDefault "" <| Maybe.map .docketId model.nextWarrant ) ]))) (Session.navKey session)
+                                        , Maybe.withDefault Cmd.none <| Maybe.map (\warrant -> getWarrant domain warrant.docketId maybeCred) model.nextWarrant
+                                        ]
+                               )
+                        )
                     )
 
         Err _ ->
@@ -2798,20 +2915,6 @@ tile groups =
         groups
 
 
-submitAndAddAnother : RenderConfig -> Element Msg
-submitAndAddAnother cfg =
-    Button.fromLabeledOnRightIcon (Icon.add "Save and add another")
-        |> Button.cmd SubmitAndAddAnother Button.clear
-        |> Button.renderElement cfg
-
-
-submitButton : RenderConfig -> Element Msg
-submitButton cfg =
-    Button.fromLabeledOnRightIcon (Icon.check "Save")
-        |> Button.cmd SubmitForm Button.primary
-        |> Button.renderElement cfg
-
-
 viewForm : FormOptions -> FormStatus -> Element Msg
 viewForm options formStatus =
     case formStatus of
@@ -2856,11 +2959,40 @@ viewForm options formStatus =
                 , tile
                     [ viewNotes options form
                     ]
-                , row [ Element.alignRight, spacing 10 ]
-                    [ submitAndAddAnother options.renderConfig
-                    , submitButton options.renderConfig
-                    ]
+                , row [ Element.alignRight, spacing 10, paddingEach { top = 0, bottom = 100, left = 0, right = 0 } ]
+                    [ SplitButton.view (saveConfig options.renderConfig) options.navigationOnSuccess saveOptions form.saveButtonState ]
                 ]
+
+
+saveConfig : RenderConfig -> SplitButton.Config NavigationOnSuccess Msg
+saveConfig cfg =
+    { itemToText = navigationOptionToText
+    , dropdownMsg = SplitButtonMsg
+    , onSelect = PickedSaveOption
+    , onEnter = Save
+    , renderConfig = cfg
+    }
+
+
+saveOptions : List NavigationOnSuccess
+saveOptions =
+    [ Remain, NewWarrant, PreviousWarrant, NextWarrant ]
+
+
+navigationOptionToText : NavigationOnSuccess -> String
+navigationOptionToText navigationOnSuccess =
+    case navigationOnSuccess of
+        Remain ->
+            "Save"
+
+        NewWarrant ->
+            "Save and add another"
+
+        PreviousWarrant ->
+            "Save and go to previous"
+
+        NextWarrant ->
+            "Save and go to next"
 
 
 formOptions : RenderConfig -> Date -> Model -> FormOptions
@@ -2875,6 +3007,7 @@ formOptions cfg today model =
     , problems = model.problems
     , originalWarrant = model.warrant
     , renderConfig = cfg
+    , navigationOnSuccess = model.navigationOnSuccess
     }
 
 
@@ -3248,7 +3381,7 @@ toDetainerWarrant : Date -> TrimmedForm -> ApiForms
 toDetainerWarrant today (Trimmed form) =
     { detainerWarrant =
         { docketId = form.docketId
-        , fileDate = Maybe.map Date.toIsoString form.fileDate.date
+        , fileDate = Maybe.andThen Date.Extra.toPosix form.fileDate.date
         , status = form.status
         , plaintiff = Maybe.map (related << .id) form.plaintiff.person
         , plaintiffAttorney = Maybe.map (related << .id) form.plaintiffAttorney.person
@@ -3414,7 +3547,7 @@ encodeJudgement warrant judgement =
          , ( "detainer_warrant", Encode.object [ ( "docket_id", Encode.string warrant.docketId ) ] )
          ]
             ++ conditional "id" Encode.int judgement.id
-            ++ nullable "court_date" Encode.string judgement.courtDate
+            ++ nullable "court_date" Time.Utils.posixEncoder judgement.courtDate
             ++ nullable "in_favor_of" Encode.string judgement.inFavorOf
             ++ nullable "notes" Encode.string judgement.notes
             ++ nullable "entered_by" Encode.string judgement.enteredBy
@@ -3453,7 +3586,7 @@ updateDetainerWarrant domain maybeCred form =
                  , ( "defendants", Encode.list encodeRelated form.defendants )
                  , ( "amount_claimed_category", Encode.string (DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory) )
                  ]
-                    ++ nullable "file_date" Encode.string form.fileDate
+                    ++ nullable "file_date" Time.Utils.posixEncoder form.fileDate
                     ++ nullable "status" Encode.string (Maybe.map DetainerWarrant.statusText form.status)
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
                     ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney

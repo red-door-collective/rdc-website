@@ -51,7 +51,7 @@ type alias Related =
 
 type alias DetainerWarrantEdit =
     { docketId : String
-    , fileDate : Maybe String
+    , fileDate : Maybe Posix
     , status : Maybe Status
     , plaintiff : Maybe Related
     , plaintiffAttorney : Maybe Related

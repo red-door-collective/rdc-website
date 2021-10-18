@@ -99,6 +99,7 @@ def _from_workbook_row(raw_warrant, defaults):
     notes = warrant[NOTES]
 
     dw_values = dict(docket_id=docket_id,
+                     order_number=DetainerWarrant.calc_order_number(docket_id),
                      file_date=file_date,
                      status_id=DetainerWarrant.statuses[status],
                      plaintiff_id=plaintiff.id if plaintiff else None,

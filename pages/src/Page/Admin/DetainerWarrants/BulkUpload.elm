@@ -15,6 +15,7 @@ import File.Select as Select
 import Head
 import Head.Seo as Seo
 import Http exposing (Error(..))
+import Iso8601
 import Json.Encode
 import Logo
 import Page exposing (StaticPayload)
@@ -30,6 +31,7 @@ import Set
 import Shared
 import Sprite
 import Task
+import Time.Utils
 import UI.Button as Button
 import UI.Effects
 import UI.Icon as Icon
@@ -502,7 +504,7 @@ insertWarrant domain maybeCred state stub =
                                 )
                            )
                          ]
-                            ++ nullable "file_date" Json.Encode.string (Maybe.map Date.toIsoString stub.fileDate)
+                            ++ nullable "file_date" Time.Utils.posixEncoder (Maybe.andThen Date.Extra.toPosix stub.fileDate)
                             ++ nullable "plaintiff"
                                 encodeRelated
                                 (Maybe.andThen

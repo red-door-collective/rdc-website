@@ -423,7 +423,8 @@ class DetainerWarrant(db.Model, Timestamped):
     }
 
     __tablename__ = 'detainer_warrants'
-    docket_id = Column(db.String(255), primary_key=True)
+    _docket_id = Column(db.String(255), primary_key=True, name="docket_id")
+    order_number = Column(db.BigInteger, nullable=False)
     _file_date = Column(db.Date, name="file_date")
     status_id = Column(db.Integer)
     plaintiff_id = Column(db.Integer, db.ForeignKey(
@@ -461,6 +462,18 @@ class DetainerWarrant(db.Model, Timestamped):
         return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self._file_date)
 
     @hybrid_property
+    def docket_id(self):
+        return self._docket_id
+
+    @docket_id.setter
+    def docket_id(self, id):
+        self._docket_id = id
+        self.order_number = DetainerWarrant.calc_order_number(id)
+
+    def calc_order_number(docket_id):
+        return int(docket_id.replace('GT', '').replace('GC', ''))
+
+    @hybrid_property
     def file_date(self):
         if self._file_date:
             return in_millis(datetime.combine(self._file_date, datetime.min.time()).timestamp())
@@ -473,7 +486,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @file_date.setter
     def file_date(self, posix):
-        self._file_date = from_millis(posix)
+        self._file_date = from_millis(posix) if posix else None
 
     @hybrid_property
     def court_date(self):
@@ -488,7 +501,7 @@ class DetainerWarrant(db.Model, Timestamped):
 
     @court_date.setter
     def court_date(self, posix):
-        self._court_date = from_millis(posix)
+        self._court_date = from_millis(posix) if posix else None
 
     @property
     def status(self):

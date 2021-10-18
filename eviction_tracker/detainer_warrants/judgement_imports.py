@@ -54,6 +54,8 @@ def _from_workbook(defaults, court_date, raw_judgement):
 
     warrant, _ = get_or_create(db.session, DetainerWarrant,
                                docket_id=docket_id,
+                               order_number=DetainerWarrant.calc_order_number(
+                                   docket_id),
                                defaults={'last_edited_by_id': -1})
 
     plaintiff_attorney = None
