@@ -45,7 +45,8 @@ class User(db.Model, UserMixin):
     active = Column(db.Boolean())
     fs_uniquifier = Column(db.String(255), unique=True, nullable=False)
     confirmed_at = Column(db.DateTime())
-    preferred_navigation_id = Column(db.Integer, nullable=False)
+    preferred_navigation_id = Column(
+        db.Integer, nullable=False, server_default='0')
 
     roles = relationship('Role',
                          secondary=roles_users,
