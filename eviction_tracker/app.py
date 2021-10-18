@@ -412,7 +412,7 @@ def register_extensions(app):
             'last_detainer_warrant_update': last_warrant.updated_at if last_warrant else None
         })
 
-    @app.route('/api/v1/current_user')
+    @app.route('/api/v1/current-user')
     @auth_token_required
     def me():
         return admin.serializers.user_schema.dump(current_user)

@@ -24,6 +24,14 @@ class Role(db.Model, RoleMixin):
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
+
+    navigation_options = {
+        'REMAIN': 0,
+        'NEW_WARRANT': 1,
+        'PREVIOUS_WARRANT': 2,
+        'NEXT_WARRANT': 3
+    }
+
     id = Column(db.Integer, primary_key=True)
     email = Column(db.String(255), unique=True)
     first_name = Column(db.String(255), nullable=False)
@@ -37,6 +45,8 @@ class User(db.Model, UserMixin):
     active = Column(db.Boolean())
     fs_uniquifier = Column(db.String(255), unique=True, nullable=False)
     confirmed_at = Column(db.DateTime())
+    preferred_navigation_id = Column(db.Integer, nullable=False)
+
     roles = relationship('Role',
                          secondary=roles_users,
                          back_populates='users'
@@ -53,6 +63,15 @@ class User(db.Model, UserMixin):
     @property
     def name(self):
         return self.first_name + ' ' + self.last_name
+
+    @property
+    def preferred_navigation(self):
+        navigation_by_id = {v: k for k, v in User.navigation_options.items()}
+        return navigation_by_id[self.preferred_navigation_id] if self.preferred_navigation_id is not None else None
+
+    @preferred_navigation.setter
+    def preferred_navigation(self, option):
+        self.preferred_navigation_id = option and User.navigation_options[option]
 
     def __repr__(self):
         return f"<User(name='{self.name}', email='{self.email}')>"

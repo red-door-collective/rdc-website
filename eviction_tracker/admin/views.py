@@ -46,6 +46,9 @@ class UserResource(UserResourceBase):
     def get(self, id):
         return self.retrieve(id)
 
+    def patch(self, id):
+        return self.update(int(id), partial=True)
+
 
 class RoleResourceBase(GenericModelView):
     model = Role

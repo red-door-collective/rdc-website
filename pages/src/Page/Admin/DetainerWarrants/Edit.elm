@@ -59,6 +59,7 @@ import UI.RenderConfig exposing (RenderConfig)
 import UI.Size
 import UI.TextField as TextField
 import Url.Builder
+import User exposing (NavigationOnSuccess(..), User)
 import View exposing (View)
 
 
@@ -165,16 +166,10 @@ type SaveState
     | Done
 
 
-type NavigationOnSuccess
-    = Remain
-    | PreviousWarrant
-    | NextWarrant
-    | NewWarrant
-
-
 type alias Model =
     { warrant : Maybe DetainerWarrant
     , cursor : Maybe String
+    , profile : Maybe User
     , nextWarrant : Maybe DetainerWarrant
     , docketId : Maybe String
     , showHelp : Bool
@@ -417,6 +412,7 @@ init pageUrl sharedModel static =
     in
     ( { warrant = Nothing
       , cursor = Nothing
+      , profile = Nothing
       , nextWarrant = Nothing
       , docketId = docketId
       , showHelp = False
@@ -443,6 +439,7 @@ init pageUrl sharedModel static =
             _ ->
                 Cmd.none
         , Rest.get (Endpoint.courtrooms domain []) maybeCred GotCourtrooms (Rest.collectionDecoder Courtroom.decoder)
+        , Rest.get (Endpoint.currentUser domain) maybeCred GotProfile User.decoder
         ]
     )
 
@@ -505,6 +502,7 @@ type Msg
     | ChangedNotes String
     | SplitButtonMsg (SplitButton.Msg NavigationOnSuccess)
     | PickedSaveOption (Maybe NavigationOnSuccess)
+    | GotProfile (Result Http.Error User)
     | Save
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
@@ -1484,7 +1482,36 @@ update pageUrl navKey sharedModel static msg model =
                 model
 
         PickedSaveOption option ->
-            ( { model | navigationOnSuccess = Maybe.withDefault model.navigationOnSuccess option }, Cmd.none )
+            ( { model | navigationOnSuccess = Maybe.withDefault model.navigationOnSuccess option }
+            , case ( model.profile, option ) of
+                ( Just user, Just nav ) ->
+                    let
+                        body =
+                            toBody
+                                (Encode.object
+                                    [ ( "id", Encode.int user.id )
+                                    , ( "preferred_navigation"
+                                      , Encode.string <| User.navigationToText nav
+                                      )
+                                    ]
+                                )
+                    in
+                    Rest.patch (Endpoint.user domain user.id) maybeCred body GotProfile User.decoder
+
+                ( _, _ ) ->
+                    Cmd.none
+            )
+
+        GotProfile (Ok user) ->
+            ( { model
+                | profile = Just user
+                , navigationOnSuccess = user.preferredNavigation
+              }
+            , Cmd.none
+            )
+
+        GotProfile (Err httpError) ->
+            ( model, Cmd.none )
 
         Save ->
             submitForm today domain session model
@@ -1797,28 +1824,30 @@ nextStepSave today domain session model =
                     in
                     ( model
                     , Cmd.batch
-                        (case model.navigationOnSuccess of
-                            Remain ->
-                                [ Maybe.withDefault Cmd.none <|
-                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", apiForms.detainerWarrant.docketId ) ]))) (Session.navKey session)
-                                ]
+                        (Rest.get (Endpoint.currentUser domain) maybeCred GotProfile User.decoder
+                            :: (case model.navigationOnSuccess of
+                                    Remain ->
+                                        [ Maybe.withDefault Cmd.none <|
+                                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", apiForms.detainerWarrant.docketId ) ]))) (Session.navKey session)
+                                        ]
 
-                            NewWarrant ->
-                                [ Maybe.withDefault Cmd.none <|
-                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath [])) (Session.navKey session)
-                                ]
+                                    NewWarrant ->
+                                        [ Maybe.withDefault Cmd.none <|
+                                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath [])) (Session.navKey session)
+                                        ]
 
-                            PreviousWarrant ->
-                                [ Maybe.withDefault Cmd.none <|
-                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", Maybe.withDefault "" <| Maybe.map .docketId model.nextWarrant ) ]))) (Session.navKey session)
-                                , Maybe.withDefault Cmd.none <| Maybe.map (\warrant -> getWarrant domain warrant.docketId maybeCred) model.nextWarrant
-                                ]
+                                    PreviousWarrant ->
+                                        [ Maybe.withDefault Cmd.none <|
+                                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", Maybe.withDefault "" <| Maybe.map .docketId model.nextWarrant ) ]))) (Session.navKey session)
+                                        , Maybe.withDefault Cmd.none <| Maybe.map (\warrant -> getWarrant domain warrant.docketId maybeCred) model.nextWarrant
+                                        ]
 
-                            NextWarrant ->
-                                [ Maybe.withDefault Cmd.none <|
-                                    Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", Maybe.withDefault "" <| Maybe.map .docketId model.nextWarrant ) ]))) (Session.navKey session)
-                                , Maybe.withDefault Cmd.none <| Maybe.map (\warrant -> getWarrant domain warrant.docketId maybeCred) model.nextWarrant
-                                ]
+                                    NextWarrant ->
+                                        [ Maybe.withDefault Cmd.none <|
+                                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.absolute currentPath (toQueryArgs [ ( "docket-id", Maybe.withDefault "" <| Maybe.map .docketId model.nextWarrant ) ]))) (Session.navKey session)
+                                        , Maybe.withDefault Cmd.none <| Maybe.map (\warrant -> getWarrant domain warrant.docketId maybeCred) model.nextWarrant
+                                        ]
+                               )
                         )
                     )
 

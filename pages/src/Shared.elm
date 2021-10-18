@@ -84,6 +84,17 @@ init :
     -> ( Model, Cmd Msg )
 init navigationKey flags maybePagePath =
     let
+        session =
+            case flags of
+                BrowserFlags value ->
+                    Decode.decodeValue (Decode.field "viewer" string) value
+                        |> Result.andThen (Decode.decodeString (Rest.Static.storageDecoder Viewer.staticDecoder))
+                        |> Result.toMaybe
+                        |> Session.fromViewer navigationKey
+
+                PreRenderFlags ->
+                    Session.fromViewer Nothing Nothing
+
         window =
             case flags of
                 BrowserFlags value ->
@@ -95,16 +106,7 @@ init navigationKey flags maybePagePath =
     in
     ( { showMobileMenu = False
       , navigationKey = navigationKey
-      , session =
-            case flags of
-                BrowserFlags value ->
-                    Decode.decodeValue (Decode.field "viewer" string) value
-                        |> Result.andThen (Decode.decodeString (Rest.Static.storageDecoder Viewer.staticDecoder))
-                        |> Result.toMaybe
-                        |> Session.fromViewer navigationKey
-
-                PreRenderFlags ->
-                    Session.fromViewer Nothing Nothing
+      , session = session
       , queryParams =
             Maybe.andThen (.query << .path) maybePagePath
       , window = window
@@ -161,6 +163,7 @@ subscriptions _ model =
         ]
 
 
+data : DataSource.DataSource Data
 data =
     DataSource.map Data
         (DataSource.map4 Runtime
