@@ -471,7 +471,11 @@ class DetainerWarrant(db.Model, Timestamped):
         self.order_number = DetainerWarrant.calc_order_number(id)
 
     def calc_order_number(docket_id):
-        return int(docket_id.replace('GT', '').replace('GC', ''))
+        num = docket_id.replace('GT', '').replace('GC', '')
+        if num.isnumeric():
+            return int(num)
+        else:
+            return 0
 
     @hybrid_property
     def file_date(self):
