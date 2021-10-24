@@ -1,4 +1,4 @@
-module Search exposing (Cursor(..), DetainerWarrants, Plaintiffs, Search, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString)
+module Search exposing (Attorneys, Cursor(..), DetainerWarrants, Plaintiffs, Search, attorneysArgs, attorneysDefault, attorneysFromString, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString)
 
 import Dict
 import Iso8601
@@ -29,6 +29,10 @@ type alias Plaintiffs =
     { name : Maybe String
     , aliases : Maybe String
     }
+
+
+type alias Attorneys =
+    Plaintiffs
 
 
 type alias Search filters =
@@ -64,6 +68,11 @@ plaintiffsFromString str =
     }
 
 
+attorneysFromString : String -> Attorneys
+attorneysFromString =
+    plaintiffsFromString
+
+
 dwFromString : String -> DetainerWarrants
 dwFromString str =
     let
@@ -87,6 +96,11 @@ plaintiffsDefault =
     { name = Nothing
     , aliases = Nothing
     }
+
+
+attorneysDefault : Attorneys
+attorneysDefault =
+    plaintiffsDefault
 
 
 toPair : a -> Maybe String -> List ( a, String )
@@ -135,3 +149,8 @@ plaintiffsArgs : Plaintiffs -> List ( String, String )
 plaintiffsArgs filters =
     toPair "name" filters.name
         ++ toPair "aliases" filters.aliases
+
+
+attorneysArgs : Attorneys -> List ( String, String )
+attorneysArgs =
+    plaintiffsArgs

@@ -47,7 +47,7 @@ view session page =
         -- , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
         ]
         (if String.startsWith "/admin" <| Path.toAbsolute page.path then
-            [ headerLink [ ]
+            [ headerLink []
                 (page.route == Just Admin__DetainerWarrants)
                 { url = "/admin/detainer-warrants"
                 , label = Element.text "Detainer Warrants"
@@ -56,6 +56,11 @@ view session page =
                 (page.route == Just Admin__Plaintiffs)
                 { url = "/admin/plaintiffs"
                 , label = Element.text "Plaintiffs"
+                }
+            , headerLink []
+                (page.route == Just Admin__Attorneys)
+                { url = "/admin/attorneys"
+                , label = Element.text "Attorneys"
                 }
             , noPreloadLink []
                 { url = "/logout"

@@ -116,6 +116,11 @@ view showMobileMenu session toggleMobileMenuMsg page =
                     { url = "/admin/plaintiffs"
                     , label = Element.text "Plaintiffs"
                     }
+                , headerLink []
+                    (page.route == Just Admin__Attorneys)
+                    { url = "/admin/attorneys"
+                    , label = Element.text "Attorneys"
+                    }
                 , noPreloadLink []
                     { url = "/logout"
                     , label = Element.text "Logout"
