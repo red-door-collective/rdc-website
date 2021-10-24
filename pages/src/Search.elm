@@ -1,4 +1,4 @@
-module Search exposing (Attorneys, Cursor(..), DetainerWarrants, Plaintiffs, Search, attorneysArgs, attorneysDefault, attorneysFromString, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, dwFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString)
+module Search exposing (Attorneys, Cursor(..), DetainerWarrants, Judges, Plaintiffs, Search, attorneysArgs, attorneysDefault, attorneysFromString, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, dwFromString, judgesArgs, judgesDefault, judgesFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString)
 
 import Dict
 import Iso8601
@@ -32,6 +32,10 @@ type alias Plaintiffs =
 
 
 type alias Attorneys =
+    Plaintiffs
+
+
+type alias Judges =
     Plaintiffs
 
 
@@ -73,6 +77,11 @@ attorneysFromString =
     plaintiffsFromString
 
 
+judgesFromString : String -> Judges
+judgesFromString =
+    plaintiffsFromString
+
+
 dwFromString : String -> DetainerWarrants
 dwFromString str =
     let
@@ -100,6 +109,11 @@ plaintiffsDefault =
 
 attorneysDefault : Attorneys
 attorneysDefault =
+    plaintiffsDefault
+
+
+judgesDefault : Judges
+judgesDefault =
     plaintiffsDefault
 
 
@@ -153,4 +167,9 @@ plaintiffsArgs filters =
 
 attorneysArgs : Attorneys -> List ( String, String )
 attorneysArgs =
+    plaintiffsArgs
+
+
+judgesArgs : Judges -> List ( String, String )
+judgesArgs =
     plaintiffsArgs

@@ -62,6 +62,11 @@ view session page =
                 { url = "/admin/attorneys"
                 , label = Element.text "Attorneys"
                 }
+            , headerLink []
+                (page.route == Just Admin__Judges)
+                { url = "/admin/judges"
+                , label = Element.text "Judges"
+                }
             , noPreloadLink []
                 { url = "/logout"
                 , label = Element.text "Logout"
