@@ -198,6 +198,7 @@ class JudgeResourceBase(GenericModelView):
     sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
+        free_text=filter_across_name_alias
     )
 
 

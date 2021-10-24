@@ -1439,7 +1439,7 @@ update pageUrl navKey sharedModel static msg model =
                             )
                         )
                         model
-                    , Rest.get (Endpoint.judges domain [ ( "name", text ) ]) maybeCred GotJudges (Rest.collectionDecoder Judge.decoder)
+                    , Rest.get (Endpoint.judges domain [ ( "free_text", text ) ]) maybeCred GotJudges (Rest.collectionDecoder Judge.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
