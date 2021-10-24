@@ -19,6 +19,8 @@ import uuid
 import logging.config
 import eviction_tracker.config as config
 from datetime import date, datetime
+from pdfminer.high_level import extract_pages
+from pdfminer.layout import LTTextContainer
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -210,6 +212,20 @@ def verify_phone(phone_number):
     """Verify an individual phone number"""
     client = twilio_client(current_app)
     validate_phone_number(client, current_app, phone_number)
+
+
+@click.command()
+@click.argument('file_name')
+@with_appcontext
+def extract_judgement(file_name):
+    """Extract judgement from pdf"""
+    for page_layout in extract_pages(file_name):
+        for element in page_layout:
+            print(element)
+    # for page_layout in extract_pages(file_name):
+    #     for element in page_layout:
+    #         if isinstance(element, LTTextContainer):
+    #             print(element.get_text())
 
 
 @click.command()

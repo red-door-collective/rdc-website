@@ -440,4 +440,5 @@ def register_commands(app):
     app.cli.add_command(commands.export_courtroom_dockets)
     app.cli.add_command(commands.verify_phone)
     app.cli.add_command(commands.verify_phones)
+    app.cli.add_command(commands.extract_judgement)
     app.cli.add_command(commands.bootstrap)
