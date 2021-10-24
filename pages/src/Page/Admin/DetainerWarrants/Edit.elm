@@ -727,7 +727,7 @@ update pageUrl navKey sharedModel static msg model =
                             { form | plaintiff = updatedPlaintiff }
                         )
                         model
-                    , Rest.get (Endpoint.plaintiffs domain [ ( "name", text ) ]) maybeCred GotPlaintiffs (Rest.collectionDecoder Plaintiff.decoder)
+                    , Rest.get (Endpoint.plaintiffs domain [ ( "free_text", text ) ]) maybeCred GotPlaintiffs (Rest.collectionDecoder Plaintiff.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -779,7 +779,7 @@ update pageUrl navKey sharedModel static msg model =
                             { form | plaintiffAttorney = updatedAttorney }
                         )
                         model
-                    , Rest.get (Endpoint.attorneys domain [ ( "name", text ) ]) maybeCred GotAttorneys (Rest.collectionDecoder Attorney.decoder)
+                    , Rest.get (Endpoint.attorneys domain [ ( "free_text", text ) ]) maybeCred GotAttorneys (Rest.collectionDecoder Attorney.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -1323,7 +1323,7 @@ update pageUrl navKey sharedModel static msg model =
                             )
                         )
                         model
-                    , Rest.get (Endpoint.plaintiffs domain [ ( "name", text ) ]) maybeCred GotPlaintiffs (Rest.collectionDecoder Plaintiff.decoder)
+                    , Rest.get (Endpoint.plaintiffs domain [ ( "free_text", text ) ]) maybeCred GotPlaintiffs (Rest.collectionDecoder Plaintiff.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -1381,7 +1381,7 @@ update pageUrl navKey sharedModel static msg model =
                             )
                         )
                         model
-                    , Rest.get (Endpoint.attorneys domain [ ( "name", text ) ]) maybeCred GotAttorneys (Rest.collectionDecoder Attorney.decoder)
+                    , Rest.get (Endpoint.attorneys domain [ ( "free_text", text ) ]) maybeCred GotAttorneys (Rest.collectionDecoder Attorney.decoder)
                     )
 
                 SearchBox.SearchBoxChanged subMsg ->
@@ -2165,6 +2165,26 @@ defaultLabel str =
     Input.labelAbove labelAttrs (text str)
 
 
+insensitiveMatch a b =
+    String.contains (String.toLower a) (String.toLower b)
+
+
+matchesQuery query person =
+    List.any (insensitiveMatch query) (person.name :: person.aliases)
+
+
+matchesName query person =
+    insensitiveMatch query person.name
+
+
+firstAliasMatch query person =
+    List.find (insensitiveMatch query) person.aliases
+
+
+withAliasBadge str =
+    str ++ " [Alias]"
+
+
 viewPlaintiffSearch : (SearchBox.ChangeEvent Plaintiff -> Msg) -> FormOptions -> PlaintiffForm -> Element Msg
 viewPlaintiffSearch onChange options form =
     let
@@ -2191,13 +2211,12 @@ viewPlaintiffSearch onChange options form =
                             if List.isEmpty person.aliases then
                                 person.name
 
+                            else if matchesName form.text person then
+                                person.name
+
                             else
-                                person.name ++ " (" ++ String.join ", " person.aliases ++ ")"
-                    , filter =
-                        \query plaintiff ->
-                            (plaintiff.name :: plaintiff.aliases)
-                                |> List.map String.toLower
-                                |> List.any (String.contains (String.toLower query))
+                                Maybe.withDefault person.name <| Maybe.map withAliasBadge <| Debug.log "not name" firstAliasMatch form.text person
+                    , filter = matchesQuery
                     , state = form.searchBox
                     }
                 ]

@@ -17,7 +17,7 @@ from flask_resty import (
     model_filter
 )
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from sqlalchemy.orm import raiseload
 from sqlalchemy.exc import IntegrityError
 
@@ -55,6 +55,14 @@ def filter_any_field(model, value):
     )
 
 
+@model_filter(fields.String())
+def filter_across_name_alias(model, value):
+    return or_(
+        model.name.ilike(f'%{value}%'),
+        func.array_to_string(model.aliases, ',').ilike(f'%{value}%')
+    )
+
+
 class AttorneyResourceBase(GenericModelView):
     model = Attorney
     schema = attorney_schema
@@ -66,6 +74,7 @@ class AttorneyResourceBase(GenericModelView):
     sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
+        free_text=filter_across_name_alias
     )
 
 
@@ -158,6 +167,7 @@ class PlaintiffResourceBase(GenericModelView):
     sorting = Sorting('id', default='-id')
     filtering = Filtering(
         name=filter_name,
+        free_text=filter_across_name_alias
     )
 
 
