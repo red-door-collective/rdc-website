@@ -2215,7 +2215,7 @@ viewPlaintiffSearch onChange options form =
                                 person.name
 
                             else
-                                Maybe.withDefault person.name <| Maybe.map withAliasBadge <| Debug.log "not name" firstAliasMatch form.text person
+                                Maybe.withDefault person.name <| Maybe.map withAliasBadge <| firstAliasMatch form.text person
                     , filter = matchesQuery
                     , state = form.searchBox
                     }
@@ -2245,8 +2245,17 @@ viewAttorneySearch onChange options form =
                     , options = Just ({ id = -1, name = form.text, aliases = [] } :: options.attorneys)
                     , label = defaultLabel "Plaintiff Attorney"
                     , placeholder = Just <| Input.placeholder [] (text "Search for plaintiff attorney")
-                    , toLabel = \person -> person.name
-                    , filter = \_ _ -> True
+                    , toLabel =
+                        \person ->
+                            if List.isEmpty person.aliases then
+                                person.name
+
+                            else if matchesName form.text person then
+                                person.name
+
+                            else
+                                Maybe.withDefault person.name <| Maybe.map withAliasBadge <| firstAliasMatch form.text person
+                    , filter = matchesQuery
                     , state = form.searchBox
                     }
                 ]
@@ -2748,8 +2757,17 @@ viewJudgeSearch options index form =
                     , options = Just ({ id = -1, name = form.judge.text, aliases = [] } :: options.judges)
                     , label = defaultLabel "Presiding judge"
                     , placeholder = Just <| Input.placeholder [] (text "Search for judge")
-                    , toLabel = \person -> person.name
-                    , filter = \_ _ -> True
+                    , toLabel =
+                        \person ->
+                            if List.isEmpty person.aliases then
+                                person.name
+
+                            else if matchesName form.judge.text person then
+                                person.name
+
+                            else
+                                Maybe.withDefault person.name <| Maybe.map withAliasBadge <| firstAliasMatch form.judge.text person
+                    , filter = matchesQuery
                     , state = form.judge.searchBox
                     }
                 ]
