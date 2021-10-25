@@ -219,6 +219,8 @@ def verify_phone(phone_number):
 @with_appcontext
 def extract_judgement(file_name):
     """Extract judgement from pdf"""
+    checked = u''
+    unchecked = u''
     for page_layout in extract_pages(file_name):
         for element in page_layout:
             print(element)
