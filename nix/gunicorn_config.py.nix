@@ -21,6 +21,7 @@ def on_starting(server):
     print('will run jobs:', run_jobs)
     if run_jobs == 'true':
         print('Starting scheduler')
+        scheduler.api_enabled = True 
         scheduler.init_app(flask_app)
         scheduler.start()
 
