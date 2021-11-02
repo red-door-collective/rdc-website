@@ -20,3 +20,4 @@ ui/index.html # accidental default gen
 *.log
 .elm-pages
 .env.dev
+pdfs/

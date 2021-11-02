@@ -1717,6 +1717,19 @@ fetchAdjacentDetainerWarrant domain maybeCred model =
             Rest.get (Endpoint.detainerWarrantsSearch domain [ limit, cursor, ( "sort", "order_number" ) ]) maybeCred GotDetainerWarrants (Rest.collectionDecoder DetainerWarrant.decoder)
 
 
+doneSavingRelatedModels : ApiForms -> SaveState -> Bool
+doneSavingRelatedModels apiForms state =
+    case state of
+        SavingRelatedModels models ->
+            models.attorney
+                && models.plaintiff
+                && List.length apiForms.defendants
+                >= models.defendants
+
+        _ ->
+            False
+
+
 submitForm : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
 submitForm today domain session model =
     let
@@ -1728,27 +1741,36 @@ submitForm today domain session model =
             let
                 apiForms =
                     toDetainerWarrant today validForm
-            in
-            ( { model
-                | problems = []
-                , saveState =
+
+                savingRelatedModels =
                     SavingRelatedModels
                         { attorney = apiForms.attorney == Nothing
                         , plaintiff = apiForms.plaintiff == Nothing
                         , defendants = 0
                         }
-              }
-            , Cmd.batch
-                (List.concat
-                    [ apiForms.attorney
-                        |> Maybe.map (List.singleton << upsertAttorney domain maybeCred)
-                        |> Maybe.withDefault []
-                    , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff domain maybeCred) apiForms.plaintiff
-                    , List.indexedMap (upsertDefendant domain maybeCred) apiForms.defendants
-                    , List.singleton <| fetchAdjacentDetainerWarrant domain maybeCred model
-                    ]
+
+                updatedModel =
+                    { model
+                        | problems = []
+                        , saveState = savingRelatedModels
+                    }
+            in
+            if doneSavingRelatedModels apiForms savingRelatedModels then
+                nextStepSave today domain session updatedModel
+
+            else
+                ( updatedModel
+                , Cmd.batch
+                    (List.concat
+                        [ apiForms.attorney
+                            |> Maybe.map (List.singleton << upsertAttorney domain maybeCred)
+                            |> Maybe.withDefault []
+                        , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff domain maybeCred) apiForms.plaintiff
+                        , List.indexedMap (upsertDefendant domain maybeCred) apiForms.defendants
+                        , List.singleton <| fetchAdjacentDetainerWarrant domain maybeCred model
+                        ]
+                    )
                 )
-            )
 
         Err problems ->
             ( { model | problems = problems }
@@ -1770,12 +1792,7 @@ nextStepSave today domain session model =
             in
             case model.saveState of
                 SavingRelatedModels models ->
-                    if
-                        models.attorney
-                            && models.plaintiff
-                            && List.length apiForms.defendants
-                            >= models.defendants
-                    then
+                    if doneSavingRelatedModels apiForms model.saveState then
                         ( { model | saveState = SavingWarrant }
                         , updateDetainerWarrant domain maybeCred apiForms.detainerWarrant
                         )
