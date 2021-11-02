@@ -1,4 +1,4 @@
-port module Rest exposing (Collection, Cred(..), Item, PageMeta, Window, campaignApiDecoder, collectionDecoder, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, patch, post, storeCred, viewerChanges)
+port module Rest exposing (Collection, Cred(..), Item, PageMeta, Window, campaignApiDecoder, collectionDecoder, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, patch, post, storeCred, throwaway, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -134,7 +134,7 @@ get url maybeCred toMsg decoder =
 throwaway : Endpoint -> Maybe Cred -> (Result Error () -> msg) -> Cmd msg
 throwaway url maybeCred toMsg =
     Endpoint.request
-        { method = "GET"
+        { method = "POST"
         , url = url
         , expect = Http.expectWhatever toMsg
         , headers =
