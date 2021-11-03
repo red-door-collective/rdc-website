@@ -3641,7 +3641,7 @@ updateDetainerWarrant domain maybeCred form =
                  , ( "defendants", Encode.list encodeRelated form.defendants )
                  , ( "amount_claimed_category", Encode.string (DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory) )
                  ]
-                    ++ nullable "file_date" Time.Utils.posixEncoder (Debug.log "fileDate" form.fileDate)
+                    ++ nullable "file_date" Time.Utils.posixEncoder form.fileDate
                     ++ nullable "status" Encode.string (Maybe.map DetainerWarrant.statusText form.status)
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
                     ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney
