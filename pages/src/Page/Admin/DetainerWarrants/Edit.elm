@@ -3602,6 +3602,7 @@ encodeJudgement warrant judgement =
          ]
             ++ conditional "id" Encode.int judgement.id
             ++ nullable "court_date" Time.Utils.posixEncoder judgement.courtDate
+            ++ nullable "courtroom" encodeRelated judgement.courtroom
             ++ nullable "in_favor_of" Encode.string judgement.inFavorOf
             ++ nullable "notes" Encode.string judgement.notes
             ++ nullable "entered_by" Encode.string judgement.enteredBy
@@ -3640,7 +3641,7 @@ updateDetainerWarrant domain maybeCred form =
                  , ( "defendants", Encode.list encodeRelated form.defendants )
                  , ( "amount_claimed_category", Encode.string (DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory) )
                  ]
-                    ++ nullable "file_date" Time.Utils.posixEncoder form.fileDate
+                    ++ nullable "file_date" Time.Utils.posixEncoder (Debug.log "fileDate" form.fileDate)
                     ++ nullable "status" Encode.string (Maybe.map DetainerWarrant.statusText form.status)
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
                     ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney
