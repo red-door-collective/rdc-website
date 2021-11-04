@@ -33,23 +33,6 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
         
-  ui_test:
-    runs-on: ubuntu-latest
-    name: UI tests
-    steps:
-      - uses: actions/checkout@v2.3.4
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '14'
-      - run: npm install -g elm elm-test
-      - run: cd pages && npm install && npm run build && elm-test
-        env:
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          ENV: production
-          ROLLBAR_CLIENT_TOKEN: ${{ secrets.ROLLBAR_CLIENT_TOKEN }}
-          VERSION: fake
-
   integration_tests:
     runs-on: ubuntu-latest
     name: Integration tests
@@ -97,8 +80,8 @@ jobs:
         run: npm ci
       - name: elm-tooling install
         run: npx --no-install elm-tooling install
-      # - name: Tests
-        # run: npm test
+      - name: Tests
+        run: npm install && npm run build && elm-test
       - name: Add elm-review, elm and elm-format to path
         run: npm bin >> $GITHUB_PATH
       # - uses: sparksp/elm-review-action@v1
