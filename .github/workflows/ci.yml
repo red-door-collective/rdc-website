@@ -93,9 +93,10 @@ jobs:
       - name: Cypress tests
         uses: cypress-io/github-action@v2
         with:
-          start: cd pages && npm start
+          start: npm start
           wait-on: "http://localhost:1234"
           wait-on-timeout: 60
+          working-directory: pages
 
       - uses: actions/upload-artifact@v1
         if: failure()
