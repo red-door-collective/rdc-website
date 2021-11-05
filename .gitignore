@@ -21,5 +21,3 @@ ui/index.html # accidental default gen
 .elm-pages
 .env.dev
 pdfs/
-cypress/videos
-cypress/screenshots
