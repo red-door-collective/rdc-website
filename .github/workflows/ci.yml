@@ -93,7 +93,7 @@ jobs:
       - name: Cypress tests
         uses: cypress-io/github-action@v2
         with:
-          start: npm start
+          start: cd pages && npm start
           wait-on: "http://localhost:1234"
           wait-on-timeout: 60
 
