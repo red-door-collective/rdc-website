@@ -7,8 +7,14 @@ let
 
 in pkgs.mkShell {
   name = "eviction-tracker";
-  buildInputs = deps.shellInputs;
+  buildInputs = deps.shellInputs ++ [
+    pkgs.cypress
+    (with pkgs.dotnetCorePackages; combinePackages [ sdk_5_0 net_5_0 ])
+    pkgs.nodejs
+  ];
   shellHook = ''
+    export CYPRESS_INSTALL_BINARY=0
+    export CYPRESS_RUN_BINARY=${pkgs.cypress}/bin/Cypress
     export PATH=${deps.shellPath}:$PATH
     # A pure nix shell breaks SSL for git and nix tools which is fixed by setting
     # the path to the certificate bundle.

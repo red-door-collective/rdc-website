@@ -33,6 +33,77 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
 
+  integration_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js 14
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+      # Re-use node_modules between runs until package-lock.json changes.
+      - name: Cache node_modules
+        id: cache-node_modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/Cypress
+            pages/node_modules
+          key: node_modules-node-v${{ matrix.node }}-${{ hashFiles('package-lock.json') }}
+
+      # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
+      # review/elm.json changes. The Elm compiler saves downloaded Elm packages
+      # to ~/.elm, and elm-tooling saves downloaded tool executables there.
+      - name: Cache ~/.elm
+        uses: actions/cache@v2
+        with:
+          path: ~/.elm
+          key: elm-${{ hashFiles('elm.json', 'elm-tooling.json', 'generator/elm.json', 'pages/review/elm.json') }}
+
+      # Install npm packages, unless we restored them from cache.
+      # Since `npm ci` removes the node_modules folder before running it’s
+      # important to skip this step if cache was restored.
+      - name: npm ci
+        if: steps.cache-node_modules.outputs.cache-hit != 'true'
+        env:
+          # If you have a `"postinstall": "elm-tooling install"` script in your
+          # package.json, this turns it into a no-op. We’ll run it in the next
+          # step because of the caching. If elm-tooling.json changes but
+          # package-lock.json does not, the postinstall script needs running
+          # but this step won’t.
+          NO_ELM_TOOLING_INSTALL: 1
+        run: npm ci
+      - name: elm-tooling install
+        run: cd pages && npx --no-install elm-tooling install
+      # - name: Tests
+        # run: npm test
+      - name: Add elm-review, elm and elm-format to path
+        run: cd pages && npm bin >> $GITHUB_PATH
+      # - uses: sparksp/elm-review-action@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: elm-format
+        # run: npx --no-install elm-format --validate src/ generator/src
+      - name: Setup for cypress
+        run: (cd pages && npm install && npx elm-tooling install)
+      - name: Cypress tests
+        uses: cypress-io/github-action@v2
+        with:
+          start: npm start
+          wait-on: "http://localhost:1234"
+          wait-on-timeout: 60
+
+      - uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+      - uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: cypress-videos
+          path: cypress/videos
+          
   compute_tags:
     name: Compute Tags
     runs-on: ubuntu-latest

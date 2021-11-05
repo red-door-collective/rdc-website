@@ -3,7 +3,7 @@ with builtins;
 
 let
   sources_ = if (sources == null) then import ./sources.nix else sources;
-  pkgs = import sources_.nixpkgs { };
+  pkgs = import sources_.nixpkgs { overlays = [ (import ./cypress_overlay.nix) ]; };
   niv = (import sources_.niv { }).niv;
   poetry2nix = pkgs.callPackage sources_.poetry2nix {};
   python = pkgs.python38;

@@ -1,0 +1,5 @@
+{
+    "projectId": "yaknd4",
+    "defaultCommandTimeout": 4000,
+    "baseUrl": "http://localhost:1234"
+}
