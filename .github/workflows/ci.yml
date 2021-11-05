@@ -76,7 +76,7 @@ jobs:
           # step because of the caching. If elm-tooling.json changes but
           # package-lock.json does not, the postinstall script needs running
           # but this step won’t.
-          NO_ELM_TOOLING_INSTALL: 1
+          NO_ELM_TOOLING_INSTALL: 0
         run: npm ci
       - name: elm-tooling install
         run: npx --no-install elm-tooling install
