@@ -4,7 +4,8 @@
     "postinstall": "elm-tooling install",
     "start": "elm-pages dev",
     "build": "elm-pages build",
-    "add": "elm-pages add"
+    "add": "elm-pages add",
+    "cypress": "npm start & cypress run --spec cypress/integration/index-page.spec.js"
   },
   "devDependencies": {
     "elm-optimize-level-2": "^0.1.5",
