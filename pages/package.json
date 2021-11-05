@@ -4,6 +4,7 @@
     "postinstall": "elm-tooling install",
     "start": "elm-pages dev",
     "build": "elm-pages build",
+    "test": "elm-test",
     "add": "elm-pages add",
     "cypress": "npm start & cypress run --spec cypress/integration/index-page.spec.js"
   },
