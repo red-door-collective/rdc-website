@@ -59,6 +59,10 @@ security_config = dict(
 )
 
 
+def env_var_bool(key):
+    return os.getenv(key, 'False').lower() in ('true', '1', 't')
+
+
 def create_app(testing=False):
     app = Flask(__name__.split('.')[0])
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['SQLALCHEMY_DATABASE_URI']
@@ -69,7 +73,7 @@ def create_app(testing=False):
     app.config['GOOGLE_ACCOUNT_PATH'] = os.environ['GOOGLE_ACCOUNT_PATH']
     app.config['ROLLBAR_CLIENT_TOKEN'] = os.environ['ROLLBAR_CLIENT_TOKEN']
     app.config['VERSION'] = os.environ['VERSION']
-    app.config['SCHEDULER_API_ENABLED'] = True
+    app.config['SCHEDULER_API_ENABLED'] = env_var_bool('SCHEDULER_API_ENABLED')
     app.config['TESTING'] = testing
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':

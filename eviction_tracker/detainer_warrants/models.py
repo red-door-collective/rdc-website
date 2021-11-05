@@ -304,7 +304,7 @@ class Judgement(db.Model, Timestamped):
 
     @dismissal_basis.setter
     def dismissal_basis(self, dismissal_basis):
-        self.dismissal_basis_id = self.dismissal_basis_id and Judgement.dismissal_bases[
+        self.dismissal_basis_id = dismissal_basis and Judgement.dismissal_bases[
             dismissal_basis]
 
     @property

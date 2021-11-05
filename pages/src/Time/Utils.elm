@@ -19,4 +19,4 @@ posixDecoder =
 
 posixEncoder : Posix -> Value
 posixEncoder posix =
-    Encode.int (Time.toMillis Time.utc posix)
+    Encode.int (Time.posixToMillis posix)

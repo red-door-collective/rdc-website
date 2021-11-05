@@ -2,6 +2,13 @@ name: Continuous Integration
 
 on: push
 
+env:
+  TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+  TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+  ENV: production
+  ROLLBAR_CLIENT_TOKEN: ${{ secrets.ROLLBAR_CLIENT_TOKEN }}
+  VERSION: test
+
 jobs:
   unit_test:
     runs-on: ubuntu-latest
@@ -23,7 +30,7 @@ jobs:
       - uses: cachix/install-nix-action@v12
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v8
+      - uses: cachix/cachix-action@v10
         with:
           name: midtndsa
           signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
@@ -32,6 +39,89 @@ jobs:
         env:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+        
+  integration_tests:
+    runs-on: ubuntu-latest
+    name: Integration tests
+    defaults:
+      run:
+        shell: bash
+        working-directory: pages 
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js 14
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+      # Re-use node_modules between runs until package-lock.json changes.
+      - name: Cache node_modules
+        id: cache-node_modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/Cypress
+            node_modules
+          key: node_modules-node-v${{ matrix.node }}-${{ hashFiles('package-lock.json') }}
+
+      # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
+      # review/elm.json changes. The Elm compiler saves downloaded Elm packages
+      # to ~/.elm, and elm-tooling saves downloaded tool executables there.
+      - name: Cache ~/.elm
+        uses: actions/cache@v2
+        with:
+          path: ~/.elm
+          key: elm-${{ hashFiles('elm.json', 'elm-tooling.json', 'review/elm.json') }}
+
+      # Install npm packages, unless we restored them from cache.
+      # Since `npm ci` removes the node_modules folder before running it’s
+      # important to skip this step if cache was restored.
+      - name: npm ci
+        # if: steps.cache-node_modules.outputs.cache-hit != 'true'
+        env:
+          # If you have a `"postinstall": "elm-tooling install"` script in your
+          # package.json, this turns it into a no-op. We’ll run it in the next
+          # step because of the caching. If elm-tooling.json changes but
+          # package-lock.json does not, the postinstall script needs running
+          # but this step won’t.
+          NO_ELM_TOOLING_INSTALL: 1
+        run: npm ci
+      - name: elm-tooling install
+        run: npx --no-install elm-tooling install
+      - name: Tests
+        run: npm install && npm run build && npm test
+      - name: Add elm-review, elm and elm-format to path
+        run: npm bin >> $GITHUB_PATH
+      # - uses: sparksp/elm-review-action@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: elm-format
+        # run: npx --no-install elm-format --validate src/
+      - name: Setup for cypress
+        run: (npm install && npx elm-tooling install)
+      - name: Install Cypress
+        run: npm i cypress
+      - name: Cypress tests
+        uses: cypress-io/github-action@v2
+        with:
+          start: npm start
+          wait-on: "http://localhost:1234"
+          wait-on-timeout: 60
+          working-directory: pages
+          install: false
+          record: true
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: pages/cypress/screenshots
+      - uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: cypress-videos
+          path: pages/cypress/videos
 
   compute_tags:
     name: Compute Tags
@@ -53,7 +143,9 @@ jobs:
   commit_assets:
     runs-on: ubuntu-latest
     name: Commit Assets
-    needs: compute_tags
+    needs:
+      - compute_tags
+      - integration_tests
     steps:
       - uses: actions/checkout@v2.3.4
       
@@ -63,10 +155,6 @@ jobs:
       - run: ./scripts/build-ui
         name: Build application
         env:
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          ENV: production
-          ROLLBAR_CLIENT_TOKEN: ${{ secrets.ROLLBAR_CLIENT_TOKEN }}
           VERSION: ${{ needs.compute_tags.outputs.release_tag }}
       - id: commit_assets
         run: |

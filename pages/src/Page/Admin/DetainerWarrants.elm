@@ -132,6 +132,11 @@ queryArgsWithPagination search =
         queryArgs
 
 
+exportToSpreadsheet : String -> Session -> Cmd Msg
+exportToSpreadsheet domain session =
+    Rest.throwaway (Endpoint.detainerWarrantsExport domain) (Session.cred session) ExportStarted
+
+
 type Msg
     = InputDocketId (Maybe String)
     | InputFileDate (Maybe DateInput)
@@ -145,6 +150,8 @@ type Msg
     | InfiniteScrollMsg InfiniteScroll.Msg
     | InputFreeTextSearch String
     | OnFreeTextSearch
+    | ExportToSpreadsheet
+    | ExportStarted (Result Http.Error ())
     | NoOp
 
 
@@ -320,6 +327,12 @@ update pageUrl navKey sharedModel static msg model =
         OnFreeTextSearch ->
             updateFiltersAndReload domain session identity model
 
+        ExportToSpreadsheet ->
+            ( model, exportToSpreadsheet domain session )
+
+        ExportStarted result ->
+            ( model, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -338,6 +351,12 @@ createNewWarrantButton cfg =
 uploadCsvButton cfg =
     Button.fromLabel "Upload via CaseLink CSV"
         |> Button.redirect (Link.link <| "/admin/detainer-warrants/bulk-upload") Button.primary
+        |> Button.renderElement cfg
+
+
+exportButton cfg =
+    Button.fromLabel "Export to spreadsheet"
+        |> Button.cmd ExportToSpreadsheet Button.primary
         |> Button.renderElement cfg
 
 
@@ -396,6 +415,7 @@ viewDesktop cfg model =
         [ Element.row [ centerX, spacing 10 ]
             [ createNewWarrantButton cfg
             , uploadCsvButton cfg
+            , exportButton cfg
             ]
         , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
         , row [ width fill ]

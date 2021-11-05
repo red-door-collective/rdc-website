@@ -55,6 +55,7 @@ type alias JudgementEdit =
     , notes : Maybe String
     , enteredBy : Maybe String
     , courtDate : Maybe Posix
+    , courtroom : Maybe Courtroom
     , inFavorOf : Maybe String
     , plaintiff : Maybe Plaintiff
     , plaintiffAttorney : Maybe Attorney
@@ -184,6 +185,8 @@ editFromForm today form =
             Just form.notes
     , courtDate =
         Maybe.andThen Date.Extra.toPosix form.courtDate.date
+    , courtroom =
+        form.courtroom
     , enteredBy = Just <| entranceText form.enteredBy
     , inFavorOf =
         Maybe.map
