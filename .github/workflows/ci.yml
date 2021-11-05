@@ -90,6 +90,8 @@ jobs:
         # run: npx --no-install elm-format --validate src/ generator/src
       - name: Setup for cypress
         run: (npm install && npx elm-tooling install)
+      - name: Install Cypress
+        run: npm i cypress
       - name: Cypress tests
         uses: cypress-io/github-action@v2
         with:
@@ -97,6 +99,7 @@ jobs:
           wait-on: "http://localhost:1234"
           wait-on-timeout: 60
           working-directory: pages
+          install: false
         env:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
