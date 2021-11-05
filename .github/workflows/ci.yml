@@ -35,6 +35,7 @@ jobs:
 
   integration_tests:
     runs-on: ubuntu-latest
+    working-directory: pages
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js 14
@@ -48,7 +49,7 @@ jobs:
         with:
           path: |
             ~/.cache/Cypress
-            pages/node_modules
+            node_modules
           key: node_modules-node-v${{ matrix.node }}-${{ hashFiles('package-lock.json') }}
 
       # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
@@ -58,7 +59,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.elm
-          key: elm-${{ hashFiles('elm.json', 'elm-tooling.json', 'generator/elm.json', 'pages/review/elm.json') }}
+          key: elm-${{ hashFiles('elm.json', 'elm-tooling.json', 'review/elm.json') }}
 
       # Install npm packages, unless we restored them from cache.
       # Since `npm ci` removes the node_modules folder before running it’s
@@ -74,18 +75,18 @@ jobs:
           NO_ELM_TOOLING_INSTALL: 1
         run: npm ci
       - name: elm-tooling install
-        run: cd pages && npx --no-install elm-tooling install
+        run: npx --no-install elm-tooling install
       # - name: Tests
         # run: npm test
       - name: Add elm-review, elm and elm-format to path
-        run: cd pages && npm bin >> $GITHUB_PATH
+        run: npm bin >> $GITHUB_PATH
       # - uses: sparksp/elm-review-action@v1
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # - name: elm-format
         # run: npx --no-install elm-format --validate src/ generator/src
       - name: Setup for cypress
-        run: (cd pages && npm install && npx elm-tooling install)
+        run: (npm install && npx elm-tooling install)
       - name: Cypress tests
         uses: cypress-io/github-action@v2
         with:
@@ -103,7 +104,7 @@ jobs:
         with:
           name: cypress-videos
           path: cypress/videos
-          
+
   compute_tags:
     name: Compute Tags
     runs-on: ubuntu-latest
