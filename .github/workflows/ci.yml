@@ -97,6 +97,12 @@ jobs:
           wait-on: "http://localhost:1234"
           wait-on-timeout: 60
           working-directory: pages
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          ENV: production
+          ROLLBAR_CLIENT_TOKEN: ${{ secrets.ROLLBAR_CLIENT_TOKEN }}
+          VERSION: test
 
       - uses: actions/upload-artifact@v1
         if: failure()
