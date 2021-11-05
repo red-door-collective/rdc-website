@@ -35,6 +35,7 @@ jobs:
 
   integration_tests:
     runs-on: ubuntu-latest
+    name: Integration tests
     defaults:
       run:
         shell: bash
