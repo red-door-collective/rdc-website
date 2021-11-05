@@ -2,6 +2,13 @@ name: Continuous Integration
 
 on: push
 
+env:
+  TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+  TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+  ENV: production
+  ROLLBAR_CLIENT_TOKEN: ${{ secrets.ROLLBAR_CLIENT_TOKEN }}
+  VERSION: test
+
 jobs:
   unit_test:
     runs-on: ubuntu-latest
@@ -32,7 +39,7 @@ jobs:
         env:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-
+        
   integration_tests:
     runs-on: ubuntu-latest
     name: Integration tests
@@ -80,8 +87,8 @@ jobs:
         run: npm ci
       - name: elm-tooling install
         run: npx --no-install elm-tooling install
-      # - name: Tests
-        # run: npm test
+      - name: Tests
+        run: npm install && npm run build && npm test
       - name: Add elm-review, elm and elm-format to path
         run: npm bin >> $GITHUB_PATH
       # - uses: sparksp/elm-review-action@v1
@@ -103,11 +110,6 @@ jobs:
           install: false
           record: true
         env:
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          ENV: production
-          ROLLBAR_CLIENT_TOKEN: ${{ secrets.ROLLBAR_CLIENT_TOKEN }}
-          VERSION: test
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
 
       - uses: actions/upload-artifact@v1
@@ -153,10 +155,6 @@ jobs:
       - run: ./scripts/build-ui
         name: Build application
         env:
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          ENV: production
-          ROLLBAR_CLIENT_TOKEN: ${{ secrets.ROLLBAR_CLIENT_TOKEN }}
           VERSION: ${{ needs.compute_tags.outputs.release_tag }}
       - id: commit_assets
         run: |

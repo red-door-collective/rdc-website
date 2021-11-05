@@ -4,6 +4,7 @@
     "postinstall": "elm-tooling install",
     "start": "elm-pages dev",
     "build": "elm-pages build",
+    "test": "elm-test",
     "add": "elm-pages add",
     "cypress": "npm start & cypress run --spec cypress/integration/index-page.spec.js"
   },
@@ -11,6 +12,7 @@
     "elm-optimize-level-2": "^0.1.5",
     "elm-pages": "2.1.9",
     "elm-tooling": "^1.4.0",
+    "elm-test": "^0.19.1-revision7",
     "elm-review": "^2.5.5"
   },
   "dependencies": {
