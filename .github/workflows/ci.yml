@@ -35,7 +35,10 @@ jobs:
 
   integration_tests:
     runs-on: ubuntu-latest
-    working-directory: pages
+    defaults:
+      run:
+        shell: bash
+        working-directory: pages 
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js 14
