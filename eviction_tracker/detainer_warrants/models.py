@@ -5,7 +5,13 @@ from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
 from nameparser import HumanName
+from ..util import get_or_create
 import re
+
+
+def district_defaults():
+    district = District.query.filter_by(name="Davidson County").first()
+    return {'district': district}
 
 
 class District(db.Model, Timestamped):
@@ -400,22 +406,34 @@ class Judgement(db.Model, Timestamped):
         return "<Judgement(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
 
     def from_pdf_as_text(pdf):
+        defaults = district_defaults()
         checked = u''
         unchecked = u''
 
         dw_regex = re.compile(r'DOCKET NO.:\s*(\w+)\s*')
         detainer_warrant_id = dw_regex.search(pdf).group(1)
 
+        if detainer_warrant_id and not DetainerWarrant.query.get(detainer_warrant_id):
+            DetainerWarrant.create(docket_id=detainer_warrant_id)
+            db.session.commit()
+
         plaintiff_regex = re.compile(
             r'COUNTY, TENNESSEE\s*([\w\s]+?)\s*Plaintiff')
         plaintiff_name = plaintiff_regex.search(pdf).group(1)
-        plaintiff = Plaintiff.query.filter(
-            Plaintiff.name.ilike(f'%{plaintiff_name}')).first()
+
+        plaintiff = None
+        if plaintiff_name:
+            plaintiff, _ = get_or_create(
+                db.session, Plaintiff, name=plaintiff_name, defaults=defaults)
 
         judge_regex = re.compile(
             r'The foregoing is hereby.+Judge (.+?),{0,1}\s+Division')
         judge_name = judge_regex.search(pdf).group(1)
-        judge = Judge.query.filter(Judge.name.ilike(f'%{judge_name}')).first()
+
+        judge = None
+        if judge_name:
+            judge, _ = get_or_create(
+                db.session, Judge, name=judge_name, defaults=defaults)
 
         in_favor_plaintiff_regex = re.compile(
             r'Order\s*(.+)\s*Judgment is granted')
@@ -433,9 +451,9 @@ class Judgement(db.Model, Timestamped):
         elif in_favor_plaintiff:
             in_favor_of = 'PLAINTIFF'
 
-        possession_regex = re.compile(
-            r'against\s*(.+)\s*for possession of the described property in the Detainer Warrant and all costs')
         fees_regex = re.compile(
+            r'against\s*(.+)\s*for possession of the described property in the Detainer Warrant and all costs')
+        possession_regex = re.compile(
             r'issue\.\s*(.+)\s*for possession of the described property in the Detainer Warrant, plus a monetary')
         awards_possession = checked in possession_regex.search(pdf).group(1)
 
