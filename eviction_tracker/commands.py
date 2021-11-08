@@ -12,15 +12,16 @@ import gspread
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.admin.models import User, user_datastore
 from eviction_tracker.database import db
-from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant, District
+from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant, Judgement, District
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import uuid
 import logging.config
 import eviction_tracker.config as config
 from datetime import date, datetime
-from pdfminer.high_level import extract_pages
-from pdfminer.layout import LTTextContainer
+from pdfminer.high_level import extract_pages, extract_text, extract_text_to_fp
+from pdfminer.layout import LTTextContainer, LAParams
+from io import StringIO
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -221,13 +222,11 @@ def extract_judgement(file_name):
     """Extract judgement from pdf"""
     checked = u''
     unchecked = u''
-    for page_layout in extract_pages(file_name):
-        for element in page_layout:
-            print(element)
-    # for page_layout in extract_pages(file_name):
-    #     for element in page_layout:
-    #         if isinstance(element, LTTextContainer):
-    #             print(element.get_text())
+    output_string = StringIO()
+    with open(file_name, 'rb') as fin:
+        # laparams=LAParams(), output_type='html', codec=None)
+        extract_text_to_fp(fin, output_string)
+        Judgement.from_pdf_as_text(output_string.getvalue().strip())
 
 
 @click.command()

@@ -5,6 +5,7 @@ from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
 from nameparser import HumanName
+import re
 
 
 class District(db.Model, Timestamped):
@@ -396,7 +397,119 @@ class Judgement(db.Model, Timestamped):
             return ''
 
     def __repr__(self):
-        return "<Judgement(in_favor_of='%s')>" % (self.in_favor_of)
+        return "<Judgement(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
+
+    def from_pdf_as_text(pdf):
+        checked = u''
+        unchecked = u''
+
+        dw_regex = re.compile(r'DOCKET NO.:\s*(\w+)\s*')
+        detainer_warrant_id = dw_regex.search(pdf).group(1)
+
+        plaintiff_regex = re.compile(
+            r'COUNTY, TENNESSEE\s*([\w\s]+?)\s*Plaintiff')
+        plaintiff_name = plaintiff_regex.search(pdf).group(1)
+        plaintiff = Plaintiff.query.filter(
+            Plaintiff.name.ilike(f'%{plaintiff_name}')).first()
+
+        judge_regex = re.compile(
+            r'The foregoing is hereby.+Judge (.+?),{0,1}\s+Division')
+        judge_name = judge_regex.search(pdf).group(1)
+        judge = Judge.query.filter(Judge.name.ilike(f'%{judge_name}')).first()
+
+        in_favor_plaintiff_regex = re.compile(
+            r'Order\s*(.+)\s*Judgment is granted')
+        in_favor_plaintiff = checked in in_favor_plaintiff_regex.search(
+            pdf).group(1)
+
+        in_favor_defendant_regex = re.compile(
+            r'per annum\s*(.+)\s*Case is dismissed')
+        in_favor_defendant = checked in in_favor_defendant_regex.search(
+            pdf).group(1)
+
+        in_favor_of = None
+        if in_favor_defendant:
+            in_favor_of = 'DEFENDANT'
+        elif in_favor_plaintiff:
+            in_favor_of = 'PLAINTIFF'
+
+        possession_regex = re.compile(
+            r'against\s*(.+)\s*for possession of the described property in the Detainer Warrant and all costs')
+        fees_regex = re.compile(
+            r'issue\.\s*(.+)\s*for possession of the described property in the Detainer Warrant, plus a monetary')
+        awards_possession = checked in possession_regex.search(pdf).group(1)
+
+        awards_fees_amount_regex = re.compile(r'\$\s*([\d\.]+?)\s+')
+
+        awards_fees = None
+        if awards_fees_amount_regex.search(pdf):
+            awards_fees = awards_fees_amount_regex.search(pdf).group(1)
+
+        entered_by_default_regex = re.compile(
+            r'Judgment is entered by:\s*(.+)\s*Default.')
+        entered_by_agreement_regex = re.compile(
+            r'Default.\s*(.+)\s*Agreement of parties.')
+        entered_by_trial_regex = re.compile(
+            r'parties.\s*(.+)\s*Trial in Court')
+        entered_by = None
+        if checked in entered_by_default_regex.search(pdf).group(1):
+            entered_by = 'DEFAULT'
+        elif checked in entered_by_agreement_regex.search(pdf).group(1):
+            entered_by = 'AGREEMENT_OF_PARTIES'
+        elif checked in entered_by_trial_regex.search(pdf).group(1):
+            entered_by = 'TRIAL_IN_COURT'
+
+        interest_follows_site = checked in re.compile(
+            r'granted as follows:\s*(.+)\s*at the rate posted').search(pdf).group(1)
+        interest_rate_regex = re.compile(
+            r'Courts.\s*(.+)\s*at the rate of %\s*([\d\.]*)\s*per annum')
+        interest_rate_match = interest_rate_regex.search(pdf)
+        if checked in interest_rate_match.group(1):
+            interest_rate = interest_rate_match.group(2)
+        else:
+            interest_rate = None
+        interest = interest_follows_site or interest_rate
+
+        dismissal_basis, with_prejudice = None, None
+        if in_favor_defendant:
+            dismissal_failure_regex = re.compile(
+                r'Dismissal is based on:\s*(.+)\s*Failure to prosecute.')
+            dismissal_favor_regex = re.compile(
+                r'prosecute\.\s*(.+)\s*Finding in favor of Defendant')
+            dismissal_non_suit = re.compile(
+                r'after trial.\s*(.+)\s*Non-suit by Plaintiff')
+
+            if checked in dismissal_failure_regex.search(pdf).group(1):
+                dismissal_basis = 'FAILURE_TO_PROSECUTE'
+            elif checked in dismissal_favor_regex.search(pdf).group(1):
+                dismissal_basis = 'FINDING_IN_FAVOR_OF_DEFENDANT'
+            elif checked in dismissal_non_suit_regex.search(pdf).group(1):
+                dismissal_basis = 'NON_SUIT_BY_PLAINTIFF'
+
+            with_prejudice_regex = re.compile(
+                r'Dismissal is:\s*(.+)\s*Without prejudice')
+            with_prejudice = not checked in with_prejudice_regex.search(
+                pdf).group(1)
+
+        notes_regex = re.compile(
+            r'Other terms of this Order, if any, are as follows:\s*(.+?)\s*EFILED')
+        notes = notes_regex.search(pdf).group(1)
+
+        return Judgement.create(
+            awards_possession=awards_possession,
+            awards_fees=awards_fees,
+            entered_by_id=Judgement.entrances[entered_by],
+            interest=interest,
+            interest_rate=interest_rate,
+            interest_follows_site=interest_follows_site,
+            dismissal_basis_id=Judgement.dismissal_bases[dismissal_basis] if dismissal_basis else None,
+            with_prejudice=with_prejudice,
+            notes=notes,
+            in_favor_of_id=Judgement.parties[in_favor_of],
+            detainer_warrant_id=detainer_warrant_id,
+            plaintiff_id=plaintiff.id if plaintiff else None,
+            judge_id=judge.id if judge else None
+        )
 
 
 class DetainerWarrant(db.Model, Timestamped):
@@ -461,11 +574,11 @@ class DetainerWarrant(db.Model, Timestamped):
     def __repr__(self):
         return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self._file_date)
 
-    @hybrid_property
+    @ hybrid_property
     def docket_id(self):
         return self._docket_id
 
-    @docket_id.setter
+    @ docket_id.setter
     def docket_id(self, id):
         self._docket_id = id
         self.order_number = DetainerWarrant.calc_order_number(id)
@@ -477,52 +590,52 @@ class DetainerWarrant(db.Model, Timestamped):
         else:
             return 0
 
-    @hybrid_property
+    @ hybrid_property
     def file_date(self):
         if self._file_date:
             return in_millis(datetime.combine(self._file_date, datetime.min.time()).timestamp())
         else:
             return None
 
-    @file_date.comparator
+    @ file_date.comparator
     def file_date(cls):
         return PosixComparator(cls._file_date)
 
-    @file_date.setter
+    @ file_date.setter
     def file_date(self, posix):
         self._file_date = from_millis(posix) if posix else None
 
-    @hybrid_property
+    @ hybrid_property
     def court_date(self):
         if self._court_date:
             return in_millis(datetime.combine(self._court_date, datetime.min.time()).timestamp())
         else:
             return None
 
-    @court_date.comparator
+    @ court_date.comparator
     def court_date(cls):
         return PosixComparator(cls._court_date)
 
-    @court_date.setter
+    @ court_date.setter
     def court_date(self, posix):
         self._court_date = from_millis(posix) if posix else None
 
-    @property
+    @ property
     def status(self):
         status_by_id = {v: k for k, v in DetainerWarrant.statuses.items()}
         return status_by_id[self.status_id] if self.status_id is not None else None
 
-    @status.setter
+    @ status.setter
     def status(self, status_name):
         self.status_id = DetainerWarrant.statuses[status_name] if status_name else None
 
-    @property
+    @ property
     def recurring_court_date(self):
         date_by_id = {v: k for k,
                       v in DetainerWarrant.recurring_court_dates.items()}
         return date_by_id[self.court_date_recurring_id] if self.court_date_recurring_id else None
 
-    @recurring_court_date.setter
+    @ recurring_court_date.setter
     def recurring_court_date(self, day_of_week):
         self.court_date_recurring_id = DetainerWarrant.recurring_court_dates[
             day_of_week] if day_of_week else None

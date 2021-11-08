@@ -34,8 +34,8 @@ Flask-Cors = "^3.0.10"
 Babel = "^2.9.1"
 PyYAML = "^5.4.1"
 gunicorn = "^20.1.0"
-pdfplumber = "^0.5.28"
 pdf2image = "^1.16.0"
+"pdfminer.six" = "20201018"
 
 [tool.poetry.dev-dependencies]
 autopep8 = "^1.5.7"
