@@ -114,6 +114,8 @@ in rec {
     poetryPackagesByName.pdbpp
     poetryWrapper
     python.pkgs.gunicorn
+    pkgs.chromedriver
+    pkgs.chromium
   ];
 
   frontendTools =

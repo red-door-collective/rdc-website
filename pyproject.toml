@@ -36,6 +36,7 @@ PyYAML = "^5.4.1"
 gunicorn = "^20.1.0"
 pdf2image = "^1.16.0"
 "pdfminer.six" = "20201018"
+selenium = "^4.0.0"
 
 [tool.poetry.dev-dependencies]
 autopep8 = "^1.5.7"
