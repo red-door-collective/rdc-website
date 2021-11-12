@@ -104,11 +104,22 @@ judgement_schema = JudgementSchema()
 judgements_schema = JudgementSchema(many=True)
 
 
+class PleadingDocumentSchema(Schema):
+    class Meta:
+        fields = ("url", "text", "kind", "docket_id",
+                  "created_at", "updated_at")
+
+
+pleading_document_schema = PleadingDocumentSchema()
+pleading_documents_schema = PleadingDocumentSchema(many=True)
+
+
 class DetainerWarrantSchema(Schema):
     plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
     judgements = fields.Nested(JudgementSchema, many=True)
+    pleadings = fields.Nested(PleadingDocumentSchema, many=True)
     last_edited_by = fields.Nested(serializers.UserSchema)
 
     file_date = fields.Int(allow_none=True)
@@ -123,7 +134,7 @@ class DetainerWarrantSchema(Schema):
     class Meta:
         fields = ("docket_id", "order_number", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
                   "judgements", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
-                  "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "created_at", "updated_at")
+                  "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "pleadings", "created_at", "updated_at")
 
 
 detainer_warrant_schema = DetainerWarrantSchema()

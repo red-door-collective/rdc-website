@@ -22,7 +22,7 @@ from sqlalchemy.orm import raiseload
 from sqlalchemy.exc import IntegrityError
 
 from eviction_tracker.database import db
-from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, Judge, Judgement, PhoneNumberVerification
+from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, PleadingDocument, Judge, Judgement, PhoneNumberVerification
 from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
 from psycopg2 import errors
@@ -280,6 +280,34 @@ def filter_plaintiff_attorney_name(model, plaintiff_attorney_name):
 @model_filter(fields.Int())
 def filter_court_date(model, court_date):
     return model._judgements.any(Judgement.court_date == court_date)
+
+
+class PleadingDocumentResourceBase(GenericModelView):
+    model = PleadingDocument
+    schema = pleading_document_schema
+    id_fields = ('url',)
+
+    authentication = HeaderUserAuthentication()
+    authorization = AllowDefendant()
+
+    pagination = CursorPagination(default_limit=50, max_limit=100)
+    sorting = Sorting('updated_at', default='-updated_at')
+
+
+class PleadingDocumentListResource(PleadingDocumentResourceBase):
+    def get(self):
+        return self.list()
+
+    def post(self):
+        return self.create()
+
+
+class PleadingDocumentResource(PleadingDocumentResourceBase):
+    def get(self, id):
+        return self.retrieve(id)
+
+    def patch(self, id):
+        return self.update(int(id), partial=True)
 
 
 class DetainerWarrantResourceBase(GenericModelView):

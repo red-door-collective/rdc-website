@@ -5,8 +5,6 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from .models import db, Plaintiff, Attorney, Defendant, DetainerWarrant
 from .util import district_defaults, get_or_create, normalize
 
-test_path = 'tests/fixtures/case-link-import.csv'
-
 
 def create_defendant(defaults, docket_id, column):
     name = HumanName(column.replace('OR ALL OCCUPANTS', ''))
