@@ -277,7 +277,7 @@ def register_extensions(app):
                      detainer_warrants.views.JudgeResource, app=app)
     api.add_resource('/detainer-warrants/', detainer_warrants.views.DetainerWarrantListResource,
                      detainer_warrants.views.DetainerWarrantResource, app=app)
-    api.add_resource('/detainer-warrants/pleading-documents/', detainer_warrants.views.PleadingDocumentListResource,
+    api.add_resource('/pleading-documents/', detainer_warrants.views.PleadingDocumentListResource,
                      detainer_warrants.views.PleadingDocumentResource, app=app)
     api.add_resource('/phone-number-verifications/', detainer_warrants.views.PhoneNumberVerificationListResource,
                      detainer_warrants.views.PhoneNumberVerificationResource, app=app)
