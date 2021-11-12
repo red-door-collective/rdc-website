@@ -592,11 +592,11 @@ class DetainerWarrant(db.Model, Timestamped):
     def __repr__(self):
         return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self._file_date)
 
-    @ hybrid_property
+    @hybrid_property
     def docket_id(self):
         return self._docket_id
 
-    @ docket_id.setter
+    @docket_id.setter
     def docket_id(self, id):
         self._docket_id = id
         self.order_number = DetainerWarrant.calc_order_number(id)
@@ -608,52 +608,52 @@ class DetainerWarrant(db.Model, Timestamped):
         else:
             return 0
 
-    @ hybrid_property
+    @hybrid_property
     def file_date(self):
         if self._file_date:
             return in_millis(datetime.combine(self._file_date, datetime.min.time()).timestamp())
         else:
             return None
 
-    @ file_date.comparator
+    @file_date.comparator
     def file_date(cls):
         return PosixComparator(cls._file_date)
 
-    @ file_date.setter
+    @file_date.setter
     def file_date(self, posix):
         self._file_date = from_millis(posix) if posix else None
 
-    @ hybrid_property
+    @hybrid_property
     def court_date(self):
         if self._court_date:
             return in_millis(datetime.combine(self._court_date, datetime.min.time()).timestamp())
         else:
             return None
 
-    @ court_date.comparator
+    @court_date.comparator
     def court_date(cls):
         return PosixComparator(cls._court_date)
 
-    @ court_date.setter
+    @court_date.setter
     def court_date(self, posix):
         self._court_date = from_millis(posix) if posix else None
 
-    @ property
+    @property
     def status(self):
         status_by_id = {v: k for k, v in DetainerWarrant.statuses.items()}
         return status_by_id[self.status_id] if self.status_id is not None else None
 
-    @ status.setter
+    @status.setter
     def status(self, status_name):
         self.status_id = DetainerWarrant.statuses[status_name] if status_name else None
 
-    @ property
+    @property
     def recurring_court_date(self):
         date_by_id = {v: k for k,
                       v in DetainerWarrant.recurring_court_dates.items()}
         return date_by_id[self.court_date_recurring_id] if self.court_date_recurring_id else None
 
-    @ recurring_court_date.setter
+    @recurring_court_date.setter
     def recurring_court_date(self, day_of_week):
         self.court_date_recurring_id = DetainerWarrant.recurring_court_dates[
             day_of_week] if day_of_week else None

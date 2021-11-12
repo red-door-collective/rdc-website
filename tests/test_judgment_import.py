@@ -44,7 +44,7 @@ class TestDataImport(TestCase):
 
     def test_judgment_import(self):
         judgment = None
-        with open('tests/fixtures/judgment.txt') as f:
+        with open('tests/fixtures/case-link/judgment-pdf-as-text.txt') as f:
             judgment = detainer_warrants.models.Judgement.from_pdf_as_text(
                 f.read())
 
