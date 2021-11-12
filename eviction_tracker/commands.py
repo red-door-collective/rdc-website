@@ -224,9 +224,16 @@ def extract_judgement(file_name):
     unchecked = u''
     output_string = StringIO()
     with open(file_name, 'rb') as fin:
-        # laparams=LAParams(), output_type='html', codec=None)
         extract_text_to_fp(fin, output_string)
         Judgement.from_pdf_as_text(output_string.getvalue().strip())
+
+
+@click.command()
+@click.argument('docket_id')
+@with_appcontext
+def gather_pleading_documents(docket_id):
+    """Gather pleading documents for a detainer warrant"""
+    detainer_warrants.caselink.pleadings.fetch_documents(docket_id)
 
 
 @click.command()

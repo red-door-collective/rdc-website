@@ -74,6 +74,8 @@ def create_app(testing=False):
     app.config['ROLLBAR_CLIENT_TOKEN'] = os.environ['ROLLBAR_CLIENT_TOKEN']
     app.config['VERSION'] = os.environ['VERSION']
     app.config['SCHEDULER_API_ENABLED'] = env_var_bool('SCHEDULER_API_ENABLED')
+    app.config['CASELINK_USERNAME'] = os.environ['CASELINK_USERNAME']
+    app.config['CASELINK_PASSWORD'] = os.environ['CASELINK_PASSWORD']
     app.config['TESTING'] = testing
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
@@ -275,6 +277,8 @@ def register_extensions(app):
                      detainer_warrants.views.JudgeResource, app=app)
     api.add_resource('/detainer-warrants/', detainer_warrants.views.DetainerWarrantListResource,
                      detainer_warrants.views.DetainerWarrantResource, app=app)
+    api.add_resource('/detainer-warrants/pleading-documents/', detainer_warrants.views.PleadingDocumentListResource,
+                     detainer_warrants.views.PleadingDocumentResource, app=app)
     api.add_resource('/phone-number-verifications/', detainer_warrants.views.PhoneNumberVerificationListResource,
                      detainer_warrants.views.PhoneNumberVerificationResource, app=app)
     api.add_resource('/users/', admin.views.UserListResource,
@@ -445,4 +449,5 @@ def register_commands(app):
     app.cli.add_command(commands.verify_phone)
     app.cli.add_command(commands.verify_phones)
     app.cli.add_command(commands.extract_judgement)
+    app.cli.add_command(commands.gather_pleading_documents)
     app.cli.add_command(commands.bootstrap)

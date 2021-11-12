@@ -530,6 +530,48 @@ class Judgement(db.Model, Timestamped):
         )
 
 
+class PleadingDocument(db.Model, Timestamped):
+    kinds = {
+        'JUDGMENT': 0,
+        'DETAINER_WARRANT': 1
+    }
+
+    __tablename__ = 'pleading_documents'
+    url = Column(db.String(255), primary_key=True)
+    text = Column(db.Text)
+    kind_id = Column(db.Integer)
+    docket_id = Column(db.String(255), db.ForeignKey(
+        'detainer_warrants.docket_id'), nullable=False)
+
+    _detainer_warrant = relationship(
+        'DetainerWarrant', back_populates='pleadings')
+
+    @property
+    def kind(self):
+        kind_by_id = {v: k for k, v in PleadingDocument.kinds.items()}
+        return kind_by_id[self.kind_id] if self.kind_id is not None else None
+
+    @kind.setter
+    def kind(self, kind_name):
+        self.kind_id = PleadingDocument.kinds[kind_name] if kind_name else None
+
+    @property
+    def detainer_warrant(self):
+        return self._detainer_warrant
+
+    @detainer_warrant.setter
+    def detainer_warrant(self, warrant):
+        w_id = warrant and warrant.get('docket_id')
+        if (w_id):
+            self._detainer_warrant = db.session.query(
+                DetainerWarrant).get(w_id)
+        else:
+            self._detainer_warrant = warrant
+
+    def __repr__(self):
+        return "<PleadingDocument(docket_id='%s', url='%s')>" % (self.docket_id, self.url)
+
+
 class DetainerWarrant(db.Model, Timestamped):
     statuses = {
         'CLOSED': 0,
@@ -584,6 +626,8 @@ class DetainerWarrant(db.Model, Timestamped):
                                cascade="all, delete",
                                )
     _judgements = relationship('Judgement', back_populates='_detainer_warrant')
+    pleadings = relationship(
+        'PleadingDocument', back_populates='_detainer_warrant')
     last_edited_by = relationship('User', back_populates='edited_warrants')
 
     canvass_attempts = relationship(
