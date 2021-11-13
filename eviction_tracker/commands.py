@@ -237,6 +237,17 @@ def gather_pleading_documents(docket_id):
 
 
 @click.command()
+@click.argument('start_date')
+@click.argument('end_date')
+@with_appcontext
+def gather_warrants_csv(start_date, end_date):
+    """Gather detainer warrants as a CSV"""
+    start = datetime.strptime(start_date, '%Y-%m-%d')
+    end = datetime.strptime(end_date, '%Y-%m-%d')
+    detainer_warrants.caselink.warrants.import_from_caselink(start, end)
+
+
+@click.command()
 @with_appcontext
 def bootstrap():
     district, _ = detainer_warrants.util.get_or_create(

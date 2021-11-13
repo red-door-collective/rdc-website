@@ -11,73 +11,43 @@ import re
 import time
 from ..util import get_or_create
 from ..models import db, PleadingDocument
+from .constants import ids, names
+from .common import login, search, run_with_chrome
 
 
-def fetch_documents(docket_id):
-    caselink_username = current_app.config['CASELINK_USERNAME']
-    caselink_password = current_app.config['CASELINK_PASSWORD']
-
-    browser = webdriver.Chrome()
+@run_with_chrome
+def fetch_documents(browser, docket_id):
+    login(browser)
+    docket_search = WebDriverWait(browser, 5).until(
+        EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT))
+    )
     try:
-        browser.get('https://caselink.nashville.gov')
-        browser.switch_to.frame("update")
+        docket_search.send_keys(docket_id)
+    except ElementNotInteractableException:
+        time.sleep(.5)
+        docket_search.send_keys(docket_id)
 
-        username_field = WebDriverWait(browser, 5).until(
-            EC.presence_of_element_located((By.ID, 'OPERCODE'))
-        )
+    search(browser)
 
-        username_field.send_keys(caselink_username)
-        browser.find_element(By.ID, "PASSWD").send_keys(caselink_password)
+    time.sleep(3)
+    browser.switch_to.frame(ids.POSTBACK_FRAME)
 
-        browser.find_element(By.ID, "LogInSub").click()
+    script_tag = browser.find_element(By.XPATH, "/html")
+    postback_HTML = script_tag.get_attribute('outerHTML')
 
-        docket_search = WebDriverWait(browser, 5).until(
-            EC.element_to_be_clickable((By.XPATH, '//input[@name="P_21"]'))
-        )
-        # browser.implicitly_wait(2)
-        try:
-            docket_search.send_keys(docket_id)
-        except ElementNotInteractableException:
-            time.sleep(.5)
-            docket_search.send_keys(docket_id)
+    documents_regex = re.compile(
+        r'\,\s*"ý(https://caselinkimages.nashville.gov.+?)ý+"\,')
 
-        browser.find_element(By.XPATH, '//button[@name="WTKCB_20"]').click()
+    urls_mess = documents_regex.search(postback_HTML).group(1)
+    urls = [url for url in urls_mess.split('ý') if url != '']
 
-        # dw = WebDriverWait(browser, 5).until(
-        #     EC.presence_of_element_located((By.ID, 'L_TRN_3'))
-        # )
+    created_count = 0
+    for url in urls:
+        document, was_created = get_or_create(
+            db.session, PleadingDocument, url=url, docket_id=docket_id)
+        if was_created:
+            created_count += 1
 
-        # WebDriverWait(browser, 5).until(
-        #     EC.frame_to_be_available_and_switch_to_it('postback')
-        # )
+    db.session.commit()
 
-        time.sleep(3)
-        browser.switch_to.frame("postback")
-
-        script_tag = browser.find_element(
-            By.XPATH, "/html")
-        # script_tag = WebDriverWait(browser, 5).until(
-        #     EC.presence_of_element_located(
-        #         (By.XPATH, "//*[contains(text(),'function PostRead()')]"))
-        # )
-        postback_HTML = script_tag.get_attribute('outerHTML')
-
-        documents_regex = re.compile(
-            r'\,\s*"ý(https://caselinkimages.nashville.gov.+?)ý+"\,')
-
-        urls_mess = documents_regex.search(postback_HTML).group(1)
-        urls = [url for url in urls_mess.split('ý') if url != '']
-
-        created_count = 0
-        for url in urls:
-            document, was_created = get_or_create(
-                db.session, PleadingDocument, url=url, docket_id=docket_id)
-            if was_created:
-                created_count += 1
-
-        db.session.commit()
-
-        print(created_count)
-
-    finally:
-        browser.quit()
+    print(created_count)

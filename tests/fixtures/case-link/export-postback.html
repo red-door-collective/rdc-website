@@ -1,0 +1,42 @@
+<html>
+
+<head>
+    <script language="javascript" 1.5="">
+        if (parent.TktAlert) {
+            window.alert = parent.TktAlert
+            window.confirm = parent.TktConfirm
+        }
+    </script>
+    <!--RECORD.IO: RDLOCAL key="0"-->
+    <!--Parent=STDHUB PBname=WTKCB_8 Dict=WTKCB_8
+Val=Export List Old=
+Status=PB,NOLOCK SaveState=1 Confirm=0 Hotkey= -->
+
+    <!--RECORD.IO: WTCURRENT key="52832"-->
+    <script language="javascript" 1.5="">
+        var StallXEV = 'WAIT';
+        function PostBack() {
+            if (parent.loaded != true) return -1;
+            parent.ShowPI(0);
+            parent.SetProp("WTKCB_8", "Epb");
+
+            try {
+                parent.UserWinOpen("", "http://caselink.nashville.gov/tmp/CaseLink_11132021144038.csv", 100, 100, 0, 0);
+            } catch (e) {
+                alert("POSTBACK: " + e.description + ": Error in user generated javascript");
+            }
+
+
+            StallXEV = 0// OK or Err, release XEV stall AT END!
+        }
+        function XEV() {
+            if (StallXEV == 'WAIT') return setTimeout('XEV()', 50);
+            parent.ClearXEVENT(7, StallXEV, '', 1);
+        }
+    </script>
+</head>
+
+<body onload="PostBack();XEV();">
+</body>
+
+</html>
