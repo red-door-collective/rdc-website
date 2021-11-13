@@ -77,6 +77,31 @@ def create_app(testing=False):
     app.config['CASELINK_USERNAME'] = os.environ['CASELINK_USERNAME']
     app.config['CASELINK_PASSWORD'] = os.environ['CASELINK_PASSWORD']
     app.config['TESTING'] = testing
+
+    app.config['JOBS'] = [
+        {
+            "id": "export",
+            "func": "jobs:export",
+            "trigger": "interval",
+            "minutes": os.environ.get('EXPORT_INTERVAL', 60)
+        },
+        {
+            "id": "import-sessions-site-hearings",
+            "func": "jobs:import_sessions_site_hearings",
+            "trigger": "interval",
+            "minutes": os.environ.get('IMPORT_SESSIONS_INTERVAL', 65)
+        },
+        {
+            "id": "import-caselink-warrants",
+            "func": "jobs:import_caselink_warrants",
+            "trigger": "cron",
+            "day_of_week": "1-5",
+            "hour": 12,
+            "minute": 0,
+            "second": 0,
+            "jitter": 200
+        }
+    ]
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
