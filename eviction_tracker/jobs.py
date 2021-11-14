@@ -32,8 +32,9 @@ def export():
 
 
 def import_caselink_warrants(start_date=None, end_date=None):
-    start = start_date if start_date else date.today
-    end = end_date if end_date else date.today
+    start = datetime.strptime(
+        start_date, '%Y-%m-%d') if start_date else date.today
+    end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else date.today
 
     with scheduler.app.context():
         detainer_warrants.caselink.warrants.import_from_caselink(start, end)
