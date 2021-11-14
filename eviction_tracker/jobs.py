@@ -4,7 +4,6 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.extensions import scheduler
-from eviction_tracker.monitoring import log_on_exception
 
 import eviction_tracker.config as config
 import logging.config
@@ -13,7 +12,6 @@ logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
 
-@log_on_exception
 def export():
     with scheduler.app.app_context():
         workbook_name = 'Website Export'
@@ -41,7 +39,6 @@ def import_caselink_warrants(start_date=None, end_date=None):
         detainer_warrants.caselink.warrants.import_from_caselink(start, end)
 
 
-@log_on_exception
 def import_sessions_site_hearings():
     with scheduler.app.app_context():
         logger.info(f'Scraping General Sessions website')
