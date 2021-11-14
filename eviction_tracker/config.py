@@ -41,7 +41,7 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False
         },
-        'eviction_tracker.tasks': {
+        'eviction_tracker.jobs': {
             'handlers': ['file'],
             'level': 'INFO',
             'propagate': False

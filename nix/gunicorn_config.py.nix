@@ -25,5 +25,5 @@ def on_starting(server):
         scheduler.init_app(flask_app)
         scheduler.start()
 
-        from eviction_tracker import tasks
+        from eviction_tracker import jobs 
 ''
