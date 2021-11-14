@@ -37,7 +37,6 @@ def import_caselink_warrants(start_date=None, end_date=None):
     end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else date.today()
 
     with scheduler.app.context():
-        logger.info(f'Importing caselink warrants from {start} to {end}')
         detainer_warrants.caselink.warrants.import_from_caselink(start, end)
 
 

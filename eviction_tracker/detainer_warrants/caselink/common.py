@@ -43,8 +43,10 @@ def chrome_options():
 def run_with_chrome(f, options=None):
     @wraps(f)
     def wrapper(*args, **kwds):
+        logger.info('initializing browser')
         browser = webdriver.Chrome(
             chrome_options=options if options else chrome_options())
+        logger.info('initialized browser')
         try:
             return f(browser, *args, **kwds)
         except:

@@ -69,6 +69,9 @@ def fetch_csv_link(browser, start_date, end_date):
 
 
 def import_from_caselink(start_date, end_date):
+    logger.info(
+        f'Importing caselink warrants between {start_date} and {end_date}')
+
     csv_url = fetch_csv_link(start_date, end_date)
     logger.info(f'Gathered CSV link: {csv_url}')
 
