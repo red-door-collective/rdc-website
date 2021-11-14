@@ -17,6 +17,12 @@ from .common import login, run_with_chrome, search
 from .. import csv_imports
 from datetime import date, datetime
 import requests
+import eviction_tracker.config as config
+import logging
+import logging.config
+
+logging.config.dictConfig(config.LOGGING)
+logger = logging.getLogger(__name__)
 
 
 def to_date_str(d):
@@ -64,5 +70,6 @@ def fetch_csv_link(browser, start_date, end_date):
 
 def import_from_caselink(start_date, end_date):
     csv_url = fetch_csv_link(start_date, end_date)
+    logger.info(f'Gathered CSV link: {csv_url}')
 
     csv_imports.from_url(csv_url)

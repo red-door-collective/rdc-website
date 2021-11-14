@@ -14,6 +14,13 @@ import time
 from .constants import ids, names
 from ..util import get_or_create
 from ..models import db, PleadingDocument
+import traceback
+import eviction_tracker.config as config
+import logging
+import logging.config
+
+logging.config.dictConfig(config.LOGGING)
+logger = logging.getLogger(__name__)
 
 CASELINK_URL = 'https://caselink.nashville.gov'
 
@@ -40,8 +47,11 @@ def run_with_chrome(f, options=None):
             chrome_options=options if options else chrome_options())
         try:
             return f(browser, *args, **kwds)
+        except:
+            logger.error("uncaught exception: %s", traceback.format_exc())
         finally:
             browser.quit()
+            exit(1)
 
     return wrapper
 

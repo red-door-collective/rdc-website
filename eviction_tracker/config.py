@@ -45,6 +45,16 @@ LOGGING = {
             'handlers': ['file'],
             'level': 'INFO',
             'propagate': False
+        },
+        'eviction_tracker.detainer_warrants.caselink.common': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'eviction_tracker.detainer_warrants.caselink.warrants': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False
         }
     }
 }
