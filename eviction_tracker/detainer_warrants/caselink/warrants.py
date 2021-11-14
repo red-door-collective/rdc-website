@@ -53,6 +53,8 @@ def fetch_csv_link(browser, start_date, end_date):
         EC.element_to_be_clickable((By.NAME, names.EXPORT_BUTTON))
     )
 
+    logger.info('Found export button, clicking...')
+
     export_button.click()
 
     time.sleep(5)
@@ -73,6 +75,9 @@ def import_from_caselink(start_date, end_date):
         f'Importing caselink warrants between {start_date} and {end_date}')
 
     csv_url = fetch_csv_link(start_date, end_date)
-    logger.info(f'Gathered CSV link: {csv_url}')
+    if csv_url:
+        logger.info(f'Gathered CSV link: {csv_url}')
 
-    csv_imports.from_url(csv_url)
+        csv_imports.from_url(csv_url)
+    else:
+        logger.warn(f'Could not find CSV between {start_date} and {end_date}')
