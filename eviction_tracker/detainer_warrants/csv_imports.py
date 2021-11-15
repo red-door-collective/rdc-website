@@ -73,7 +73,7 @@ def from_csv_row(defaults, row):
               _file_date=warrant['File Date'],
               _plaintiff=plaintiff,
               _plaintiff_attorney=plaintiff_attorney,
-              defendants=[{'id': d.id} for d in defendants]
+              defendants=[{'id': d.id} for d in defendants if d]
               )
 
     db.session.add(dw)

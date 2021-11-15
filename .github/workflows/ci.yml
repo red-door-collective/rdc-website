@@ -145,7 +145,6 @@ jobs:
     name: Commit Assets
     needs:
       - compute_tags
-      - integration_tests
     steps:
       - uses: actions/checkout@v2.3.4
       
