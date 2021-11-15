@@ -1,6 +1,7 @@
 import time
 from datetime import datetime, date, timedelta
 from apscheduler.triggers.interval import IntervalTrigger
+from sqlalchemy import and_
 
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.extensions import scheduler
@@ -38,6 +39,15 @@ def import_caselink_warrants(start_date=None, end_date=None):
 
     with scheduler.app.app_context():
         detainer_warrants.caselink.warrants.import_from_caselink(start, end)
+
+
+def import_caselink_pleading_documents(docket_id):
+    with scheduler.app.app_context():
+        queue = db.session.query(DetainerWarrant.docket_id).filter(and_(
+            DetainerWarrant.docket_id.ilike('%GT%'),
+            DetainerWarrant.status == 'PENDING'
+        ))
+        detainer_warrants.caselink.pleadings.bulk_import_documents(queue)
 
 
 def import_sessions_site_hearings():

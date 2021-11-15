@@ -40,40 +40,6 @@ def test():
 
 
 @click.command()
-@click.option('-w', '--workbook-name', default='CURRENT 2020-2021 Detainer Warrants',
-              help='Name of Google spreadsheet')
-@click.option('-l', '--limit', default=None,
-              help='Number of rows to insert')
-@click.option('-k', '--service-account-key', default=None,
-              help='Google Service Account filepath')
-@with_appcontext
-def sync(workbook_name, limit, service_account_key):
-    """Sync data with the Google spreadsheet"""
-    detainer_warrants.imports.from_workbook(
-        workbook_name, limit=limit, service_account_key=service_account_key)
-
-
-@click.command()
-@click.option('-w', '--workbook-name', default='GS Dockets (Starting March 15)',
-              help='Name of Google spreadsheet')
-@click.option('-l', '--limit', default=None,
-              help='Number of rows to insert')
-@click.option('-k', '--service-account-key', default=None,
-              help='Google Service Account filepath')
-@click.option('-ww', '--warrant-wb', is_flag=True, flag_value='CURRENT 2020-2021 Detainer Warrants',
-              default=None, help='Extract judgements from detainer warrant sheet')
-@with_appcontext
-def sync_judgements(workbook_name, limit, service_account_key, warrant_wb):
-    if warrant_wb:
-        detainer_warrants.judgement_imports.from_dw_wb(
-            warrant_wb, limit=limit, service_account_key=service_account_key)
-
-    else:
-        detainer_warrants.judgement_imports.from_workbook(
-            workbook_name, limit=limit, service_account_key=service_account_key)
-
-
-@click.command()
 @click.option('-c', '--courtroom', default=None,
               help='Courtroom')
 @click.option('-d', '--date', default=None,
@@ -233,7 +199,15 @@ def extract_judgement(file_name):
 @with_appcontext
 def gather_pleading_documents(docket_id):
     """Gather pleading documents for a detainer warrant"""
-    detainer_warrants.caselink.pleadings.fetch_documents(docket_id)
+    detainer_warrants.caselink.pleadings.import_documents(docket_id)
+
+
+@click.command()
+@click.option('--docket-id', '-d', multiple=True)
+@with_appcontext
+def gather_pleading_documents_in_bulk(docket_id):
+    """Gather pleading documents for detainer warrants"""
+    detainer_warrants.caselink.pleadings.bulk_import_documents(docket_id)
 
 
 @click.command()

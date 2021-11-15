@@ -100,6 +100,16 @@ def create_app(testing=False):
             "minute": 0,
             "second": 0,
             "jitter": 200
+        },
+        {
+            "id": "import-caselink-pleading-documents",
+            "func": "eviction_tracker.jobs:import_caselink_pleading_documents",
+            "trigger": "cron",
+            "day_of_week": "1-5",
+            "hour": 5,
+            "minute": 0,
+            "second": 0,
+            "jitter": 200
         }
     ]
     app.config.update(**security_config)
@@ -464,8 +474,6 @@ def register_shellcontext(app):
 def register_commands(app):
     """Register Click commands."""
     app.cli.add_command(commands.test)
-    app.cli.add_command(commands.sync)
-    app.cli.add_command(commands.sync_judgements)
     app.cli.add_command(commands.import_from_caselink)
     app.cli.add_command(commands.scrape_sessions_site)
     app.cli.add_command(commands.scrape_sessions_week)
@@ -475,5 +483,6 @@ def register_commands(app):
     app.cli.add_command(commands.verify_phones)
     app.cli.add_command(commands.extract_judgement)
     app.cli.add_command(commands.gather_pleading_documents)
+    app.cli.add_command(commands.gather_pleading_documents_in_bulk)
     app.cli.add_command(commands.gather_warrants_csv)
     app.cli.add_command(commands.bootstrap)

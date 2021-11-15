@@ -10,7 +10,6 @@ from gspread_formatting import *
 from datetime import datetime, date, timedelta
 from ..database import from_millis
 import usaddress
-from eviction_tracker.monitoring import log_on_exception
 import jellyfish
 import itertools
 

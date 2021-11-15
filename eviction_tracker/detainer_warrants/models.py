@@ -1,6 +1,6 @@
 from eviction_tracker.database import db, PosixComparator, in_millis, from_millis, Timestamped, Column, Model, relationship
 from datetime import datetime, date, timezone
-from sqlalchemy import func, text
+from sqlalchemy import func, text, case
 from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -682,10 +682,14 @@ class DetainerWarrant(db.Model, Timestamped):
     def court_date(self, posix):
         self._court_date = from_millis(posix) if posix else None
 
-    @property
+    @hybrid_property
     def status(self):
         status_by_id = {v: k for k, v in DetainerWarrant.statuses.items()}
         return status_by_id[self.status_id] if self.status_id is not None else None
+
+    @status.expression
+    def status(cls):
+        return case([(cls.status_id == 0, 'CLOSED'), (cls.status_id == 1, 'PENDING')], else_=None).label("status")
 
     @status.setter
     def status(self, status_name):
