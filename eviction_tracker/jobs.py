@@ -4,7 +4,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy import and_
 
 import eviction_tracker.detainer_warrants as detainer_warrants
-from eviction_tracker.extensions import scheduler
+from eviction_tracker.extensions import db, scheduler
 
 import eviction_tracker.config as config
 import logging.config
