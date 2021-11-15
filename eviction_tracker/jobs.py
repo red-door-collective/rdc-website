@@ -41,7 +41,7 @@ def import_caselink_warrants(start_date=None, end_date=None):
         detainer_warrants.caselink.warrants.import_from_caselink(start, end)
 
 
-def import_caselink_pleading_documents(docket_id):
+def import_caselink_pleading_documents():
     with scheduler.app.app_context():
         queue = db.session.query(DetainerWarrant.docket_id).filter(and_(
             DetainerWarrant.docket_id.ilike('%GT%'),
