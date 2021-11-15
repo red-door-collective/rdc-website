@@ -105,7 +105,7 @@ in rec {
     yapf
   ];
 
-  infrastructure =
+  externalRuntimeDeps =
   [
     pkgs.chromedriver
     pkgs.chromium
