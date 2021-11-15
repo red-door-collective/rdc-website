@@ -4,7 +4,7 @@
 { sources ? null }:
 let
   deps = import ./nix/deps.nix { inherit sources; };
-  inherit (deps) babel pkgs mkPoetryApplication python pyProject;
+  inherit (deps) babel pkgs mkPoetryApplication python pyProject infrastructure;
   inherit (deps.pyProject) version;
   src = ./.;
 

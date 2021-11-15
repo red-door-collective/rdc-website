@@ -105,6 +105,12 @@ in rec {
     yapf
   ];
 
+  infrastructure =
+  [
+    pkgs.chromedriver
+    pkgs.chromium
+  ];
+
   # Various tools for log files, deps management, running scripts and so on
   shellTools = 
   [
