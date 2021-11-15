@@ -38,7 +38,7 @@ def create_defendant(defaults, docket_id, column):
                 middle_name=name.middle,
                 last_name=name.last,
                 suffix=name.suffix,
-                district=defaults
+                district=defaults['district']
             ).first()
     return [defendant]
 
