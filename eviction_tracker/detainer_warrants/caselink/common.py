@@ -51,9 +51,10 @@ def run_with_chrome(f, options=None):
             return f(browser, *args, **kwds)
         except:
             logger.error("uncaught exception: %s", traceback.format_exc())
-        finally:
             browser.quit()
             exit(1)
+        finally:
+            browser.quit()
 
     return wrapper
 

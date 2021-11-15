@@ -63,7 +63,6 @@ def fetch_csv_link(browser, start_date, end_date):
 
     script_tag = browser.find_element(By.XPATH, "/html")
     postback_HTML = script_tag.get_attribute('outerHTML')
-    logger.info(f'found postback HTML: {postback_HTML[:1000]}...')
 
     csv_regex = re.compile(
         r'\s*"(https{0,1}://caselink.nashville.gov/.+?\.csv)"\s*\,')
