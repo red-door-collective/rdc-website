@@ -4,7 +4,7 @@
 { sources ? null }:
 let
   deps = import ./nix/deps.nix { inherit sources; };
-  inherit (deps) babel pkgs mkPoetryApplication python pyProject externalRuntimeDeps;
+  inherit (deps) babel pkgs mkPoetryApplication python pyProject;
   inherit (deps.pyProject) version;
   src = ./.;
 
@@ -14,10 +14,8 @@ in mkPoetryApplication {
   inherit python src version;
 
   passthru = {
-    inherit deps src version;
+    inherit src version;
   };
-
-  propagatedBuildInputs = externalRuntimeDeps;
 
   postInstall = ''
     ${babel}/bin/pybabel compile -d $out/${python.sitePackages}/eviction_tracker/translations
