@@ -6,12 +6,13 @@ from selenium.webdriver.support.wait import WebDriverWait
 import selenium.webdriver.support.expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from sqlalchemy import and_
 import time
 import os
 import re
 import time
 from ..util import get_or_create
-from ..models import db, PleadingDocument
+from ..models import db, PleadingDocument, DetainerWarrant
 from .constants import ids, names
 from .common import login, search, run_with_chrome
 import eviction_tracker.config as config
@@ -94,3 +95,11 @@ def bulk_import_documents(browser, docket_ids):
             logger.error(
                 f'failed to gather documents for {docket_id}. Exception: {traceback.format_exc()}')
             login(browser)  # just keep swimming...
+
+
+def update_pending_warrants():
+    queue = db.session.query(DetainerWarrant.docket_id).filter(and_(
+        DetainerWarrant.docket_id.ilike('%GT%'),
+        DetainerWarrant.status == 'PENDING'
+    ))
+    bulk_import_documents(queue)

@@ -2,11 +2,9 @@ import time
 from datetime import datetime, date, timedelta
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
-from sqlalchemy import and_
 
 import eviction_tracker.detainer_warrants as detainer_warrants
-from eviction_tracker.detainer_warrants.models import DetainerWarrant
-from eviction_tracker.extensions import db, scheduler
+from eviction_tracker.extensions import scheduler
 
 import eviction_tracker.config as config
 import logging.config
@@ -48,11 +46,7 @@ def import_caselink_warrants(start_date=None, end_date=None):
 @scheduler.task(CronTrigger(day_of_week='1-5', hour=5, minute=0, second=0, jitter=200), id='import-caselink-pleading-documents')
 def import_caselink_pleading_documents():
     with scheduler.app.app_context():
-        queue = db.session.query(DetainerWarrant.docket_id).filter(and_(
-            DetainerWarrant.docket_id.ilike('%GT%'),
-            DetainerWarrant.status == 'PENDING'
-        ))
-        detainer_warrants.caselink.pleadings.bulk_import_documents(queue)
+        detainer_warrants.caselink.pleadings.update_pending_warrants()
 
 
 @scheduler.task(IntervalTrigger(minutes=65), id='sync-with-sessions-site')

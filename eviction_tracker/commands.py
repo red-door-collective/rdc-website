@@ -207,7 +207,10 @@ def gather_pleading_documents(docket_id):
 @with_appcontext
 def gather_pleading_documents_in_bulk(docket_id):
     """Gather pleading documents for detainer warrants"""
-    detainer_warrants.caselink.pleadings.bulk_import_documents(docket_id)
+    if docket_id:
+        detainer_warrants.caselink.pleadings.bulk_import_documents(docket_id)
+    else:
+        detainer_warrants.caselink.pleadings.update_pending_warrants()
 
 
 @click.command()
