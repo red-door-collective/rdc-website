@@ -14,7 +14,7 @@ in mkPoetryApplication {
   inherit python src version;
 
   passthru = {
-    inherit deps src version;
+    inherit src version;
   };
 
   postInstall = ''

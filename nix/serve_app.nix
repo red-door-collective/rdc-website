@@ -5,7 +5,8 @@
 }:
 let
   eviction-tracker = import ../. { inherit sources; };
-  inherit (eviction-tracker) dependencyEnv deps src;
+  inherit (eviction-tracker) dependencyEnv src;
+  deps = import ./nix/deps.nix { inherit sources; };
   inherit (deps) pkgs gunicorn lib externalRuntimeDeps;
   pythonpath = "${dependencyEnv}/${dependencyEnv.sitePackages}";
 
