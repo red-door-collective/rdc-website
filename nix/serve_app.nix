@@ -19,6 +19,7 @@ let
   runGunicorn = pkgs.writeShellScriptBin "run" ''
     ${pkgs.lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
     export PYTHONPATH=${pythonpath}
+    PATH="${pkgs.chromedriver}/bin:${pkgs.chromium}/bin"
 
     ${gunicorn}/bin/gunicorn -c ${gunicornConf} \
       "eviction_tracker.app:create_app()"

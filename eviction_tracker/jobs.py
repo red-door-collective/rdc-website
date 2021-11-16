@@ -55,7 +55,7 @@ def import_caselink_pleading_documents():
         detainer_warrants.caselink.pleadings.bulk_import_documents(queue)
 
 
-@scheduler.task(IntervalTrigger(minutes=65), id='sync_with_sessions_site')
+@scheduler.task(IntervalTrigger(minutes=65), id='sync-with-sessions-site')
 def import_sessions_site_hearings():
     with scheduler.app.app_context():
         logger.info(f'Scraping General Sessions website')
