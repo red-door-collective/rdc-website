@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 def import_from_dw_page(browser, docket_id):
     browser.switch_to.frame(ids.POSTBACK_FRAME)
+    print(docket_id)
 
     script_tag = browser.find_element(By.XPATH, "/html")
     postback_HTML = script_tag.get_attribute('outerHTML')
@@ -106,4 +107,4 @@ def update_pending_warrants():
         DetainerWarrant.docket_id.ilike('%GT%'),
         DetainerWarrant.status == 'PENDING'
     ))
-    bulk_import_documents(queue)
+    bulk_import_documents([id[0] for id in queue])
