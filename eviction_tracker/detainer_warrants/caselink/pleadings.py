@@ -29,12 +29,16 @@ def import_from_dw_page(browser, docket_id):
 
     script_tag = browser.find_element(By.XPATH, "/html")
     postback_HTML = script_tag.get_attribute('outerHTML')
-    logger.info(f'postback HTML: {postback_HTML}')
 
     documents_regex = re.compile(
         r'\,\s*"ý(https://caselinkimages.nashville.gov.+?)ý+"\,')
 
-    urls_mess = documents_regex.search(postback_HTML).group(1)
+    match = documents_regex.search(postback_HTML)
+    if not match:
+        logger.info(f'postback HTML: {postback_HTML}')
+        return
+
+    urls_mess = match.group(1)
     urls = [url for url in urls_mess.split('ý') if url != '']
 
     created_count = 0
