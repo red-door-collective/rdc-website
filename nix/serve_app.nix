@@ -1,12 +1,12 @@
 #!/usr/bin/env -S nix-build -o serve_app
 { sources ? null,
   listen ? "127.0.0.1:8080",
-  tmpdir ? null,
-  pkgs ? import <nixpkgs> {}
+  tmpdir ? null
 }:
 let
   eviction-tracker = import ../. { inherit sources; };
-  inherit (eviction-tracker) dependencyEnv src;
+  inherit (eviction-tracker) dependencyEnv deps src;
+  inherit (deps) pkgs gunicorn lib;
   pythonpath = "${dependencyEnv}/${dependencyEnv.sitePackages}";
 
   gunicornConf = pkgs.writeText
@@ -18,7 +18,7 @@ let
   runGunicorn = pkgs.writeShellScriptBin "run" ''
     ${pkgs.lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
     export PYTHONPATH=${pythonpath}
-    ${dependencyEnv}/bin/gunicorn -c ${gunicornConf} \
+    ${gunicorn}/bin/gunicorn -c ${gunicornConf} \
       "eviction_tracker.app:create_app()"
   '';
 
@@ -61,5 +61,6 @@ in pkgs.buildEnv {
     runFlask
     console
     verifyPhones
+    deps.externalRuntimeDeps
   ];
 }
