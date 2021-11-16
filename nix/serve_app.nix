@@ -6,7 +6,7 @@
 let
   eviction-tracker = import ../. { inherit sources; };
   inherit (eviction-tracker) dependencyEnv deps src;
-  inherit (deps) pkgs gunicorn lib;
+  inherit (deps) pkgs gunicorn lib externalRuntimeDeps;
   pythonpath = "${dependencyEnv}/${dependencyEnv.sitePackages}";
 
   gunicornConf = pkgs.writeText
@@ -18,6 +18,7 @@ let
   runGunicorn = pkgs.writeShellScriptBin "run" ''
     ${pkgs.lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
     export PYTHONPATH=${pythonpath}
+
     ${gunicorn}/bin/gunicorn -c ${gunicornConf} \
       "eviction_tracker.app:create_app()"
   '';
@@ -28,22 +29,10 @@ let
     ${dependencyEnv}/bin/flask db upgrade
   '';
 
-  runSync = pkgs.writeShellScriptBin "sync" ''
-    export PYTHONPATH=${pythonpath}
-    cd ${src}
-    ${dependencyEnv}/bin/flask sync "$@"
-  '';
-
   console = pkgs.writeShellScriptBin "console" ''
     export PYTHONPATH=${pythonpath}
     cd ${src}
     ${dependencyEnv}/bin/flask shell
-  '';
-
-  verifyPhones = pkgs.writeShellScriptBin "verifyPhones" ''
-    export PYTHONPATH=${pythonpath}
-    cd ${src}
-    ${dependencyEnv}/bin/flask verify-phones "$@"
   '';
 
   runFlask = pkgs.writeShellScriptBin "flask" ''
@@ -57,10 +46,7 @@ in pkgs.buildEnv {
   paths = [
     runGunicorn
     runMigrations
-    runSync
     runFlask
     console
-    verifyPhones
-    deps.externalRuntimeDeps
-  ];
+  ] ++ externalRuntimeDeps;
 }
