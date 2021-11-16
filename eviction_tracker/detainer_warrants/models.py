@@ -614,6 +614,9 @@ class DetainerWarrant(db.Model, Timestamped):
     zip_code = Column(db.String(10))
     nonpayment = Column(db.Boolean)
     notes = Column(db.String(255))
+    _last_pleading_documents_check = Column(
+        db.DateTime, name="last_pleading_documents_check")
+    pleading_document_check_was_successful = Column(db.Boolean)
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
     _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
@@ -719,6 +722,24 @@ class DetainerWarrant(db.Model, Timestamped):
     def amount_claimed_category(self, amount_claimed_category_name):
         self.amount_claimed_category_id = DetainerWarrant.amount_claimed_categories[
             amount_claimed_category_name] if amount_claimed_category_name else None
+
+    @hybrid_property
+    def last_pleading_documents_check(self):
+        if self._last_pleading_documents_check:
+            return in_millis(self._last_pleading_documents_check.timestamp())
+        else:
+            return None
+
+    @last_pleading_documents_check.comparator
+    def last_pleading_documents_check(cls):
+        return PosixComparator(cls._last_pleading_documents_check)
+
+    @last_pleading_documents_check.setter
+    def last_pleading_documents_check(self, posix):
+        if isinstance(posix, datetime):
+            self._last_pleading_documents_check = posix
+        else:
+            self._last_pleading_documents_check = from_millis(posix)
 
     @property
     def plaintiff(self):

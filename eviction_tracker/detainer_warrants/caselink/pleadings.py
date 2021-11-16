@@ -6,19 +6,20 @@ from selenium.webdriver.support.wait import WebDriverWait
 import selenium.webdriver.support.expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 import time
 import os
 import re
 import time
 from ..util import get_or_create
-from ..models import db, PleadingDocument, DetainerWarrant
+from ..models import db, PleadingDocument, DetainerWarrant, Judgement
 from .constants import ids, names
 from .common import login, search, run_with_chrome
 import eviction_tracker.config as config
 import logging
 import logging.config
 import traceback
+from datetime import datetime, timedelta
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -26,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 def import_from_dw_page(browser, docket_id):
     browser.switch_to.frame(ids.POSTBACK_FRAME)
-    print(docket_id)
 
     script_tag = browser.find_element(By.XPATH, "/html")
     postback_HTML = script_tag.get_attribute('outerHTML')
@@ -34,12 +34,7 @@ def import_from_dw_page(browser, docket_id):
     documents_regex = re.compile(
         r'\,\s*"ý(https://caselinkimages.nashville.gov.+?)ý+"\,')
 
-    match = documents_regex.search(postback_HTML)
-    if not match:
-        logger.info(f'postback HTML: {postback_HTML}')
-        return
-
-    urls_mess = match.group(1)
+    urls_mess = documents_regex.search(postback_HTML).group(1)
     urls = [url for url in urls_mess.split('ý') if url != '']
 
     created_count = 0
@@ -49,6 +44,10 @@ def import_from_dw_page(browser, docket_id):
         if was_created:
             created_count += 1
 
+    DetainerWarrant.query.get(docket_id).update(
+        _last_pleading_documents_check=datetime.utcnow(),
+        pleading_document_check_was_successful=True
+    )
     db.session.commit()
 
     logger.info(f'created {created_count} pleading documents for {docket_id}')
@@ -78,6 +77,8 @@ def import_documents(browser, docket_id):
 def bulk_import_documents(browser, docket_ids):
     login(browser)
 
+    logger.info(f'checking {len(docket_ids)} dockets')
+
     for docket_id in docket_ids:
         try:
             time.sleep(3)
@@ -99,12 +100,30 @@ def bulk_import_documents(browser, docket_ids):
         except:
             logger.error(
                 f'failed to gather documents for {docket_id}. Exception: {traceback.format_exc()}')
+            DetainerWarrant.query.get(docket_id).update(
+                _last_pleading_documents_check=datetime.utcnow(),
+                pleading_document_check_was_successful=False
+            )
+            db.session.commit()
             login(browser)  # just keep swimming...
 
 
 def update_pending_warrants():
+    current_time = datetime.utcnow()
+
+    three_days_ago = current_time - timedelta(days=3)
+
     queue = db.session.query(DetainerWarrant.docket_id).filter(and_(
         DetainerWarrant.docket_id.ilike('%GT%'),
-        DetainerWarrant.status == 'PENDING'
+        DetainerWarrant.status == 'PENDING',
+        or_(
+            DetainerWarrant._last_pleading_documents_check == None,
+            DetainerWarrant._judgements.any(
+                Judgement._court_date < DetainerWarrant._last_pleading_documents_check),
+        ),
+        or_(
+            DetainerWarrant._last_pleading_documents_check == None,
+            DetainerWarrant._last_pleading_documents_check > three_days_ago
+        )
     ))
     bulk_import_documents([id[0] for id in queue])
