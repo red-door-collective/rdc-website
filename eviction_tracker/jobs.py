@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, date, timedelta
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy import and_
 
@@ -14,6 +15,7 @@ logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
 
+@scheduler.task(IntervalTrigger(minutes=70), id='export')
 def export():
     with scheduler.app.app_context():
         workbook_name = 'Website Export'
@@ -33,6 +35,7 @@ def export():
             date.today(), key)
 
 
+@scheduler.task(CronTrigger(day_of_week='1-5', hour=12, minute=0, second=0, jitter=200), id='import-caselink-warrants')
 def import_caselink_warrants(start_date=None, end_date=None):
     start = datetime.strptime(
         start_date, '%Y-%m-%d') if start_date else date.today()
@@ -42,6 +45,7 @@ def import_caselink_warrants(start_date=None, end_date=None):
         detainer_warrants.caselink.warrants.import_from_caselink(start, end)
 
 
+@scheduler.task(CronTrigger(day_of_week='1-5', hour=5, minute=0, second=0, jitter=200), id='import-caselink-pleading-documents')
 def import_caselink_pleading_documents():
     with scheduler.app.app_context():
         queue = db.session.query(DetainerWarrant.docket_id).filter(and_(
@@ -51,6 +55,7 @@ def import_caselink_pleading_documents():
         detainer_warrants.caselink.pleadings.bulk_import_documents(queue)
 
 
+@scheduler.task(IntervalTrigger(minutes=65), id='sync_with_sessions_site')
 def import_sessions_site_hearings():
     with scheduler.app.app_context():
         logger.info(f'Scraping General Sessions website')
