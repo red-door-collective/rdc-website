@@ -7,6 +7,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from nameparser import HumanName
 from ..util import get_or_create
 import re
+from flask_sqlalchemy import BaseQuery
 
 
 def district_defaults():
@@ -591,7 +592,21 @@ class PleadingDocument(db.Model, Timestamped):
         return "<PleadingDocument(docket_id='%s', url='%s')>" % (self.docket_id, self.url)
 
 
+class QueryOnlyGT(BaseQuery):
+    def __new__(cls, *args, **kwargs):
+        obj = super(QueryOnlyGT, cls).__new__(cls)
+        if len(args) > 0:
+            super(QueryOnlyGT, obj).__init__(*args, **kwargs)
+            return obj.filter(DetainerWarrant.docket_id.ilike('%GT%'))
+        return obj
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+
 class DetainerWarrant(db.Model, Timestamped):
+    query_class = QueryOnlyGT
+
     statuses = {
         'CLOSED': 0,
         'PENDING': 1

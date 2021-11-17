@@ -122,8 +122,7 @@ def get_or_create_sheet(wb, name, rows=100, cols=25):
 def to_spreadsheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    warrants = DetainerWarrant.query.filter(
-        DetainerWarrant.docket_id.ilike('%\G\T%'))
+    warrants = DetainerWarrant.query
 
     total = warrants.count()
 
@@ -179,9 +178,8 @@ def _to_judgment_row(judgment):
 def to_judgment_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    judgments = Judgment.query.filter(
-        Judgment.detainer_warrant_id.ilike('%\G\T%')
-    ).join(Courtroom).order_by(Judgment._court_date, Courtroom.name)
+    judgments = Judgment.query.filter.join(Courtroom).order_by(
+        Judgment._court_date, Courtroom.name)
 
     total = judgments.count()
 
@@ -263,7 +261,6 @@ def to_court_watch_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
     warrants = DetainerWarrant.query.join(Judgment).filter(
-        DetainerWarrant.docket_id.ilike('%\G\T%'),
         Judgment._court_date != None,
         Judgment._court_date >= date.today()
     ).order_by(DetainerWarrant.plaintiff_id.desc(), Judgment._court_date.desc())

@@ -228,7 +228,6 @@ def amount_awarded_between(start, end):
     amount = db.session.query(func.sum(Judgment.awards_fees))\
         .filter(
             and_(
-                Judgment.detainer_warrant_id.ilike('%\\G\\T%'),
                 func.date(Judgment.court_date) >= start,
                 func.date(Judgment.court_date) < end
             )
