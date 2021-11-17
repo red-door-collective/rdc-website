@@ -221,7 +221,7 @@ class Judgement(db.Model, Timestamped):
     _court_date = Column(db.Date, name='court_date')
     mediation_letter = Column(db.Boolean)
     court_order_number = Column(db.Integer)
-    notes = Column(db.String(255))
+    notes = Column(db.Text)
 
     detainer_warrant_id = Column(
         db.String(255), db.ForeignKey('detainer_warrants.docket_id'), nullable=False)
