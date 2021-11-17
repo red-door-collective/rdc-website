@@ -18,7 +18,7 @@ minimalJson =
         "file_date": null,
         "is_cares": null,
         "is_legacy": null,
-        "judgements": [],
+        "judgments": [],
         "last_edited_by": {
           "active": true,
           "first_name": "System",
@@ -51,7 +51,7 @@ minimalDetainer =
     { docketId = "21GC11668"
     , amountClaimed = Nothing
     , amountClaimedCategory = NotApplicable
-    , judgements = []
+    , judgments = []
     , defendants = []
     , fileDate = Nothing
     , isCares = Nothing
@@ -75,7 +75,7 @@ maximumJson =
         "file_date": 1635901200000,
         "is_cares": true,
         "is_legacy": false,
-        "judgements": [],
+        "judgments": [],
         "last_edited_by": {
           "active": true,
           "first_name": "System",
@@ -116,7 +116,7 @@ maximumDetainer =
     , notes = Just "some notes"
     , plaintiff = Nothing
     , plaintiffAttorney = Nothing
-    , judgements = []
+    , judgments = []
     , defendants = []
     }
 

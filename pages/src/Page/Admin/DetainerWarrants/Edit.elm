@@ -23,7 +23,7 @@ import Html.Attributes exposing (selected)
 import Http
 import Json.Encode as Encode
 import Judge exposing (Judge)
-import Judgement exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm)
+import Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), Entrance(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm)
 import List.Extra as List
 import Log
 import Logo
@@ -116,7 +116,7 @@ type alias Form =
     , categoryDropdown : Dropdown.State AmountClaimedCategory
     , address : String
     , defendants : List DefendantForm
-    , judgements : List JudgementForm
+    , judgments : List JudgmentForm
     , notes : String
     , saveButtonState : SplitButton.State NavigationOnSuccess
     }
@@ -127,8 +127,8 @@ type Problem
     | ServerError String
 
 
-type JudgementDetail
-    = JudgementFileDateDetail
+type JudgmentDetail
+    = JudgmentFileDateDetail
     | Summary
     | FeesAwardedInfo
     | PossessionAwardedInfo
@@ -137,7 +137,7 @@ type JudgementDetail
     | InterestRateInfo
     | DismissalBasisInfo
     | WithPrejudiceInfo
-    | JudgementNotesDetail
+    | JudgmentNotesDetail
 
 
 type Tooltip
@@ -155,14 +155,14 @@ type Tooltip
     | NonpaymentInfo
     | AddressInfo
     | PotentialPhoneNumbersInfo Int
-    | JudgementInfo Int JudgementDetail
+    | JudgmentInfo Int JudgmentDetail
     | NotesInfo
 
 
 type SaveState
     = SavingRelatedModels { attorney : Bool, plaintiff : Bool, defendants : Int }
     | SavingWarrant
-    | SavingJudgements { judgements : Int }
+    | SavingJudgments { judgments : Int }
     | Done
 
 
@@ -246,21 +246,21 @@ editForm today warrant =
     , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
     , address = Maybe.withDefault "" <| List.head <| List.map .address warrant.defendants
     , defendants = List.map (initDefendantForm << Just) warrant.defendants
-    , judgements = List.indexedMap (\index j -> judgementFormInit today index (Just j)) warrant.judgements
+    , judgments = List.indexedMap (\index j -> judgmentFormInit today index (Just j)) warrant.judgments
     , notes = Maybe.withDefault "" warrant.notes
     , saveButtonState = SplitButton.init "save-button"
     }
 
 
-judgementFormInit : Date -> Int -> Maybe Judgement -> JudgementForm
-judgementFormInit today index existing =
+judgmentFormInit : Date -> Int -> Maybe Judgment -> JudgmentForm
+judgmentFormInit today index existing =
     let
         new =
             { id = Nothing
-            , conditionsDropdown = Dropdown.init ("judgement-dropdown-new-" ++ String.fromInt index)
+            , conditionsDropdown = Dropdown.init ("judgment-dropdown-new-" ++ String.fromInt index)
             , condition = Just PlaintiffOption
             , courtroom = Nothing
-            , courtroomDropdown = Dropdown.init ("judgement-dropdown-courtroom-" ++ String.fromInt index)
+            , courtroomDropdown = Dropdown.init ("judgment-dropdown-courtroom-" ++ String.fromInt index)
             , notes = ""
             , courtDate = { date = Just today, dateText = Date.toIsoString today, pickerModel = DatePicker.init |> DatePicker.setToday today }
             , enteredBy = Default
@@ -269,7 +269,7 @@ judgementFormInit today index existing =
             , hasInterest = False
             , interestRate = ""
             , interestFollowsSite = True
-            , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt index)
+            , dismissalBasisDropdown = Dropdown.init ("judgment-dropdown-dismissal-basis-" ++ String.fromInt index)
             , dismissalBasis = FailureToProsecute
             , withPrejudice = False
             , plaintiff = { text = "", person = Nothing, searchBox = SearchBox.init }
@@ -278,46 +278,46 @@ judgementFormInit today index existing =
             }
     in
     case existing of
-        Just judgement ->
+        Just judgment ->
             let
                 default =
                     { new
-                        | id = Just judgement.id
-                        , enteredBy = judgement.enteredBy
+                        | id = Just judgment.id
+                        , enteredBy = judgment.enteredBy
                         , courtDate =
-                            { date = Maybe.map Date.Extra.fromPosix judgement.courtDate
-                            , dateText = Maybe.withDefault new.courtDate.dateText <| Maybe.map Time.Utils.toIsoString judgement.courtDate
+                            { date = Maybe.map Date.Extra.fromPosix judgment.courtDate
+                            , dateText = Maybe.withDefault new.courtDate.dateText <| Maybe.map Time.Utils.toIsoString judgment.courtDate
                             , pickerModel = DatePicker.init |> DatePicker.setToday today
                             }
-                        , courtroom = judgement.courtroom
-                        , courtroomDropdown = Dropdown.init ("judgement-dropdown-courtroom-" ++ String.fromInt judgement.id)
-                        , conditionsDropdown = Dropdown.init ("judgement-dropdown-" ++ String.fromInt judgement.id)
-                        , dismissalBasisDropdown = Dropdown.init ("judgement-dropdown-dismissal-basis-" ++ String.fromInt judgement.id)
+                        , courtroom = judgment.courtroom
+                        , courtroomDropdown = Dropdown.init ("judgment-dropdown-courtroom-" ++ String.fromInt judgment.id)
+                        , conditionsDropdown = Dropdown.init ("judgment-dropdown-" ++ String.fromInt judgment.id)
+                        , dismissalBasisDropdown = Dropdown.init ("judgment-dropdown-dismissal-basis-" ++ String.fromInt judgment.id)
                         , plaintiff =
                             { text =
                                 Maybe.withDefault "" <|
-                                    Maybe.map .name judgement.plaintiff
-                            , person = judgement.plaintiff
+                                    Maybe.map .name judgment.plaintiff
+                            , person = judgment.plaintiff
                             , searchBox = SearchBox.init
                             }
                         , plaintiffAttorney =
                             { text =
                                 Maybe.withDefault "" <|
-                                    Maybe.map .name judgement.plaintiffAttorney
-                            , person = judgement.plaintiffAttorney
+                                    Maybe.map .name judgment.plaintiffAttorney
+                            , person = judgment.plaintiffAttorney
                             , searchBox = SearchBox.init
                             }
                         , judge =
                             { text =
                                 Maybe.withDefault "" <|
-                                    Maybe.map .name judgement.judge
-                            , person = judgement.judge
+                                    Maybe.map .name judgment.judge
+                            , person = judgment.judge
                             , searchBox = SearchBox.init
                             }
-                        , notes = Maybe.withDefault "" judgement.notes
+                        , notes = Maybe.withDefault "" judgment.notes
                     }
             in
-            case judgement.conditions of
+            case judgment.conditions of
                 Just (PlaintiffConditions owed) ->
                     { default
                         | condition = Just PlaintiffOption
@@ -373,7 +373,7 @@ initCreate today =
     , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
     , address = ""
     , defendants = [ initDefendantForm Nothing ]
-    , judgements = []
+    , judgments = []
     , notes = ""
     , saveButtonState = SplitButton.init "save-button"
     }
@@ -478,27 +478,27 @@ type Msg
     | AddPhone Int
     | RemovePhone Int Int
     | AddDefendant
-    | AddJudgement
-    | RemoveJudgement Int
-    | ChangedJudgementCourtDatePicker Int ChangeEvent
+    | AddJudgment
+    | RemoveJudgment Int
+    | ChangedJudgmentCourtDatePicker Int ChangeEvent
     | PickedCourtroom Int (Maybe (Maybe Courtroom))
     | CourtroomDropdownMsg Int (Dropdown.Msg (Maybe Courtroom))
     | PickedConditions Int (Maybe (Maybe ConditionOption))
     | ConditionsDropdownMsg Int (Dropdown.Msg (Maybe ConditionOption))
     | ChangedFeesAwarded Int String
     | ConfirmedFeesAwarded Int
-    | ToggleJudgementPossession Int Bool
-    | ToggleJudgementInterest Int Bool
+    | ToggleJudgmentPossession Int Bool
+    | ToggleJudgmentInterest Int Bool
     | ChangedInterestRate Int String
     | ConfirmedInterestRate Int
     | ToggleInterestFollowSite Int Bool
     | DismissalBasisDropdownMsg Int (Dropdown.Msg DismissalBasis)
     | PickedDismissalBasis Int (Maybe DismissalBasis)
     | ToggledWithPrejudice Int Bool
-    | ChangedJudgementPlaintiffSearchBox Int (SearchBox.ChangeEvent Plaintiff)
-    | ChangedJudgementAttorneySearchBox Int (SearchBox.ChangeEvent Attorney)
-    | ChangedJudgementJudgeSearchBox Int (SearchBox.ChangeEvent Judge)
-    | ChangedJudgementNotes Int String
+    | ChangedJudgmentPlaintiffSearchBox Int (SearchBox.ChangeEvent Plaintiff)
+    | ChangedJudgmentAttorneySearchBox Int (SearchBox.ChangeEvent Attorney)
+    | ChangedJudgmentJudgeSearchBox Int (SearchBox.ChangeEvent Judge)
+    | ChangedJudgmentNotes Int String
     | ChangedNotes String
     | SplitButtonMsg (SplitButton.Msg NavigationOnSuccess)
     | PickedSaveOption (Maybe NavigationOnSuccess)
@@ -507,8 +507,8 @@ type Msg
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
     | UpsertedDefendant Int (Result Http.Error (Rest.Item Defendant))
-    | UpsertedJudgement Int (Result Http.Error (Rest.Item Judgement))
-    | DeletedJudgement Int (Result Http.Error ())
+    | UpsertedJudgment Int (Result Http.Error (Rest.Item Judgment))
+    | DeletedJudgment Int (Result Http.Error ())
     | CreatedDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
     | GotPlaintiffs (Result Http.Error (Rest.Collection Plaintiff))
     | GotAttorneys (Result Http.Error (Rest.Collection Attorney))
@@ -916,51 +916,51 @@ update pageUrl navKey sharedModel static msg model =
                 (\form -> { form | address = address })
                 model
 
-        AddJudgement ->
+        AddJudgment ->
             updateFormNarrow
                 (\form ->
                     let
-                        nextJudgementId =
-                            List.length form.judgements
+                        nextJudgmentId =
+                            List.length form.judgments
                     in
                     ( { form
-                        | judgements = form.judgements ++ [ judgementFormInit today nextJudgementId Nothing ]
+                        | judgments = form.judgments ++ [ judgmentFormInit today nextJudgmentId Nothing ]
                       }
                     , Task.attempt
                         (always NoOp)
-                        (Browser.Dom.focus (judgementInfoText nextJudgementId JudgementFileDateDetail))
+                        (Browser.Dom.focus (judgmentInfoText nextJudgmentId JudgmentFileDateDetail))
                     )
                 )
                 model
 
-        RemoveJudgement selected ->
-            updateForm (\form -> { form | judgements = List.removeAt selected form.judgements }) model
+        RemoveJudgment selected ->
+            updateForm (\form -> { form | judgments = List.removeAt selected form.judgments }) model
 
-        ChangedJudgementCourtDatePicker selected changeEvent ->
+        ChangedJudgmentCourtDatePicker selected changeEvent ->
             case changeEvent of
                 DateChanged date ->
                     updateForm
-                        (updateJudgement selected
-                            (\judgement ->
+                        (updateJudgment selected
+                            (\judgment ->
                                 let
                                     courtDate =
-                                        judgement.courtDate
+                                        judgment.courtDate
 
                                     updatedCourtDate =
                                         { courtDate | date = Just date, dateText = Date.toIsoString date }
                                 in
-                                { judgement | courtDate = updatedCourtDate }
+                                { judgment | courtDate = updatedCourtDate }
                             )
                         )
                         model
 
                 TextChanged text ->
                     updateForm
-                        (updateJudgement selected
-                            (\judgement ->
+                        (updateJudgment selected
+                            (\judgment ->
                                 let
                                     courtDate =
-                                        judgement.courtDate
+                                        judgment.courtDate
 
                                     updatedCourtDate =
                                         { courtDate
@@ -971,18 +971,18 @@ update pageUrl navKey sharedModel static msg model =
                                             , dateText = text
                                         }
                                 in
-                                { judgement | courtDate = updatedCourtDate }
+                                { judgment | courtDate = updatedCourtDate }
                             )
                         )
                         model
 
                 PickerChanged subMsg ->
                     updateForm
-                        (updateJudgement selected
-                            (\judgement ->
+                        (updateJudgment selected
+                            (\judgment ->
                                 let
                                     courtDate =
-                                        judgement.courtDate
+                                        judgment.courtDate
 
                                     updatedCourtDate =
                                         { courtDate
@@ -990,79 +990,79 @@ update pageUrl navKey sharedModel static msg model =
                                                 courtDate.pickerModel |> DatePicker.update subMsg
                                         }
                                 in
-                                { judgement | courtDate = updatedCourtDate }
+                                { judgment | courtDate = updatedCourtDate }
                             )
                         )
                         model
 
         PickedCourtroom selected option ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | courtroom = Maybe.andThen identity option }))
+                (updateJudgment selected (\judgment -> { judgment | courtroom = Maybe.andThen identity option }))
                 model
 
         CourtroomDropdownMsg selected subMsg ->
             updateFormNarrow
                 (\form ->
                     let
-                        judgementsAndCmds =
+                        judgmentsAndCmds =
                             List.indexedMap
-                                (\candidate judgement ->
+                                (\candidate judgment ->
                                     if selected == candidate then
                                         let
                                             ( newState, newCmd ) =
-                                                Dropdown.update cfg subMsg (courtroomDropdown model.courtrooms selected judgement)
+                                                Dropdown.update cfg subMsg (courtroomDropdown model.courtrooms selected judgment)
                                         in
-                                        ( { judgement | courtroomDropdown = newState }, Effects.perform newCmd )
+                                        ( { judgment | courtroomDropdown = newState }, Effects.perform newCmd )
 
                                     else
-                                        ( judgement, Cmd.none )
+                                        ( judgment, Cmd.none )
                                 )
-                                form.judgements
+                                form.judgments
                     in
-                    ( { form | judgements = List.map Tuple.first judgementsAndCmds }
-                    , Cmd.batch (List.map Tuple.second judgementsAndCmds)
+                    ( { form | judgments = List.map Tuple.first judgmentsAndCmds }
+                    , Cmd.batch (List.map Tuple.second judgmentsAndCmds)
                     )
                 )
                 model
 
         PickedConditions selected option ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | condition = Maybe.andThen identity option }))
+                (updateJudgment selected (\judgment -> { judgment | condition = Maybe.andThen identity option }))
                 model
 
         DismissalBasisDropdownMsg selected subMsg ->
             updateFormNarrow
                 (\form ->
                     let
-                        judgementsAndCmds =
+                        judgmentsAndCmds =
                             List.indexedMap
-                                (\candidate judgement ->
+                                (\candidate judgment ->
                                     if selected == candidate then
                                         let
                                             ( newState, newCmd ) =
-                                                Dropdown.update cfg subMsg (dismissalBasisDropdown selected judgement)
+                                                Dropdown.update cfg subMsg (dismissalBasisDropdown selected judgment)
                                         in
-                                        ( { judgement | dismissalBasisDropdown = newState }, Effects.perform newCmd )
+                                        ( { judgment | dismissalBasisDropdown = newState }, Effects.perform newCmd )
 
                                     else
-                                        ( judgement, Cmd.none )
+                                        ( judgment, Cmd.none )
                                 )
-                                form.judgements
+                                form.judgments
                     in
-                    ( { form | judgements = List.map Tuple.first judgementsAndCmds }
-                    , Cmd.batch (List.map Tuple.second judgementsAndCmds)
+                    ( { form | judgments = List.map Tuple.first judgmentsAndCmds }
+                    , Cmd.batch (List.map Tuple.second judgmentsAndCmds)
                     )
                 )
                 model
 
         PickedDismissalBasis selected option ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | dismissalBasis = Maybe.withDefault FailureToProsecute option }))
+                (updateJudgment selected (\judgment -> { judgment | dismissalBasis = Maybe.withDefault FailureToProsecute option }))
                 model
 
         ToggledWithPrejudice selected checked ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | withPrejudice = checked }))
+                (updateJudgment selected (\judgment -> { judgment | withPrejudice = checked }))
                 model
 
         ChangedFirstName selected name ->
@@ -1211,30 +1211,30 @@ update pageUrl navKey sharedModel static msg model =
             updateFormNarrow
                 (\form ->
                     let
-                        judgementsAndCmds =
+                        judgmentsAndCmds =
                             List.indexedMap
-                                (\candidate judgement ->
+                                (\candidate judgment ->
                                     if selected == candidate then
                                         let
                                             ( newState, newCmd ) =
-                                                Dropdown.update cfg subMsg (conditionsDropdown selected judgement)
+                                                Dropdown.update cfg subMsg (conditionsDropdown selected judgment)
                                         in
-                                        ( { judgement | conditionsDropdown = newState }, Effects.perform newCmd )
+                                        ( { judgment | conditionsDropdown = newState }, Effects.perform newCmd )
 
                                     else
-                                        ( judgement, Cmd.none )
+                                        ( judgment, Cmd.none )
                                 )
-                                form.judgements
+                                form.judgments
                     in
-                    ( { form | judgements = List.map Tuple.first judgementsAndCmds }
-                    , Cmd.batch (List.map Tuple.second judgementsAndCmds)
+                    ( { form | judgments = List.map Tuple.first judgmentsAndCmds }
+                    , Cmd.batch (List.map Tuple.second judgmentsAndCmds)
                     )
                 )
                 model
 
         ChangedFeesAwarded selected money ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | awardsFees = String.replace "$" "" money }))
+                (updateJudgment selected (\judgment -> { judgment | awardsFees = String.replace "$" "" money }))
                 model
 
         ConfirmedFeesAwarded selected ->
@@ -1246,51 +1246,51 @@ update pageUrl navKey sharedModel static msg model =
                     Mask.defaultDecimalOptions
             in
             updateForm
-                (updateJudgement selected
-                    (\judgement ->
-                        { judgement
+                (updateJudgment selected
+                    (\judgment ->
+                        { judgment
                             | awardsFees =
-                                case extract judgement.awardsFees of
+                                case extract judgment.awardsFees of
                                     Just moneyFloat ->
                                         Mask.floatDecimal options moneyFloat
 
                                     Nothing ->
-                                        judgement.awardsFees
+                                        judgment.awardsFees
                         }
                     )
                 )
                 model
 
-        ToggleJudgementPossession selected checked ->
+        ToggleJudgmentPossession selected checked ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | awardsPossession = checked }))
+                (updateJudgment selected (\judgment -> { judgment | awardsPossession = checked }))
                 model
 
-        ToggleJudgementInterest selected checked ->
+        ToggleJudgmentInterest selected checked ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | hasInterest = checked }))
+                (updateJudgment selected (\judgment -> { judgment | hasInterest = checked }))
                 model
 
         ChangedInterestRate selected interestRate ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | interestRate = String.replace "%" "" interestRate }))
+                (updateJudgment selected (\judgment -> { judgment | interestRate = String.replace "%" "" interestRate }))
                 model
 
         ConfirmedInterestRate selected ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | interestRate = String.replace "%" "" judgement.interestRate ++ "%" }))
+                (updateJudgment selected (\judgment -> { judgment | interestRate = String.replace "%" "" judgment.interestRate ++ "%" }))
                 model
 
         ToggleInterestFollowSite selected checked ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | interestFollowsSite = checked }))
+                (updateJudgment selected (\judgment -> { judgment | interestFollowsSite = checked }))
                 model
 
-        ChangedJudgementPlaintiffSearchBox selected changeEvent ->
+        ChangedJudgmentPlaintiffSearchBox selected changeEvent ->
             case changeEvent of
                 SearchBox.SelectionChanged person ->
                     updateForm
-                        (updateJudgement selected
+                        (updateJudgment selected
                             (\form ->
                                 let
                                     plaintiff =
@@ -1306,7 +1306,7 @@ update pageUrl navKey sharedModel static msg model =
 
                 SearchBox.TextChanged text ->
                     ( updateFormOnly
-                        (updateJudgement selected
+                        (updateJudgment selected
                             (\form ->
                                 let
                                     plaintiff =
@@ -1328,7 +1328,7 @@ update pageUrl navKey sharedModel static msg model =
 
                 SearchBox.SearchBoxChanged subMsg ->
                     updateForm
-                        (updateJudgement selected
+                        (updateJudgment selected
                             (\form ->
                                 let
                                     plaintiff =
@@ -1344,11 +1344,11 @@ update pageUrl navKey sharedModel static msg model =
                         )
                         model
 
-        ChangedJudgementAttorneySearchBox selected changeEvent ->
+        ChangedJudgmentAttorneySearchBox selected changeEvent ->
             case changeEvent of
                 SearchBox.SelectionChanged person ->
                     updateForm
-                        (updateJudgement selected
+                        (updateJudgment selected
                             (\form ->
                                 let
                                     plaintiffAttorney =
@@ -1364,7 +1364,7 @@ update pageUrl navKey sharedModel static msg model =
 
                 SearchBox.TextChanged text ->
                     ( updateFormOnly
-                        (updateJudgement selected
+                        (updateJudgment selected
                             (\form ->
                                 let
                                     plaintiffAttorney =
@@ -1386,7 +1386,7 @@ update pageUrl navKey sharedModel static msg model =
 
                 SearchBox.SearchBoxChanged subMsg ->
                     updateForm
-                        (updateJudgement selected
+                        (updateJudgment selected
                             (\form ->
                                 let
                                     plaintiffAttorney =
@@ -1402,11 +1402,11 @@ update pageUrl navKey sharedModel static msg model =
                         )
                         model
 
-        ChangedJudgementJudgeSearchBox selected changeEvent ->
+        ChangedJudgmentJudgeSearchBox selected changeEvent ->
             case changeEvent of
                 SearchBox.SelectionChanged person ->
                     updateForm
-                        (updateJudgement selected
+                        (updateJudgment selected
                             (\form ->
                                 let
                                     judge =
@@ -1422,7 +1422,7 @@ update pageUrl navKey sharedModel static msg model =
 
                 SearchBox.TextChanged text ->
                     ( updateFormOnly
-                        (updateJudgement selected
+                        (updateJudgment selected
                             (\form ->
                                 let
                                     judge =
@@ -1444,7 +1444,7 @@ update pageUrl navKey sharedModel static msg model =
 
                 SearchBox.SearchBoxChanged subMsg ->
                     updateForm
-                        (updateJudgement selected
+                        (updateJudgment selected
                             (\form ->
                                 let
                                     judge =
@@ -1460,9 +1460,9 @@ update pageUrl navKey sharedModel static msg model =
                         )
                         model
 
-        ChangedJudgementNotes selected notes ->
+        ChangedJudgmentNotes selected notes ->
             updateForm
-                (updateJudgement selected (\judgement -> { judgement | notes = notes }))
+                (updateJudgment selected (\judgment -> { judgment | notes = notes }))
                 model
 
         ChangedNotes notes ->
@@ -1571,7 +1571,7 @@ update pageUrl navKey sharedModel static msg model =
         UpsertedDefendant _ (Err httpError) ->
             ( model, logHttpError httpError )
 
-        UpsertedJudgement index (Ok judgement) ->
+        UpsertedJudgment index (Ok judgment) ->
             nextStepSave
                 today
                 domain
@@ -1579,36 +1579,36 @@ update pageUrl navKey sharedModel static msg model =
                 (updateFormOnly
                     (\form ->
                         { form
-                            | judgements =
+                            | judgments =
                                 List.indexedMap
                                     (\i def ->
                                         if i == index then
-                                            judgementFormInit today index (Just judgement.data)
+                                            judgmentFormInit today index (Just judgment.data)
 
                                         else
                                             def
                                     )
-                                    form.judgements
+                                    form.judgments
                         }
                     )
                     { model
                         | saveState =
                             case model.saveState of
-                                SavingJudgements models ->
-                                    SavingJudgements { models | judgements = models.judgements + 1 }
+                                SavingJudgments models ->
+                                    SavingJudgments { models | judgments = models.judgments + 1 }
 
                                 _ ->
                                     model.saveState
                     }
                 )
 
-        UpsertedJudgement _ (Err httpError) ->
+        UpsertedJudgment _ (Err httpError) ->
             ( model, logHttpError httpError )
 
-        DeletedJudgement _ (Ok _) ->
+        DeletedJudgment _ (Ok _) ->
             nextStepSave today domain session model
 
-        DeletedJudgement _ (Err httpError) ->
+        DeletedJudgment _ (Err httpError) ->
             ( model, logHttpError httpError )
 
         UpsertedAttorney (Ok attorney) ->
@@ -1678,19 +1678,19 @@ error rollbar report =
     Log.error rollbar (\_ -> NoOp) report
 
 
-updateJudgement : Int -> (JudgementForm -> JudgementForm) -> Form -> Form
-updateJudgement selected fn form =
+updateJudgment : Int -> (JudgmentForm -> JudgmentForm) -> Form -> Form
+updateJudgment selected fn form =
     { form
-        | judgements =
+        | judgments =
             List.indexedMap
-                (\index judgement ->
+                (\index judgment ->
                     if selected == index then
-                        fn judgement
+                        fn judgment
 
                     else
-                        judgement
+                        judgment
                 )
-                form.judgements
+                form.judgments
     }
 
 
@@ -1805,8 +1805,8 @@ nextStepSave today domain session model =
                         toDelete =
                             case model.warrant of
                                 Just warrant ->
-                                    if List.length warrant.judgements /= List.length apiForms.judgements then
-                                        Set.toList (Set.diff (Set.fromList (List.map .id warrant.judgements)) (Set.fromList (List.filterMap .id apiForms.judgements)))
+                                    if List.length warrant.judgments /= List.length apiForms.judgments then
+                                        Set.toList (Set.diff (Set.fromList (List.map .id warrant.judgments)) (Set.fromList (List.filterMap .id apiForms.judgments)))
 
                                     else
                                         []
@@ -1814,21 +1814,21 @@ nextStepSave today domain session model =
                                 Nothing ->
                                     []
                     in
-                    if List.isEmpty apiForms.judgements && List.isEmpty toDelete then
+                    if List.isEmpty apiForms.judgments && List.isEmpty toDelete then
                         nextStepSave today domain session { model | saveState = Done }
 
                     else
-                        ( { model | saveState = SavingJudgements { judgements = 0 } }
+                        ( { model | saveState = SavingJudgments { judgments = 0 } }
                         , Cmd.batch
                             (List.concat
-                                [ List.indexedMap (upsertJudgement domain maybeCred apiForms.detainerWarrant) apiForms.judgements
-                                , List.indexedMap (deleteJudgement domain maybeCred) toDelete
+                                [ List.indexedMap (upsertJudgment domain maybeCred apiForms.detainerWarrant) apiForms.judgments
+                                , List.indexedMap (deleteJudgment domain maybeCred) toDelete
                                 ]
                             )
                         )
 
-                SavingJudgements models ->
-                    if models.judgements >= List.length apiForms.judgements then
+                SavingJudgments models ->
+                    if models.judgments >= List.length apiForms.judgments then
                         nextStepSave today domain session { model | saveState = Done }
 
                     else
@@ -2082,42 +2082,42 @@ amountClaimedDropdown form =
         }
 
 
-courtroomDropdown courtrooms index judgement =
+courtroomDropdown courtrooms index judgment =
     basicDropdown
         { config =
             { dropdownMsg = CourtroomDropdownMsg index
             , onSelectMsg = PickedCourtroom index
-            , state = judgement.courtroomDropdown
+            , state = judgment.courtroomDropdown
             }
-        , selected = Just judgement.courtroom
+        , selected = Just judgment.courtroom
         , itemToStr = Maybe.withDefault "-" << Maybe.map .name
         , items = Nothing :: List.map Just courtrooms
         }
 
 
-dismissalBasisDropdown index judgement =
+dismissalBasisDropdown index judgment =
     basicDropdown
         { config =
             { dropdownMsg = DismissalBasisDropdownMsg index
             , onSelectMsg = PickedDismissalBasis index
-            , state = judgement.dismissalBasisDropdown
+            , state = judgment.dismissalBasisDropdown
             }
-        , selected = Just judgement.dismissalBasis
-        , itemToStr = Judgement.dismissalBasisOption
-        , items = Judgement.dismissalBasisOptions
+        , selected = Just judgment.dismissalBasis
+        , itemToStr = Judgment.dismissalBasisOption
+        , items = Judgment.dismissalBasisOptions
         }
 
 
-conditionsDropdown index judgement =
+conditionsDropdown index judgment =
     basicDropdown
         { config =
             { dropdownMsg = ConditionsDropdownMsg index
             , onSelectMsg = PickedConditions index
-            , state = judgement.conditionsDropdown
+            , state = judgment.conditionsDropdown
             }
-        , selected = Just judgement.condition
-        , itemToStr = Maybe.withDefault "N/A" << Maybe.map Judgement.conditionText
-        , items = Judgement.conditionsOptions
+        , selected = Just judgment.condition
+        , itemToStr = Maybe.withDefault "N/A" << Maybe.map Judgment.conditionText
+        , items = Judgment.conditionsOptions
         }
 
 
@@ -2280,7 +2280,7 @@ viewAttorneySearch onChange options form =
         ]
 
 
-viewCourtroom : FormOptions -> Int -> JudgementForm -> Element Msg
+viewCourtroom : FormOptions -> Int -> JudgmentForm -> Element Msg
 viewCourtroom options index form =
     -- let
     --     hasChanges =
@@ -2595,31 +2595,31 @@ viewDefendants options form =
         ]
 
 
-viewJudgements : FormOptions -> Form -> Element Msg
-viewJudgements options form =
+viewJudgments : FormOptions -> Form -> Element Msg
+viewJudgments options form =
     column [ centerX, spacing 20, width (fill |> maximum 1000), padding 10 ]
-        (List.indexedMap (viewJudgement options) form.judgements
+        (List.indexedMap (viewJudgment options) form.judgments
             ++ [ el
-                    [ if List.isEmpty form.judgements then
+                    [ if List.isEmpty form.judgments then
                         Element.centerX
 
                       else
                         Element.alignRight
                     ]
                     (Button.fromLabeledOnLeftIcon (Icon.add "Add hearing")
-                        |> Button.cmd AddJudgement Button.primary
+                        |> Button.cmd AddJudgment Button.primary
                         |> Button.renderElement options.renderConfig
                     )
                ]
         )
 
 
-viewJudgementInterest : FormOptions -> Int -> JudgementForm -> Element Msg
-viewJudgementInterest options index form =
+viewJudgmentInterest : FormOptions -> Int -> JudgmentForm -> Element Msg
+viewJudgmentInterest options index form =
     column []
         [ row [ spacing 5 ]
             [ viewField options.showHelp
-                { tooltip = Just (JudgementInfo index FeesHaveInterestInfo)
+                { tooltip = Just (JudgmentInfo index FeesHaveInterestInfo)
                 , description = "Do the fees claimed have interest?"
                 , children =
                     [ el
@@ -2629,7 +2629,7 @@ viewJudgementInterest options index form =
                         ]
                         (Checkbox.checkbox
                             "Fees have interest"
-                            (ToggleJudgementInterest index)
+                            (ToggleJudgmentInterest index)
                             form.hasInterest
                             |> Checkbox.renderElement options.renderConfig
                         )
@@ -2637,7 +2637,7 @@ viewJudgementInterest options index form =
                 }
             , if form.hasInterest then
                 viewField options.showHelp
-                    { tooltip = Just (JudgementInfo index InterestRateFollowsSiteInfo)
+                    { tooltip = Just (JudgmentInfo index InterestRateFollowsSiteInfo)
                     , description = "Does the interest rate follow from the website?"
                     , children =
                         [ column [ spacing 5, width fill ]
@@ -2658,7 +2658,7 @@ viewJudgementInterest options index form =
 
           else
             viewField options.showHelp
-                { tooltip = Just (JudgementInfo index InterestRateInfo)
+                { tooltip = Just (JudgmentInfo index InterestRateInfo)
                 , description = "The rate of interest that accrues for fees."
                 , children =
                     [ column [ spacing 5, width fill ]
@@ -2675,10 +2675,10 @@ viewJudgementInterest options index form =
         ]
 
 
-viewJudgementPossession : FormOptions -> Int -> JudgementForm -> Element Msg
-viewJudgementPossession options index form =
+viewJudgmentPossession : FormOptions -> Int -> JudgmentForm -> Element Msg
+viewJudgmentPossession options index form =
     viewField options.showHelp
-        { tooltip = Just (JudgementInfo index PossessionAwardedInfo)
+        { tooltip = Just (JudgmentInfo index PossessionAwardedInfo)
         , description = "Has the Plaintiff claimed the residence?"
         , children =
             [ el
@@ -2687,7 +2687,7 @@ viewJudgementPossession options index form =
                 ]
                 (Checkbox.checkbox
                     "Possession awarded"
-                    (ToggleJudgementPossession index)
+                    (ToggleJudgmentPossession index)
                     form.awardsPossession
                     |> Checkbox.renderElement options.renderConfig
                 )
@@ -2695,10 +2695,10 @@ viewJudgementPossession options index form =
         }
 
 
-viewJudgementPlaintiff : FormOptions -> Int -> JudgementForm -> List (Element Msg)
-viewJudgementPlaintiff options index form =
+viewJudgmentPlaintiff : FormOptions -> Int -> JudgmentForm -> List (Element Msg)
+viewJudgmentPlaintiff options index form =
     [ viewField options.showHelp
-        { tooltip = Just (JudgementInfo index FeesAwardedInfo)
+        { tooltip = Just (JudgmentInfo index FeesAwardedInfo)
         , description = "Fees the Plaintiff has been awarded."
         , children =
             [ TextField.singlelineText (ChangedFeesAwarded index)
@@ -2715,14 +2715,14 @@ viewJudgementPlaintiff options index form =
                 |> TextField.renderElement options.renderConfig
             ]
         }
-    , viewJudgementPossession options index form
+    , viewJudgmentPossession options index form
     ]
 
 
-viewJudgementDefendant : FormOptions -> Int -> JudgementForm -> List (Element Msg)
-viewJudgementDefendant options index form =
+viewJudgmentDefendant : FormOptions -> Int -> JudgmentForm -> List (Element Msg)
+viewJudgmentDefendant options index form =
     [ viewField options.showHelp
-        { tooltip = Just (JudgementInfo index DismissalBasisInfo)
+        { tooltip = Just (JudgmentInfo index DismissalBasisInfo)
         , description = "Why is the case being dismissed?"
         , children =
             [ column [ spacing 5, width (fill |> minimum 350) ]
@@ -2733,7 +2733,7 @@ viewJudgementDefendant options index form =
             ]
         }
     , viewField options.showHelp
-        { tooltip = Just (JudgementInfo index WithPrejudiceInfo)
+        { tooltip = Just (JudgmentInfo index WithPrejudiceInfo)
         , description = "Whether or not the dismissal is made with prejudice."
         , children =
             [ el
@@ -2751,7 +2751,7 @@ viewJudgementDefendant options index form =
     ]
 
 
-viewJudgeSearch : FormOptions -> Int -> JudgementForm -> Element Msg
+viewJudgeSearch : FormOptions -> Int -> JudgmentForm -> Element Msg
 viewJudgeSearch options index form =
     let
         hasChanges =
@@ -2768,7 +2768,7 @@ viewJudgeSearch options index form =
             , description = "The judge that will be presiding over the court case."
             , children =
                 [ searchBox (withChanges hasChanges [])
-                    { onChange = ChangedJudgementJudgeSearchBox index
+                    { onChange = ChangedJudgmentJudgeSearchBox index
                     , text = form.judge.text
                     , selected = form.judge.person
                     , options = Just ({ id = -1, name = form.judge.text, aliases = [] } :: options.judges)
@@ -2798,29 +2798,29 @@ viewCourtDate options index form =
             True
 
         -- (Maybe.withDefault False <|
-        --     Maybe.map ((/=) form.judgement << .judgement) options.originalWarrant
+        --     Maybe.map ((/=) form.judgment << .judgment) options.originalWarrant
         -- )
-        --     || (options.originalWarrant == Nothing && form.judgement /= defaultCategory)
+        --     || (options.originalWarrant == Nothing && form.judgment /= defaultCategory)
     in
     viewField options.showHelp
-        { tooltip = Just (JudgementInfo index JudgementFileDateDetail)
-        , description = "The date this judgement was filed."
+        { tooltip = Just (JudgmentInfo index JudgmentFileDateDetail)
+        , description = "The date this judgment was filed."
         , children =
             [ DatePicker.input
                 (withValidation
-                    (ValidJudgement index JudgementFileDate)
+                    (ValidJudgment index JudgmentFileDate)
                     options.problems
                     (withChanges
                         hasChanges
                         (boxAttrs
-                            ++ [ Element.htmlAttribute (Html.Attributes.id (judgementInfoText index JudgementFileDateDetail))
+                            ++ [ Element.htmlAttribute (Html.Attributes.id (judgmentInfoText index JudgmentFileDateDetail))
                                , centerX
                                , Element.centerY
                                ]
                         )
                     )
                 )
-                { onChange = ChangedJudgementCourtDatePicker index
+                { onChange = ChangedJudgmentCourtDatePicker index
                 , selected = form.date
                 , text = form.dateText
                 , label =
@@ -2834,8 +2834,8 @@ viewCourtDate options index form =
         }
 
 
-viewJudgement : FormOptions -> Int -> JudgementForm -> Element Msg
-viewJudgement options index form =
+viewJudgment : FormOptions -> Int -> JudgmentForm -> Element Msg
+viewJudgment options index form =
     column
         [ width fill
         , spacing 10
@@ -2846,8 +2846,8 @@ viewJudgement options index form =
         , Border.rounded 5
         , inFront
             (row [ Element.alignRight, padding 20 ]
-                [ Button.fromIcon (Icon.close "Remove Judgement")
-                    |> Button.cmd (RemoveJudgement index) Button.clear
+                [ Button.fromIcon (Icon.close "Remove Judgment")
+                    |> Button.cmd (RemoveJudgment index) Button.clear
                     |> Button.renderElement options.renderConfig
                 ]
             )
@@ -2859,8 +2859,8 @@ viewJudgement options index form =
             , viewCourtroom options index form
             ]
         , wrappedRow [ spacing 5, width fill ]
-            [ viewPlaintiffSearch (ChangedJudgementPlaintiffSearchBox index) options form.plaintiff
-            , viewAttorneySearch (ChangedJudgementAttorneySearchBox index) options form.plaintiffAttorney
+            [ viewPlaintiffSearch (ChangedJudgmentPlaintiffSearchBox index) options form.plaintiff
+            , viewAttorneySearch (ChangedJudgmentAttorneySearchBox index) options form.plaintiffAttorney
             , viewJudgeSearch options index form
             ]
         , column
@@ -2873,10 +2873,10 @@ viewJudgement options index form =
             , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
             ]
             [ row [ spacing 5, width fill ]
-                [ paragraph [ Font.center, centerX ] [ text "Judgement" ] ]
+                [ paragraph [ Font.center, centerX ] [ text "Judgment" ] ]
             , row [ spacing 5, width fill ]
                 [ viewField options.showHelp
-                    { tooltip = Just (JudgementInfo index Summary)
+                    { tooltip = Just (JudgmentInfo index Summary)
                     , description = "The ruling from the court that will determine if fees or repossession are enforced."
                     , children =
                         [ column [ spacing 5, width (fill |> maximum 200) ]
@@ -2890,35 +2890,35 @@ viewJudgement options index form =
             , row [ spacing 5, width fill ]
                 (case form.condition of
                     Just PlaintiffOption ->
-                        viewJudgementPlaintiff options index form
+                        viewJudgmentPlaintiff options index form
 
                     Just DefendantOption ->
-                        viewJudgementDefendant options index form
+                        viewJudgmentDefendant options index form
 
                     Nothing ->
                         [ Element.none ]
                 )
             , if form.awardsFees /= "" && form.condition == Just PlaintiffOption then
-                viewJudgementInterest options index form
+                viewJudgmentInterest options index form
 
               else
                 Element.none
-            , viewJudgementNotes options index form
+            , viewJudgmentNotes options index form
             ]
         ]
 
 
-viewJudgementNotes : FormOptions -> Int -> JudgementForm -> Element Msg
-viewJudgementNotes options index form =
+viewJudgmentNotes : FormOptions -> Int -> JudgmentForm -> Element Msg
+viewJudgmentNotes options index form =
     column [ width fill ]
         [ viewField options.showHelp
-            { tooltip = Just (JudgementInfo index JudgementNotesDetail)
-            , description = "Any additional notes you have about this particular judgement go here!"
+            { tooltip = Just (JudgmentInfo index JudgmentNotesDetail)
+            , description = "Any additional notes you have about this particular judgment go here!"
             , children =
-                [ TextField.multilineText (ChangedJudgementNotes index)
+                [ TextField.multilineText (ChangedJudgmentNotes index)
                     "Notes"
                     form.notes
-                    |> TextField.withPlaceholder "Add any notes from the judgement sheet or any comments you think is noteworthy."
+                    |> TextField.withPlaceholder "Add any notes from the judgment sheet or any comments you think is noteworthy."
                     |> TextField.setLabelVisible True
                     |> TextField.withWidth TextField.widthFull
                     |> TextField.renderElement options.renderConfig
@@ -3008,7 +3008,7 @@ viewForm options formStatus =
                     ]
                 , tile
                     [ paragraph [ Font.center, centerX ] [ text "Hearings" ]
-                    , viewJudgements options form
+                    , viewJudgments options form
                     ]
                 , tile
                     [ viewNotes options form
@@ -3190,11 +3190,11 @@ subscriptions pageUrl params path model =
                 )
 
 
-judgementInfoText : Int -> JudgementDetail -> String
-judgementInfoText index detail =
-    "judgement-"
+judgmentInfoText : Int -> JudgmentDetail -> String
+judgmentInfoText index detail =
+    "judgment-"
         ++ (case detail of
-                JudgementFileDateDetail ->
+                JudgmentFileDateDetail ->
                     "file-date-detail"
 
                 Summary ->
@@ -3221,7 +3221,7 @@ judgementInfoText index detail =
                 WithPrejudiceInfo ->
                     "with-prejudice-info"
 
-                JudgementNotesDetail ->
+                JudgmentNotesDetail ->
                     "notes-detail"
            )
         ++ "-"
@@ -3239,8 +3239,8 @@ type TrimmedForm
     = Trimmed Form
 
 
-type JudgementValidation
-    = JudgementFileDate
+type JudgmentValidation
+    = JudgmentFileDate
 
 
 {-| When adding a variant here, add it to `fieldsToValidate` too!
@@ -3253,7 +3253,7 @@ type ValidatedField
     | DefendantFirstName Int
     | DefendantLastName Int
     | DefendantPhoneNumber Int Int
-    | ValidJudgement Int JudgementValidation
+    | ValidJudgment Int JudgmentValidation
 
 
 fieldsToValidate : List DefendantForm -> List ValidatedField
@@ -3359,13 +3359,13 @@ validateField today (Trimmed form) field =
                 else
                     []
 
-            ValidJudgement index _ ->
-                case List.head <| List.take index form.judgements of
+            ValidJudgment index _ ->
+                case List.head <| List.take index form.judgments of
                     Just _ ->
-                        -- case judgementValidation of
-                        --     JudgementFileDate ->
-                        --         if Date.compare (Maybe.withDefault today judgement.courtDate.date) (Maybe.withDefault today form.courtDate.date) == LT then
-                        --             [ "Judgement cannot be filed before detainer warrant." ]
+                        -- case judgmentValidation of
+                        --     JudgmentFileDate ->
+                        --         if Date.compare (Maybe.withDefault today judgment.courtDate.date) (Maybe.withDefault today form.courtDate.date) == LT then
+                        --             [ "Judgment cannot be filed before detainer warrant." ]
                         --         else
                         []
 
@@ -3392,7 +3392,7 @@ type alias ApiForms =
     , defendants : List Defendant
     , plaintiff : Maybe Plaintiff
     , attorney : Maybe Attorney
-    , judgements : List JudgementEdit
+    , judgments : List JudgmentEdit
     }
 
 
@@ -3457,8 +3457,8 @@ toDetainerWarrant today (Trimmed form) =
         form.plaintiff.person
     , attorney =
         form.plaintiffAttorney.person
-    , judgements =
-        List.map (Judgement.editFromForm today) form.judgements
+    , judgments =
+        List.map (Judgment.editFromForm today) form.judgments
     }
 
 
@@ -3505,26 +3505,26 @@ upsertDefendant domain maybeCred index form =
             Rest.post (Endpoint.defendants domain []) maybeCred body (UpsertedDefendant index) decoder
 
 
-upsertJudgement : String -> Maybe Cred -> DetainerWarrantEdit -> Int -> JudgementEdit -> Cmd Msg
-upsertJudgement domain maybeCred warrant index form =
+upsertJudgment : String -> Maybe Cred -> DetainerWarrantEdit -> Int -> JudgmentEdit -> Cmd Msg
+upsertJudgment domain maybeCred warrant index form =
     let
         decoder =
-            Rest.itemDecoder Judgement.decoder
+            Rest.itemDecoder Judgment.decoder
 
         body =
-            toBody (encodeJudgement warrant form)
+            toBody (encodeJudgment warrant form)
     in
     case form.id of
         Just id ->
-            Rest.patch (Endpoint.judgement domain id) maybeCred body (UpsertedJudgement index) decoder
+            Rest.patch (Endpoint.judgment domain id) maybeCred body (UpsertedJudgment index) decoder
 
         Nothing ->
-            Rest.post (Endpoint.judgements domain []) maybeCred body (UpsertedJudgement index) decoder
+            Rest.post (Endpoint.judgments domain []) maybeCred body (UpsertedJudgment index) decoder
 
 
-deleteJudgement : String -> Maybe Cred -> Int -> Int -> Cmd Msg
-deleteJudgement domain maybeCred index id =
-    Rest.delete (Endpoint.judgement domain id) maybeCred (DeletedJudgement index)
+deleteJudgment : String -> Maybe Cred -> Int -> Int -> Cmd Msg
+deleteJudgment domain maybeCred index id =
+    Rest.delete (Endpoint.judgment domain id) maybeCred (DeletedJudgment index)
 
 
 remoteId : { a | id : number } -> Maybe number
@@ -3594,41 +3594,41 @@ encodeRelated record =
     Encode.object [ ( "id", Encode.int record.id ) ]
 
 
-encodeJudgement : DetainerWarrantEdit -> JudgementEdit -> Encode.Value
-encodeJudgement warrant judgement =
+encodeJudgment : DetainerWarrantEdit -> JudgmentEdit -> Encode.Value
+encodeJudgment warrant judgment =
     Encode.object
-        ([ ( "interest", Encode.bool judgement.hasInterest )
+        ([ ( "interest", Encode.bool judgment.hasInterest )
          , ( "detainer_warrant", Encode.object [ ( "docket_id", Encode.string warrant.docketId ) ] )
          ]
-            ++ conditional "id" Encode.int judgement.id
-            ++ nullable "court_date" Time.Utils.posixEncoder judgement.courtDate
-            ++ nullable "courtroom" encodeRelated judgement.courtroom
-            ++ nullable "in_favor_of" Encode.string judgement.inFavorOf
-            ++ nullable "notes" Encode.string judgement.notes
-            ++ nullable "entered_by" Encode.string judgement.enteredBy
-            ++ nullable "awards_fees" Encode.float judgement.awardsFees
-            ++ nullable "awards_possession" Encode.bool judgement.awardsPossession
-            ++ nullable "interest_rate" Encode.float judgement.interestRate
-            ++ nullable "interest_follows_site" Encode.bool judgement.interestFollowsSite
+            ++ conditional "id" Encode.int judgment.id
+            ++ nullable "court_date" Time.Utils.posixEncoder judgment.courtDate
+            ++ nullable "courtroom" encodeRelated judgment.courtroom
+            ++ nullable "in_favor_of" Encode.string judgment.inFavorOf
+            ++ nullable "notes" Encode.string judgment.notes
+            ++ nullable "entered_by" Encode.string judgment.enteredBy
+            ++ nullable "awards_fees" Encode.float judgment.awardsFees
+            ++ nullable "awards_possession" Encode.bool judgment.awardsPossession
+            ++ nullable "interest_rate" Encode.float judgment.interestRate
+            ++ nullable "interest_follows_site" Encode.bool judgment.interestFollowsSite
             ++ nullable "dismissal_basis"
                 Encode.string
-                (if judgement.inFavorOf == Just "DEFENDANT" then
-                    judgement.dismissalBasis
+                (if judgment.inFavorOf == Just "DEFENDANT" then
+                    judgment.dismissalBasis
 
                  else
                     Nothing
                 )
             ++ nullable "with_prejudice"
                 Encode.bool
-                (if judgement.inFavorOf == Just "DEFENDANT" then
-                    judgement.withPrejudice
+                (if judgment.inFavorOf == Just "DEFENDANT" then
+                    judgment.withPrejudice
 
                  else
                     Nothing
                 )
-            ++ nullable "plaintiff" encodeRelated judgement.plaintiff
-            ++ nullable "plaintiff_attorney" encodeRelated judgement.plaintiffAttorney
-            ++ nullable "judge" encodeRelated judgement.judge
+            ++ nullable "plaintiff" encodeRelated judgment.plaintiff
+            ++ nullable "plaintiff_attorney" encodeRelated judgment.plaintiffAttorney
+            ++ nullable "judge" encodeRelated judgment.judge
         )
 
 

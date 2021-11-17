@@ -31,7 +31,7 @@ Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
 Defendant = detainer_warrants.models.Defendant
 Plaintiff = detainer_warrants.models.Plaintiff
-Judgement = detainer_warrants.models.Judgement
+Judgment = detainer_warrants.models.Judgment
 
 security_config = dict(
     SECURITY_PASSWORD_SALT=os.environ['SECURITY_PASSWORD_SALT'],
@@ -225,12 +225,12 @@ def pending_scheduled_case_count(start, end):
 
 
 def amount_awarded_between(start, end):
-    amount = db.session.query(func.sum(Judgement.awards_fees))\
+    amount = db.session.query(func.sum(Judgment.awards_fees))\
         .filter(
             and_(
-                Judgement.detainer_warrant_id.ilike('%\\G\\T%'),
-                func.date(Judgement.court_date) >= start,
-                func.date(Judgement.court_date) < end
+                Judgment.detainer_warrant_id.ilike('%\\G\\T%'),
+                func.date(Judgment.court_date) >= start,
+                func.date(Judgment.court_date) < end
             )
     ).scalar()
     if amount is None:
@@ -271,8 +271,8 @@ def register_extensions(app):
                      detainer_warrants.views.CourtroomResource, app=app)
     api.add_resource('/plaintiffs/', detainer_warrants.views.PlaintiffListResource,
                      detainer_warrants.views.PlaintiffResource, app=app)
-    api.add_resource('/judgements/', detainer_warrants.views.JudgementListResource,
-                     detainer_warrants.views.JudgementResource, app=app)
+    api.add_resource('/judgments/', detainer_warrants.views.JudgmentListResource,
+                     detainer_warrants.views.JudgmentResource, app=app)
     api.add_resource('/judges/', detainer_warrants.views.JudgeListResource,
                      detainer_warrants.views.JudgeResource, app=app)
     api.add_resource('/detainer-warrants/', detainer_warrants.views.DetainerWarrantListResource,

@@ -17,11 +17,11 @@ This is not pestering, annoying or bothering someone with “bad faith” attack
 
 ### Data Committee
 
-Our data committee works to collect the information and insight into the climate of evictions in Nashville. Filing a detainer warrant is the first step a landlord (or property manager) will take to begin the eviction process. Our team focuses on collecting the pertinent information that is found in these detainers: plaintiffs, attorneys, court dates, addresses and names of the defendants. In addition we collect information of closed cases such as verdicts, presiding judge names, monetary judgements sought. With this information, the data team seeks to find contact information for the defendants, to build phone outreach and inform them of their rights when being evicted. In addition, the Data committee creates graphs, maps, charts and visuals to better define the housing crisis in Davidson county.
+Our data committee works to collect the information and insight into the climate of evictions in Nashville. Filing a detainer warrant is the first step a landlord (or property manager) will take to begin the eviction process. Our team focuses on collecting the pertinent information that is found in these detainers: plaintiffs, attorneys, court dates, addresses and names of the defendants. In addition we collect information of closed cases such as verdicts, presiding judge names, monetary judgments sought. With this information, the data team seeks to find contact information for the defendants, to build phone outreach and inform them of their rights when being evicted. In addition, the Data committee creates graphs, maps, charts and visuals to better define the housing crisis in Davidson county.
 
 ### Default of Defendant
 
-Legalese to state the defendant (tenant) or their lawyer were not present for their court date and a letter for extension was not filed. This typically results in a judgement awarded to the plaintiff (landlord) and means that a writ of restitution is likely to be filed with the sheriff’s office to complete the eviction process.
+Legalese to state the defendant (tenant) or their lawyer were not present for their court date and a letter for extension was not filed. This typically results in a judgment awarded to the plaintiff (landlord) and means that a writ of restitution is likely to be filed with the sheriff’s office to complete the eviction process.
 
 ### Detainer Warrant
 

@@ -45,7 +45,7 @@ class TestDataImport(TestCase):
     def test_judgment_import(self):
         judgment = None
         with open('tests/fixtures/case-link/judgment-pdf-as-text.txt') as f:
-            judgment = detainer_warrants.models.Judgement.from_pdf_as_text(
+            judgment = detainer_warrants.models.Judgment.from_pdf_as_text(
                 f.read())
 
         self.assertEqual(judgment.detainer_warrant_id, 'REDACTED1234')

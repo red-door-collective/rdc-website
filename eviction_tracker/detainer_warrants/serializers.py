@@ -70,7 +70,7 @@ judge_schema = JudgeSchema()
 judges_schema = JudgeSchema(many=True)
 
 
-class JudgementSchema(Schema):
+class JudgmentSchema(Schema):
     id = fields.Int(allow_none=True)
     court_date = fields.Int(allow_none=True)
     awards_possession = fields.Bool(allow_none=True)
@@ -100,8 +100,8 @@ class JudgementSchema(Schema):
                   )
 
 
-judgement_schema = JudgementSchema()
-judgements_schema = JudgementSchema(many=True)
+judgment_schema = JudgmentSchema()
+judgments_schema = JudgmentSchema(many=True)
 
 
 class PleadingDocumentSchema(Schema):
@@ -118,7 +118,7 @@ class DetainerWarrantSchema(Schema):
     plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
-    judgements = fields.Nested(JudgementSchema, many=True)
+    judgments = fields.Nested(JudgmentSchema, many=True)
     pleadings = fields.Nested(PleadingDocumentSchema, many=True)
     last_edited_by = fields.Nested(serializers.UserSchema)
 
@@ -133,7 +133,7 @@ class DetainerWarrantSchema(Schema):
 
     class Meta:
         fields = ("docket_id", "order_number", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
-                  "judgements", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
+                  "judgments", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
                   "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "pleadings", "created_at", "updated_at")
 
 

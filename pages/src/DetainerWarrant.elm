@@ -4,7 +4,7 @@ import Attorney exposing (Attorney)
 import Defendant exposing (Defendant)
 import Json.Decode as Decode exposing (Decoder, bool, float, list, nullable, string)
 import Json.Decode.Pipeline exposing (required)
-import Judgement exposing (Judgement)
+import Judgment exposing (Judgment)
 import Maybe
 import Plaintiff exposing (Plaintiff)
 import Time exposing (Posix)
@@ -40,7 +40,7 @@ type alias DetainerWarrant =
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
     , defendants : List Defendant
-    , judgements : List Judgement
+    , judgments : List Judgment
     , notes : Maybe String
     }
 
@@ -170,7 +170,7 @@ decoder =
         |> required "is_legacy" (nullable bool)
         |> required "nonpayment" (nullable bool)
         |> required "defendants" (list Defendant.decoder)
-        |> required "judgements" (list Judgement.decoder)
+        |> required "judgments" (list Judgment.decoder)
         |> required "notes" (nullable string)
 
 
@@ -193,7 +193,7 @@ toTableRow toEditButton =
 
 mostRecentCourtDate : DetainerWarrant -> Maybe Posix
 mostRecentCourtDate warrant =
-    Maybe.andThen .courtDate <| List.head warrant.judgements
+    Maybe.andThen .courtDate <| List.head warrant.judgments
 
 
 toTableRowView : (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T.Eight

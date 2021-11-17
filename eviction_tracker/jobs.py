@@ -23,8 +23,8 @@ def export():
         logger.info(
             f'Exporting detainer warrants to workbook: {workbook_name}')
         detainer_warrants.exports.to_spreadsheet(workbook_name, key)
-        logger.info(f'Exporting judgements to workbook: {workbook_name}')
-        detainer_warrants.exports.to_judgement_sheet(workbook_name, key)
+        logger.info(f'Exporting judgments to workbook: {workbook_name}')
+        detainer_warrants.exports.to_judgment_sheet(workbook_name, key)
         logger.info(
             f'Exporting upcoming court dates to workbook: {workbook_name}')
         detainer_warrants.exports.to_court_watch_sheet(workbook_name, key)
@@ -61,4 +61,4 @@ def extract_pleading_document_details():
 def import_sessions_site_hearings():
     with scheduler.app.app_context():
         logger.info(f'Scraping General Sessions website')
-        detainer_warrants.judgement_scraping.scrape_entire_site()
+        detainer_warrants.judgment_scraping.scrape_entire_site()

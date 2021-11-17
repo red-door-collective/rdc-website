@@ -119,12 +119,6 @@ class Attorney(db.Model, Timestamped):
     district = relationship('District', back_populates='attorneys')
     detainer_warrants = relationship(
         'DetainerWarrant', back_populates='_plaintiff_attorney')
-    # _prosecutions = relationship(
-    #     'Judgement', back_populates='_plaintiff_attorney'
-    # )
-    # _defenses = relationship(
-    #     'Judgement', back_populates='_defendant_attorney'
-    # )
 
     def __repr__(self):
         return "<Attorney(name='%s', district_id='%s')>" % (self.name, self.district_id)
@@ -141,7 +135,7 @@ class Courtroom(db.Model, Timestamped):
         'districts.id'), nullable=False)
 
     district = relationship('District', back_populates='courtrooms')
-    _judgements = relationship('Judgement', back_populates='_courtroom')
+    _judgments = relationship('Judgment', back_populates='_courtroom')
 
     def __repr__(self):
         return "<Courtroom(name='%s')>" % (self.name)
@@ -162,8 +156,8 @@ class Plaintiff(db.Model, Timestamped):
     district = relationship('District', back_populates='plaintiffs')
     detainer_warrants = relationship(
         'DetainerWarrant', back_populates='_plaintiff')
-    _judgements = relationship(
-        'Judgement', back_populates='_plaintiff'
+    _judgments = relationship(
+        'Judgment', back_populates='_plaintiff'
     )
 
     def __repr__(self):
@@ -183,13 +177,13 @@ class Judge(db.Model, Timestamped):
         'districts.id'), nullable=False)
 
     district = relationship('District', back_populates='judges')
-    _rulings = relationship('Judgement', back_populates='_judge')
+    _rulings = relationship('Judgment', back_populates='_judge')
 
     def __repr__(self):
         return "<Judge(name='%s')>" % (self.name)
 
 
-class Judgement(db.Model, Timestamped):
+class Judgment(db.Model, Timestamped):
     parties = {
         'PLAINTIFF': 0,
         'DEFENDANT': 1
@@ -238,13 +232,13 @@ class Judgement(db.Model, Timestamped):
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
     _courtroom = relationship(
-        'Courtroom', back_populates='_judgements'
+        'Courtroom', back_populates='_judgments'
     )
     _detainer_warrant = relationship(
-        'DetainerWarrant', back_populates='_judgements')
+        'DetainerWarrant', back_populates='_judgments')
 
     _plaintiff = relationship(
-        'Plaintiff', back_populates='_judgements'
+        'Plaintiff', back_populates='_judgments'
     )
     _plaintiff_attorney = relationship(
         'Attorney', foreign_keys=plaintiff_attorney_id
@@ -255,7 +249,7 @@ class Judgement(db.Model, Timestamped):
     _judge = relationship(
         'Judge', back_populates='_rulings')
     last_edited_by = relationship(
-        'User', back_populates='edited_judgements'
+        'User', back_populates='edited_judgments'
     )
 
     @hybrid_property
@@ -287,31 +281,31 @@ class Judgement(db.Model, Timestamped):
 
     @property
     def in_favor_of(self):
-        parties_by_id = {v: k for k, v in Judgement.parties.items()}
+        parties_by_id = {v: k for k, v in Judgment.parties.items()}
         return parties_by_id[self.in_favor_of_id] if self.in_favor_of_id is not None else None
 
     @in_favor_of.setter
     def in_favor_of(self, in_favor_of):
-        self.in_favor_of_id = in_favor_of and Judgement.parties[in_favor_of]
+        self.in_favor_of_id = in_favor_of and Judgment.parties[in_favor_of]
 
     @property
     def entered_by(self):
-        entrances_by_id = {v: k for k, v in Judgement.entrances.items()}
+        entrances_by_id = {v: k for k, v in Judgment.entrances.items()}
         return entrances_by_id[self.entered_by_id] if self.entered_by_id is not None else 'DEFAULT'
 
     @entered_by.setter
     def entered_by(self, entered_by):
-        self.entered_by_id = entered_by and Judgement.entrances[entered_by]
+        self.entered_by_id = entered_by and Judgment.entrances[entered_by]
 
     @property
     def dismissal_basis(self):
         dismissal_bases_by_id = {v: k for k,
-                                 v in Judgement.dismissal_bases.items()}
+                                 v in Judgment.dismissal_bases.items()}
         return dismissal_bases_by_id[self.dismissal_basis_id] if self.dismissal_basis_id is not None else None
 
     @dismissal_basis.setter
     def dismissal_basis(self, dismissal_basis):
-        self.dismissal_basis_id = dismissal_basis and Judgement.dismissal_bases[
+        self.dismissal_basis_id = dismissal_basis and Judgment.dismissal_bases[
             dismissal_basis]
 
     @property
@@ -403,13 +397,13 @@ class Judgement(db.Model, Timestamped):
             return ''
 
     def __repr__(self):
-        return "<Judgement(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
+        return "<Judgment(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
 
     def update_from_pdf(self, pdf):
-        return self.update(**Judgement.attributes_from_pdf(pdf))
+        return self.update(**Judgment.attributes_from_pdf(pdf))
 
     def from_pdf_as_text(pdf):
-        return Judgement.create(**Judgement.attributes_from_pdf(pdf))
+        return Judgment.create(**Judgment.attributes_from_pdf(pdf))
 
     def attributes_from_pdf(pdf):
         pdf = pdf.replace('\n', ' ').replace('\r', ' ')
@@ -523,14 +517,14 @@ class Judgement(db.Model, Timestamped):
         return dict(
             awards_possession=awards_possession,
             awards_fees=awards_fees,
-            entered_by_id=Judgement.entrances[entered_by] if entered_by else None,
+            entered_by_id=Judgment.entrances[entered_by] if entered_by else None,
             interest=interest,
             interest_rate=interest_rate,
             interest_follows_site=interest_follows_site,
-            dismissal_basis_id=Judgement.dismissal_bases[dismissal_basis] if dismissal_basis else None,
+            dismissal_basis_id=Judgment.dismissal_bases[dismissal_basis] if dismissal_basis else None,
             with_prejudice=with_prejudice,
             notes=notes,
-            in_favor_of_id=Judgement.parties[in_favor_of],
+            in_favor_of_id=Judgment.parties[in_favor_of],
             detainer_warrant_id=detainer_warrant_id,
             plaintiff_id=plaintiff.id if plaintiff else None,
             judge_id=judge.id if judge else None
@@ -639,7 +633,7 @@ class DetainerWarrant(db.Model, Timestamped):
                                back_populates='detainer_warrants',
                                cascade="all, delete",
                                )
-    _judgements = relationship('Judgement', back_populates='_detainer_warrant')
+    _judgments = relationship('Judgment', back_populates='_detainer_warrant')
     pleadings = relationship(
         'PleadingDocument', back_populates='_detainer_warrant')
     last_edited_by = relationship('User', back_populates='edited_warrants')
@@ -801,26 +795,26 @@ class DetainerWarrant(db.Model, Timestamped):
                 Defendant).get(d.get('id')) for d in defendants]
 
     @property
-    def judgements(self):
-        return sorted(self._judgements, key=lambda j: (j.court_date is not None, j.court_date), reverse=True)
+    def judgments(self):
+        return sorted(self._judgments, key=lambda j: (j.court_date is not None, j.court_date), reverse=True)
 
-    @judgements.setter
-    def judgements(self, judgements):
-        if (all(isinstance(j, Judgement) for j in judgements)):
-            self._judgements = judgements
+    @judgments.setter
+    def judgments(self, judgments):
+        if (all(isinstance(j, Judgment) for j in judgments)):
+            self._judgments = judgments
         else:
-            if (len(judgements) < len(self._judgements)):
-                original = set([j.id for j in self._judgements])
-                new = set([j.get("id") for j in judgements])
-                judgements_to_delete = original - new
-                for j_id in judgements_to_delete:
-                    db.session.delete(db.session.query(Judgement).get(j_id))
+            if (len(judgments) < len(self._judgments)):
+                original = set([j.id for j in self._judgments])
+                new = set([j.get("id") for j in judgments])
+                judgments_to_delete = original - new
+                for j_id in judgments_to_delete:
+                    db.session.delete(db.session.query(Judgment).get(j_id))
 
-            self._judgements = [
-                db.session.query(Judgement).get(j.get('id')).update(**j)
+            self._judgments = [
+                db.session.query(Judgment).get(j.get('id')).update(**j)
                 if j.get('id') is not None
-                else Judgement.create(**j, detainer_warrant_id=self.docket_id)
-                for j in judgements
+                else Judgment.create(**j, detainer_warrant_id=self.docket_id)
+                for j in judgments
             ]
 
 

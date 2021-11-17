@@ -12,7 +12,7 @@ import os
 import re
 import time
 from ..util import get_or_create
-from ..models import db, PleadingDocument, DetainerWarrant, Judgement
+from ..models import db, PleadingDocument, DetainerWarrant, Judgment
 from .constants import ids, names
 from .common import login, search, run_with_chrome
 import eviction_tracker.config as config
@@ -121,8 +121,8 @@ def update_pending_warrants():
         DetainerWarrant.status == 'PENDING',
         or_(
             DetainerWarrant._last_pleading_documents_check == None,
-            DetainerWarrant._judgements.any(
-                Judgement._court_date < DetainerWarrant._last_pleading_documents_check),
+            DetainerWarrant._judgments.any(
+                Judgment._court_date < DetainerWarrant._last_pleading_documents_check),
         ),
         or_(
             DetainerWarrant._last_pleading_documents_check == None,
@@ -153,15 +153,15 @@ def extract_text_from_document(document):
             efile_date_str = efile_date_regex.search(text).group(1)
             efile_date = datetime.strptime(efile_date_str, '%m/%d/%y').date()
 
-            existing_judgment = Judgement.query.filter(
+            existing_judgment = Judgment.query.filter(
                 and_(
-                    Judgement._court_date <= efile_date,
-                    Judgement.in_favor_of == None
+                    Judgment._court_date <= efile_date,
+                    Judgment.in_favor_of == None
                 )).first()
             if existing_judgment:
                 existing_judgment.update_from_pdf(text)
             else:
-                Judgement.from_pdf_as_text(text)
+                Judgment.from_pdf_as_text(text)
         document.update(text=text, kind=kind)
         db.session.commit()
 

@@ -57,8 +57,8 @@ class User(db.Model, UserMixin):
     edited_warrants = relationship(
         'DetainerWarrant', back_populates='last_edited_by'
     )
-    edited_judgements = relationship(
-        'Judgement', back_populates='last_edited_by'
+    edited_judgments = relationship(
+        'Judgment', back_populates='last_edited_by'
     )
 
     @property

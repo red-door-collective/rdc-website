@@ -1,5 +1,5 @@
 from .models import db
-from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Judgement, Plaintiff, detainer_warrant_defendants
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Judgment, Plaintiff, detainer_warrant_defendants
 from .util import open_workbook, get_gc
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
@@ -36,7 +36,7 @@ IS_CARES = 'CARES'
 IS_LEGACY = 'LEGACY'
 NONPAYMENT = 'Nonpayment'
 ADDRESS = 'Address'
-JUDGEMENT = 'Judgement'
+JUDGMENT = 'Judgment'
 NOTES = 'Notes'
 
 
@@ -57,7 +57,7 @@ empty_defendant = ['' for i in range(6)]
 
 header = [
     DOCKET_ID, FILE_DATE, STATUS, PLAINTIFF, PLTF_ATTORNEY, COURT_DATE, RECURRING_COURT_DATE, COURTROOM, JUDGE, AMT_CLAIMED, AMT_CLAIMED_CAT,
-    IS_CARES, IS_LEGACY, NONPAYMENT, 'Zipcode', ADDRESS] + defendant_headers(1) + defendant_headers(2) + defendant_headers(3) + defendant_headers(4) + [JUDGEMENT, NOTES]
+    IS_CARES, IS_LEGACY, NONPAYMENT, 'Zipcode', ADDRESS] + defendant_headers(1) + defendant_headers(2) + defendant_headers(3) + defendant_headers(4) + [JUDGMENT, NOTES]
 
 
 def date_str(d):
@@ -88,12 +88,12 @@ def _to_spreadsheet_row(warrant):
             warrant.plaintiff.name if warrant.plaintiff else '',
             warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
             date_str(
-                warrant.judgements[0]._court_date) if len(warrant.judgements) > 0 and warrant.judgements[0]._court_date else '',
+                warrant.judgments[0]._court_date) if len(warrant.judgments) > 0 and warrant.judgments[0]._court_date else '',
             warrant.recurring_court_date if warrant.recurring_court_date else '',
-            warrant.judgements[0].courtroom.name if len(
-                warrant.judgements) > 0 and warrant.judgements[0].courtroom else '',
-            warrant.judgements[0].judge.name if len(
-                warrant.judgements) > 0 and warrant.judgements[0].judge else '',
+            warrant.judgments[0].courtroom.name if len(
+                warrant.judgments) > 0 and warrant.judgments[0].courtroom else '',
+            warrant.judgments[0].judge.name if len(
+                warrant.judgments) > 0 and warrant.judgments[0].judge else '',
             str(warrant.amount_claimed) if warrant.amount_claimed else '',
             warrant.amount_claimed_category,
             warrant.is_cares,
@@ -105,7 +105,7 @@ def _to_spreadsheet_row(warrant):
         ],
         list(chain.from_iterable([defendant_columns(safelist(
             warrant.defendants).get(index)) for index in range(4)])),
-        [warrant.judgements[0].summary if len(warrant.judgements) > 0 else '',
+        [warrant.judgments[0].summary if len(warrant.judgments) > 0 else '',
          warrant.notes
          ]
     ]))]
@@ -137,8 +137,8 @@ def to_spreadsheet(workbook_name, service_account_key=None):
     wks.update(f'A2:AP{total + 1}', rows, value_input_option='USER_ENTERED')
 
 
-judgement_headers = ['Court Date', 'Docket #', 'Courtroom', 'Plaintiff', 'Pltf Lawyer', 'Defendant', 'Def Lawyer', 'Def. Address', 'Reason',
-                     'Amount', '"Mediation Letter"', 'Notes (anything unusual on detainer or in', 'Judgement', 'Judge',	'Judgement Basis']
+judgment_headers = ['Court Date', 'Docket #', 'Courtroom', 'Plaintiff', 'Pltf Lawyer', 'Defendant', 'Def Lawyer', 'Def. Address', 'Reason',
+                    'Amount', '"Mediation Letter"', 'Notes (anything unusual on detainer or in', 'Judgment', 'Judge',	'Judgment Basis']
 
 
 def defendant_names_column(warrant):
@@ -154,43 +154,43 @@ def defendant_names_column_newline(warrant):
     return '\n'.join(deduped)
 
 
-def _to_judgement_row(judgement):
+def _to_judgment_row(judgment):
     return [dw if dw else '' for dw in
             [
-                date_str(judgement._court_date) if judgement._court_date else '',
-                judgement.detainer_warrant_id,
-                judgement.courtroom.name if judgement.courtroom else '',
-                judgement.plaintiff.name if judgement.plaintiff else '',
-                judgement.plaintiff_attorney.name if judgement.plaintiff_attorney else '',
-                defendant_names_column(judgement.detainer_warrant),
-                judgement.defendant_attorney.name if judgement.defendant_attorney else '',
-                judgement.detainer_warrant.defendants[0].address if len(
-                    judgement.detainer_warrant.defendants) > 0 else '',
+                date_str(judgment._court_date) if judgment._court_date else '',
+                judgment.detainer_warrant_id,
+                judgment.courtroom.name if judgment.courtroom else '',
+                judgment.plaintiff.name if judgment.plaintiff else '',
+                judgment.plaintiff_attorney.name if judgment.plaintiff_attorney else '',
+                defendant_names_column(judgment.detainer_warrant),
+                judgment.defendant_attorney.name if judgment.defendant_attorney else '',
+                judgment.detainer_warrant.defendants[0].address if len(
+                    judgment.detainer_warrant.defendants) > 0 else '',
                 '',  # reason?
-                str(judgement.awards_fees) if judgement.awards_fees else '',
-                judgement.mediation_letter,
-                judgement.notes,
-                judgement.summary,
-                judgement.judge.name if judgement.judge else '',
-                judgement.dismissal_basis
+                str(judgment.awards_fees) if judgment.awards_fees else '',
+                judgment.mediation_letter,
+                judgment.notes,
+                judgment.summary,
+                judgment.judge.name if judgment.judge else '',
+                judgment.dismissal_basis
             ]]
 
 
-def to_judgement_sheet(workbook_name, service_account_key=None):
+def to_judgment_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    judgements = Judgement.query.filter(
-        Judgement.detainer_warrant_id.ilike('%\G\T%')
-    ).join(Courtroom).order_by(Judgement._court_date, Courtroom.name)
+    judgments = Judgment.query.filter(
+        Judgment.detainer_warrant_id.ilike('%\G\T%')
+    ).join(Courtroom).order_by(Judgment._court_date, Courtroom.name)
 
-    total = judgements.count()
+    total = judgments.count()
 
     wks = get_or_create_sheet(wb,
-                              'Judgements', rows=total + 1, cols=len(judgement_headers))
+                              'Judgments', rows=total + 1, cols=len(judgment_headers))
 
-    wks.update('A1:O1', [judgement_headers])
+    wks.update('A1:O1', [judgment_headers])
 
-    rows = [_to_judgement_row(judgement) for judgement in judgements]
+    rows = [_to_judgment_row(judgment) for judgment in judgments]
 
     wks.update(f'A2:O{total + 1}', rows, value_input_option='USER_ENTERED')
 
@@ -244,8 +244,8 @@ def _to_court_watch_row(warrant):
         [
             warrant.plaintiff.name if warrant.plaintiff else '',
             warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
-            warrant.judgements[0].courtroom.name if len(
-                warrant).judgements > 0 and warrant.judgements[0].courtroom else '',
+            warrant.judgments[0].courtroom.name if len(
+                warrant).judgments > 0 and warrant.judgments[0].courtroom else '',
             warrant.notes
         ]
     ]))]
@@ -262,11 +262,11 @@ def _try_court_watch_row(warrant):
 def to_court_watch_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    warrants = DetainerWarrant.query.join(Judgement).filter(
+    warrants = DetainerWarrant.query.join(Judgment).filter(
         DetainerWarrant.docket_id.ilike('%\G\T%'),
-        Judgement._court_date != None,
-        Judgement._court_date >= date.today()
-    ).order_by(DetainerWarrant.plaintiff_id.desc(), Judgement._court_date.desc())
+        Judgment._court_date != None,
+        Judgment._court_date >= date.today()
+    ).order_by(DetainerWarrant.plaintiff_id.desc(), Judgment._court_date.desc())
 
     total = warrants.count()
 
@@ -306,8 +306,8 @@ CELL_FORMAT = cellFormat(
 )
 
 
-def _to_courtroom_entry_sheet(wb, date, courtroom, judgements):
-    dockets = judgements.filter_by(courtroom_id=courtroom.id)
+def _to_courtroom_entry_sheet(wb, date, courtroom, judgments):
+    dockets = judgments.filter_by(courtroom_id=courtroom.id)
     total = dockets.count()
     if total == 0:
         return
@@ -353,13 +353,13 @@ def to_courtroom_entry_workbook(date, service_account_key=None):
         logger.error('cannot find courtrooms for entry sheet generation!')
         return
 
-    judgements = Judgement.query.filter(
-        Judgement._court_date != None,
-        Judgement._court_date == date,
-    ).order_by(Judgement.court_order_number)
+    judgments = Judgment.query.filter(
+        Judgment._court_date != None,
+        Judgment._court_date == date,
+    ).order_by(Judgment.court_order_number)
 
-    _to_courtroom_entry_sheet(wb, date, courtroom_1a, judgements)
-    _to_courtroom_entry_sheet(wb, date, courtroom_1b, judgements)
+    _to_courtroom_entry_sheet(wb, date, courtroom_1a, judgments)
+    _to_courtroom_entry_sheet(wb, date, courtroom_1b, judgments)
     logger.info(f'Exported courtroom sheets for 1A + 1B on {date_str(date)}')
 
 

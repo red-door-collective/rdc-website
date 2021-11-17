@@ -17,12 +17,12 @@ depends_on = None
 
 
 def upgrade():
-    op.alter_column('judgements', 'claims_fees', new_column_name='awards_fees')
-    op.alter_column('judgements', 'claims_possession',
+    op.alter_column('judgments', 'claims_fees', new_column_name='awards_fees')
+    op.alter_column('judgments', 'claims_possession',
                     new_column_name='awards_possession')
 
 
 def downgrade():
-    op.alter_column('judgements', 'awards_fees', new_column_name='claims_fees')
-    op.alter_column('judgements', 'awards_possession',
+    op.alter_column('judgments', 'awards_fees', new_column_name='claims_fees')
+    op.alter_column('judgments', 'awards_possession',
                     new_column_name='claims_possession')

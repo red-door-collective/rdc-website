@@ -1,4 +1,4 @@
-module Judgement exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgement, JudgementEdit, JudgementForm, OwedConditions, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm)
+module Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm, OwedConditions, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm)
 
 import Attorney exposing (Attorney, AttorneyForm)
 import Courtroom exposing (Courtroom)
@@ -50,7 +50,7 @@ type Conditions
     | DefendantConditions DismissalConditions
 
 
-type alias JudgementEdit =
+type alias JudgmentEdit =
     { id : Maybe Int
     , notes : Maybe String
     , enteredBy : Maybe String
@@ -74,7 +74,7 @@ type alias JudgementEdit =
     }
 
 
-type alias JudgementForm =
+type alias JudgmentForm =
     { id : Maybe Int
     , conditionsDropdown : Dropdown.State (Maybe ConditionOption)
     , condition : Maybe ConditionOption
@@ -97,7 +97,7 @@ type alias JudgementForm =
     }
 
 
-type alias Judgement =
+type alias Judgment =
     { id : Int
     , notes : Maybe String
     , courtDate : Maybe Posix
@@ -170,7 +170,7 @@ dismissalBasisText basis =
             "NON_SUIT_BY_PLAINTIFF"
 
 
-editFromForm : Date -> JudgementForm -> JudgementEdit
+editFromForm : Date -> JudgmentForm -> JudgmentEdit
 editFromForm today form =
     let
         rate =
@@ -333,9 +333,9 @@ entranceDecoder =
             )
 
 
-fromConditions : Maybe Conditions -> Decoder Judgement
+fromConditions : Maybe Conditions -> Decoder Judgment
 fromConditions conditions =
-    Decode.succeed Judgement
+    Decode.succeed Judgment
         |> required "id" int
         |> required "notes" (nullable string)
         |> required "court_date" (nullable posixDecoder)
@@ -347,7 +347,7 @@ fromConditions conditions =
         |> custom (Decode.succeed conditions)
 
 
-decoder : Decoder Judgement
+decoder : Decoder Judgment
 decoder =
     Decode.field "in_favor_of" (nullable string)
         |> Decode.andThen

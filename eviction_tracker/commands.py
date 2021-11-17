@@ -12,7 +12,7 @@ import gspread
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.admin.models import User, user_datastore
 from eviction_tracker.database import db
-from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant, Judgement, District
+from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant, Judgment, District
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import uuid
@@ -45,14 +45,14 @@ def test():
 @with_appcontext
 def scrape_sessions_site(courtroom, date):
     logger.info(f'Scraping Sessions site for courtroom: {courtroom} on {date}')
-    detainer_warrants.judgement_scraping.scrape(courtroom, date)
+    detainer_warrants.judgment_scraping.scrape(courtroom, date)
 
 
 @click.command()
 @with_appcontext
 def scrape_sessions_week():
     logger.info(f'Scraping Sessions site for the upcoming week')
-    detainer_warrants.judgement_scraping.scrape_entire_site()
+    detainer_warrants.judgment_scraping.scrape_entire_site()
 
 
 @click.command()
@@ -66,8 +66,8 @@ def export(workbook_name, service_account_key, only):
     if only == 'Detainer Warrants':
         detainer_warrants.exports.to_spreadsheet(
             workbook_name, service_account_key)
-    elif only == 'Judgements':
-        detainer_warrants.exports.to_judgement_sheet(
+    elif only == 'Judgments':
+        detainer_warrants.exports.to_judgment_sheet(
             workbook_name, service_account_key)
     elif only == 'Court Watch':
         detainer_warrants.exports.to_court_watch_sheet(
@@ -75,7 +75,7 @@ def export(workbook_name, service_account_key, only):
     else:
         detainer_warrants.exports.to_spreadsheet(
             workbook_name, service_account_key)
-        detainer_warrants.exports.to_judgement_sheet(
+        detainer_warrants.exports.to_judgment_sheet(
             workbook_name, service_account_key)
         detainer_warrants.exports.to_court_watch_sheet(
             workbook_name, service_account_key)
@@ -186,7 +186,7 @@ def extract_judgment(file_name):
     """Extract judgment from pdf"""
     text = detainer_warrants.caselink.pleadings.extract_text_from_pdf(
         file_name)
-    Judgement.from_pdf_as_text(text)
+    Judgment.from_pdf_as_text(text)
 
 
 @click.command()

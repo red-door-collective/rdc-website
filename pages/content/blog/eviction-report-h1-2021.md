@@ -49,7 +49,7 @@ The purpose of this report is to shed light on the frequency and general charact
 
 ### DATA
 
-The primary source for this dataset is available in the Public Inquiry System for the Offices of the Circuit Court Clerk in Davidson Co., Tennessee, also known as "CaseLink." The data used in this report were gathered from CaseLink and additional data requests to the Clerk's office. The data were pulled on and are accurate as of April, 21, 2021. Data were cleaned to improve accuracy of addresses and plaintiff and defendant names. Judgement information were manually documented from CaseLink. All data gathering, cleaning, and analysis was conducted by RDC volunteers.
+The primary source for this dataset is available in the Public Inquiry System for the Offices of the Circuit Court Clerk in Davidson Co., Tennessee, also known as "CaseLink." The data used in this report were gathered from CaseLink and additional data requests to the Clerk's office. The data were pulled on and are accurate as of April, 21, 2021. Data were cleaned to improve accuracy of addresses and plaintiff and defendant names. Judgment information were manually documented from CaseLink. All data gathering, cleaning, and analysis was conducted by RDC volunteers.
 
 ### LIMITATIONS
 
@@ -67,7 +67,7 @@ There are some limitations to using these data, such as lack of demographic info
 
 **Defendant** - In eviction cases, the tenant or renter.
 
-**Judgement** - The outcome of legal proceedings. Outcomes for eviction proceedings include non-suit (withdraw of the case by plaintiff), possession (eviction of tenant), possession with monetary damages or fees, and dismissal.
+**Judgment** - The outcome of legal proceedings. Outcomes for eviction proceedings include non-suit (withdraw of the case by plaintiff), possession (eviction of tenant), possession with monetary damages or fees, and dismissal.
 
 **Writ of Restitution** - The legal document that officially evicts a tenant after an eviction case is heard and grants possession to the plaintiff.
 
@@ -139,7 +139,7 @@ Between January 1, 2017 and December 31, 2019, over 31,000 detainer warrants (DW
 
 Ten plaintiffs represent nearly one-third of DWs in Nashville during this time period (Table 1). At least 4,000 unique plaintiff names account for the other two-thirds of DWs. Because plaintiff names change and are inconsistently listed on detainer warrants, the number of cases shown are an approximation. Between 2017 and 2019, the Metropolitan Development and Housing Agency (MDHA) alone accounts for approximately 1 of every 5 DWs issued between 2017 and 2019.
 
-# PLAINTIFF ATTORNEYS AND JUDGEMENTS, 2017-2019
+# PLAINTIFF ATTORNEYS AND JUDGMENTS, 2017-2019
 
 A consistent group of eviction attorneys are responsible for representing the majority (74.1% in 2019) of eviction cases in Davidson Co., Tennessee (Table 2). The five most common attorneys are consistent between years and represent a growing percent of all DWs filed while other attorneys and plaintiffs representing themselves are listed on a smaller percentage of DWs each year.
 
@@ -159,12 +159,12 @@ A consistent group of eviction attorneys are responsible for representing the ma
 <text-column>
 
 <align-left>
-![Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgments-pie-chart.png "Figure 2. Judgements of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee")
+![Figure 2. Judgments of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgments-pie-chart.png "Figure 2. Judgments of 574 randomly-selected closed cases, 2019, Davidson Co. Tennessee")
 </align-left>
 
-Judgement data was manually entered from CaseLink. To reduce the workload of determining frequency of judgement outcomes for historical data, we used a random number generator to sample 5% (574) of DWs from 2019. While the below data does not include all cases, we believe it can provide insight into historical trends.
+Judgment data was manually entered from CaseLink. To reduce the workload of determining frequency of judgment outcomes for historical data, we used a random number generator to sample 5% (574) of DWs from 2019. While the below data does not include all cases, we believe it can provide insight into historical trends.
 
-Figure 2 shows that over half of cases sampled resulted in repossession of property. Approximately 1 in 5 resulted in a non-suit. The category non-suit is used when cases are settled outside of court and could mean any outcome for the tenant. Cases with "other" judgements typically did not have a judgement listed despite being closed.
+Figure 2 shows that over half of cases sampled resulted in repossession of property. Approximately 1 in 5 resulted in a non-suit. The category non-suit is used when cases are settled outside of court and could mean any outcome for the tenant. Cases with "other" judgments typically did not have a judgment listed despite being closed.
 
 </text-column>
 
@@ -194,19 +194,19 @@ The most common plaintiffs listed on DWs between April 2020 and March 2021 inclu
 | Robert Joseph Hill II  | 198                         | Point Breeze Apartments (27), Lakeview Terrace Motel (13)                                                     |
 | William Henry Choppin  | 181                         | Metropolitan Development and Housing Agency (180)                                                             |
 
-## NUMBER OF DEFENDANTS AND CASE JUDGEMENTS, 2020-2021
+## NUMBER OF DEFENDANTS AND CASE JUDGMENTS, 2020-2021
 
 <row>
 <column portion="1">
 ![Figure 5. Number of detainer warrants and named defendants by month, October to December 2020, Davidson Co. Tennessee](/images/eviction-report-h1-2021/defendants-bar-chart.png "Figure 5. Number of detainer warrants and named defendants by month, October to December 2020, Davidson Co. Tennessee")
 </column>
 <column portion="1">
-![Figure 6. Judgements of closed cases, October to December 2020, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgments-pie-chart2.png "Figure 6. Judgements of closed cases, October to December 2020, Davidson Co. Tennessee")
+![Figure 6. Judgments of closed cases, October to December 2020, Davidson Co. Tennessee](/images/eviction-report-h1-2021/judgments-pie-chart2.png "Figure 6. Judgments of closed cases, October to December 2020, Davidson Co. Tennessee")
 </column>
 </row>
 On average, for every five DWs submitted between October 2020 and March 2021, at least six people are listed as defendants (Figure 5). We know that this number largely underestimates the total number of people at risk of being evicted; DWs are not required to list all defendants, including children living inside the home. 
 
-We began collecting judgements consistently in October 2020. Approximately 1,711 DWs were filed between October 1 and December 31, 2020. By April 21, 2021 988 of those cases were closed. Figure 6 shows that the majority of cases in this time period resulted in non-suits. Only 22% of the cases we sampled from 2019 resulted in a non-suit judgement (Figure 2). Over 40% of closed cases resulted in repossession of property by the landlord. The majority of cases were decided in favor of the plaintiff by default or absence of the defendant in court. Only 4.7% of cases ended in dismissal. We have noted that since these data were collected, some landlords have returned to court to seek monetary damages after winning possession. Due to these additional judgements and illegal evictions occurring outside of the judicial process, we assume the rate of eviction and owing monetary damages following a DW is much higher than documented here.
+We began collecting judgments consistently in October 2020. Approximately 1,711 DWs were filed between October 1 and December 31, 2020. By April 21, 2021 988 of those cases were closed. Figure 6 shows that the majority of cases in this time period resulted in non-suits. Only 22% of the cases we sampled from 2019 resulted in a non-suit judgment (Figure 2). Over 40% of closed cases resulted in repossession of property by the landlord. The majority of cases were decided in favor of the plaintiff by default or absence of the defendant in court. Only 4.7% of cases ended in dismissal. We have noted that since these data were collected, some landlords have returned to court to seek monetary damages after winning possession. Due to these additional judgments and illegal evictions occurring outside of the judicial process, we assume the rate of eviction and owing monetary damages following a DW is much higher than documented here.
 
 Of the 141 cases that noted both possession and financial damages, over $877,000 was awarded to plaintiffs or an average of $6,177. The median financial award was $5,386.
 

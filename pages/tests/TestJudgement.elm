@@ -1,8 +1,8 @@
-module TestJudgement exposing (all)
+module TestJudgment exposing (all)
 
 import Expect
 import Json.Decode as Decode
-import Judgement exposing (Entrance(..), Judgement)
+import Judgment exposing (Entrance(..), Judgment)
 import Test exposing (..)
 import Time
 
@@ -34,8 +34,8 @@ minimalJson =
     """
 
 
-minimalJudgement : Judgement
-minimalJudgement =
+minimalJudgment : Judgment
+minimalJudgment =
     { id = 123
     , courtDate = Nothing
     , courtroom = Nothing
@@ -54,6 +54,6 @@ all =
         [ test "decodes with nulls" <|
             \() ->
                 Expect.equal
-                    (Result.Ok minimalJudgement)
-                    (Decode.decodeString Judgement.decoder minimalJson)
+                    (Result.Ok minimalJudgment)
+                    (Decode.decodeString Judgment.decoder minimalJson)
         ]

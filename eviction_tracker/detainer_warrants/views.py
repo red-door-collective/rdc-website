@@ -22,7 +22,7 @@ from sqlalchemy.orm import raiseload
 from sqlalchemy.exc import IntegrityError
 
 from eviction_tracker.database import db
-from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, PleadingDocument, Judge, Judgement, PhoneNumberVerification
+from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, PleadingDocument, Judge, Judgment, PhoneNumberVerification
 from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
 from psycopg2 import errors
@@ -218,9 +218,9 @@ class JudgeResource(JudgeResourceBase):
         return self.update(int(id), partial=True)
 
 
-class JudgementResourceBase(GenericModelView):
-    model = Judgement
-    schema = judgement_schema
+class JudgmentResourceBase(GenericModelView):
+    model = Judgment
+    schema = judgment_schema
 
     authentication = HeaderUserAuthentication()
     authorization = Protected()
@@ -229,7 +229,7 @@ class JudgementResourceBase(GenericModelView):
     sorting = Sorting('court_date', default='-court_date')
 
 
-class JudgementListResource(JudgementResourceBase):
+class JudgmentListResource(JudgmentResourceBase):
     def get(self):
         return self.list()
 
@@ -237,7 +237,7 @@ class JudgementListResource(JudgementResourceBase):
         return self.create()
 
 
-class JudgementResource(JudgementResourceBase):
+class JudgmentResource(JudgmentResourceBase):
     def get(self, id):
         return self.retrieve(id)
 
@@ -279,7 +279,7 @@ def filter_plaintiff_attorney_name(model, plaintiff_attorney_name):
 
 @model_filter(fields.Int())
 def filter_court_date(model, court_date):
-    return model._judgements.any(Judgement.court_date == court_date)
+    return model._judgments.any(Judgment.court_date == court_date)
 
 
 class PleadingDocumentResourceBase(GenericModelView):
