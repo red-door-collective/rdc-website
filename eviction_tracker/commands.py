@@ -19,8 +19,6 @@ import uuid
 import logging.config
 import eviction_tracker.config as config
 from datetime import date, datetime
-from pdfminer.high_level import extract_pages, extract_text, extract_text_to_fp
-from pdfminer.layout import LTTextContainer, LAParams
 from io import StringIO
 
 logging.config.dictConfig(config.LOGGING)
@@ -184,14 +182,17 @@ def verify_phone(phone_number):
 @click.command()
 @click.argument('file_name')
 @with_appcontext
-def extract_judgement(file_name):
-    """Extract judgement from pdf"""
-    checked = u''
-    unchecked = u''
-    output_string = StringIO()
-    with open(file_name, 'rb') as fin:
-        extract_text_to_fp(fin, output_string)
-        Judgement.from_pdf_as_text(output_string.getvalue().strip())
+def extract_judgment(file_name):
+    """Extract judgment from pdf"""
+    text = detainer_warrants.caselink.pleadings.extract_text_from_pdf(
+        file_name)
+    Judgement.from_pdf_as_text(text)
+
+
+@click.command()
+@with_appcontext
+def bulk_extract_pleading_document_details():
+    detainer_warrants.caselink.pleadings.bulk_extract_pleading_document_details()
 
 
 @click.command()

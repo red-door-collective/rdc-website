@@ -12,6 +12,8 @@ import logging.config
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
+weekdays = '1-5'
+
 
 @scheduler.task(IntervalTrigger(minutes=70), id='export')
 def export():
@@ -33,7 +35,7 @@ def export():
             date.today(), key)
 
 
-@scheduler.task(CronTrigger(day_of_week='1-5', hour=12, minute=0, second=0, jitter=200), id='import-caselink-warrants')
+@scheduler.task(CronTrigger(day_of_week=weekdays, hour=12, minute=0, second=0, jitter=200), id='import-caselink-warrants')
 def import_caselink_warrants(start_date=None, end_date=None):
     start = datetime.strptime(
         start_date, '%Y-%m-%d') if start_date else date.today()
@@ -43,10 +45,16 @@ def import_caselink_warrants(start_date=None, end_date=None):
         detainer_warrants.caselink.warrants.import_from_caselink(start, end)
 
 
-@scheduler.task(CronTrigger(day_of_week='1-5', hour=5, minute=0, second=0, jitter=200), id='import-caselink-pleading-documents')
+@scheduler.task(CronTrigger(day_of_week=weekdays, hour=5, minute=0, second=0, jitter=200), id='import-caselink-pleading-documents')
 def import_caselink_pleading_documents():
     with scheduler.app.app_context():
         detainer_warrants.caselink.pleadings.update_pending_warrants()
+
+
+@scheduler.task(CronTrigger(day_of_week=weekdays, hour=9, minute=0, second=0, jitter=200), id='extract-pleading-document-details')
+def extract_pleading_document_details():
+    with scheduler.app.app_context():
+        detainer_warrants.caselink.pleadings.bulk_extract_pleading_document_details()
 
 
 @scheduler.task(IntervalTrigger(minutes=65), id='sync-with-sessions-site')

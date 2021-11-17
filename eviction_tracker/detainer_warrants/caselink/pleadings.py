@@ -20,6 +20,9 @@ import logging
 import logging.config
 import traceback
 from datetime import datetime, timedelta
+from pdfminer.high_level import extract_pages, extract_text
+import requests
+import io
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -127,3 +130,51 @@ def update_pending_warrants():
         )
     ))
     bulk_import_documents([id[0] for id in queue])
+
+
+def extract_text_from_pdf(file_name):
+    output_string = ''
+    with open(file_name, 'rb') as fin:
+        output_string = extract_text(fin)
+
+    return output_string.strip()
+
+
+def extract_text_from_document(document):
+    try:
+        response = requests.get(document.url)
+        pdf_memory_file = io.BytesIO()
+        pdf_memory_file.write(response.content)
+        text = extract_text(pdf_memory_file)
+        kind = None
+        if 'Other terms of this Order, if any, are as follows' in text:
+            kind = 'JUDGMENT'
+            efile_date_regex = re.compile(r'EFILED\s+(\d+/\d+/\d+)\s+')
+            efile_date_str = efile_date_regex.search(text).group(1)
+            efile_date = datetime.strptime(efile_date_str, '%m/%d/%y').date()
+
+            existing_judgment = Judgement.query.filter(
+                and_(
+                    Judgement._court_date <= efile_date,
+                    Judgement.in_favor_of == None
+                )).first()
+            if existing_judgment:
+                existing_judgment.update_from_pdf(text)
+            else:
+                Judgement.from_pdf_as_text(text)
+        document.update(text=text, kind=kind)
+        db.session.commit()
+
+    except:
+        logger.warning(
+            f'Could not extract text for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}')
+        document.update(text="")  # empty string means we tried and failed
+        db.session.commit()
+
+
+def bulk_extract_pleading_document_details():
+    queue = PleadingDocument.query.filter(
+        PleadingDocument.text == None
+    )
+    for document in queue:
+        extract_text_from_document(document)

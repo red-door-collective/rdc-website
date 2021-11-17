@@ -405,7 +405,14 @@ class Judgement(db.Model, Timestamped):
     def __repr__(self):
         return "<Judgement(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
 
+    def update_from_pdf(self, pdf):
+        return self.update(**Judgement.attributes_from_pdf(pdf))
+
     def from_pdf_as_text(pdf):
+        return Judgement.create(**Judgement.attributes_from_pdf(pdf))
+
+    def attributes_from_pdf(pdf):
+        pdf = pdf.replace('\n', ' ').replace('\r', ' ')
         defaults = district_defaults()
         checked = u''
         unchecked = u''
@@ -494,7 +501,7 @@ class Judgement(db.Model, Timestamped):
                 r'Dismissal is based on:\s*(.+)\s*Failure to prosecute.')
             dismissal_favor_regex = re.compile(
                 r'prosecute\.\s*(.+)\s*Finding in favor of Defendant')
-            dismissal_non_suit = re.compile(
+            dismissal_non_suit_regex = re.compile(
                 r'after trial.\s*(.+)\s*Non-suit by Plaintiff')
 
             if checked in dismissal_failure_regex.search(pdf).group(1):
@@ -513,10 +520,10 @@ class Judgement(db.Model, Timestamped):
             r'Other terms of this Order, if any, are as follows:\s*(.+?)\s*EFILED')
         notes = notes_regex.search(pdf).group(1)
 
-        return Judgement.create(
+        return dict(
             awards_possession=awards_possession,
             awards_fees=awards_fees,
-            entered_by_id=Judgement.entrances[entered_by],
+            entered_by_id=Judgement.entrances[entered_by] if entered_by else None,
             interest=interest,
             interest_rate=interest_rate,
             interest_follows_site=interest_follows_site,
@@ -546,7 +553,7 @@ class PleadingDocument(db.Model, Timestamped):
     _detainer_warrant = relationship(
         'DetainerWarrant', back_populates='pleadings')
 
-    @property
+    @hybrid_property
     def kind(self):
         kind_by_id = {v: k for k, v in PleadingDocument.kinds.items()}
         return kind_by_id[self.kind_id] if self.kind_id is not None else None
@@ -554,6 +561,10 @@ class PleadingDocument(db.Model, Timestamped):
     @kind.setter
     def kind(self, kind_name):
         self.kind_id = PleadingDocument.kinds[kind_name] if kind_name else None
+
+    @kind.expression
+    def kind(cls):
+        return case([(cls.kind_id == 0, 'JUDGMENT'), (cls.kind_id == 1, 'DETAINER_WARRANT')], else_=None).label("kind")
 
     @property
     def detainer_warrant(self):
