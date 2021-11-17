@@ -16,6 +16,8 @@ The stack:
 5. [PDFMiner](https://pdfminersix.readthedocs.io/en/latest/) (Data Extraction)
 6. [Nix](https://nixos.org/) (build system, deployment)
 
+[Futher details about development](backend.md)
+
 #### Frontend
 
 The stack:
