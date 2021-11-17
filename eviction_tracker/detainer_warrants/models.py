@@ -399,13 +399,21 @@ class Judgment(db.Model, Timestamped):
     def __repr__(self):
         return "<Judgment(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
 
+    def court_date_guess(text):
+        efile_date_regex = re.compile(r'EFILED\s+(\d+/\d+/\d+)\s+')
+        efile_date_match = efile_date_regex.search(text)
+        if efile_date_match:
+            return datetime.strptime(efile_date_match.group(1), '%m/%d/%y').date()
+        else:
+            return None
+
     def update_from_pdf(self, pdf):
-        return self.update(**Judgment.attributes_from_pdf(pdf))
+        return self.update(**Judgment.attributes_from_pdf(pdf, guess_court_date=False))
 
     def from_pdf_as_text(pdf):
         return Judgment.create(**Judgment.attributes_from_pdf(pdf))
 
-    def attributes_from_pdf(pdf):
+    def attributes_from_pdf(pdf, guess_court_date=True):
         pdf = pdf.replace('\n', ' ').replace('\r', ' ')
         defaults = district_defaults()
         checked = u''
@@ -514,7 +522,8 @@ class Judgment(db.Model, Timestamped):
             r'Other terms of this Order, if any, are as follows:\s*(.+?)\s*EFILED')
         notes = notes_regex.search(pdf).group(1)
 
-        return dict(
+        attrs = dict(
+            _court_date=Judgment.court_date_guess(pdf),
             awards_possession=awards_possession,
             awards_fees=awards_fees,
             entered_by_id=Judgment.entrances[entered_by] if entered_by else None,
@@ -529,6 +538,12 @@ class Judgment(db.Model, Timestamped):
             plaintiff_id=plaintiff.id if plaintiff else None,
             judge_id=judge.id if judge else None
         )
+
+        if guess_court_date:
+            attrs['_court_date'] = Judgment.court_date_guess(pdf)
+            return attrs
+        else:
+            return attrs
 
 
 class PleadingDocument(db.Model, Timestamped):

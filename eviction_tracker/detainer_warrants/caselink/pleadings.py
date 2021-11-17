@@ -19,13 +19,18 @@ import eviction_tracker.config as config
 import logging
 import logging.config
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from pdfminer.high_level import extract_pages, extract_text
 import requests
 import io
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
+
+
+def is_between(begin_date, end_date, check_date=None):
+    check_time = check_date or date.today()
+    return check_date >= begin_date and check_date <= end_date
 
 
 def import_from_dw_page(browser, docket_id):
@@ -150,16 +155,13 @@ def extract_text_from_document(document):
         kind = None
         if 'Other terms of this Order, if any, are as follows' in text:
             kind = 'JUDGMENT'
-            efile_date_regex = re.compile(r'EFILED\s+(\d+/\d+/\d+)\s+')
-            efile_date_str = efile_date_regex.search(text).group(1)
-            efile_date = datetime.strptime(efile_date_str, '%m/%d/%y').date()
-
+            possible_court_date = Judgment.court_date_guess(text)
             existing_judgment = Judgment.query.filter(
                 and_(
-                    Judgment._court_date <= efile_date,
-                    Judgment.in_favor_of == None
+                    Judgment._court_date <= possible_court_date,
+                    Judgment.detainer_warrant_id == document.docket_id
                 )).first()
-            if existing_judgment:
+            if existing_judgment and possible_court_date - Judgment._court_date < timedelta(days=3):
                 existing_judgment.update_from_pdf(text)
             else:
                 Judgment.from_pdf_as_text(text)
@@ -175,7 +177,7 @@ def extract_text_from_document(document):
 
 def bulk_extract_pleading_document_details():
     queue = PleadingDocument.query.filter(
-        PleadingDocument.text == None
+        PleadingDocument.docket_id == '21GT3993'
     )
     for document in queue:
         extract_text_from_document(document)
