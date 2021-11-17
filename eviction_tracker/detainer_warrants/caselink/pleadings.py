@@ -122,11 +122,12 @@ def update_pending_warrants():
         or_(
             DetainerWarrant._last_pleading_documents_check == None,
             DetainerWarrant._judgments.any(
-                Judgment._court_date < DetainerWarrant._last_pleading_documents_check),
+                DetainerWarrant._last_pleading_documents_check < Judgment._court_date
+            )
         ),
         or_(
             DetainerWarrant._last_pleading_documents_check == None,
-            DetainerWarrant._last_pleading_documents_check > three_days_ago
+            DetainerWarrant._last_pleading_documents_check < three_days_ago
         )
     ))
     bulk_import_documents([id[0] for id in queue])
