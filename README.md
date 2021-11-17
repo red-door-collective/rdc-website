@@ -124,14 +124,6 @@ Afterwards, you'll be able to [login](http://localhost:1234/login) to several de
 3. Organizer - organizer@example.com:123456
 4. Defendant - defendant@example.com:123456
 
-#### Sync database
-
-To sync the data from our org's Google Spreadsheet, run `flask sync <spreadsheet-name>`.
-
-If you want just a bit of data to work with locally, pass the `--limit` argument.
-
-Example: `flask sync --limit 10` will populate the database with 10 detainer warrants.
-
 #### Run app
 
 ##### API
