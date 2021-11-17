@@ -155,16 +155,7 @@ def extract_text_from_document(document):
         kind = None
         if 'Other terms of this Order, if any, are as follows' in text:
             kind = 'JUDGMENT'
-            possible_court_date = Judgment.court_date_guess(text)
-            existing_judgment = Judgment.query.filter(
-                and_(
-                    Judgment._court_date <= possible_court_date,
-                    Judgment.detainer_warrant_id == document.docket_id
-                )).first()
-            if existing_judgment and possible_court_date - Judgment._court_date < timedelta(days=3):
-                existing_judgment.update_from_pdf(text)
-            else:
-                Judgment.from_pdf_as_text(text)
+            update_judgment_from_document(document)
         document.update(text=text, kind=kind)
         db.session.commit()
 
@@ -181,3 +172,29 @@ def bulk_extract_pleading_document_details():
     )
     for document in queue:
         extract_text_from_document(document)
+
+
+def update_judgment_from_document(document):
+    if document.kind == 'JUDGMENT' and document.text:
+        text = document.text
+        possible_court_date = Judgment.court_date_guess(text)
+        existing_judgment = Judgment.query.filter(
+            and_(
+                Judgment._court_date >= possible_court_date -
+                timedelta(days=3),
+                Judgment.detainer_warrant_id == document.docket_id,
+            )).first()
+
+        if existing_judgment:
+            existing_judgment.update_from_pdf(text)
+        else:
+            Judgment.from_pdf_as_text(text)
+
+
+def update_judgments_from_documents():
+    queue = PleadingDocument.query.filter(and_(
+        PleadingDocument.kind == 'JUDGMENT',
+        PleadingDocument.text != None
+    ))
+    for document in queue:
+        update_judgment_from_document(document)

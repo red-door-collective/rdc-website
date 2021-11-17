@@ -196,6 +196,12 @@ def bulk_extract_pleading_document_details():
 
 
 @click.command()
+@with_appcontext
+def update_judgments_from_documents():
+    detainer_warrants.caselink.pleadings.update_judgments_from_documents()
+
+
+@click.command()
 @click.argument('docket_id')
 @with_appcontext
 def gather_pleading_documents(docket_id):

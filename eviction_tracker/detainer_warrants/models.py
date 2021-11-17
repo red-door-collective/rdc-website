@@ -523,7 +523,6 @@ class Judgment(db.Model, Timestamped):
         notes = notes_regex.search(pdf).group(1)
 
         attrs = dict(
-            _court_date=Judgment.court_date_guess(pdf),
             awards_possession=awards_possession,
             awards_fees=awards_fees,
             entered_by_id=Judgment.entrances[entered_by] if entered_by else None,
