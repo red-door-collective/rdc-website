@@ -1,37 +1,25 @@
-## Welcome to GitHub Pages
+## Eviction Tracker
 
-You can use the [editor on GitHub](https://github.com/red-door-collective/eviction-tracker/edit/main/docs/index.md) to maintain and preview the content for your website in Markdown files.
+[This website](https://reddoorcollective.org/) gathers public data from [Davidson County courts](https://caselink.nashville.gov/) to provide tenant-anonymized insights for eviction trends in Nashville, Tennessee.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+### Technologies
 
-### Markdown
+The project uses a Python backend and an Elm frontend.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+#### Backend
 
-```markdown
-Syntax highlighted code block
+The stack:
+1. [PostgreSQL](https://www.postgresql.org/)
+2. [Flask](https://flask.palletsprojects.com/en/2.0.x/) (Web framework)
+3. [Flask-Resty](https://flask-resty.readthedocs.io/en/latest/index.html) (REST API)
+4. [APScheduler](https://apscheduler.readthedocs.io/en/3.x/) (Jobs)
+5. [PDFMiner](https://pdfminersix.readthedocs.io/en/latest/) (Data Extraction)
+6. [Nix](https://nixos.org/) (build system, deployment)
 
-# Header 1
-## Header 2
-### Header 3
+#### Frontend
 
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/red-door-collective/eviction-tracker/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+The stack:
+1. [elm-ui](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/) (Styling and layout)
+2. [paack-ui](https://paackeng.github.io/paack-ui/#Styles/Colors/Colors) (Opinionated design system atop Elm-UI)
+3. [elm-pages](https://elm-pages.com/) (SPA framework, specialized for static sites)
+4. [elm-charts](https://elm-charts.org/)
