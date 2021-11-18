@@ -37,7 +37,7 @@ detainer_warrant_defendants = db.Table(
     'detainer_warrant_defendants',
     db.metadata,
     Column('detainer_warrant_docket_id', db.ForeignKey(
-        'detainer_warrants.docket_id', ondelete="CASCADE"), primary_key=True),
+        'cases.docket_id', ondelete="CASCADE"), primary_key=True),
     Column('defendant_id', db.ForeignKey(
         'defendants.id', ondelete="CASCADE"), primary_key=True)
 )
@@ -219,7 +219,7 @@ class Judgment(db.Model, Timestamped):
     notes = Column(db.Text)
 
     detainer_warrant_id = Column(
-        db.String(255), db.ForeignKey('detainer_warrants.docket_id'), nullable=False)
+        db.String(255), db.ForeignKey('cases.docket_id'), nullable=False)
     judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     plaintiff_id = Column(db.Integer, db.ForeignKey(
@@ -557,7 +557,7 @@ class PleadingDocument(db.Model, Timestamped):
     text = Column(db.Text)
     kind_id = Column(db.Integer)
     docket_id = Column(db.String(255), db.ForeignKey(
-        'detainer_warrants.docket_id'), nullable=False)
+        'cases.docket_id'), nullable=False)
 
     _detainer_warrant = relationship(
         'DetainerWarrant', back_populates='pleadings')
@@ -592,24 +592,133 @@ class PleadingDocument(db.Model, Timestamped):
         return "<PleadingDocument(docket_id='%s', url='%s')>" % (self.docket_id, self.url)
 
 
-class QueryOnlyGT(BaseQuery):
-    def __new__(cls, *args, **kwargs):
-        obj = super(QueryOnlyGT, cls).__new__(cls)
-        if len(args) > 0:
-            super(QueryOnlyGT, obj).__init__(*args, **kwargs)
-            return obj.filter(DetainerWarrant.docket_id.ilike('%GT%'))
-        return obj
-
-    def __init__(self, *args, **kwargs):
-        pass
-
-
-class DetainerWarrant(db.Model, Timestamped):
-    query_class = QueryOnlyGT
-
+class Case(db.Model, Timestamped):
     statuses = {
         'CLOSED': 0,
         'PENDING': 1
+    }
+
+    def calc_order_number(docket_id):
+        num = docket_id.replace('GT', '').replace('GC', '')
+        if num.isnumeric():
+            return int(num)
+        else:
+            return 0
+
+    __tablename__ = "cases"
+    _docket_id = Column(db.String(255), primary_key=True, name="docket_id")
+    order_number = Column(db.BigInteger, nullable=False)
+    _file_date = Column(db.Date, name="file_date")
+    status_id = Column(db.Integer)
+    plaintiff_id = Column(db.Integer, db.ForeignKey(
+        'plaintiffs.id', ondelete='CASCADE'))
+    plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
+        'attorneys.id', ondelete=('CASCADE')
+    ))
+    type = Column(db.String(50))
+
+    _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
+    _plaintiff_attorney = relationship(
+        'Attorney', back_populates='detainer_warrants')
+
+    _defendants = relationship('Defendant',
+                               secondary=detainer_warrant_defendants,
+                               back_populates='detainer_warrants',
+                               cascade="all, delete",
+                               )
+
+    __mapper_args__ = {
+        'polymorphic_on': type,
+        'polymorphic_identity': 'cases'
+    }
+
+    @hybrid_property
+    def docket_id(self):
+        return self._docket_id
+
+    @docket_id.setter
+    def docket_id(self, id):
+        self._docket_id = id
+        self.order_number = Case.calc_order_number(id)
+        if 'GT' in id:
+            self.type = 'detainer_warrant'
+        elif 'GC' in id:
+            self.type = 'civil_warrant'
+
+    @hybrid_property
+    def file_date(self):
+        if self._file_date:
+            return in_millis(datetime.combine(self._file_date, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @file_date.comparator
+    def file_date(cls):
+        return PosixComparator(cls._file_date)
+
+    @file_date.setter
+    def file_date(self, posix):
+        self._file_date = from_millis(posix) if posix else None
+
+    @hybrid_property
+    def status(self):
+        status_by_id = {v: k for k, v in DetainerWarrant.statuses.items()}
+        return status_by_id[self.status_id] if self.status_id is not None else None
+
+    @status.expression
+    def status(cls):
+        return case([(cls.status_id == 0, 'CLOSED'), (cls.status_id == 1, 'PENDING')], else_=None).label("status")
+
+    @status.setter
+    def status(self, status_name):
+        self.status_id = DetainerWarrant.statuses[status_name] if status_name else None
+
+    @property
+    def plaintiff(self):
+        return self._plaintiff
+
+    @plaintiff.setter
+    def plaintiff(self, plaintiff):
+        p_id = plaintiff and plaintiff.get('id')
+        if (p_id):
+            self._plaintiff = db.session.query(Plaintiff).get(p_id)
+        else:
+            self._plaintiff = plaintiff
+
+    @property
+    def plaintiff_attorney(self):
+        return self._plaintiff_attorney
+
+    @plaintiff_attorney.setter
+    def plaintiff_attorney(self, attorney):
+        a_id = attorney and attorney.get('id')
+        if (a_id):
+            self._plaintiff_attorney = db.session.query(Attorney).get(a_id)
+        else:
+            self._plaintiff_attorney = attorney
+
+    @property
+    def defendants(self):
+        return self._defendants
+
+    @defendants.setter
+    def defendants(self, defendants):
+        if (all(isinstance(d, Defendant) for d in defendants)):
+            self._defendants = defendants
+        else:
+            self._defendants = [db.session.query(
+                Defendant).get(d.get('id')) for d in defendants]
+
+
+class CivilWarrant(Case):
+    __mapper_args__ = {
+        'polymorphic_identity': 'civil_warrant'
+    }
+
+
+class DetainerWarrant(Case):
+    __mapper_args__ = {
+        'polymorphic_identity': 'detainer_warrant'
     }
 
     recurring_court_dates = {
@@ -629,16 +738,6 @@ class DetainerWarrant(db.Model, Timestamped):
         'N/A': 3,
     }
 
-    __tablename__ = 'detainer_warrants'
-    _docket_id = Column(db.String(255), primary_key=True, name="docket_id")
-    order_number = Column(db.BigInteger, nullable=False)
-    _file_date = Column(db.Date, name="file_date")
-    status_id = Column(db.Integer)
-    plaintiff_id = Column(db.Integer, db.ForeignKey(
-        'plaintiffs.id', ondelete='CASCADE'))
-    plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
-        'attorneys.id', ondelete=('CASCADE')
-    ))
     court_date_recurring_id = Column(db.Integer)
     amount_claimed = Column(db.Numeric(scale=2))  # USD
     amount_claimed_category_id = Column(
@@ -653,15 +752,6 @@ class DetainerWarrant(db.Model, Timestamped):
     pleading_document_check_was_successful = Column(db.Boolean)
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
-    _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
-    _plaintiff_attorney = relationship(
-        'Attorney', back_populates='detainer_warrants')
-
-    _defendants = relationship('Defendant',
-                               secondary=detainer_warrant_defendants,
-                               back_populates='detainer_warrants',
-                               cascade="all, delete",
-                               )
     _judgments = relationship('Judgment', back_populates='_detainer_warrant')
     pleadings = relationship(
         'PleadingDocument', back_populates='_detainer_warrant')
@@ -672,37 +762,6 @@ class DetainerWarrant(db.Model, Timestamped):
 
     def __repr__(self):
         return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self._file_date)
-
-    @hybrid_property
-    def docket_id(self):
-        return self._docket_id
-
-    @docket_id.setter
-    def docket_id(self, id):
-        self._docket_id = id
-        self.order_number = DetainerWarrant.calc_order_number(id)
-
-    def calc_order_number(docket_id):
-        num = docket_id.replace('GT', '').replace('GC', '')
-        if num.isnumeric():
-            return int(num)
-        else:
-            return 0
-
-    @hybrid_property
-    def file_date(self):
-        if self._file_date:
-            return in_millis(datetime.combine(self._file_date, datetime.min.time()).timestamp())
-        else:
-            return None
-
-    @file_date.comparator
-    def file_date(cls):
-        return PosixComparator(cls._file_date)
-
-    @file_date.setter
-    def file_date(self, posix):
-        self._file_date = from_millis(posix) if posix else None
 
     @hybrid_property
     def court_date(self):
@@ -718,19 +777,6 @@ class DetainerWarrant(db.Model, Timestamped):
     @court_date.setter
     def court_date(self, posix):
         self._court_date = from_millis(posix) if posix else None
-
-    @hybrid_property
-    def status(self):
-        status_by_id = {v: k for k, v in DetainerWarrant.statuses.items()}
-        return status_by_id[self.status_id] if self.status_id is not None else None
-
-    @status.expression
-    def status(cls):
-        return case([(cls.status_id == 0, 'CLOSED'), (cls.status_id == 1, 'PENDING')], else_=None).label("status")
-
-    @status.setter
-    def status(self, status_name):
-        self.status_id = DetainerWarrant.statuses[status_name] if status_name else None
 
     @property
     def recurring_court_date(self):
@@ -776,30 +822,6 @@ class DetainerWarrant(db.Model, Timestamped):
             self._last_pleading_documents_check = from_millis(posix)
 
     @property
-    def plaintiff(self):
-        return self._plaintiff
-
-    @plaintiff.setter
-    def plaintiff(self, plaintiff):
-        p_id = plaintiff and plaintiff.get('id')
-        if (p_id):
-            self._plaintiff = db.session.query(Plaintiff).get(p_id)
-        else:
-            self._plaintiff = plaintiff
-
-    @property
-    def plaintiff_attorney(self):
-        return self._plaintiff_attorney
-
-    @plaintiff_attorney.setter
-    def plaintiff_attorney(self, attorney):
-        a_id = attorney and attorney.get('id')
-        if (a_id):
-            self._plaintiff_attorney = db.session.query(Attorney).get(a_id)
-        else:
-            self._plaintiff_attorney = attorney
-
-    @property
     def courtroom(self):
         return self._courtroom
 
@@ -810,18 +832,6 @@ class DetainerWarrant(db.Model, Timestamped):
             self._courtroom = db.session.query(Courtroom).get(c_id)
         else:
             self._courtroom = courtroom
-
-    @property
-    def defendants(self):
-        return self._defendants
-
-    @defendants.setter
-    def defendants(self, defendants):
-        if (all(isinstance(d, Defendant) for d in defendants)):
-            self._defendants = defendants
-        else:
-            self._defendants = [db.session.query(
-                Defendant).get(d.get('id')) for d in defendants]
 
     @property
     def judgments(self):

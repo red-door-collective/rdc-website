@@ -122,6 +122,7 @@ class DetainerWarrantSchema(Schema):
     pleadings = fields.Nested(PleadingDocumentSchema, many=True)
     last_edited_by = fields.Nested(serializers.UserSchema)
 
+    docket_id = fields.String()
     file_date = fields.Int(allow_none=True)
     status = fields.String(allow_none=True)
     amount_claimed = fields.Float(allow_none=True)
@@ -130,6 +131,8 @@ class DetainerWarrantSchema(Schema):
     is_legacy = fields.Bool(allow_none=True)
     nonpayment = fields.Bool(allow_none=True)
     notes = fields.String(allow_none=True)
+    created_at = fields.Int()
+    updated_at = fields.Int()
 
     class Meta:
         fields = ("docket_id", "order_number", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",

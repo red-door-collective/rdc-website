@@ -64,7 +64,7 @@ canvass_warrants = db.Table(
     Column('canvass_event.id', db.ForeignKey(
         'canvass_events.id', ondelete="CASCADE"), primary_key=True),
     Column('detainer_warrant_docket_id', db.ForeignKey(
-        'detainer_warrants.docket_id', ondelete="CASCADE"), primary_key=True)
+        'cases.docket_id', ondelete="CASCADE"), primary_key=True)
 )
 
 

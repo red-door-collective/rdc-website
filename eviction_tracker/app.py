@@ -134,7 +134,7 @@ def top_plaintiff_attorneys_bet(start, end):
     with top as 
         (select a.name, count(dw.docket_id) as warrantCount
     from attorneys a
-    inner join detainer_warrants dw on dw.plaintiff_attorney_id = a.id
+    inner join cases dw on dw.plaintiff_attorney_id = a.id
     where a.name <> 'PRS'
     group by a.id, a.name
     order by count(dw.docket_id) desc)
@@ -159,7 +159,7 @@ def top_judges_bet(start, end):
     with top as 
         (select j.name, count(dw.docket_id) as warrantCount
     from judges j
-    inner join detainer_warrants dw on dw.presiding_judge_id = j.id
+    inner join cases dw on dw.presiding_judge_id = j.id
     group by j.id, j.name
     order by count(dw.docket_id) desc)
     select *
@@ -189,7 +189,7 @@ def top_plaintiff_ranges_bet(start, end):
          sum(case when dw.amount_claimed > 500 and dw.amount_claimed <= 1000 then 1 else 0 end) as medium_low,
          sum(CASE WHEN dw.amount_claimed < 500 THEN 1 ELSE 0 END) as low
     from plaintiffs p
-    inner join detainer_warrants dw on dw.plaintiff_id = p.id
+    inner join cases dw on dw.plaintiff_id = p.id
     group by p.id, p.name
     order by warrant_count desc)
     select *
