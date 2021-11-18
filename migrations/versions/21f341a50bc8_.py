@@ -44,13 +44,14 @@ def upgrade():
 
     session = Session(bind=op.get_bind())
 
-    for dw in session.query(Case).filter(Case.docket_id.ilike('%GT%')):
-        dw.type = 'detainer_warrant'
-        session.add(dw)
-
-    for cw in session.query(Case).filter(Case.docket_id.ilike('%GC%')):
-        cw.type = 'civil_warrant'
-        session.add(cw)
+    for case in session.query(Case):
+        if 'GT' in warrant.id:
+            case.type = 'detainer_warrant'
+        elif 'GC' in warrant.id:
+            case.type = 'civil_warrant'
+        else:
+            case.type = 'uncategorized_case'
+        session.add(warrant)
 
     session.commit()
     # ### end Alembic commands ###

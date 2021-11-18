@@ -710,6 +710,12 @@ class Case(db.Model, Timestamped):
                 Defendant).get(d.get('id')) for d in defendants]
 
 
+class UncategorizedCase(Case):
+    __mapper_args__ = {
+        'polymorphic_identity': 'uncategorized_case'
+    }
+
+
 class CivilWarrant(Case):
     __mapper_args__ = {
         'polymorphic_identity': 'civil_warrant'
