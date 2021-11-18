@@ -644,6 +644,8 @@ class Case(db.Model, Timestamped):
             self.type = 'detainer_warrant'
         elif 'GC' in id:
             self.type = 'civil_warrant'
+        else:
+            self.type = 'uncategorized_case'
 
     @hybrid_property
     def file_date(self):
@@ -712,7 +714,7 @@ class Case(db.Model, Timestamped):
 
 class UncategorizedCase(Case):
     __mapper_args__ = {
-        'polymorphic_identity': None
+        'polymorphic_identity': 'uncategorized_case'
     }
 
 
