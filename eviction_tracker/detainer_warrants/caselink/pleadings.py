@@ -122,7 +122,6 @@ def update_pending_warrants():
     three_days_ago = current_time - timedelta(days=3)
 
     queue = db.session.query(DetainerWarrant.docket_id).filter(and_(
-        DetainerWarrant.docket_id.ilike('%GT%'),
         DetainerWarrant.status == 'PENDING',
         or_(
             DetainerWarrant._last_pleading_documents_check == None,
