@@ -24,6 +24,7 @@ def upgrade():
     op.execute('ALTER INDEX detainer_warrants_pkey RENAME TO cases_pkey')
     op.add_column('cases', sa.Column(
         'type', sa.String(length=50), nullable=True))
+    op.execute("UPDATE cases SET type = 'detainer_warrant'")
 
     op.drop_constraint('canvass_warrants_detainer_warrant_docket_id_fkey',
                        'canvass_warrants', type_='foreignkey')
@@ -45,16 +46,16 @@ def upgrade():
     session = Session(bind=op.get_bind())
 
     for case in session.query(Case):
-        if 'GT' in warrant.id:
+        if 'GT' in case.docket_id:
             case.type = 'detainer_warrant'
-        elif 'GC' in warrant.id:
+        elif 'GC' in case.docket_id:
             case.type = 'civil_warrant'
         else:
             case.type = 'uncategorized_case'
-        session.add(warrant)
+        session.add(case)
 
     session.commit()
-    # ### end Alembic commands ###
+    ### end Alembic commands ###
 
 
 def downgrade():
@@ -78,4 +79,4 @@ def downgrade():
                        'canvass_warrants', type_='foreignkey')
     op.create_foreign_key('canvass_warrants_detainer_warrant_docket_id_fkey', 'canvass_warrants',
                           'detainer_warrants', ['detainer_warrant_docket_id'], ['docket_id'], ondelete='CASCADE')
-    # ### end Alembic commands ###
+    ### end Alembic commands ###

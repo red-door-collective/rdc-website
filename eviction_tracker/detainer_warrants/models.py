@@ -712,7 +712,7 @@ class Case(db.Model, Timestamped):
 
 class UncategorizedCase(Case):
     __mapper_args__ = {
-        'polymorphic_identity': 'uncategorized_case'
+        'polymorphic_identity': None
     }
 
 
