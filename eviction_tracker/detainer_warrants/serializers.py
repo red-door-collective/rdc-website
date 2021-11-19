@@ -126,6 +126,7 @@ class DetainerWarrantSchema(Schema):
     file_date = fields.Int(allow_none=True)
     status = fields.String(allow_none=True)
     amount_claimed = fields.Float(allow_none=True)
+    claims_possession = fields.Bool(allow_none=True)
     court_date = fields.Int(allow_none=True)
     is_cares = fields.Bool(allow_none=True)
     is_legacy = fields.Bool(allow_none=True)
@@ -135,8 +136,8 @@ class DetainerWarrantSchema(Schema):
     updated_at = fields.Int()
 
     class Meta:
-        fields = ("docket_id", "order_number", "file_date", "status", "court_date", "amount_claimed", "amount_claimed_category",
-                  "judgments", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
+        fields = ("docket_id", "order_number", "file_date", "status", "court_date", "amount_claimed",
+                  "claims_possession", "judgments", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
                   "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "pleadings", "created_at", "updated_at")
 
 

@@ -1,6 +1,6 @@
 module TestDetainerWarrant exposing (..)
 
-import DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, Status(..))
+import DetainerWarrant exposing (DetainerWarrant, Status(..))
 import Expect
 import Json.Decode as Decode
 import Test exposing (..)
@@ -11,7 +11,7 @@ minimalJson =
     """
     {
         "amount_claimed": null,
-        "amount_claimed_category": "N/A",
+        "claims_possession": null,
         "created_at": 1633382326000,
         "defendants": [],
         "docket_id": "21GC11668",
@@ -50,7 +50,7 @@ minimalDetainer : DetainerWarrant
 minimalDetainer =
     { docketId = "21GC11668"
     , amountClaimed = Nothing
-    , amountClaimedCategory = NotApplicable
+    , claimsPossession = Nothing
     , judgments = []
     , defendants = []
     , fileDate = Nothing
@@ -68,7 +68,7 @@ maximumJson =
     """
     {
         "amount_claimed": 123.45,
-        "amount_claimed_category": "FEES",
+        "claims_possession": true,
         "created_at": 1633382326000,
         "defendants": [],
         "docket_id": "21GT11668",
@@ -107,7 +107,7 @@ maximumDetainer : DetainerWarrant
 maximumDetainer =
     { docketId = "21GT11668"
     , amountClaimed = Just 123.45
-    , amountClaimedCategory = Fees
+    , claimsPossession = Just True
     , fileDate = Just (Time.millisToPosix 1635901200000)
     , isCares = Just True
     , isLegacy = Just False

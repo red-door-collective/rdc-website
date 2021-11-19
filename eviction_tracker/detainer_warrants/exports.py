@@ -95,7 +95,7 @@ def _to_spreadsheet_row(warrant):
             warrant.judgments[0].judge.name if len(
                 warrant.judgments) > 0 and warrant.judgments[0].judge else '',
             str(warrant.amount_claimed) if warrant.amount_claimed else '',
-            warrant.amount_claimed_category,
+            warrant.claims_possession,
             warrant.is_cares,
             warrant.is_legacy,
             warrant.nonpayment,

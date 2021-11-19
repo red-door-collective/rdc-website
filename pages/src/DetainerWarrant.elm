@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (AmountClaimedCategory(..), DetainerWarrant, DetainerWarrantEdit, Status(..), amountClaimedCategoryOptions, amountClaimedCategoryText, decoder, mostRecentCourtDate, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
+module DetainerWarrant exposing (DetainerWarrant, DetainerWarrantEdit, Status(..), decoder, mostRecentCourtDate, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
 
 import Attorney exposing (Attorney)
 import Defendant exposing (Defendant)
@@ -21,13 +21,6 @@ type Status
     | Pending
 
 
-type AmountClaimedCategory
-    = Possession
-    | Fees
-    | Both
-    | NotApplicable
-
-
 type alias DetainerWarrant =
     { docketId : String
     , fileDate : Maybe Posix
@@ -35,7 +28,7 @@ type alias DetainerWarrant =
     , plaintiff : Maybe Plaintiff
     , plaintiffAttorney : Maybe Attorney
     , amountClaimed : Maybe Float
-    , amountClaimedCategory : AmountClaimedCategory
+    , claimsPossession : Maybe Bool
     , isCares : Maybe Bool
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
@@ -56,7 +49,7 @@ type alias DetainerWarrantEdit =
     , plaintiff : Maybe Related
     , plaintiffAttorney : Maybe Related
     , amountClaimed : Maybe Float
-    , amountClaimedCategory : AmountClaimedCategory
+    , claimsPossession : Maybe Bool
     , isCares : Maybe Bool
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
@@ -75,11 +68,6 @@ statusOptions =
     [ Nothing, Just Pending, Just Closed ]
 
 
-amountClaimedCategoryOptions : List AmountClaimedCategory
-amountClaimedCategoryOptions =
-    [ NotApplicable, Possession, Fees, Both ]
-
-
 statusText : Status -> String
 statusText status =
     case status of
@@ -88,22 +76,6 @@ statusText status =
 
         Pending ->
             "PENDING"
-
-
-amountClaimedCategoryText : AmountClaimedCategory -> String
-amountClaimedCategoryText category =
-    case category of
-        Possession ->
-            "POSS"
-
-        Fees ->
-            "FEES"
-
-        Both ->
-            "BOTH"
-
-        NotApplicable ->
-            "N/A"
 
 
 statusFromText : String -> Result String Status
@@ -133,29 +105,6 @@ statusDecoder =
             )
 
 
-amountClaimedCategoryDecoder : Decoder AmountClaimedCategory
-amountClaimedCategoryDecoder =
-    Decode.string
-        |> Decode.andThen
-            (\str ->
-                case str of
-                    "POSS" ->
-                        Decode.succeed Possession
-
-                    "FEES" ->
-                        Decode.succeed Fees
-
-                    "BOTH" ->
-                        Decode.succeed Both
-
-                    "N/A" ->
-                        Decode.succeed NotApplicable
-
-                    somethingElse ->
-                        Decode.fail <| "Unknown amount claimed category:" ++ somethingElse
-            )
-
-
 decoder : Decoder DetainerWarrant
 decoder =
     Decode.succeed DetainerWarrant
@@ -165,7 +114,7 @@ decoder =
         |> required "plaintiff" (nullable Plaintiff.decoder)
         |> required "plaintiff_attorney" (nullable Attorney.decoder)
         |> required "amount_claimed" (nullable float)
-        |> required "amount_claimed_category" amountClaimedCategoryDecoder
+        |> required "claims_possession" (nullable bool)
         |> required "is_cares" (nullable bool)
         |> required "is_legacy" (nullable bool)
         |> required "nonpayment" (nullable bool)

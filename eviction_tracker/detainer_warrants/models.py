@@ -739,17 +739,9 @@ class DetainerWarrant(Case):
         'SATURDAY': 6
     }
 
-    amount_claimed_categories = {
-        'POSS': 0,
-        'FEES': 1,
-        'BOTH': 2,
-        'N/A': 3,
-    }
-
     court_date_recurring_id = Column(db.Integer)
     amount_claimed = Column(db.Numeric(scale=2))  # USD
-    amount_claimed_category_id = Column(
-        db.Integer, nullable=False, default=3, server_default=text("3"))
+    claims_possession = Column(db.Boolean)
     is_cares = Column(db.Boolean)
     is_legacy = Column(db.Boolean)
     zip_code = Column(db.String(10))
@@ -796,20 +788,6 @@ class DetainerWarrant(Case):
     def recurring_court_date(self, day_of_week):
         self.court_date_recurring_id = DetainerWarrant.recurring_court_dates[
             day_of_week] if day_of_week else None
-
-    @property
-    def amount_claimed_category(self):
-        if self.amount_claimed_category_id is None:
-            return None
-
-        category_by_id = {
-            v: k for k, v in DetainerWarrant.amount_claimed_categories.items()}
-        return category_by_id[self.amount_claimed_category_id]
-
-    @amount_claimed_category.setter
-    def amount_claimed_category(self, amount_claimed_category_name):
-        self.amount_claimed_category_id = DetainerWarrant.amount_claimed_categories[
-            amount_claimed_category_name] if amount_claimed_category_name else None
 
     @hybrid_property
     def last_pleading_documents_check(self):

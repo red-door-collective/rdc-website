@@ -9,7 +9,7 @@ import Date exposing (Date)
 import Date.Extra
 import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
-import DetainerWarrant exposing (AmountClaimedCategory, DetainerWarrant, DetainerWarrantEdit, Status)
+import DetainerWarrant exposing (DetainerWarrant, DetainerWarrantEdit, Status)
 import Dict
 import Element exposing (Element, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Border as Border
@@ -112,8 +112,8 @@ type alias Form =
     , nonpaymentDropdown : Dropdown.State (Maybe Bool)
     , isNonpayment : Maybe Bool
     , amountClaimed : String
-    , amountClaimedCategory : AmountClaimedCategory
-    , categoryDropdown : Dropdown.State AmountClaimedCategory
+    , claimsPossession : Maybe Bool
+    , claimsPossessionDropdown : Dropdown.State (Maybe Bool)
     , address : String
     , defendants : List DefendantForm
     , judgments : List JudgmentForm
@@ -149,7 +149,7 @@ type Tooltip
     | CourtroomInfo
     | PresidingJudgeInfo
     | AmountClaimedInfo
-    | AmountClaimedCategoryInfo
+    | ClaimsPossessionInfo
     | CaresInfo
     | LegacyInfo
     | NonpaymentInfo
@@ -242,8 +242,8 @@ editForm today warrant =
     , nonpaymentDropdown = Dropdown.init "nonpayment-dropdown"
     , isNonpayment = warrant.nonpayment
     , amountClaimed = Maybe.withDefault "" <| Maybe.map (Mask.floatDecimal Mask.defaultDecimalOptions) warrant.amountClaimed
-    , amountClaimedCategory = warrant.amountClaimedCategory
-    , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
+    , claimsPossession = warrant.claimsPossession
+    , claimsPossessionDropdown = Dropdown.init "claims-possession-dropdown"
     , address = Maybe.withDefault "" <| List.head <| List.map .address warrant.defendants
     , defendants = List.map (initDefendantForm << Just) warrant.defendants
     , judgments = List.indexedMap (\index j -> judgmentFormInit today index (Just j)) warrant.judgments
@@ -369,8 +369,8 @@ initCreate today =
     , nonpaymentDropdown = Dropdown.init "nonpayment-dropdown"
     , isNonpayment = Nothing
     , amountClaimed = ""
-    , amountClaimedCategory = DetainerWarrant.NotApplicable
-    , categoryDropdown = Dropdown.init "amount-claimed-category-dropdown"
+    , claimsPossession = Nothing
+    , claimsPossessionDropdown = Dropdown.init "claims-possession-dropdown"
     , address = ""
     , defendants = [ initDefendantForm Nothing ]
     , judgments = []
@@ -461,8 +461,8 @@ type Msg
     | StatusDropdownMsg (Dropdown.Msg (Maybe Status))
     | ChangedAmountClaimed String
     | ConfirmAmountClaimed
-    | PickedAmountClaimedCategory (Maybe AmountClaimedCategory)
-    | CategoryDropdownMsg (Dropdown.Msg AmountClaimedCategory)
+    | PickedClaimsPossession (Maybe (Maybe Bool))
+    | ClaimsPossessionDropdownMsg (Dropdown.Msg (Maybe Bool))
     | CaresDropdownMsg (Dropdown.Msg (Maybe Bool))
     | PickedCares (Maybe (Maybe Bool))
     | LegacyDropdownMsg (Dropdown.Msg (Maybe Bool))
@@ -843,23 +843,23 @@ update pageUrl navKey sharedModel static msg model =
                 )
                 model
 
-        PickedAmountClaimedCategory option ->
+        PickedClaimsPossession option ->
             updateForm
                 (\form ->
                     { form
-                        | amountClaimedCategory = Maybe.withDefault DetainerWarrant.NotApplicable option
+                        | claimsPossession = Maybe.andThen identity option
                     }
                 )
                 model
 
-        CategoryDropdownMsg subMsg ->
+        ClaimsPossessionDropdownMsg subMsg ->
             updateFormNarrow
                 (\form ->
                     let
                         ( newState, newCmd ) =
-                            Dropdown.update cfg subMsg (amountClaimedDropdown form)
+                            Dropdown.update cfg subMsg (claimsPossessionDropdown form)
                     in
-                    ( { form | categoryDropdown = newState }, Effects.perform newCmd )
+                    ( { form | claimsPossessionDropdown = newState }, Effects.perform newCmd )
                 )
                 model
 
@@ -2069,16 +2069,16 @@ nonpaymentDropdown form =
         }
 
 
-amountClaimedDropdown form =
+claimsPossessionDropdown form =
     basicDropdown
         { config =
-            { dropdownMsg = CategoryDropdownMsg
-            , onSelectMsg = PickedAmountClaimedCategory
-            , state = form.categoryDropdown
+            { dropdownMsg = ClaimsPossessionDropdownMsg
+            , onSelectMsg = PickedClaimsPossession
+            , state = form.claimsPossessionDropdown
             }
-        , selected = Just form.amountClaimedCategory
-        , itemToStr = DetainerWarrant.amountClaimedCategoryText
-        , items = DetainerWarrant.amountClaimedCategoryOptions
+        , selected = Just form.claimsPossession
+        , itemToStr = ternaryText
+        , items = DetainerWarrant.ternaryOptions
         }
 
 
@@ -2328,16 +2328,16 @@ viewAmountClaimed options form =
         ]
 
 
-viewAmountClaimedCategory : FormOptions -> Form -> Element Msg
-viewAmountClaimedCategory options form =
-    column [ width (fill |> maximum 200) ]
+viewClaimsPossession : FormOptions -> Form -> Element Msg
+viewClaimsPossession options form =
+    column [ width (fill |> maximum 150) ]
         [ viewField options.showHelp
-            { tooltip = Just AmountClaimedCategoryInfo
+            { tooltip = Just ClaimsPossessionInfo
             , description = "Plaintiffs may ask for payment, repossession, or more."
             , children =
                 [ column [ spacing 5, width fill ]
-                    [ el labelAttrs (text "Amount Claimed Category")
-                    , amountClaimedDropdown form
+                    [ el labelAttrs (text "Claims possession")
+                    , claimsPossessionDropdown form
                         |> Dropdown.renderElement options.renderConfig
                     ]
                 ]
@@ -2347,7 +2347,7 @@ viewAmountClaimedCategory options form =
 
 viewCares : FormOptions -> Form -> Element Msg
 viewCares options form =
-    column [ width fill ]
+    column [ width (fill |> maximum 150) ]
         [ viewField options.showHelp
             { tooltip = Just CaresInfo
             , description = "C.A.R.E.S. was an aid package provided during the pandemic. If a docket number has a \"Notice,\" check to see whether the property falls under the CARES act"
@@ -2364,7 +2364,7 @@ viewCares options form =
 
 viewLegacy : FormOptions -> Form -> Element Msg
 viewLegacy options form =
-    column [ width fill ]
+    column [ width (fill |> maximum 150) ]
         [ viewField options.showHelp
             { tooltip = Just LegacyInfo
             , description = "L.E.G.A.C.Y. is a special court created for handling evictions during the pandemic. Looks up cases listed under \"LEGACY Case DW Numbers\" tab and check if the case is there or not."
@@ -2381,7 +2381,7 @@ viewLegacy options form =
 
 viewNonpayment : FormOptions -> Form -> Element Msg
 viewNonpayment options form =
-    column [ width fill ]
+    column [ width (fill |> maximum 150) ]
         [ viewField options.showHelp
             { tooltip = Just NonpaymentInfo
             , description = "People can be evicted for a number of reasons, including non-payment of rent. We want to know if people are being evicted for this reason because those cases should go to the diversionary court. We assume cases that request $$ are for non-payment but this box is sometimes checked on eviction forms."
@@ -2993,10 +2993,10 @@ viewForm options formStatus =
                     [ paragraph [ Font.center, centerX ] [ text "Claims" ]
                     , formGroup
                         [ viewAmountClaimed options form
-                        , viewAmountClaimedCategory options form
                         ]
                     , formGroup
-                        [ viewCares options form
+                        [ viewClaimsPossession options form
+                        , viewCares options form
                         , viewLegacy options form
                         , viewNonpayment options form
                         ]
@@ -3443,7 +3443,7 @@ toDetainerWarrant today (Trimmed form) =
         , isLegacy = form.isLegacy
         , nonpayment = form.isNonpayment
         , amountClaimed = String.toFloat <| String.replace "," "" form.amountClaimed
-        , amountClaimedCategory = form.amountClaimedCategory
+        , claimsPossession = form.claimsPossession
         , defendants = List.filterMap (Maybe.map related << .id) form.defendants
         , notes =
             if String.isEmpty form.notes then
@@ -3639,8 +3639,8 @@ updateDetainerWarrant domain maybeCred form =
             Encode.object
                 ([ ( "docket_id", Encode.string form.docketId )
                  , ( "defendants", Encode.list encodeRelated form.defendants )
-                 , ( "amount_claimed_category", Encode.string (DetainerWarrant.amountClaimedCategoryText form.amountClaimedCategory) )
                  ]
+                    ++ nullable "claims_possession" Encode.bool form.claimsPossession
                     ++ nullable "file_date" Time.Utils.posixEncoder form.fileDate
                     ++ nullable "status" Encode.string (Maybe.map DetainerWarrant.statusText form.status)
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
