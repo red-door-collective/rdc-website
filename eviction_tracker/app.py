@@ -135,7 +135,7 @@ def top_plaintiff_attorneys_bet(start, end):
         (select a.name, count(dw.docket_id) as warrantCount
     from attorneys a
     inner join cases dw on dw.plaintiff_attorney_id = a.id
-    where a.name <> 'PRS' and dw.type = 'detainer_warrant'
+    where a.id <> -1 and dw.type = 'detainer_warrant'
     group by a.id, a.name
     order by count(dw.docket_id) desc)
     select *
