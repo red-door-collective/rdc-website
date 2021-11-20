@@ -608,6 +608,9 @@ class PleadingDocument(db.Model, Timestamped):
         return "<PleadingDocument(docket_id='%s', url='%s')>" % (self.docket_id, self.url)
 
 
+MAX_CASES_PER_YEAR = 10_000_000
+
+
 class Case(db.Model, Timestamped):
     statuses = {
         'CLOSED': 0,
@@ -617,7 +620,11 @@ class Case(db.Model, Timestamped):
     def calc_order_number(docket_id):
         num = docket_id.replace('GT', '').replace('GC', '')
         if num.isnumeric():
-            return int(num)
+            current_year = int(num[:2])
+            this_century = current_year < 70
+            full_year = current_year + 2000 if this_century else current_year + 1900
+
+            return full_year * MAX_CASES_PER_YEAR + int(num[2:])
         else:
             return 0
 
