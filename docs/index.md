@@ -25,3 +25,5 @@ The stack:
 2. [paack-ui](https://paackeng.github.io/paack-ui/#Styles/Colors/Colors) (Opinionated design system atop Elm-UI)
 3. [elm-pages](https://elm-pages.com/) (SPA framework, specialized for static sites)
 4. [elm-charts](https://elm-charts.org/)
+
+[Further details about development](frontend.md)
