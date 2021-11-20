@@ -746,7 +746,7 @@ class DetainerWarrant(Case):
     is_legacy = Column(db.Boolean)
     zip_code = Column(db.String(10))
     nonpayment = Column(db.Boolean)
-    notes = Column(db.String(255))
+    notes = Column(db.Text)
     _last_pleading_documents_check = Column(
         db.DateTime, name="last_pleading_documents_check")
     pleading_document_check_was_successful = Column(db.Boolean)
