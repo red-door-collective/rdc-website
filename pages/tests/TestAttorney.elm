@@ -4,7 +4,6 @@ import Attorney exposing (Attorney)
 import Expect
 import Json.Decode as Decode
 import Test exposing (..)
-import Time
 
 
 minimalJson =

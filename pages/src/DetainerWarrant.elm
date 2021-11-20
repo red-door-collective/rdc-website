@@ -7,6 +7,7 @@ import Json.Decode.Pipeline exposing (required)
 import Judgment exposing (Judgment)
 import Maybe
 import Plaintiff exposing (Plaintiff)
+import PleadingDocument exposing (PleadingDocument)
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
 import UI.Button exposing (Button)
@@ -34,6 +35,7 @@ type alias DetainerWarrant =
     , nonpayment : Maybe Bool
     , defendants : List Defendant
     , judgments : List Judgment
+    , pleadings : List PleadingDocument
     , notes : Maybe String
     }
 
@@ -120,6 +122,7 @@ decoder =
         |> required "nonpayment" (nullable bool)
         |> required "defendants" (list Defendant.decoder)
         |> required "judgments" (list Judgment.decoder)
+        |> required "pleadings" (list PleadingDocument.decoder)
         |> required "notes" (nullable string)
 
 

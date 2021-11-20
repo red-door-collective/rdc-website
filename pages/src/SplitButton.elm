@@ -1,11 +1,10 @@
 module SplitButton exposing (Config, Msg, State, init, update, view)
 
-import Element exposing (Element, el, fill, height, row, spacing, width)
+import Element exposing (Element, fill, height, row, spacing, width)
 import UI.Button as Button
 import UI.Dropdown as Dropdown exposing (Dropdown)
 import UI.Effects as Effects
 import UI.RenderConfig exposing (RenderConfig)
-import UI.Size
 
 
 type alias Config item msg =

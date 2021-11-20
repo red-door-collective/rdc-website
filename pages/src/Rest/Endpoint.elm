@@ -1,4 +1,4 @@
-module Rest.Endpoint exposing (Endpoint, attorney, attorneys, attorneysSearch, campaigns, courtrooms, currentUser, defendant, defendants, defendantsSearch, detainerWarrant, detainerWarrantsExport, detainerWarrantsSearch, judge, judges, judgesSearch, judgment, judgments, login, logout, plaintiff, plaintiffs, plaintiffsSearch, request, toQueryArgs, user)
+module Rest.Endpoint exposing (Endpoint, attorney, attorneys, attorneysSearch, courtrooms, currentUser, defendant, defendants, defendantsSearch, detainerWarrant, detainerWarrantsExport, detainerWarrantsSearch, judge, judges, judgesSearch, judgment, judgments, login, logout, plaintiff, plaintiffs, plaintiffsSearch, request, toQueryArgs, user)
 
 import Http
 import Url.Builder exposing (QueryParameter, string)
@@ -172,11 +172,6 @@ judgment domain id =
 courtrooms : String -> List Param -> Endpoint
 courtrooms domain =
     url domain [ "courtrooms", "" ] << toQueryArgs
-
-
-campaigns : String -> Endpoint
-campaigns domain =
-    url domain [ "campaigns", "" ] []
 
 
 currentUser : String -> Endpoint

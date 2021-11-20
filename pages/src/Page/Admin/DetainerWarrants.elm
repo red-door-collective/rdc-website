@@ -330,7 +330,7 @@ update pageUrl navKey sharedModel static msg model =
         ExportToSpreadsheet ->
             ( model, exportToSpreadsheet domain session )
 
-        ExportStarted result ->
+        ExportStarted _ ->
             ( model, Cmd.none )
 
         NoOp ->

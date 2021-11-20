@@ -1,4 +1,4 @@
-port module Rest exposing (Collection, Cred(..), Item, PageMeta, Window, campaignApiDecoder, collectionDecoder, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, patch, post, storeCred, throwaway, viewerChanges)
+port module Rest exposing (Collection, Cred(..), Item, PageMeta, Window, collectionDecoder, decodeErrors, delete, detainerWarrantApiDecoder, get, itemDecoder, login, logout, patch, post, storeCred, throwaway, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -6,7 +6,6 @@ It exposes an opaque Endpoint type which is guaranteed to point to the correct U
 
 -}
 
-import Campaign exposing (Campaign)
 import DetainerWarrant exposing (DetainerWarrant)
 import Http exposing (Body, Error)
 import Json.Decode as Decode exposing (Decoder, Value, bool, int, list, nullable, string)
@@ -274,13 +273,6 @@ detainerWarrantApiDecoder : Decoder (Collection DetainerWarrant)
 detainerWarrantApiDecoder =
     Decode.succeed Collection
         |> required "data" (list DetainerWarrant.decoder)
-        |> required "meta" pageMetaDecoder
-
-
-campaignApiDecoder : Decoder (Collection Campaign)
-campaignApiDecoder =
-    Decode.succeed Collection
-        |> required "data" (list Campaign.decoder)
         |> required "meta" pageMetaDecoder
 
 
