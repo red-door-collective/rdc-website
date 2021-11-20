@@ -4,7 +4,6 @@ import Expect
 import Json.Decode as Decode
 import Judgment exposing (Entrance(..), Judgment)
 import Test exposing (..)
-import Time
 
 
 minimalJson =

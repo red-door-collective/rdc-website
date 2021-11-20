@@ -9,11 +9,11 @@
         "direct": {
             "BrianHicks/elm-csv": "3.0.2",
             "FabienHenon/elm-infinite-scroll": "3.0.3",
-            "MartinSStewart/elm-serialize": "1.2.5",
+            "MartinSStewart/elm-serialize": "1.2.6",
             "Massolari/elm-mask": "1.1.0",
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
             "NoRedInk/elm-rollbar": "2.0.1",
-            "PaackEng/paack-ui": "7.4.0",
+            "PaackEng/paack-ui": "7.8.1",
             "avh4/elm-color": "1.0.0",
             "cuducos/elm-format-number": "8.1.4",
             "danyx23/elm-mimetype": "4.0.1",
@@ -31,23 +31,22 @@
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
-            "elm-community/list-extra": "8.3.1",
-            "elm-community/maybe-extra": "5.2.0",
+            "elm-community/list-extra": "8.5.1",
+            "elm-community/maybe-extra": "5.2.1",
             "elm-community/string-extra": "4.0.1",
             "elm-community/typed-svg": "7.0.0",
             "fabhof/elm-ui-datepicker": "3.0.0",
             "feathericons/elm-feather": "1.5.0",
             "justinmimbs/date": "3.2.1",
-            "justinmimbs/time-extra": "1.1.0",
             "mdgriffith/elm-ui": "1.1.8",
             "robinheghan/elm-phone-numbers": "1.0.0",
             "rtfeldman/elm-iso8601-date-strings": "1.1.4",
             "russelldavies/elm-ui-searchbox": "1.1.0",
             "ryannhg/date-format": "2.3.0",
-            "terezka/charts": "18.0.5"
+            "terezka/charts": "18.0.6"
         },
         "indirect": {
-            "PaackEng/elm-ui-dropdown": "3.2.0",
+            "PaackEng/elm-ui-dropdown": "3.3.0",
             "bburdette/toop": "1.0.1",
             "danfishgold/base64-bytes": "1.1.0",
             "danhandrea/elm-time-extra": "1.1.0",
@@ -57,14 +56,16 @@
             "elm/random": "1.0.0",
             "elm/virtual-dom": "1.0.2",
             "elm-community/dict-extra": "2.4.0",
+            "elm-explorations/test": "1.2.2",
             "fredcy/elm-parseint": "2.0.1",
-            "mgold/elm-nonempty-list": "4.1.0",
+            "justinmimbs/time-extra": "1.1.0",
+            "mgold/elm-nonempty-list": "4.2.0",
             "miniBill/elm-codec": "2.0.0",
             "myrho/elm-round": "1.0.4",
             "noahzgordon/elm-color-extra": "1.0.2",
             "robinheghan/murmur3": "1.0.0",
             "rtfeldman/elm-hex": "1.0.0",
-            "terezka/intervals": "2.0.0",
+            "terezka/intervals": "2.0.1",
             "tripokey/elm-fuzzy": "5.2.1",
             "vito/elm-ansi": "10.0.1",
             "zwilias/json-decode-exploration": "6.0.0"
@@ -72,11 +73,8 @@
     },
     "test-dependencies": {
         "direct": {
-            "elm-explorations/test": "1.2.2",
-            "avh4/elm-program-test": "3.5.1"
+            "elm-explorations/test": "1.2.2"
         },
-        "indirect": {
-            "avh4/elm-fifo": "1.0.4"
-        }
+        "indirect": {}
     }
 }

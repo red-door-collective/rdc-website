@@ -1,6 +1,6 @@
 module PleadingDocument exposing (Kind, PleadingDocument, decoder, isJudgment)
 
-import Json.Decode as Decode exposing (Decoder, bool, float, list, nullable, string)
+import Json.Decode as Decode exposing (Decoder, nullable, string)
 import Json.Decode.Pipeline exposing (required)
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)

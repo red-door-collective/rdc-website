@@ -11,7 +11,6 @@ import Head.Seo as Seo
 import Http
 import Json.Encode as Encode
 import Logo
-import OptimizedDecoder exposing (field)
 import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)

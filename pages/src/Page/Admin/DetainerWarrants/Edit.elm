@@ -49,7 +49,6 @@ import Shared
 import SplitButton
 import Sprite
 import Task
-import Time
 import Time.Utils
 import UI.Button as Button
 import UI.Checkbox as Checkbox
@@ -185,14 +184,6 @@ type alias Model =
     , saveState : SaveState
     , navigationOnSuccess : NavigationOnSuccess
     , openDocument : Maybe PleadingDocument
-    }
-
-
-initDatePicker : Maybe Date -> DatePickerState
-initDatePicker date =
-    { date = date
-    , dateText = Maybe.withDefault "" <| Maybe.map Date.toIsoString date
-    , pickerModel = DatePicker.init
     }
 
 
@@ -1516,7 +1507,7 @@ update pageUrl navKey sharedModel static msg model =
                     in
                     Rest.patch (Endpoint.user domain user.id) maybeCred body GotProfile User.decoder
 
-                ( _, _ ) ->
+                _ ->
                     Cmd.none
             )
 
@@ -1528,7 +1519,7 @@ update pageUrl navKey sharedModel static msg model =
             , Cmd.none
             )
 
-        GotProfile (Err httpError) ->
+        GotProfile (Err _) ->
             ( model, Cmd.none )
 
         Save ->
@@ -1809,7 +1800,7 @@ nextStepSave today domain session model =
                     toDetainerWarrant today form
             in
             case model.saveState of
-                SavingRelatedModels models ->
+                SavingRelatedModels _ ->
                     if doneSavingRelatedModels apiForms model.saveState then
                         ( { model | saveState = SavingWarrant }
                         , updateDetainerWarrant domain maybeCred apiForms.detainerWarrant
@@ -2900,8 +2891,8 @@ viewJudgment options index form =
                                 Just pleading ->
                                     [ inFront
                                         (row [ Element.alignRight, padding 20 ]
-                                            [ Button.fromIcon (Icon.remove "Open PDF")
-                                                |> Button.cmd (ToggleOpenDocument pleading) Button.clear
+                                            [ Button.fromIcon (Icon.legacyReport "Open PDF")
+                                                |> Button.cmd (ToggleOpenDocument pleading) Button.primary
                                                 |> Button.renderElement options.renderConfig
                                             ]
                                         )

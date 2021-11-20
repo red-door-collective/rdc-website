@@ -15,7 +15,6 @@ import File.Select as Select
 import Head
 import Head.Seo as Seo
 import Http exposing (Error(..))
-import Iso8601
 import Json.Encode
 import Logo
 import Page exposing (StaticPayload)
