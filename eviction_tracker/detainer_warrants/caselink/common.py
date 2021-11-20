@@ -18,6 +18,8 @@ import traceback
 import eviction_tracker.config as config
 import logging
 import logging.config
+import traceback
+from circuitbreaker import circuit
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -57,6 +59,7 @@ def run_with_chrome(f, options=None):
     return wrapper
 
 
+@circuit(expected_exception=ConnectionError)
 def login(browser):
     browser.get(CASELINK_URL)
     browser.switch_to.frame(ids.UPDATE_FRAME)
