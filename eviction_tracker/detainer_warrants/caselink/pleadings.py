@@ -34,34 +34,41 @@ def is_between(begin_date, end_date, check_date=None):
 
 
 def import_from_dw_page(browser, docket_id):
-    browser.switch_to.frame(ids.POSTBACK_FRAME)
+    postback_HTML = None
 
-    script_tag = browser.find_element(By.XPATH, "/html")
-    postback_HTML = script_tag.get_attribute('outerHTML')
+    try:
+        browser.switch_to.frame(ids.POSTBACK_FRAME)
 
-    documents_regex = re.compile(
-        r'\,\s*"ý(https://caselinkimages.nashville.gov.+?)ý+"\,')
+        script_tag = browser.find_element(By.XPATH, "/html")
+        postback_HTML = script_tag.get_attribute('outerHTML')
 
-    urls_mess = documents_regex.search(postback_HTML).group(1)
-    urls = [url for url in urls_mess.split('ý') if url != '']
+        documents_regex = re.compile(
+            r'\,\s*"ý(https://caselinkimages.nashville.gov.+?\.pdf)ý*"')
 
-    created_count = 0
-    for url in urls:
-        document, was_created = get_or_create(
-            db.session, PleadingDocument, url=url, docket_id=docket_id)
-        if was_created:
-            created_count += 1
+        urls_mess = documents_regex.search(postback_HTML).group(1)
+        urls = [url for url in urls_mess.split('ý') if url != '']
 
-    DetainerWarrant.query.get(docket_id).update(
-        _last_pleading_documents_check=datetime.utcnow(),
-        pleading_document_check_was_successful=True
-    )
-    db.session.commit()
+        created_count = 0
+        for url in urls:
+            document, was_created = get_or_create(
+                db.session, PleadingDocument, url=url, docket_id=docket_id)
+            if was_created:
+                created_count += 1
 
-    logger.info(f'created {created_count} pleading documents for {docket_id}')
+        DetainerWarrant.query.get(docket_id).update(
+            _last_pleading_documents_check=datetime.utcnow(),
+            pleading_document_check_mismatched_html=None,
+            pleading_document_check_was_successful=True
+        )
+        db.session.commit()
 
-    browser.switch_to.default_content()
-    browser.switch_to.frame(ids.UPDATE_FRAME)
+        logger.info(
+            f'created {created_count} pleading documents for {docket_id}')
+
+        browser.switch_to.default_content()
+        browser.switch_to.frame(ids.UPDATE_FRAME)
+    finally:
+        return postback_HTML
 
 
 @run_with_chrome
@@ -87,6 +94,8 @@ def bulk_import_documents(browser, docket_ids):
 
     logger.info(f'checking {len(docket_ids)} dockets')
 
+    postback_HTML = None
+
     for docket_id in docket_ids:
         try:
             time.sleep(3)
@@ -102,14 +111,19 @@ def bulk_import_documents(browser, docket_ids):
 
             time.sleep(3)
 
-            import_from_dw_page(browser, docket_id)
+            postback_HTML = import_from_dw_page(browser, docket_id)
 
-            browser.find_element(By.NAME, names.NEW_SEARCH_BUTTON).click()
+            WebDriverWait(browser, 5).until(
+                EC.element_to_be_clickable(
+                    (By.NAME, names.NEW_SEARCH_BUTTON)
+                )
+            ).click()
         except:
             logger.error(
                 f'failed to gather documents for {docket_id}. Exception: {traceback.format_exc()}')
             DetainerWarrant.query.get(docket_id).update(
                 _last_pleading_documents_check=datetime.utcnow(),
+                pleading_document_check_mismatched_html=postback_HTML,
                 pleading_document_check_was_successful=False
             )
             db.session.commit()

@@ -773,6 +773,7 @@ class DetainerWarrant(Case):
     _last_pleading_documents_check = Column(
         db.DateTime, name="last_pleading_documents_check")
     pleading_document_check_was_successful = Column(db.Boolean)
+    pleading_document_check_mismatched_html = Column(db.Text)
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
     _judgments = relationship('Judgment', back_populates='_detainer_warrant')
