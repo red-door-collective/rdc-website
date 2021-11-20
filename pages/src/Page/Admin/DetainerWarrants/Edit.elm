@@ -19,6 +19,7 @@ import FeatherIcons
 import Form.State exposing (DatePickerState)
 import Head
 import Head.Seo as Seo
+import Html
 import Html.Attributes exposing (selected)
 import Http
 import Json.Encode as Encode
@@ -35,6 +36,7 @@ import Path exposing (Path)
 import PhoneNumber
 import PhoneNumber.Countries exposing (countryUS)
 import Plaintiff exposing (Plaintiff, PlaintiffForm)
+import PleadingDocument exposing (PleadingDocument)
 import QueryParams
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint exposing (toQueryArgs)
@@ -58,6 +60,7 @@ import UI.Palette as Palette
 import UI.RenderConfig exposing (RenderConfig)
 import UI.Size
 import UI.TextField as TextField
+import Url
 import Url.Builder
 import User exposing (NavigationOnSuccess(..), User)
 import View exposing (View)
@@ -181,6 +184,7 @@ type alias Model =
     , courtrooms : List Courtroom
     , saveState : SaveState
     , navigationOnSuccess : NavigationOnSuccess
+    , openDocument : Maybe PleadingDocument
     }
 
 
@@ -430,6 +434,7 @@ init pageUrl sharedModel static =
       , courtrooms = []
       , saveState = Done
       , navigationOnSuccess = Remain
+      , openDocument = Nothing
       }
     , Cmd.batch
         [ case docketId of
@@ -500,6 +505,7 @@ type Msg
     | ChangedJudgmentJudgeSearchBox Int (SearchBox.ChangeEvent Judge)
     | ChangedJudgmentNotes Int String
     | ChangedNotes String
+    | ToggleOpenDocument PleadingDocument
     | SplitButtonMsg (SplitButton.Msg NavigationOnSuccess)
     | PickedSaveOption (Maybe NavigationOnSuccess)
     | GotProfile (Result Http.Error User)
@@ -1469,6 +1475,18 @@ update pageUrl navKey sharedModel static msg model =
             updateForm
                 (\form -> { form | notes = notes })
                 model
+
+        ToggleOpenDocument pleading ->
+            ( { model
+                | openDocument =
+                    if model.openDocument == Just pleading then
+                        Nothing
+
+                    else
+                        Just pleading
+              }
+            , Cmd.none
+            )
 
         SplitButtonMsg subMsg ->
             updateFormNarrow
@@ -2864,14 +2882,38 @@ viewJudgment options index form =
             , viewJudgeSearch options index form
             ]
         , column
-            [ spacing 5
-            , Border.width 1
-            , Border.rounded 5
-            , width fill
-            , padding 20
-            , Palette.toBorderColor Palette.gray300
-            , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
-            ]
+            ([ spacing 5
+             , Border.width 1
+             , Border.rounded 5
+             , width fill
+             , padding 20
+             , Palette.toBorderColor Palette.gray300
+             , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
+             ]
+                ++ (case options.originalWarrant of
+                        Just warrant ->
+                            let
+                                judgments =
+                                    List.filter PleadingDocument.isJudgment warrant.pleadings
+                            in
+                            case List.head <| List.drop index judgments of
+                                Just pleading ->
+                                    [ inFront
+                                        (row [ Element.alignRight, padding 20 ]
+                                            [ Button.fromIcon (Icon.remove "Open PDF")
+                                                |> Button.cmd (ToggleOpenDocument pleading) Button.clear
+                                                |> Button.renderElement options.renderConfig
+                                            ]
+                                        )
+                                    ]
+
+                                Nothing ->
+                                    []
+
+                        Nothing ->
+                            []
+                   )
+            )
             [ row [ spacing 5, width fill ]
                 [ paragraph [ Font.center, centerX ] [ text "Judgment" ] ]
             , row [ spacing 5, width fill ]
@@ -3169,6 +3211,22 @@ view maybeUrl sharedModel model static =
                     [ viewForm (formOptions cfg static.sharedData.runtime.today model) model.form
                     ]
                 ]
+            , case model.openDocument of
+                Just pleading ->
+                    column [ width fill ]
+                        [ row [ width fill ]
+                            [ Element.html <|
+                                Html.embed
+                                    [ Html.Attributes.width 800
+                                    , Html.Attributes.height 1600
+                                    , Html.Attributes.src (Url.toString pleading.url)
+                                    ]
+                                    []
+                            ]
+                        ]
+
+                Nothing ->
+                    Element.none
             ]
         ]
     }
