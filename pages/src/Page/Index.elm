@@ -424,14 +424,14 @@ viewPlaintiffShareChart : Model -> Dimensions -> List PlaintiffAttorneyWarrantCo
 viewPlaintiffShareChart model dimens counts =
     let
         ( other, top5Plaintiffs ) =
-            List.partition (\r -> List.member r.plaintiffAttorneyName [ "ALL OTHER", "PLAINTIFF REPRESENTING SELF (PRS)" ]) counts
+            List.partition (\r -> List.member r.plaintiffAttorneyName [ "ALL OTHER", "Plaintiff Representing Self" ]) counts
 
         byCount =
             counts
                 |> List.map
                     (\r ->
                         ( toFloat r.warrantCount
-                        , if r.plaintiffAttorneyName == "PLAINTIFF REPRESENTING SELF (PRS)" then
+                        , if r.plaintiffAttorneyName == "Plaintiff Representing Self" then
                             "SELF REPRESENTING"
 
                           else
@@ -496,7 +496,7 @@ viewPlaintiffShareChart model dimens counts =
                     { name = "SELF REPRESENTING"
                     , count =
                         other
-                            |> List.filter ((==) "PLAINTIFF REPRESENTING SELF (PRS)" << .plaintiffAttorneyName)
+                            |> List.filter ((==) "Plaintiff Representing Self" << .plaintiffAttorneyName)
                             |> List.head
                             |> Maybe.map (toFloat << .warrantCount)
                             |> Maybe.withDefault 0.0

@@ -364,8 +364,8 @@ def register_extensions(app):
         } for attorney_name, warrant_count in top_six]
 
         prs = {
-            'warrant_count': between_dates(start_dt, end_dt, Attorney.query.filter_by(name="PRS").join(DetainerWarrant)).count(),
-            'plaintiff_attorney_name': 'PLAINTIFF REPRESENTING SELF (PRS)',
+            'warrant_count': between_dates(start_dt, end_dt, Attorney.query.filter_by(id=-1).join(DetainerWarrant)).count(),
+            'plaintiff_attorney_name': Attorney.query.get(-1).name,
             'start_date': millis(start_dt),
             'end_date': millis(end_dt),
         }

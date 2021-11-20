@@ -250,6 +250,9 @@ def bootstrap():
 
     user_datastore.create_user(id=-1, email="system-user@reddoorcollective.org", first_name="System",
                                last_name="User", password=hash_password(str(uuid.uuid4())), roles=['Superuser'])
+
+    Attorney.create(id=-1, name="Plaintiff Representing Self",
+                    district=district)
     db.session.commit()
 
     if env == 'development':
