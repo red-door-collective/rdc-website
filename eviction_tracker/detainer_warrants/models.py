@@ -216,6 +216,7 @@ class Judgment(db.Model, Timestamped):
     _court_date = Column(db.Date, name='court_date')
     mediation_letter = Column(db.Boolean)
     court_order_number = Column(db.Integer)
+    _continuance_on = Column(db.Date)
     notes = Column(db.Text)
 
     detainer_warrant_id = Column(
@@ -396,6 +397,21 @@ class Judgment(db.Model, Timestamped):
             return 'Dismissed'
         else:
             return ''
+
+    @hybrid_property
+    def continuance_on(self):
+        if self._continuance_on:
+            return in_millis(datetime.combine(self._continuance_on, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @continuance_on.comparator
+    def continuance_on(cls):
+        return PosixComparator(cls._continuance_on)
+
+    @continuance_on.setter
+    def continuance_on(self, posix):
+        self._continuance_on = from_millis(posix)
 
     def __repr__(self):
         return "<Judgment(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
