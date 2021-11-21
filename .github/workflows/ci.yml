@@ -87,8 +87,14 @@ jobs:
         run: npm ci
       - name: elm-tooling install
         run: npx --no-install elm-tooling install
+      - uses: nick-invision/retry@v2
+        name: Build
+        with:
+          max_attempts: 3
+          retry_on: error
+          command: npm install && npm run build
       - name: Tests
-        run: npm install && npm run build && npm test
+        run: npm test
       - name: Add elm-review, elm and elm-format to path
         run: npm bin >> $GITHUB_PATH
       # - uses: sparksp/elm-review-action@v1
@@ -151,8 +157,12 @@ jobs:
       - uses: cachix/install-nix-action@v12
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - run: ./scripts/build-ui
+      - uses: nick-invision/retry@v2
         name: Build application
+        with:
+          max_attempts: 3
+          retry_on: error
+          command: ./scripts/build-ui
         env:
           VERSION: ${{ needs.compute_tags.outputs.release_tag }}
       - id: commit_assets
