@@ -93,7 +93,7 @@ jobs:
           max_attempts: 3
           timeout_minutes: 3
           retry_on: error
-          command: npm install && npm run build
+          command: cd pages && npm install && npm run build
       - name: Tests
         run: npm test
       - name: Add elm-review, elm and elm-format to path
