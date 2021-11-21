@@ -202,7 +202,7 @@ class Judgment(db.Model, Timestamped):
         'NON_SUIT_BY_PLAINTIFF': 2
     }
 
-    __tablename__ = "judgements"
+    __tablename__ = 'judgments'
     id = Column(db.Integer, primary_key=True)
     in_favor_of_id = Column(db.Integer)
     awards_possession = Column(db.Boolean)
