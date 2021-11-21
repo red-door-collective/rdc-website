@@ -91,6 +91,7 @@ jobs:
         name: Build
         with:
           max_attempts: 3
+          timeout_minutes: 3
           retry_on: error
           command: npm install && npm run build
       - name: Tests
@@ -161,6 +162,7 @@ jobs:
         name: Build application
         with:
           max_attempts: 3
+          timeout_minutes: 3
           retry_on: error
           command: ./scripts/build-ui
         env:
