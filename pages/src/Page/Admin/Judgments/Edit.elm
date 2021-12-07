@@ -1,4 +1,4 @@
-module Page.Admin.Plaintiffs.Edit exposing (Data, Model, Msg, page)
+module Page.Admin.Judgments.Edit exposing (Data, Model, Msg, page)
 
 import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
@@ -15,13 +15,13 @@ import Head.Seo as Seo
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Judgment exposing (DismissalBasis(..), Judgment)
 import Log
 import Logo
 import MultiInput
 import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
-import Plaintiff exposing (Plaintiff)
 import QueryParams
 import Regex
 import Rest exposing (Cred)
@@ -42,16 +42,13 @@ import View exposing (View)
 type alias FormOptions =
     { tooltip : Maybe Tooltip
     , problems : List Problem
-    , originalPlaintiff : Maybe Plaintiff
+    , originalJudgment : Maybe Judgment
     , renderConfig : RenderConfig
     }
 
 
 type alias Form =
-    { name : String
-    , displayName : String
-    , aliases : List String
-    , aliasesState : MultiInput.State
+    { docketId : String
     , notes : String
     }
 
@@ -62,19 +59,18 @@ type Problem
 
 
 type Tooltip
-    = PlaintiffInfo
-    | NameInfo
-    | AliasesInfo
+    = JudgmentInfo
+    | NotesInfo
 
 
 type SaveState
-    = SavingPlaintiff
+    = SavingJudgment
     | Done
 
 
 type alias Model =
     { id : Maybe Int
-    , plaintiff : Maybe Plaintiff
+    , judgment : Maybe Judgment
     , tooltip : Maybe Tooltip
     , problems : List Problem
     , form : FormStatus
@@ -83,26 +79,16 @@ type alias Model =
     }
 
 
-aliasesId =
-    "aliases-input"
-
-
-editForm : Plaintiff -> Form
-editForm plaintiff =
-    { name = plaintiff.name
-    , displayName = ""
-    , aliases = plaintiff.aliases
-    , aliasesState = MultiInput.init aliasesId
+editForm : Judgment -> Form
+editForm judgment =
+    { docketId = judgment.docketId
     , notes = ""
     }
 
 
 initCreate : Form
 initCreate =
-    { name = ""
-    , displayName = ""
-    , aliases = []
-    , aliasesState = MultiInput.init aliasesId
+    { docketId = ""
     , notes = ""
     }
 
@@ -139,7 +125,7 @@ init pageUrl sharedModel static =
                 Nothing ->
                     Nothing
     in
-    ( { plaintiff = Nothing
+    ( { judgment = Nothing
       , id = maybeId
       , tooltip = Nothing
       , problems = []
@@ -155,27 +141,26 @@ init pageUrl sharedModel static =
       }
     , case maybeId of
         Just id ->
-            getPlaintiff domain id maybeCred
+            getJudgment domain id maybeCred
 
         Nothing ->
             Cmd.none
     )
 
 
-getPlaintiff : String -> Int -> Maybe Cred -> Cmd Msg
-getPlaintiff domain id maybeCred =
-    Rest.get (Endpoint.plaintiff domain id) maybeCred GotPlaintiff (Rest.itemDecoder Plaintiff.decoder)
+getJudgment : String -> Int -> Maybe Cred -> Cmd Msg
+getJudgment domain id maybeCred =
+    Rest.get (Endpoint.judgment domain id) maybeCred GotJudgment (Rest.itemDecoder Judgment.decoder)
 
 
 type Msg
-    = GotPlaintiff (Result Http.Error (Rest.Item Plaintiff))
+    = GotJudgment (Result Http.Error (Rest.Item Judgment))
     | ChangeTooltip Tooltip
     | CloseTooltip
-    | ChangedName String
-    | ChangedAliases MultiInput.Msg
+    | ChangedNotes String
     | SubmitForm
     | SubmitAndAddAnother
-    | CreatedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
+    | CreatedJudgment (Result Http.Error (Rest.Item Judgment))
     | NoOp
 
 
@@ -220,7 +205,7 @@ savingError : Http.Error -> Model -> Model
 savingError httpError model =
     let
         problems =
-            [ ServerError "Error saving plaintiff" ]
+            [ ServerError "Error saving judgment" ]
     in
     { model | problems = problems }
 
@@ -257,12 +242,12 @@ update pageUrl navKey sharedModel static msg model =
             error rollbar << Log.httpErrorMessage
     in
     case msg of
-        GotPlaintiff result ->
+        GotJudgment result ->
             case result of
-                Ok plaintiffPage ->
+                Ok judgmentPage ->
                     ( { model
-                        | plaintiff = Just plaintiffPage.data
-                        , form = Ready (editForm plaintiffPage.data)
+                        | judgment = Just judgmentPage.data
+                        , form = Ready (editForm judgmentPage.data)
                       }
                     , Cmd.none
                     )
@@ -285,19 +270,8 @@ update pageUrl navKey sharedModel static msg model =
         CloseTooltip ->
             ( { model | tooltip = Nothing }, Cmd.none )
 
-        ChangedName name ->
-            updateForm (\form -> { form | name = name }) model
-
-        ChangedAliases multiMsg ->
-            updateFormNarrow
-                (\form ->
-                    let
-                        ( nextState, nextItems, nextCmd ) =
-                            MultiInput.update multiInputUpdateConfig multiMsg form.aliasesState form.aliases
-                    in
-                    ( { form | aliases = nextItems, aliasesState = nextState }, Cmd.map ChangedAliases nextCmd )
-                )
-                model
+        ChangedNotes notes ->
+            updateForm (\form -> { form | notes = notes }) model
 
         SubmitForm ->
             submitForm domain session model
@@ -305,14 +279,14 @@ update pageUrl navKey sharedModel static msg model =
         SubmitAndAddAnother ->
             submitFormAndAddAnother domain session model
 
-        CreatedPlaintiff (Ok plaintiffItem) ->
+        CreatedJudgment (Ok judgmentItem) ->
             nextStepSave
                 session
                 { model
-                    | plaintiff = Just plaintiffItem.data
+                    | judgment = Just judgmentItem.data
                 }
 
-        CreatedPlaintiff (Err httpError) ->
+        CreatedJudgment (Err httpError) ->
             ( savingError httpError model, logHttpError httpError )
 
         NoOp ->
@@ -338,15 +312,15 @@ submitForm domain session model =
     case validate model.form of
         Ok validForm ->
             let
-                plaintiff =
-                    toPlaintiff model.id validForm
+                judgment =
+                    toJudgment model.id validForm
             in
             ( { model
                 | newFormOnSuccess = False
                 , problems = []
-                , saveState = SavingPlaintiff
+                , saveState = SavingJudgment
               }
-            , updatePlaintiff domain maybeCred model plaintiff
+            , updateJudgment domain maybeCred model judgment
             )
 
         Err problems ->
@@ -355,11 +329,19 @@ submitForm domain session model =
             )
 
 
-toPlaintiff : Maybe Int -> TrimmedForm -> Plaintiff
-toPlaintiff id (Trimmed form) =
+toJudgment : Maybe Int -> TrimmedForm -> Judgment
+toJudgment id (Trimmed form) =
     { id = Maybe.withDefault -1 id
-    , name = form.name
-    , aliases = form.aliases
+    , docketId = form.docketId
+    , notes = Just form.notes
+    , fileDate = Nothing
+    , courtDate = Nothing
+    , courtroom = Nothing
+    , enteredBy = Judgment.Default
+    , plaintiff = Nothing
+    , plaintiffAttorney = Nothing
+    , judge = Nothing
+    , conditions = Nothing
     }
 
 
@@ -368,11 +350,11 @@ nextStepSave session model =
     case validate model.form of
         Ok form ->
             let
-                plaintiff =
-                    toPlaintiff model.id form
+                judgment =
+                    toJudgment model.id form
             in
             case model.saveState of
-                SavingPlaintiff ->
+                SavingJudgment ->
                     ( { model | saveState = Done }
                     , Cmd.none
                     )
@@ -385,7 +367,7 @@ nextStepSave session model =
 
                       else
                         Maybe.withDefault Cmd.none <|
-                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ String.fromInt plaintiff.id ] [])) (Session.navKey session)
+                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ String.fromInt judgment.id ] [])) (Session.navKey session)
                     )
 
         Err _ ->
@@ -469,20 +451,20 @@ requiredLabel labelFn str =
     labelFn [] (row [ spacing 5 ] [ text str, requiredStar ])
 
 
-viewName : FormOptions -> Form -> Element Msg
-viewName options form =
+viewNotes : FormOptions -> Form -> Element Msg
+viewNotes options form =
     column [ width (fill |> minimum 600), height fill, paddingXY 0 10 ]
         [ viewField
-            { tooltip = Just NameInfo
-            , description = [ paragraph [] [ text "This name is how we uniquely identify a Plaintiff." ] ]
+            { tooltip = Just NotesInfo
+            , description = [ paragraph [] [ text "Notes relevant to this judgment." ] ]
             , currentTooltip = options.tooltip
             , children =
                 [ textInput
-                    (withValidation Name options.problems [ Input.focusedOnLoad ])
-                    { onChange = ChangedName
-                    , text = form.name
+                    (withValidation Notes options.problems [ Input.focusedOnLoad ])
+                    { onChange = ChangedNotes
+                    , text = form.notes
                     , placeholder = Nothing
-                    , label = requiredLabel Input.labelAbove "Name"
+                    , label = requiredLabel Input.labelAbove "Notes"
                     }
                 ]
             }
@@ -497,35 +479,6 @@ matches regex =
                 |> Maybe.withDefault Regex.never
     in
     Regex.findAtMost 1 validRegex >> List.isEmpty >> not
-
-
-viewAliases : FormOptions -> Form -> Element Msg
-viewAliases options form =
-    column [ width (fill |> minimum 600), height fill, paddingXY 0 10 ]
-        [ viewField
-            { tooltip = Just AliasesInfo
-            , description =
-                [ paragraph []
-                    [ text "These are other names that are used to refer to the same plaintiff." ]
-                , paragraph [] [ text "Tip: press tab or enter to add another alias." ]
-                ]
-            , currentTooltip = options.tooltip
-            , children =
-                [ column [ width fill, spacing 2 ]
-                    [ paragraph [] [ text "Aliases" ]
-                    , MultiInput.view
-                        -- (withValidation Aliases options.problems [ Input.focusedOnLoad ])
-                        { toOuterMsg = ChangedAliases
-                        , placeholder = "Enter alias here"
-                        , isValid = matches "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-                        }
-                        []
-                        form.aliases
-                        form.aliasesState
-                    ]
-                ]
-            }
-        ]
 
 
 formGroup : List (Element Msg) -> Element Msg
@@ -569,17 +522,14 @@ viewForm : FormOptions -> FormStatus -> Element Msg
 viewForm options formStatus =
     case formStatus of
         Initializing id ->
-            column [] [ text ("Fetching plaintiff " ++ String.fromInt id) ]
+            column [] [ text ("Fetching judgment " ++ String.fromInt id) ]
 
         Ready form ->
             column [ centerX, spacing 30, width (fill |> maximum 1200) ]
                 [ tile
-                    [ paragraph [ Font.center, centerX ] [ text "Plaintiff" ]
+                    [ paragraph [ Font.center, centerX ] [ text "Judgment" ]
                     , formGroup
-                        [ viewName options form
-                        ]
-                    , formGroup
-                        [ viewAliases options form
+                        [ viewNotes options form
                         ]
                     ]
                 , row [ Element.alignRight, spacing 10 ]
@@ -593,7 +543,7 @@ formOptions : RenderConfig -> Model -> FormOptions
 formOptions cfg model =
     { tooltip = model.tooltip
     , problems = model.problems
-    , originalPlaintiff = model.plaintiff
+    , originalJudgment = model.judgment
     , renderConfig = cfg
     }
 
@@ -665,9 +615,9 @@ view maybeUrl sharedModel model static =
                      , Element.alignTop
                      , Events.onLoseFocus CloseTooltip
                      ]
-                        ++ withTooltip PlaintiffInfo model.tooltip [ paragraph [] [ text "The person sueing a tenant for possession or fees." ] ]
+                        ++ withTooltip JudgmentInfo model.tooltip [ paragraph [] [ text "The person sueing a tenant for possession or fees." ] ]
                     )
-                    (Button.fromLabel "Help" |> Button.cmd (ChangeTooltip PlaintiffInfo) Button.primary |> Button.renderElement cfg)
+                    (Button.fromLabel "Help" |> Button.cmd (ChangeTooltip JudgmentInfo) Button.primary |> Button.renderElement cfg)
                 )
             ]
             [ column [ centerX, spacing 10 ]
@@ -684,7 +634,7 @@ view maybeUrl sharedModel model static =
                                     Nothing ->
                                         "Create"
                                  )
-                                    ++ " Plaintiff"
+                                    ++ " Judgment"
                                 )
                             ]
                         ]
@@ -708,10 +658,7 @@ subscriptions pageUrl params path model =
         Ready form ->
             Sub.batch
                 (List.concat
-                    [ [ MultiInput.subscriptions form.aliasesState
-                            |> Sub.map ChangedAliases
-                      ]
-                    , Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip)
+                    [ Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip)
                     ]
                 )
 
@@ -754,14 +701,11 @@ onOutsideClick tip =
 tooltipToString : Tooltip -> String
 tooltipToString tip =
     case tip of
-        PlaintiffInfo ->
-            "plaintiff-info"
+        JudgmentInfo ->
+            "judgment-info"
 
-        NameInfo ->
-            "name-info"
-
-        AliasesInfo ->
-            "aliases-info"
+        NotesInfo ->
+            "notes-info"
 
 
 
@@ -778,13 +722,13 @@ type TrimmedForm
 {-| When adding a variant here, add it to `fieldsToValidate` too!
 -}
 type ValidatedField
-    = Name
+    = Notes
     | Aliases
 
 
 fieldsToValidate : List ValidatedField
 fieldsToValidate =
-    [ Name
+    [ Notes
     , Aliases
     ]
 
@@ -814,15 +758,15 @@ validateField : TrimmedForm -> ValidatedField -> List Problem
 validateField (Trimmed form) field =
     List.map (InvalidEntry field) <|
         case field of
-            Name ->
-                if String.isEmpty form.name then
+            Notes ->
+                if String.isEmpty form.notes then
                     []
 
                 else
                     []
 
             Aliases ->
-                if String.isEmpty form.name then
+                if String.isEmpty form.notes then
                     []
 
                 else
@@ -836,14 +780,12 @@ trimFields : Form -> TrimmedForm
 trimFields form =
     Trimmed
         { form
-            | name = String.trim form.name
-            , aliases = List.map String.trim form.aliases
-            , notes = String.trim form.notes
+            | notes = String.trim form.notes
         }
 
 
-conditional fieldName fn field =
-    Maybe.withDefault [] <| Maybe.map (\f -> [ ( fieldName, fn f ) ]) field
+conditional fieldNotes fn field =
+    Maybe.withDefault [] <| Maybe.map (\f -> [ ( fieldNotes, fn f ) ]) field
 
 
 toBody body =
@@ -851,25 +793,23 @@ toBody body =
         |> Http.jsonBody
 
 
-updatePlaintiff : String -> Maybe Cred -> Model -> Plaintiff -> Cmd Msg
-updatePlaintiff domain maybeCred model form =
+updateJudgment : String -> Maybe Cred -> Model -> Judgment -> Cmd Msg
+updateJudgment domain maybeCred model form =
     let
-        plaintiff =
+        judgment =
             Encode.object
-                ([ ( "name", Encode.string form.name )
-                 , ( "aliases", Encode.list Encode.string form.aliases )
-                 ]
+                ([]
                     ++ conditional "id" Encode.int model.id
-                 -- ++ nullable "notes" Encode.string form.notes
+                    ++ conditional "notes" Encode.string form.notes
                 )
     in
     case model.id of
         Just id ->
-            Rest.itemDecoder Plaintiff.decoder
-                |> Rest.patch (Endpoint.plaintiff domain id) maybeCred (toBody plaintiff) CreatedPlaintiff
+            Rest.itemDecoder Judgment.decoder
+                |> Rest.patch (Endpoint.judgment domain id) maybeCred (toBody judgment) CreatedJudgment
 
         Nothing ->
-            Rest.post (Endpoint.plaintiffs domain []) maybeCred (toBody plaintiff) CreatedPlaintiff (Rest.itemDecoder Plaintiff.decoder)
+            Rest.post (Endpoint.judgments domain []) maybeCred (toBody judgment) CreatedJudgment (Rest.itemDecoder Judgment.decoder)
 
 
 type alias RouteParams =
@@ -900,7 +840,7 @@ data =
 
 
 title =
-    "RDC | Admin | Plaintiffs | Edit"
+    "RDC | Admin | Judgments | Edit"
 
 
 head :
@@ -911,7 +851,7 @@ head static =
         { canonicalUrlOverride = Nothing
         , siteName = "Red Door Collective"
         , image = Logo.smallImage
-        , description = "Edit plaintiff details"
+        , description = "Edit judgment details"
         , locale = Just "en-us"
         , title = title
         }
