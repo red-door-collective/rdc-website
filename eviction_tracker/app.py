@@ -270,6 +270,8 @@ def register_extensions(app):
                      detainer_warrants.views.DefendantResource, app=app)
     api.add_resource('/courtrooms/', detainer_warrants.views.CourtroomListResource,
                      detainer_warrants.views.CourtroomResource, app=app)
+    api.add_resource('/hearings/', detainer_warrants.views.HearingListResource,
+                     detainer_warrants.views.HearingResource, app=app)
     api.add_resource('/plaintiffs/', detainer_warrants.views.PlaintiffListResource,
                      detainer_warrants.views.PlaintiffResource, app=app)
     api.add_resource('/judgments/', detainer_warrants.views.JudgmentListResource,

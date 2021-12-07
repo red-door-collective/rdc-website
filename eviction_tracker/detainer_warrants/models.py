@@ -224,8 +224,10 @@ class Hearing(db.Model, Timestamped):
         'attorneys.id', ondelete=('CASCADE')
     ))
 
-    detainer_warrant = relationship(
-        'DetainerWarrant', back_populates='hearings'
+    judgment = relationship(
+        'Judgment', uselist=False, backref='hearing')
+    case = relationship(
+        'Case', back_populates='hearings'
     )
     courtroom = relationship(
         'Courtroom', back_populates='hearings'
@@ -300,6 +302,8 @@ class Judgment(db.Model, Timestamped):
     _continuance_on = Column(db.Date)
     notes = Column(db.Text)
 
+    hearing_id = Column(db.Integer, db.ForeignKey(
+        'hearings.id'), nullable=False)
     detainer_warrant_id = Column(
         db.String(255), db.ForeignKey('cases.docket_id'), nullable=False)
     judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
@@ -317,8 +321,6 @@ class Judgment(db.Model, Timestamped):
     _courtroom = relationship(
         'Courtroom', back_populates='_judgments'
     )
-    _detainer_warrant = relationship(
-        'DetainerWarrant', back_populates='_judgments')
 
     _plaintiff = relationship(
         'Plaintiff', back_populates='_judgments'
@@ -721,6 +723,7 @@ class Case(db.Model, Timestamped):
     ))
     type = Column(db.String(50))
 
+    hearings = relationship('Hearing', back_populates='case')
     _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
     _plaintiff_attorney = relationship(
         'Attorney', back_populates='detainer_warrants')
@@ -857,8 +860,6 @@ class DetainerWarrant(Case):
     pleading_document_check_mismatched_html = Column(db.Text)
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
-    hearings = relationship('Hearing', back_populates='detainer_warrant')
-    _judgments = relationship('Judgment', back_populates='_detainer_warrant')
     pleadings = relationship(
         'PleadingDocument', back_populates='_detainer_warrant')
     last_edited_by = relationship('User', back_populates='edited_warrants')
@@ -924,29 +925,6 @@ class DetainerWarrant(Case):
             self._courtroom = db.session.query(Courtroom).get(c_id)
         else:
             self._courtroom = courtroom
-
-    @property
-    def judgments(self):
-        return sorted(self._judgments, key=lambda j: (j.court_date is not None, j.court_date), reverse=True)
-
-    @judgments.setter
-    def judgments(self, judgments):
-        if (all(isinstance(j, Judgment) for j in judgments)):
-            self._judgments = judgments
-        else:
-            if (len(judgments) < len(self._judgments)):
-                original = set([j.id for j in self._judgments])
-                new = set([j.get("id") for j in judgments])
-                judgments_to_delete = original - new
-                for j_id in judgments_to_delete:
-                    db.session.delete(db.session.query(Judgment).get(j_id))
-
-            self._judgments = [
-                db.session.query(Judgment).get(j.get('id')).update(**j)
-                if j.get('id') is not None
-                else Judgment.create(**j, detainer_warrant_id=self.docket_id)
-                for j in judgments
-            ]
 
 
 class PhoneNumberVerification(db.Model, Timestamped):

@@ -105,6 +105,29 @@ judgment_schema = JudgmentSchema()
 judgments_schema = JudgmentSchema(many=True)
 
 
+class HearingSchema(Schema):
+    id = fields.Int(allow_none=True)
+    court_date = fields.Int(allow_none=True)
+    docket_id = fields.String(allow_none=True)
+
+    judgment = fields.Nested(JudgmentSchema, allow_none=True)
+    judge = fields.Nested(JudgeSchema, allow_none=True)
+    plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
+    plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    defendant_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    courtroom = fields.Nested(CourtroomSchema, allow_none=True)
+
+    class Meta:
+        fields = ("id", "court_date", "docket_id", "address", "courtroom",
+                  "judgment", "plaintiff", "plaintiff_attorney", "defendant_attorney",
+                  "defendants"
+                  )
+
+
+hearing_schema = HearingSchema()
+hearings_schema = HearingSchema(many=True)
+
+
 class PleadingDocumentSchema(Schema):
     class Meta:
         fields = ("url", "text", "kind", "docket_id",
@@ -119,7 +142,7 @@ class DetainerWarrantSchema(Schema):
     plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
-    judgments = fields.Nested(JudgmentSchema, many=True)
+    hearings = fields.Nested(HearingSchema, many=True)
     pleadings = fields.Nested(PleadingDocumentSchema, many=True)
     last_edited_by = fields.Nested(serializers.UserSchema)
 
@@ -138,7 +161,7 @@ class DetainerWarrantSchema(Schema):
 
     class Meta:
         fields = ("docket_id", "order_number", "file_date", "status", "court_date", "amount_claimed",
-                  "claims_possession", "judgments", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
+                  "claims_possession", "hearings", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
                   "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "pleadings", "created_at", "updated_at")
 
 
