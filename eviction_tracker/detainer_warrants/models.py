@@ -42,6 +42,15 @@ detainer_warrant_defendants = db.Table(
         'defendants.id', ondelete="CASCADE"), primary_key=True)
 )
 
+hearing_defendants = db.Table(
+    'hearing_defendants',
+    db.metadata,
+    Column('hearing_id', db.ForeignKey(
+        'hearings.id', ondelete="CASCADE"), primary_key=True),
+    Column('defendant_id', db.ForeignKey(
+        'defendants.id', ondelete="CASCADE"), primary_key=True)
+)
+
 
 class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
@@ -71,6 +80,11 @@ class Defendant(db.Model, Timestamped):
                                      back_populates='_defendants',
                                      passive_deletes=True
                                      )
+    hearings = relationship('Hearing',
+                            secondary=hearing_defendants,
+                            back_populates='defendants',
+                            passive_deletes=True
+                            )
     verified_phone = relationship(
         'PhoneNumberVerification', back_populates='defendants')
     phone_bank_attempts = relationship(
@@ -137,6 +151,7 @@ class Courtroom(db.Model, Timestamped):
 
     district = relationship('District', back_populates='courtrooms')
     _judgments = relationship('Judgment', back_populates='_courtroom')
+    hearings = relationship('Hearing', back_populates='courtroom')
 
     def __repr__(self):
         return "<Courtroom(name='%s')>" % (self.name)
@@ -160,6 +175,9 @@ class Plaintiff(db.Model, Timestamped):
     _judgments = relationship(
         'Judgment', back_populates='_plaintiff'
     )
+    hearings = relationship(
+        'Hearing', back_populates='plaintiff'
+    )
 
     def __repr__(self):
         return "<Plaintiff(name='%s', district_id='%s')>" % (self.name, self.district_id)
@@ -182,6 +200,69 @@ class Judge(db.Model, Timestamped):
 
     def __repr__(self):
         return "<Judge(name='%s')>" % (self.name)
+
+
+class Hearing(db.Model, Timestamped):
+    __tablename__ = 'hearings'
+    __table_args__ = (
+        db.UniqueConstraint('court_date', 'docket_id'),
+    )
+
+    id = Column(db.Integer, primary_key=True)
+    _court_date = Column(db.DateTime, name='court_date', nullable=False)
+    address = Column(db.String(255), nullable=False)
+
+    docket_id = Column(
+        db.String(255), db.ForeignKey('cases.docket_id'), nullable=False)
+    courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
+    plaintiff_id = Column(db.Integer, db.ForeignKey(
+        'plaintiffs.id', ondelete='CASCADE'))
+    plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
+        'attorneys.id', ondelete=('CASCADE')
+    ))
+    defendant_attorney_id = Column(db.Integer, db.ForeignKey(
+        'attorneys.id', ondelete=('CASCADE')
+    ))
+
+    detainer_warrant = relationship(
+        'DetainerWarrant', back_populates='hearings'
+    )
+    courtroom = relationship(
+        'Courtroom', back_populates='hearings'
+    )
+    plaintiff = relationship(
+        'Plaintiff', back_populates='hearings'
+    )
+    plaintiff_attorney = relationship(
+        'Attorney', foreign_keys=plaintiff_attorney_id
+    )
+    defendant_attorney = relationship(
+        'Attorney', foreign_keys=defendant_attorney_id
+    )
+
+    defendants = relationship('Defendant',
+                              secondary=hearing_defendants,
+                              back_populates='hearings',
+                              cascade="all, delete"
+                              )
+
+    @hybrid_property
+    def court_date(self):
+        if self._court_date:
+            return in_millis(self._court_date.timestamp())
+        else:
+            return None
+
+    @court_date.comparator
+    def court_date(cls):
+        return PosixComparator(cls._court_date)
+
+    @court_date.setter
+    def court_date(self, posix):
+        self._court_date = from_millis(posix)
+
+    def __repr__(self):
+        return "<Hearing(court_date='%s', docket_id='%s')>" % (self._court_date, self.docket_id)
 
 
 class Judgment(db.Model, Timestamped):
@@ -776,6 +857,7 @@ class DetainerWarrant(Case):
     pleading_document_check_mismatched_html = Column(db.Text)
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
+    hearings = relationship('Hearing', back_populates='detainer_warrant')
     _judgments = relationship('Judgment', back_populates='_detainer_warrant')
     pleadings = relationship(
         'PleadingDocument', back_populates='_detainer_warrant')

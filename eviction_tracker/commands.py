@@ -45,14 +45,14 @@ def test():
 @with_appcontext
 def scrape_sessions_site(courtroom, date):
     logger.info(f'Scraping Sessions site for courtroom: {courtroom} on {date}')
-    detainer_warrants.judgment_scraping.scrape(courtroom, date)
+    detainer_warrants.circuitclerk.hearings.scrape(courtroom, date)
 
 
 @click.command()
 @with_appcontext
 def scrape_sessions_week():
     logger.info(f'Scraping Sessions site for the upcoming week')
-    detainer_warrants.judgment_scraping.scrape_entire_site()
+    detainer_warrants.circuitclerk.hearings.scrape_entire_site()
 
 
 @click.command()
