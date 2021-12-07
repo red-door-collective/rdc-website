@@ -73,6 +73,7 @@ judges_schema = JudgeSchema(many=True)
 class JudgmentSchema(Schema):
     id = fields.Int(allow_none=True)
     court_date = fields.Int(allow_none=True)
+    file_date = fields.Int(allow_none=True)
     continuance_on = fields.Int(allow_none=True)
     awards_possession = fields.Bool(allow_none=True)
     awards_fees = fields.Float(allow_none=True)
@@ -89,15 +90,12 @@ class JudgmentSchema(Schema):
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     defendant_attorney = fields.Nested(AttorneySchema, allow_none=True)
     courtroom = fields.Nested(CourtroomSchema, allow_none=True)
-    detainer_warrant = fields.Nested(
-        lambda: DetainerWarrantSchema(only=["docket_id"]))
 
     class Meta:
-        fields = ("id", "court_date", "in_favor_of", "awards_possession",
+        fields = ("id", "detainer_warrant_id", "file_date", "court_date", "in_favor_of", "awards_possession",
                   "awards_fees", "continuance_on", "entered_by", "interest", "interest_rate",
                   "interest_follows_site", "dismissal_basis", "with_prejudice", "notes",
-                  "judge", "plaintiff", "plaintiff_attorney", "defendant_attorney", "courtroom",
-                  "detainer_warrant"
+                  "judge", "plaintiff", "plaintiff_attorney", "defendant_attorney", "courtroom"
                   )
 
 

@@ -53,6 +53,11 @@ view session page =
                 , label = Element.text "Detainer Warrants"
                 }
             , headerLink []
+                (page.route == Just Admin__Judgments)
+                { url = "/admin/judgments"
+                , label = Element.text "Judgments"
+                }
+            , headerLink []
                 (page.route == Just Admin__Plaintiffs)
                 { url = "/admin/plaintiffs"
                 , label = Element.text "Plaintiffs"

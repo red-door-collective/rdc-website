@@ -1,4 +1,4 @@
-module Search exposing (Attorneys, Cursor(..), DetainerWarrants, Judges, Plaintiffs, Search, attorneysArgs, attorneysDefault, attorneysFromString, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, dwFromString, judgesArgs, judgesDefault, judgesFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString)
+module Search exposing (Attorneys, Cursor(..), DetainerWarrants, Judges, Judgments, Plaintiffs, Search, attorneysArgs, attorneysDefault, attorneysFromString, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, dwFromString, judgesArgs, judgesDefault, judgesFromString, judgmentsArgs, judgmentsDefault, judgmentsFilterArgs, judgmentsFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString)
 
 import Dict
 import Iso8601
@@ -22,6 +22,15 @@ type alias DetainerWarrants =
     , defendant : Maybe String
     , address : Maybe String
     , freeText : Maybe String
+    }
+
+
+type alias Judgments =
+    { docketId : Maybe String
+    , fileDate : Maybe Posix
+    , courtDate : Maybe Posix
+    , plaintiff : Maybe String
+    , plaintiffAttorney : Maybe String
     }
 
 
@@ -57,6 +66,16 @@ detainerWarrantsDefault =
     , defendant = Nothing
     , address = Nothing
     , freeText = Nothing
+    }
+
+
+judgmentsDefault : Judgments
+judgmentsDefault =
+    { docketId = Nothing
+    , fileDate = Nothing
+    , courtDate = Nothing
+    , plaintiff = Nothing
+    , plaintiffAttorney = Nothing
     }
 
 
@@ -97,6 +116,21 @@ dwFromString str =
     , defendant = Dict.get "defendant_name" params |> Maybe.andThen List.head
     , address = Dict.get "address" params |> Maybe.andThen List.head
     , freeText = Dict.get "free_text" params |> Maybe.andThen List.head
+    }
+
+
+judgmentsFromString : String -> Judgments
+judgmentsFromString str =
+    let
+        params =
+            QueryParams.fromString str
+                |> QueryParams.toDict
+    in
+    { docketId = Dict.get "docket_id" params |> Maybe.andThen List.head
+    , fileDate = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
+    , courtDate = Dict.get "court_date" params |> Maybe.andThen List.head |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
+    , plaintiff = Dict.get "plaintiff" params |> Maybe.andThen List.head
+    , plaintiffAttorney = Dict.get "plaintiff_attorney" params |> Maybe.andThen List.head
     }
 
 
@@ -157,6 +191,24 @@ detainerWarrantsFilterArgs filters =
         ++ toPair "defendant_name" filters.defendant
         ++ toPair "address" filters.address
         ++ toPair "free_text" filters.freeText
+
+
+judgmentsArgs : Judgments -> List ( String, String )
+judgmentsArgs filters =
+    toPair "docket_id" filters.docketId
+        ++ toPair "file_date" (Maybe.map posixToString filters.fileDate)
+        ++ toPair "court_date" (Maybe.map posixToString filters.courtDate)
+        ++ toPair "plaintiff" filters.plaintiff
+        ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
+
+
+judgmentsFilterArgs : Judgments -> List ( String, String )
+judgmentsFilterArgs filters =
+    toPair "docket_id" filters.docketId
+        ++ toPair "file_date" (Maybe.map Time.Utils.toIsoString filters.fileDate)
+        ++ toPair "court_date" (Maybe.map Time.Utils.toIsoString filters.courtDate)
+        ++ toPair "plaintiff" filters.plaintiff
+        ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
 
 
 plaintiffsArgs : Plaintiffs -> List ( String, String )

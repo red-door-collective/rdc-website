@@ -297,6 +297,7 @@ class Judgment(db.Model, Timestamped):
     dismissal_basis_id = Column(db.Integer)
     with_prejudice = Column(db.Boolean)
     _court_date = Column(db.Date, name='court_date')
+    _file_date = Column(db.Date, name='file_date')
     mediation_letter = Column(db.Boolean)
     court_order_number = Column(db.Integer)
     _continuance_on = Column(db.Date)
@@ -351,6 +352,21 @@ class Judgment(db.Model, Timestamped):
     @court_date.setter
     def court_date(self, posix):
         self._court_date = from_millis(posix)
+
+    @hybrid_property
+    def file_date(self):
+        if self._file_date:
+            return in_millis(datetime.combine(self._file_date, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @file_date.comparator
+    def file_date(cls):
+        return PosixComparator(cls._file_date)
+
+    @file_date.setter
+    def file_date(self, posix):
+        self._file_date = from_millis(posix)
 
     @property
     def courtroom(self):
