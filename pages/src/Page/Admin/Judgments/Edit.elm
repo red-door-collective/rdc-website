@@ -15,15 +15,13 @@ import Head.Seo as Seo
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Judgment exposing (DismissalBasis(..), Judgment)
+import Judgment exposing (Judgment)
 import Log
 import Logo
-import MultiInput
 import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import QueryParams
-import Regex
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Rollbar exposing (Rollbar)
@@ -48,7 +46,7 @@ type alias FormOptions =
 
 
 type alias Form =
-    { docketId : String
+    { id : Int
     , notes : String
     }
 
@@ -81,14 +79,7 @@ type alias Model =
 
 editForm : Judgment -> Form
 editForm judgment =
-    { docketId = judgment.docketId
-    , notes = ""
-    }
-
-
-initCreate : Form
-initCreate =
-    { docketId = ""
+    { id = judgment.id
     , notes = ""
     }
 
@@ -96,6 +87,7 @@ initCreate =
 type FormStatus
     = Initializing Int
     | Ready Form
+    | NotFound
 
 
 init :
@@ -135,7 +127,7 @@ init pageUrl sharedModel static =
                     Initializing id
 
                 Nothing ->
-                    Ready initCreate
+                    NotFound
       , saveState = Done
       , newFormOnSuccess = False
       }
@@ -169,6 +161,9 @@ updateForm transform model =
     ( { model
         | form =
             case model.form of
+                NotFound ->
+                    model.form
+
                 Initializing _ ->
                     model.form
 
@@ -179,28 +174,6 @@ updateForm transform model =
     )
 
 
-updateFormNarrow : (Form -> ( Form, Cmd Msg )) -> Model -> ( Model, Cmd Msg )
-updateFormNarrow transform model =
-    let
-        ( newForm, cmd ) =
-            case model.form of
-                Initializing _ ->
-                    ( model.form, Cmd.none )
-
-                Ready oldForm ->
-                    let
-                        ( updatedForm, dropdownCmd ) =
-                            transform oldForm
-                    in
-                    ( Ready updatedForm, dropdownCmd )
-    in
-    ( { model
-        | form = newForm
-      }
-    , cmd
-    )
-
-
 savingError : Http.Error -> Model -> Model
 savingError httpError model =
     let
@@ -208,15 +181,6 @@ savingError httpError model =
             [ ServerError "Error saving judgment" ]
     in
     { model | problems = problems }
-
-
-defaultSeparators : List String
-defaultSeparators =
-    [ "\n", "\t" ]
-
-
-multiInputUpdateConfig =
-    { separators = defaultSeparators }
 
 
 update :
@@ -309,30 +273,33 @@ submitForm domain session model =
         maybeCred =
             Session.cred session
     in
-    case validate model.form of
-        Ok validForm ->
+    case ( validate model.form, model.judgment ) of
+        ( Ok validForm, Just judgment ) ->
             let
-                judgment =
-                    toJudgment model.id validForm
+                judgmentData =
+                    toJudgment judgment validForm
             in
             ( { model
                 | newFormOnSuccess = False
                 , problems = []
                 , saveState = SavingJudgment
               }
-            , updateJudgment domain maybeCred model judgment
+            , updateJudgment domain maybeCred model judgmentData
             )
 
-        Err problems ->
+        ( Err problems, _ ) ->
             ( { model | newFormOnSuccess = False, problems = problems }
             , Cmd.none
             )
 
+        ( _, _ ) ->
+            ( model, Cmd.none )
 
-toJudgment : Maybe Int -> TrimmedForm -> Judgment
-toJudgment id (Trimmed form) =
-    { id = Maybe.withDefault -1 id
-    , docketId = form.docketId
+
+toJudgment : Judgment -> TrimmedForm -> Judgment
+toJudgment judgment (Trimmed form) =
+    { id = judgment.id
+    , docketId = judgment.docketId
     , notes = Just form.notes
     , fileDate = Nothing
     , courtDate = Nothing
@@ -347,11 +314,11 @@ toJudgment id (Trimmed form) =
 
 nextStepSave : Session -> Model -> ( Model, Cmd Msg )
 nextStepSave session model =
-    case validate model.form of
-        Ok form ->
+    case ( validate model.form, model.judgment ) of
+        ( Ok form, Just judgment ) ->
             let
-                judgment =
-                    toJudgment model.id form
+                judgmentData =
+                    toJudgment judgment form
             in
             case model.saveState of
                 SavingJudgment ->
@@ -367,10 +334,10 @@ nextStepSave session model =
 
                       else
                         Maybe.withDefault Cmd.none <|
-                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ String.fromInt judgment.id ] [])) (Session.navKey session)
+                            Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ String.fromInt judgmentData.id ] [])) (Session.navKey session)
                     )
 
-        Err _ ->
+        ( _, _ ) ->
             ( model, Cmd.none )
 
 
@@ -471,16 +438,6 @@ viewNotes options form =
         ]
 
 
-matches : String -> String -> Bool
-matches regex =
-    let
-        validRegex =
-            Regex.fromString regex
-                |> Maybe.withDefault Regex.never
-    in
-    Regex.findAtMost 1 validRegex >> List.isEmpty >> not
-
-
 formGroup : List (Element Msg) -> Element Msg
 formGroup group =
     row
@@ -521,6 +478,9 @@ submitButton cfg =
 viewForm : FormOptions -> FormStatus -> Element Msg
 viewForm options formStatus =
     case formStatus of
+        NotFound ->
+            column [] [ text "Page not found" ]
+
         Initializing id ->
             column [] [ text ("Fetching judgment " ++ String.fromInt id) ]
 
@@ -652,10 +612,13 @@ view maybeUrl sharedModel model static =
 subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
 subscriptions pageUrl params path model =
     case model.form of
+        NotFound ->
+            Sub.none
+
         Initializing _ ->
             Sub.none
 
-        Ready form ->
+        Ready _ ->
             Sub.batch
                 (List.concat
                     [ Maybe.withDefault [] (Maybe.map (List.singleton << onOutsideClick) model.tooltip)
@@ -738,6 +701,9 @@ fieldsToValidate =
 validate : FormStatus -> Result (List Problem) TrimmedForm
 validate formStatus =
     case formStatus of
+        NotFound ->
+            Err []
+
         Initializing _ ->
             Err []
 

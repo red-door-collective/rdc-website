@@ -1,4 +1,4 @@
-module PleadingDocument exposing (Kind, PleadingDocument, decoder, isJudgment)
+module PleadingDocument exposing (Kind, PleadingDocument, decoder)
 
 import Json.Decode as Decode exposing (Decoder, nullable, string)
 import Json.Decode.Pipeline exposing (required)
@@ -19,11 +19,6 @@ type alias PleadingDocument =
     , createdAt : Posix
     , updatedAt : Posix
     }
-
-
-isJudgment : PleadingDocument -> Bool
-isJudgment pleading =
-    pleading.kind == Just JudgmentDocument
 
 
 kindDecoder : Decoder Kind

@@ -1,7 +1,6 @@
 module Page.Admin.DetainerWarrants.Edit exposing (Data, Model, Msg, page)
 
 import Attorney exposing (Attorney, AttorneyForm)
-import Browser.Dom
 import Browser.Navigation as Nav
 import Courtroom exposing (Courtroom)
 import DataSource exposing (DataSource)
@@ -11,7 +10,7 @@ import DatePicker exposing (ChangeEvent(..))
 import Defendant exposing (Defendant)
 import DetainerWarrant exposing (DetainerWarrant, DetainerWarrantEdit, Status)
 import Dict
-import Element exposing (Element, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
+import Element exposing (Element, centerX, column, el, fill, height, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -21,11 +20,11 @@ import Head
 import Head.Seo as Seo
 import Hearing exposing (Hearing)
 import Html
-import Html.Attributes exposing (selected)
+import Html.Attributes
 import Http
 import Json.Encode as Encode
 import Judge exposing (Judge)
-import Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), Entrance(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm)
+import Judgment exposing (Conditions(..), Judgment)
 import List.Extra as List
 import Log
 import Logo
@@ -45,20 +44,19 @@ import Rollbar exposing (Rollbar)
 import Runtime
 import SearchBox
 import Session exposing (Session)
-import Set
 import Shared
 import SplitButton
 import Sprite
-import Task
 import Time.Utils
-import UI.Button as Button
-import UI.Checkbox as Checkbox
+import UI.Button as Button exposing (Button)
 import UI.Dropdown as Dropdown
 import UI.Effects as Effects
 import UI.Icon as Icon
+import UI.Link as Link
 import UI.Palette as Palette
 import UI.RenderConfig exposing (RenderConfig)
 import UI.Size
+import UI.Tables.Stateless as Stateless
 import UI.TextField as TextField
 import Url
 import Url.Builder
@@ -131,15 +129,7 @@ type Problem
 
 
 type JudgmentDetail
-    = JudgmentFileDateDetail
-    | Summary
-    | FeesAwardedInfo
-    | PossessionAwardedInfo
-    | FeesHaveInterestInfo
-    | InterestRateFollowsSiteInfo
-    | InterestRateInfo
-    | DismissalBasisInfo
-    | WithPrejudiceInfo
+    = Summary
     | JudgmentNotesDetail
 
 
@@ -149,8 +139,6 @@ type Tooltip
     | StatusInfo
     | PlaintiffInfo
     | PlaintiffAttorneyInfo
-    | CourtroomInfo
-    | PresidingJudgeInfo
     | AmountClaimedInfo
     | ClaimsPossessionInfo
     | CaresInfo
@@ -245,108 +233,6 @@ editForm today warrant =
     , notes = Maybe.withDefault "" warrant.notes
     , saveButtonState = SplitButton.init "save-button"
     }
-
-
-judgmentFormInit : Date -> Int -> Maybe Judgment -> JudgmentForm
-judgmentFormInit today index existing =
-    let
-        new =
-            { id = Nothing
-            , conditionsDropdown = Dropdown.init ("judgment-dropdown-new-" ++ String.fromInt index)
-            , condition = Just PlaintiffOption
-            , courtroom = Nothing
-            , courtroomDropdown = Dropdown.init ("judgment-dropdown-courtroom-" ++ String.fromInt index)
-            , notes = ""
-            , courtDate = { date = Just today, dateText = Date.toIsoString today, pickerModel = DatePicker.init |> DatePicker.setToday today }
-            , enteredBy = Default
-            , awardsFees = ""
-            , awardsPossession = False
-            , hasInterest = False
-            , interestRate = ""
-            , interestFollowsSite = True
-            , dismissalBasisDropdown = Dropdown.init ("judgment-dropdown-dismissal-basis-" ++ String.fromInt index)
-            , dismissalBasis = FailureToProsecute
-            , withPrejudice = False
-            , plaintiff = { text = "", person = Nothing, searchBox = SearchBox.init }
-            , plaintiffAttorney = { text = "", person = Nothing, searchBox = SearchBox.init }
-            , judge = { text = "", person = Nothing, searchBox = SearchBox.init }
-            }
-    in
-    case existing of
-        Just judgment ->
-            let
-                default =
-                    { new
-                        | id = Just judgment.id
-                        , enteredBy = judgment.enteredBy
-                        , courtDate =
-                            { date = Maybe.map Date.Extra.fromPosix judgment.courtDate
-                            , dateText = Maybe.withDefault new.courtDate.dateText <| Maybe.map Time.Utils.toIsoString judgment.courtDate
-                            , pickerModel = DatePicker.init |> DatePicker.setToday today
-                            }
-                        , courtroom = judgment.courtroom
-                        , courtroomDropdown = Dropdown.init ("judgment-dropdown-courtroom-" ++ String.fromInt judgment.id)
-                        , conditionsDropdown = Dropdown.init ("judgment-dropdown-" ++ String.fromInt judgment.id)
-                        , dismissalBasisDropdown = Dropdown.init ("judgment-dropdown-dismissal-basis-" ++ String.fromInt judgment.id)
-                        , plaintiff =
-                            { text =
-                                Maybe.withDefault "" <|
-                                    Maybe.map .name judgment.plaintiff
-                            , person = judgment.plaintiff
-                            , searchBox = SearchBox.init
-                            }
-                        , plaintiffAttorney =
-                            { text =
-                                Maybe.withDefault "" <|
-                                    Maybe.map .name judgment.plaintiffAttorney
-                            , person = judgment.plaintiffAttorney
-                            , searchBox = SearchBox.init
-                            }
-                        , judge =
-                            { text =
-                                Maybe.withDefault "" <|
-                                    Maybe.map .name judgment.judge
-                            , person = judgment.judge
-                            , searchBox = SearchBox.init
-                            }
-                        , notes = Maybe.withDefault "" judgment.notes
-                    }
-            in
-            case judgment.conditions of
-                Just (PlaintiffConditions owed) ->
-                    { default
-                        | condition = Just PlaintiffOption
-                        , awardsFees = Maybe.withDefault "" <| Maybe.map String.fromFloat owed.awardsFees
-                        , awardsPossession = owed.awardsPossession
-                        , hasInterest = owed.interest /= Nothing
-                        , interestRate =
-                            case owed.interest of
-                                Just (WithRate rate) ->
-                                    String.fromFloat rate
-
-                                _ ->
-                                    ""
-                        , interestFollowsSite =
-                            case owed.interest of
-                                Just FollowsSite ->
-                                    True
-
-                                _ ->
-                                    False
-                    }
-
-                Just (DefendantConditions dismissal) ->
-                    { default
-                        | condition = Just DefendantOption
-                        , dismissalBasis = dismissal.basis
-                        , withPrejudice = dismissal.withPrejudice
-                    }
-
-                Nothing ->
-                    default
-
-        Nothing ->
-            new
 
 
 initCreate : Date -> Form
@@ -475,7 +361,6 @@ type Msg
     | RemovePhone Int Int
     | AddDefendant
     | ChangedNotes String
-    | ToggleOpenDocument PleadingDocument
     | SplitButtonMsg (SplitButton.Msg NavigationOnSuccess)
     | PickedSaveOption (Maybe NavigationOnSuccess)
     | GotProfile (Result Http.Error User)
@@ -486,7 +371,6 @@ type Msg
     | CreatedDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
     | GotPlaintiffs (Result Http.Error (Rest.Collection Plaintiff))
     | GotAttorneys (Result Http.Error (Rest.Collection Attorney))
-    | GotJudges (Result Http.Error (Rest.Collection Attorney))
     | GotCourtrooms (Result Http.Error (Rest.Collection Courtroom))
     | NoOp
 
@@ -1037,18 +921,6 @@ update pageUrl navKey sharedModel static msg model =
                 (\form -> { form | notes = notes })
                 model
 
-        ToggleOpenDocument pleading ->
-            ( { model
-                | openDocument =
-                    if model.openDocument == Just pleading then
-                        Nothing
-
-                    else
-                        Just pleading
-              }
-            , Cmd.none
-            )
-
         SplitButtonMsg subMsg ->
             updateFormNarrow
                 (\form ->
@@ -1194,12 +1066,6 @@ update pageUrl navKey sharedModel static msg model =
             ( { model | attorneys = attorneysPage.data }, Cmd.none )
 
         GotAttorneys (Err httpError) ->
-            ( model, logHttpError httpError )
-
-        GotJudges (Ok judgesPage) ->
-            ( { model | judges = judgesPage.data }, Cmd.none )
-
-        GotJudges (Err httpError) ->
             ( model, logHttpError httpError )
 
         GotCourtrooms (Ok courtroomsPage) ->
@@ -1371,10 +1237,6 @@ type alias Field =
     , description : String
     , children : List (Element Msg)
     }
-
-
-requiredStar =
-    el [ Palette.toFontColor Palette.red, Element.alignTop, width Element.shrink ] (text "*")
 
 
 viewField : Bool -> Field -> Element Msg
@@ -1735,28 +1597,6 @@ viewAttorneySearch onChange options form =
         ]
 
 
-viewCourtroom : FormOptions -> Int -> JudgmentForm -> Element Msg
-viewCourtroom options index form =
-    -- let
-    --     hasChanges =
-    --         (Maybe.withDefault False <|
-    --             Maybe.map ((/=) form.courtroom.selection << .courtroom) options.originalWarrant
-    --         )
-    --             || (options.originalWarrant == Nothing && form.courtroom.text /= "")
-    -- in
-    column [ width fill ]
-        [ viewField options.showHelp
-            { tooltip = Just CourtroomInfo
-            , description = "The court room where eviction proceedings will occur."
-            , children =
-                [ column [ spacing 5, width fill ]
-                    [ el labelAttrs (text "Courtroom")
-                    ]
-                ]
-            }
-        ]
-
-
 viewAmountClaimed : FormOptions -> Form -> Element Msg
 viewAmountClaimed options form =
     column [ width (fill |> maximum 215) ]
@@ -1847,10 +1687,6 @@ viewNonpayment options form =
                 ]
             }
         ]
-
-
-requiredLabel labelFn attrs str =
-    labelFn attrs (row [ spacing 5 ] [ text str, requiredStar ])
 
 
 viewAddress : FormOptions -> Form -> Element Msg
@@ -2048,203 +1884,38 @@ viewDefendants options form =
         ]
 
 
-viewHearing : FormOptions -> Int -> Hearing -> Element Msg
-viewHearing options index hearing =
-    column
-        [ width fill
-        , spacing 10
-        , padding 20
-        , Border.width 1
-        , Palette.toBorderColor Palette.gray300
-        , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
-        , Border.rounded 5
-        , height fill
-        ]
-        [ row
-            [ spacing 5
-            ]
-            [ viewCourtDateReadOnly options hearing.courtDate
-            , viewCourtroomReadOnly options hearing.courtroom
-            ]
-        , wrappedRow [ spacing 5, width fill ]
-            [ viewPlaintiff options hearing.plaintiff
-            , viewAttorney options hearing.plaintiffAttorney
-            ]
-        , case hearing.judgment of
-            Just judgment ->
-                viewJudgment options index judgment
-
-            Nothing ->
-                Element.none
-        ]
+viewEditJudgmentButton : Hearing -> Button Msg
+viewEditJudgmentButton hearing =
+    let
+        judgmentId =
+            Maybe.withDefault "0" <| Maybe.map (String.fromInt << .id) hearing.judgment
+    in
+    Button.fromIcon (Icon.edit "Go to edit judgment")
+        |> Button.redirect
+            (Link.link <|
+                Url.Builder.absolute
+                    [ "admin"
+                    , "judgments"
+                    , "edit"
+                    ]
+                    (Endpoint.toQueryArgs [ ( "id", judgmentId ) ])
+            )
+            Button.primary
+        |> Button.withDisabledIf (hearing.judgment == Nothing)
+        |> Button.withSize UI.Size.small
 
 
 viewHearings : FormOptions -> Form -> Element Msg
 viewHearings options form =
     column [ centerX, spacing 20, width (fill |> maximum 1000), padding 10 ]
-        (List.indexedMap (viewHearing options) form.hearings)
-
-
-viewJudgmentInterest : FormOptions -> Int -> JudgmentForm -> Element Msg
-viewJudgmentInterest options index form =
-    column []
-        [ row [ spacing 5 ]
-            [ viewField options.showHelp
-                { tooltip = Just (JudgmentInfo index FeesHaveInterestInfo)
-                , description = "Do the fees claimed have interest?"
-                , children =
-                    [ el
-                        [ width (fill |> minimum 200)
-
-                        -- , paddingEach { top = 17, bottom = 0, left = 0, right = 0 }
-                        ]
-                        (text "has intesret")
-                    ]
-                }
-            , if form.hasInterest then
-                viewField options.showHelp
-                    { tooltip = Just (JudgmentInfo index InterestRateFollowsSiteInfo)
-                    , description = "Does the interest rate follow from the website?"
-                    , children =
-                        [ column [ spacing 5, width fill ]
-                            [ el []
-                                (text "Interest rate follows site")
-                            ]
-                        ]
-                    }
-
-              else
-                Element.none
-            ]
-        , if form.interestFollowsSite then
-            Element.none
-
-          else
-            viewField options.showHelp
-                { tooltip = Just (JudgmentInfo index InterestRateInfo)
-                , description = "The rate of interest that accrues for fees."
-                , children =
-                    [ column [ spacing 5, width fill ]
-                        [ el [] (text "Interest rate")
-                        ]
-                    ]
-                }
-        ]
-
-
-viewJudgmentPossession : FormOptions -> Int -> Judgment -> Element Msg
-viewJudgmentPossession options index judgment =
-    viewField options.showHelp
-        { tooltip = Just (JudgmentInfo index PossessionAwardedInfo)
-        , description = "Has the Plaintiff claimed the residence?"
-        , children =
-            [ el [] (text "possession")
-            ]
-        }
-
-
-viewJudgmentPlaintiff : FormOptions -> Int -> Judgment -> List (Element Msg)
-viewJudgmentPlaintiff options index judgment =
-    [ viewField options.showHelp
-        { tooltip = Just (JudgmentInfo index FeesAwardedInfo)
-        , description = "Fees the Plaintiff has been awarded."
-        , children =
-            [ el [] (text "plaintiff")
-            ]
-        }
-    , viewJudgmentPossession options index judgment
-    ]
-
-
-viewJudgmentDefendant : FormOptions -> Int -> Judgment -> List (Element Msg)
-viewJudgmentDefendant options index judgment =
-    [ viewField options.showHelp
-        { tooltip = Just (JudgmentInfo index DismissalBasisInfo)
-        , description = "Why is the case being dismissed?"
-        , children =
-            [ column [ spacing 5, width (fill |> minimum 350) ]
-                [ el labelAttrs (text "Basis for dismissal")
-                , el [] (text "so and so")
-                ]
-            ]
-        }
-    , viewField options.showHelp
-        { tooltip = Just (JudgmentInfo index WithPrejudiceInfo)
-        , description = "Whether or not the dismissal is made with prejudice."
-        , children =
-            [ el
-                [ width (fill |> minimum 200)
-                , paddingEach { top = 17, bottom = 0, left = 0, right = 0 }
-                ]
-                (text "with prejudice maybe")
-            ]
-        }
-    ]
-
-
-viewJudgeSearch : FormOptions -> Int -> JudgmentForm -> Element Msg
-viewJudgeSearch options index form =
-    let
-        hasChanges =
-            False
-
-        -- (Maybe.withDefault False <|
-        --     Maybe.map ((/=) form.judge.person << .judge) options.originalWarrant
-        -- )
-        --     || (options.originalWarrant == Nothing && form.presidingJudge.text /= "")
-    in
-    column [ width fill ]
-        [ viewField options.showHelp
-            { tooltip = Just PresidingJudgeInfo
-            , description = "The judge that will be presiding over the court case."
-            , children =
-                [ el [] (text "judge")
-                ]
+        [ Stateless.table
+            { columns = Hearing.tableColumns
+            , toRow = Hearing.toTableRow viewEditJudgmentButton
             }
+            |> Stateless.withWidth (Element.fill |> Element.maximum 640)
+            |> Stateless.withItems form.hearings
+            |> Stateless.renderElement options.renderConfig
         ]
-
-
-viewCourtDateReadOnly options date =
-    TextField.static
-        "Court Date"
-        (Date.format "MMMM ddd, y" (Date.Extra.fromPosix date))
-        |> TextField.setLabelVisible True
-        |> TextField.withWidth TextField.widthFull
-        |> TextField.renderElement options.renderConfig
-
-
-viewCourtroomReadOnly options courtroom =
-    TextField.static
-        "Courtroom"
-        (Maybe.withDefault "Unknown" <| Maybe.map .name courtroom)
-        |> TextField.setLabelVisible True
-        |> TextField.withWidth TextField.widthFull
-        |> TextField.renderElement options.renderConfig
-
-
-viewPlaintiff : FormOptions -> Maybe Plaintiff -> Element msg
-viewPlaintiff options plaintiff =
-    TextField.static
-        "Plaintiff"
-        (Maybe.withDefault "Unknown" <| Maybe.map .name plaintiff)
-        |> TextField.setLabelVisible True
-        |> TextField.withWidth TextField.widthFull
-        |> TextField.renderElement options.renderConfig
-
-
-viewAttorney : FormOptions -> Maybe Attorney -> Element msg
-viewAttorney options attorney =
-    TextField.static
-        "Plaintiff Attorney"
-        (Maybe.withDefault "Unknown" <| Maybe.map .name attorney)
-        |> TextField.setLabelVisible True
-        |> TextField.withWidth TextField.widthFull
-        |> TextField.renderElement options.renderConfig
-
-
-viewJudge : Maybe Judge -> Element msg
-viewJudge judge =
-    el [] (text "judge")
 
 
 viewJudgment : FormOptions -> Int -> Judgment -> Element Msg
@@ -2582,10 +2253,6 @@ type TrimmedForm
     = Trimmed Form
 
 
-type JudgmentValidation
-    = JudgmentFileDate
-
-
 {-| When adding a variant here, add it to `fieldsToValidate` too!
 -}
 type ValidatedField
@@ -2896,44 +2563,6 @@ upsertPlaintiff domain maybeCred plaintiff =
 
 encodeRelated record =
     Encode.object [ ( "id", Encode.int record.id ) ]
-
-
-encodeJudgment : DetainerWarrantEdit -> JudgmentEdit -> Encode.Value
-encodeJudgment warrant judgment =
-    Encode.object
-        ([ ( "interest", Encode.bool judgment.hasInterest )
-         , ( "detainer_warrant", Encode.object [ ( "docket_id", Encode.string warrant.docketId ) ] )
-         ]
-            ++ conditional "id" Encode.int judgment.id
-            ++ nullable "court_date" Time.Utils.posixEncoder judgment.courtDate
-            ++ nullable "courtroom" encodeRelated judgment.courtroom
-            ++ nullable "in_favor_of" Encode.string judgment.inFavorOf
-            ++ nullable "notes" Encode.string judgment.notes
-            ++ nullable "entered_by" Encode.string judgment.enteredBy
-            ++ nullable "awards_fees" Encode.float judgment.awardsFees
-            ++ nullable "awards_possession" Encode.bool judgment.awardsPossession
-            ++ nullable "interest_rate" Encode.float judgment.interestRate
-            ++ nullable "interest_follows_site" Encode.bool judgment.interestFollowsSite
-            ++ nullable "dismissal_basis"
-                Encode.string
-                (if judgment.inFavorOf == Just "DEFENDANT" then
-                    judgment.dismissalBasis
-
-                 else
-                    Nothing
-                )
-            ++ nullable "with_prejudice"
-                Encode.bool
-                (if judgment.inFavorOf == Just "DEFENDANT" then
-                    judgment.withPrejudice
-
-                 else
-                    Nothing
-                )
-            ++ nullable "plaintiff" encodeRelated judgment.plaintiff
-            ++ nullable "plaintiff_attorney" encodeRelated judgment.plaintiffAttorney
-            ++ nullable "judge" encodeRelated judgment.judge
-        )
 
 
 updateDetainerWarrant : String -> Maybe Cred -> DetainerWarrantEdit -> Cmd Msg

@@ -6,6 +6,7 @@
     "build": "elm-pages build",
     "test": "elm-test",
     "add": "elm-pages add",
+    "review": "elm-review",
     "cypress": "npm start & cypress run --spec cypress/integration/index-page.spec.js"
   },
   "devDependencies": {
@@ -13,7 +14,7 @@
     "elm-pages": "2.1.9",
     "elm-tooling": "^1.4.0",
     "elm-test": "^0.19.1-revision7",
-    "elm-review": "^2.5.5"
+    "elm-review": "^2.7.0"
   },
   "dependencies": {
     "typeface-fira-sans": "^1.1.13"

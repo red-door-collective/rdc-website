@@ -1,19 +1,14 @@
-module Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm, OwedConditions, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm, tableColumns, toTableCover, toTableDetails, toTableRow, toTableRowView)
+module Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgment, OwedConditions, decoder, tableColumns, toTableCover, toTableDetails, toTableRow)
 
-import Attorney exposing (Attorney, AttorneyForm)
+import Attorney exposing (Attorney)
 import Courtroom exposing (Courtroom)
-import Date exposing (Date)
-import Date.Extra
-import Form.State exposing (DatePickerState)
 import Json.Decode as Decode exposing (Decoder, bool, float, int, nullable, string)
 import Json.Decode.Pipeline exposing (custom, optional, required)
-import Judge exposing (Judge, JudgeForm)
-import Plaintiff exposing (Plaintiff, PlaintiffForm)
-import String.Extra
+import Judge exposing (Judge)
+import Plaintiff exposing (Plaintiff)
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
 import UI.Button exposing (Button)
-import UI.Dropdown as Dropdown
 import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
 import UI.Tables.Stateful exposing (detailShown, detailsEmpty)
 import UI.Text as Text
@@ -55,53 +50,6 @@ type Conditions
     | DefendantConditions DismissalConditions
 
 
-type alias JudgmentEdit =
-    { id : Maybe Int
-    , notes : Maybe String
-    , enteredBy : Maybe String
-    , courtDate : Maybe Posix
-    , courtroom : Maybe Courtroom
-    , inFavorOf : Maybe String
-    , plaintiff : Maybe Plaintiff
-    , plaintiffAttorney : Maybe Attorney
-    , judge : Maybe Judge
-
-    -- Plaintiff Favor
-    , awardsFees : Maybe Float
-    , awardsPossession : Maybe Bool
-    , hasInterest : Bool
-    , interestRate : Maybe Float
-    , interestFollowsSite : Maybe Bool
-
-    -- Tenant Favor
-    , dismissalBasis : Maybe String
-    , withPrejudice : Maybe Bool
-    }
-
-
-type alias JudgmentForm =
-    { id : Maybe Int
-    , conditionsDropdown : Dropdown.State (Maybe ConditionOption)
-    , condition : Maybe ConditionOption
-    , enteredBy : Entrance
-    , courtDate : DatePickerState
-    , courtroom : Maybe Courtroom
-    , courtroomDropdown : Dropdown.State (Maybe Courtroom)
-    , notes : String
-    , awardsFees : String
-    , awardsPossession : Bool
-    , hasInterest : Bool
-    , interestRate : String
-    , interestFollowsSite : Bool
-    , dismissalBasisDropdown : Dropdown.State DismissalBasis
-    , dismissalBasis : DismissalBasis
-    , withPrejudice : Bool
-    , plaintiff : PlaintiffForm
-    , plaintiffAttorney : AttorneyForm
-    , judge : JudgeForm
-    }
-
-
 type alias Judgment =
     { id : Int
     , docketId : String
@@ -119,137 +67,6 @@ type alias Judgment =
 
 type ConditionOption
     = PlaintiffOption
-    | DefendantOption
-
-
-conditionsOptions : List (Maybe ConditionOption)
-conditionsOptions =
-    [ Nothing, Just PlaintiffOption, Just DefendantOption ]
-
-
-dismissalBasisOptions : List DismissalBasis
-dismissalBasisOptions =
-    [ FailureToProsecute, FindingInFavorOfDefendant, NonSuitByPlaintiff ]
-
-
-conditionText : ConditionOption -> String
-conditionText option =
-    case option of
-        PlaintiffOption ->
-            "Plaintiff"
-
-        DefendantOption ->
-            "Defendant"
-
-
-entranceText : Entrance -> String
-entranceText entrance =
-    case entrance of
-        Default ->
-            "DEFAULT"
-
-        AgreementOfParties ->
-            "AGREEMENT_OF_PARTIES"
-
-        TrialInCourt ->
-            "TRIAL_IN_COURT"
-
-
-dismissalBasisOption : DismissalBasis -> String
-dismissalBasisOption basis =
-    basis
-        |> dismissalBasisText
-        |> String.replace "_" " "
-        |> String.toLower
-        |> String.Extra.toSentenceCase
-
-
-dismissalBasisText : DismissalBasis -> String
-dismissalBasisText basis =
-    case basis of
-        FailureToProsecute ->
-            "FAILURE_TO_PROSECUTE"
-
-        FindingInFavorOfDefendant ->
-            "FINDING_IN_FAVOR_OF_DEFENDANT"
-
-        NonSuitByPlaintiff ->
-            "NON_SUIT_BY_PLAINTIFF"
-
-
-editFromForm : Date -> JudgmentForm -> JudgmentEdit
-editFromForm today form =
-    let
-        rate =
-            String.toFloat <| String.replace "%" "" form.interestRate
-    in
-    { id = form.id
-    , notes =
-        if String.isEmpty form.notes then
-            Nothing
-
-        else
-            Just form.notes
-    , courtDate =
-        Maybe.andThen Date.Extra.toPosix form.courtDate.date
-    , courtroom =
-        form.courtroom
-    , enteredBy = Just <| entranceText form.enteredBy
-    , inFavorOf =
-        Maybe.map
-            (\option ->
-                case option of
-                    PlaintiffOption ->
-                        "PLAINTIFF"
-
-                    DefendantOption ->
-                        "DEFENDANT"
-            )
-            form.condition
-    , awardsFees =
-        if form.awardsFees == "" then
-            Nothing
-
-        else
-            String.toFloat <| String.replace "," "" form.awardsFees
-    , awardsPossession =
-        if form.condition == Just DefendantOption then
-            Nothing
-
-        else
-            Just form.awardsPossession
-    , hasInterest = form.hasInterest
-    , interestRate =
-        if form.hasInterest && not form.interestFollowsSite then
-            rate
-
-        else
-            Nothing
-    , interestFollowsSite =
-        if form.hasInterest && form.interestFollowsSite then
-            Just form.interestFollowsSite
-
-        else
-            Nothing
-    , dismissalBasis =
-        if form.condition == Just DefendantOption then
-            Just (dismissalBasisText form.dismissalBasis)
-
-        else
-            Nothing
-    , withPrejudice =
-        if form.condition == Just DefendantOption then
-            Just form.withPrejudice
-
-        else
-            Nothing
-    , plaintiff =
-        form.plaintiff.person
-    , plaintiffAttorney =
-        form.plaintiffAttorney.person
-    , judge =
-        form.judge.person
-    }
 
 
 interestConditionsDecoder : Decoder Interest

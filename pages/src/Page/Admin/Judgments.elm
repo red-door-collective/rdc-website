@@ -40,7 +40,6 @@ import UI.Link as Link
 import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import UI.Size
 import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
-import UI.TextField as TextField
 import UI.Utils.DateInput exposing (DateInput)
 import UI.Utils.TypeNumbers as T
 import Url.Builder
@@ -453,7 +452,7 @@ loader { infiniteScroll, search } =
 
 
 viewEditButton : Judgment -> Button Msg
-viewEditButton judgments =
+viewEditButton judgment =
     Button.fromIcon (Icon.edit "Go to edit page")
         |> Button.redirect
             (Link.link <|
@@ -461,7 +460,7 @@ viewEditButton judgments =
                     [ "judgments"
                     , "edit"
                     ]
-                    (Endpoint.toQueryArgs [ ( "docket-id", judgments.docketId ) ])
+                    (Endpoint.toQueryArgs [ ( "id", String.fromInt judgment.id ) ])
             )
             Button.primary
         |> Button.withSize UI.Size.small

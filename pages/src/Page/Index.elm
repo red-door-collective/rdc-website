@@ -31,7 +31,6 @@ import Runtime
 import Shared
 import Svg
 import Time
-import TypedSvg.Attributes.InPx exposing (height, r, width)
 import View exposing (View)
 
 
