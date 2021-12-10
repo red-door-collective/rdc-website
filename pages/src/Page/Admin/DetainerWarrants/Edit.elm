@@ -2058,16 +2058,17 @@ viewHearing options index hearing =
         , Palette.toBorderColor Palette.gray300
         , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
         , Border.rounded 5
+        , height fill
         ]
         [ row
             [ spacing 5
             ]
-            [ viewCourtDateReadOnly hearing.courtDate
-            , viewCourtroomReadOnly hearing.courtroom
+            [ viewCourtDateReadOnly options hearing.courtDate
+            , viewCourtroomReadOnly options hearing.courtroom
             ]
         , wrappedRow [ spacing 5, width fill ]
-            [ viewPlaintiff hearing.plaintiff
-            , viewAttorney hearing.plaintiffAttorney
+            [ viewPlaintiff options hearing.plaintiff
+            , viewAttorney options hearing.plaintiffAttorney
             ]
         , case hearing.judgment of
             Just judgment ->
@@ -2203,22 +2204,42 @@ viewJudgeSearch options index form =
         ]
 
 
-viewCourtDateReadOnly date =
-    el [] (text "date")
+viewCourtDateReadOnly options date =
+    TextField.static
+        "Court Date"
+        (Date.format "MMMM ddd, y" (Date.Extra.fromPosix date))
+        |> TextField.setLabelVisible True
+        |> TextField.withWidth TextField.widthFull
+        |> TextField.renderElement options.renderConfig
 
 
-viewCourtroomReadOnly courtroom =
-    el [] (text "courtroom")
+viewCourtroomReadOnly options courtroom =
+    TextField.static
+        "Courtroom"
+        (Maybe.withDefault "Unknown" <| Maybe.map .name courtroom)
+        |> TextField.setLabelVisible True
+        |> TextField.withWidth TextField.widthFull
+        |> TextField.renderElement options.renderConfig
 
 
-viewPlaintiff : Maybe Plaintiff -> Element msg
-viewPlaintiff plaintiff =
-    el [] (text "plaintiff")
+viewPlaintiff : FormOptions -> Maybe Plaintiff -> Element msg
+viewPlaintiff options plaintiff =
+    TextField.static
+        "Plaintiff"
+        (Maybe.withDefault "Unknown" <| Maybe.map .name plaintiff)
+        |> TextField.setLabelVisible True
+        |> TextField.withWidth TextField.widthFull
+        |> TextField.renderElement options.renderConfig
 
 
-viewAttorney : Maybe Attorney -> Element msg
-viewAttorney attorney =
-    el [] (text "attorney")
+viewAttorney : FormOptions -> Maybe Attorney -> Element msg
+viewAttorney options attorney =
+    TextField.static
+        "Plaintiff Attorney"
+        (Maybe.withDefault "Unknown" <| Maybe.map .name attorney)
+        |> TextField.setLabelVisible True
+        |> TextField.withWidth TextField.widthFull
+        |> TextField.renderElement options.renderConfig
 
 
 viewJudge : Maybe Judge -> Element msg
@@ -2244,10 +2265,24 @@ viewJudgment options index judgment =
                 { tooltip = Just (JudgmentInfo index Summary)
                 , description = "The ruling from the court that will determine if fees or repossession are enforced."
                 , children =
-                    [ column [ spacing 5, width (fill |> maximum 200) ]
-                        [ el labelAttrs (text "Granted to")
-                        , el [] (text "so and so")
-                        ]
+                    let
+                        grantedTo =
+                            case judgment.conditions of
+                                Just (PlaintiffConditions _) ->
+                                    "Plaintiff"
+
+                                Just (DefendantConditions _) ->
+                                    "Defendant"
+
+                                Nothing ->
+                                    "No one, continuance issued."
+                    in
+                    [ TextField.static
+                        "Granted to"
+                        grantedTo
+                        |> TextField.setLabelVisible True
+                        |> TextField.withWidth TextField.widthFull
+                        |> TextField.renderElement options.renderConfig
                     ]
                 }
             ]
