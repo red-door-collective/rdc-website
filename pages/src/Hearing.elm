@@ -5,7 +5,6 @@ import Courtroom exposing (Courtroom)
 import Date
 import Json.Decode as Decode exposing (Decoder, int, nullable)
 import Json.Decode.Pipeline exposing (required)
-import Judgment exposing (Judgment)
 import Plaintiff exposing (Plaintiff)
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
@@ -16,6 +15,10 @@ import UI.Text as Text
 import UI.Utils.TypeNumbers as T
 
 
+type alias Related =
+    { id : Int }
+
+
 type alias Hearing =
     { id : Int
     , courtDate : Posix
@@ -23,8 +26,13 @@ type alias Hearing =
     , plaintiff : Maybe Plaintiff
     , plaintiffAttorney : Maybe Attorney
     , defendantAttorney : Maybe Attorney
-    , judgment : Maybe Judgment
+    , judgment : Maybe Related
     }
+
+
+relatedDecoder =
+    Decode.succeed Related
+        |> required "id" int
 
 
 decoder : Decoder Hearing
@@ -36,7 +44,7 @@ decoder =
         |> required "plaintiff" (nullable Plaintiff.decoder)
         |> required "plaintiff_attorney" (nullable Attorney.decoder)
         |> required "defendant_attorney" (nullable Attorney.decoder)
-        |> required "judgment" (nullable Judgment.decoder)
+        |> required "judgment" (nullable relatedDecoder)
 
 
 tableColumns =

@@ -288,6 +288,10 @@ update pageUrl navKey sharedModel static msg model =
                 )
 
         GotJudgments (Err httpError) ->
+            let
+                logg =
+                    Debug.log "err" httpError
+            in
             ( model, logHttpError httpError )
 
         InfiniteScrollMsg subMsg ->
@@ -482,7 +486,7 @@ sortersInit =
     sortersEmpty
         |> sortBy .docketId
         |> sortBy (Maybe.withDefault "" << Maybe.map Time.Utils.toIsoString << .fileDate)
-        |> sortBy (Maybe.withDefault "" << Maybe.map Time.Utils.toIsoString << .courtDate)
+        |> sortBy (Time.Utils.toIsoString << .courtDate << .hearing)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiff)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)
         |> unsortable

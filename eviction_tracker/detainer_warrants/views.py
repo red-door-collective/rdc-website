@@ -226,7 +226,7 @@ class JudgmentResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination(default_limit=50, max_limit=100)
-    sorting = Sorting('court_date', default='-court_date')
+    sorting = Sorting('file_date', default='-file_date')
 
 
 class JudgmentListResource(JudgmentResourceBase):

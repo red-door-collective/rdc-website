@@ -128,11 +128,6 @@ type Problem
     | ServerError String
 
 
-type JudgmentDetail
-    = Summary
-    | JudgmentNotesDetail
-
-
 type Tooltip
     = DocketIdInfo
     | FileDateInfo
@@ -146,7 +141,6 @@ type Tooltip
     | NonpaymentInfo
     | AddressInfo
     | PotentialPhoneNumbersInfo Int
-    | JudgmentInfo Int JudgmentDetail
     | NotesInfo
 
 
@@ -1915,62 +1909,6 @@ viewHearings options form =
             |> Stateless.withWidth (Element.fill |> Element.maximum 640)
             |> Stateless.withItems form.hearings
             |> Stateless.renderElement options.renderConfig
-        ]
-
-
-viewJudgment : FormOptions -> Int -> Judgment -> Element Msg
-viewJudgment options index judgment =
-    column
-        [ spacing 5
-        , Border.width 1
-        , Border.rounded 5
-        , width fill
-        , padding 20
-        , Palette.toBorderColor Palette.gray300
-        , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
-        ]
-        [ row [ spacing 5, width fill ]
-            [ paragraph [ Font.center, centerX ] [ text "Judgment" ] ]
-        , row [ spacing 5, width fill ]
-            [ viewField options.showHelp
-                { tooltip = Just (JudgmentInfo index Summary)
-                , description = "The ruling from the court that will determine if fees or repossession are enforced."
-                , children =
-                    let
-                        grantedTo =
-                            case judgment.conditions of
-                                Just (PlaintiffConditions _) ->
-                                    "Plaintiff"
-
-                                Just (DefendantConditions _) ->
-                                    "Defendant"
-
-                                Nothing ->
-                                    "No one, continuance issued."
-                    in
-                    [ TextField.static
-                        "Granted to"
-                        grantedTo
-                        |> TextField.setLabelVisible True
-                        |> TextField.withWidth TextField.widthFull
-                        |> TextField.renderElement options.renderConfig
-                    ]
-                }
-            ]
-        , viewJudgmentNotes options index judgment.notes
-        ]
-
-
-viewJudgmentNotes : FormOptions -> Int -> Maybe String -> Element Msg
-viewJudgmentNotes options index notes =
-    column [ width fill ]
-        [ viewField options.showHelp
-            { tooltip = Just (JudgmentInfo index JudgmentNotesDetail)
-            , description = "Any additional notes you have about this particular judgment go here!"
-            , children =
-                [ el [] (text <| Maybe.withDefault "" notes)
-                ]
-            }
         ]
 
 
