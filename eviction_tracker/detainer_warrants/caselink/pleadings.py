@@ -12,7 +12,7 @@ import os
 import re
 import time
 from ..util import get_or_create
-from ..models import db, PleadingDocument, DetainerWarrant, Judgment
+from ..models import db, PleadingDocument, Hearing, DetainerWarrant, Judgment
 from .constants import ids, names
 from .common import login, search, run_with_chrome
 import eviction_tracker.config as config
@@ -175,7 +175,7 @@ def extract_text_from_document(document):
     except:
         logger.warning(
             f'Could not extract text for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}')
-        document.update(text="")  # empty string means we tried and failed
+        document.update(text="FAILED_TO_PARSE_JUDGMENT")
         db.session.commit()
 
 
@@ -190,18 +190,19 @@ def bulk_extract_pleading_document_details():
 def update_judgment_from_document(document):
     if document.kind == 'JUDGMENT' and document.text:
         text = document.text
-        possible_court_date = Judgment.court_date_guess(text)
-        existing_judgment = Judgment.query.filter(
+        file_date = Judgment.file_date_guess(text)
+        existing_hearing = Hearing.query.filter(
             and_(
-                Judgment._court_date >= possible_court_date -
+                Hearing._court_date >= file_date -
                 timedelta(days=3),
-                Judgment.detainer_warrant_id == document.docket_id,
+                Hearing.docket_id == document.docket_id,
             )).first()
 
-        if existing_judgment:
-            existing_judgment.update_from_pdf(text)
+        if existing_hearing:
+            existing_hearing.update_judgment_from_document(document)
         else:
-            Judgment.from_pdf_as_text(text)
+            logger.warning(
+                f"Could not match {document.url} with existing hearing.")
 
 
 def update_judgments_from_documents():

@@ -1,18 +1,25 @@
-module Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm, OwedConditions, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm)
+module Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm, OwedConditions, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm, tableColumns, toTableCover, toTableDetails, toTableRow)
 
-import Attorney exposing (Attorney, AttorneyForm)
+import Attorney exposing (Attorney)
 import Courtroom exposing (Courtroom)
 import Date exposing (Date)
 import Date.Extra
 import Form.State exposing (DatePickerState)
+import Hearing exposing (Hearing)
 import Json.Decode as Decode exposing (Decoder, bool, float, int, nullable, string)
 import Json.Decode.Pipeline exposing (custom, optional, required)
-import Judge exposing (Judge, JudgeForm)
-import Plaintiff exposing (Plaintiff, PlaintiffForm)
+import Judge exposing (Judge)
+import Plaintiff exposing (Plaintiff)
+import PleadingDocument exposing (PleadingDocument)
 import String.Extra
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
+import UI.Button exposing (Button)
 import UI.Dropdown as Dropdown
+import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
+import UI.Tables.Stateful exposing (detailShown, detailsEmpty)
+import UI.Text as Text
+import UI.Utils.TypeNumbers as T
 
 
 type Entrance
@@ -50,12 +57,25 @@ type Conditions
     | DefendantConditions DismissalConditions
 
 
+type alias Judgment =
+    { id : Int
+    , docketId : String
+    , notes : Maybe String
+    , fileDate : Maybe Posix
+    , enteredBy : Entrance
+    , plaintiff : Maybe Plaintiff
+    , plaintiffAttorney : Maybe Attorney
+    , judge : Maybe Judge
+    , conditions : Maybe Conditions
+    , hearing : Hearing
+    , document : Maybe PleadingDocument
+    }
+
+
 type alias JudgmentEdit =
     { id : Maybe Int
     , notes : Maybe String
     , enteredBy : Maybe String
-    , courtDate : Maybe Posix
-    , courtroom : Maybe Courtroom
     , inFavorOf : Maybe String
     , plaintiff : Maybe Plaintiff
     , plaintiffAttorney : Maybe Attorney
@@ -79,9 +99,6 @@ type alias JudgmentForm =
     , conditionsDropdown : Dropdown.State (Maybe ConditionOption)
     , condition : Maybe ConditionOption
     , enteredBy : Entrance
-    , courtDate : DatePickerState
-    , courtroom : Maybe Courtroom
-    , courtroomDropdown : Dropdown.State (Maybe Courtroom)
     , notes : String
     , awardsFees : String
     , awardsPossession : Bool
@@ -91,22 +108,9 @@ type alias JudgmentForm =
     , dismissalBasisDropdown : Dropdown.State DismissalBasis
     , dismissalBasis : DismissalBasis
     , withPrejudice : Bool
-    , plaintiff : PlaintiffForm
-    , plaintiffAttorney : AttorneyForm
-    , judge : JudgeForm
-    }
-
-
-type alias Judgment =
-    { id : Int
-    , notes : Maybe String
-    , courtDate : Maybe Posix
-    , courtroom : Maybe Courtroom
-    , enteredBy : Entrance
-    , plaintiff : Maybe Plaintiff
-    , plaintiffAttorney : Maybe Attorney
-    , judge : Maybe Judge
-    , conditions : Maybe Conditions
+    , plaintiff : Plaintiff.PlaintiffForm
+    , plaintiffAttorney : Attorney.AttorneyForm
+    , judge : Judge.JudgeForm
     }
 
 
@@ -183,10 +187,6 @@ editFromForm today form =
 
         else
             Just form.notes
-    , courtDate =
-        Maybe.andThen Date.Extra.toPosix form.courtDate.date
-    , courtroom =
-        form.courtroom
     , enteredBy = Just <| entranceText form.enteredBy
     , inFavorOf =
         Maybe.map
@@ -337,14 +337,16 @@ fromConditions : Maybe Conditions -> Decoder Judgment
 fromConditions conditions =
     Decode.succeed Judgment
         |> required "id" int
+        |> required "detainer_warrant_id" string
         |> required "notes" (nullable string)
-        |> required "court_date" (nullable posixDecoder)
-        |> required "courtroom" (nullable Courtroom.decoder)
+        |> required "file_date" (nullable posixDecoder)
         |> required "entered_by" entranceDecoder
         |> required "plaintiff" (nullable Plaintiff.decoder)
         |> required "plaintiff_attorney" (nullable Attorney.decoder)
         |> required "judge" (nullable Judge.decoder)
         |> custom (Decode.succeed conditions)
+        |> required "hearing" Hearing.decoder
+        |> required "document" (nullable PleadingDocument.decoder)
 
 
 decoder : Decoder Judgment
@@ -363,3 +365,61 @@ decoder =
                         Decode.succeed Nothing
             )
         |> Decode.andThen fromConditions
+
+
+tableColumns =
+    columnsEmpty
+        |> Common.column "Docket ID" (columnWidthPixels 150)
+        |> Common.column "File date" (columnWidthPixels 150)
+        |> Common.column "Court date" (columnWidthPixels 150)
+        |> Common.column "Plaintiff" (columnWidthPixels 240)
+        |> Common.column "Pltf. Attorney" (columnWidthPixels 240)
+        |> Common.column "" (columnWidthPixels 100)
+
+
+toTableRow : (Judgment -> Button msg) -> { toKey : Judgment -> String, view : Judgment -> Row msg T.Six }
+toTableRow toEditButton =
+    { toKey = .docketId, view = toTableRowView toEditButton }
+
+
+toTableRowView : (Judgment -> Button msg) -> Judgment -> Row msg T.Six
+toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney } as judgment) =
+    rowEmpty
+        |> rowCellText (Text.body2 docketId)
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString fileDate))
+        |> rowCellText (Text.body2 (Time.Utils.toIsoString judgment.hearing.courtDate))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney))
+        |> rowCellButton (toEditButton judgment)
+
+
+toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney } as judgment) =
+    detailsEmpty
+        |> detailShown
+            { label = "Docket ID"
+            , content = cellFromText <| Text.body2 docketId
+            }
+        |> detailShown
+            { label = "File date"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString fileDate)
+            }
+        |> detailShown
+            { label = "Court date"
+            , content = cellFromText <| Text.body2 (Time.Utils.toIsoString judgment.hearing.courtDate)
+            }
+        |> detailShown
+            { label = "Plaintiff"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff)
+            }
+        |> detailShown
+            { label = "Pltf. Attorney"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney)
+            }
+        |> detailShown
+            { label = "Edit"
+            , content = cellFromButton (toEditButton judgment)
+            }
+
+
+toTableCover { docketId } =
+    { title = docketId, caption = Nothing }

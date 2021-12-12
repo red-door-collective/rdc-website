@@ -72,7 +72,7 @@ judges_schema = JudgeSchema(many=True)
 
 class JudgmentSchema(Schema):
     id = fields.Int(allow_none=True)
-    court_date = fields.Int(allow_none=True)
+    file_date = fields.Int(allow_none=True)
     continuance_on = fields.Int(allow_none=True)
     awards_possession = fields.Bool(allow_none=True)
     awards_fees = fields.Float(allow_none=True)
@@ -84,25 +84,49 @@ class JudgmentSchema(Schema):
     with_prejudice = fields.Bool(allow_none=True)
     notes = fields.String(allow_none=True)
 
+    hearing = fields.Nested(
+        lambda: HearingSchema,
+        allow_none=True
+    )
     judge = fields.Nested(JudgeSchema, allow_none=True)
     plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     defendant_attorney = fields.Nested(AttorneySchema, allow_none=True)
-    courtroom = fields.Nested(CourtroomSchema, allow_none=True)
-    detainer_warrant = fields.Nested(
-        lambda: DetainerWarrantSchema(only=["docket_id"]))
+    document = fields.Nested(lambda: PleadingDocumentSchema, allow_none=True)
 
     class Meta:
-        fields = ("id", "court_date", "in_favor_of", "awards_possession",
+        fields = ("id", "hearing", "detainer_warrant_id", "file_date", "in_favor_of", "awards_possession",
                   "awards_fees", "continuance_on", "entered_by", "interest", "interest_rate",
                   "interest_follows_site", "dismissal_basis", "with_prejudice", "notes",
-                  "judge", "plaintiff", "plaintiff_attorney", "defendant_attorney", "courtroom",
-                  "detainer_warrant"
+                  "judge", "plaintiff", "plaintiff_attorney", "defendant_attorney", "document"
                   )
 
 
 judgment_schema = JudgmentSchema()
 judgments_schema = JudgmentSchema(many=True)
+
+
+class HearingSchema(Schema):
+    id = fields.Int(allow_none=True)
+    court_date = fields.Int(allow_none=True)
+    docket_id = fields.String(allow_none=True)
+
+    judgment = fields.Nested(JudgmentSchema(only=("id",)), allow_none=True)
+    judge = fields.Nested(JudgeSchema, allow_none=True)
+    plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
+    plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    defendant_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    courtroom = fields.Nested(CourtroomSchema, allow_none=True)
+
+    class Meta:
+        fields = ("id", "court_date", "docket_id", "address", "courtroom",
+                  "judgment", "plaintiff", "plaintiff_attorney", "defendant_attorney",
+                  "defendants"
+                  )
+
+
+hearing_schema = HearingSchema()
+hearings_schema = HearingSchema(many=True)
 
 
 class PleadingDocumentSchema(Schema):
@@ -119,7 +143,7 @@ class DetainerWarrantSchema(Schema):
     plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
-    judgments = fields.Nested(JudgmentSchema, many=True)
+    hearings = fields.Nested(HearingSchema, many=True)
     pleadings = fields.Nested(PleadingDocumentSchema, many=True)
     last_edited_by = fields.Nested(serializers.UserSchema)
 
@@ -138,7 +162,7 @@ class DetainerWarrantSchema(Schema):
 
     class Meta:
         fields = ("docket_id", "order_number", "file_date", "status", "court_date", "amount_claimed",
-                  "claims_possession", "judgments", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
+                  "claims_possession", "hearings", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
                   "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "pleadings", "created_at", "updated_at")
 
 

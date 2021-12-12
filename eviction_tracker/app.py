@@ -270,6 +270,8 @@ def register_extensions(app):
                      detainer_warrants.views.DefendantResource, app=app)
     api.add_resource('/courtrooms/', detainer_warrants.views.CourtroomListResource,
                      detainer_warrants.views.CourtroomResource, app=app)
+    api.add_resource('/hearings/', detainer_warrants.views.HearingListResource,
+                     detainer_warrants.views.HearingResource, app=app)
     api.add_resource('/plaintiffs/', detainer_warrants.views.PlaintiffListResource,
                      detainer_warrants.views.PlaintiffResource, app=app)
     api.add_resource('/judgments/', detainer_warrants.views.JudgmentListResource,
@@ -447,8 +449,8 @@ def register_commands(app):
     app.cli.add_command(commands.export_courtroom_dockets)
     app.cli.add_command(commands.verify_phone)
     app.cli.add_command(commands.verify_phones)
-    app.cli.add_command(commands.extract_judgment)
     app.cli.add_command(commands.bulk_extract_pleading_document_details)
+    app.cli.add_command(commands.update_judgment_from_document)
     app.cli.add_command(commands.update_judgments_from_documents)
     app.cli.add_command(commands.gather_pleading_documents)
     app.cli.add_command(commands.gather_pleading_documents_in_bulk)

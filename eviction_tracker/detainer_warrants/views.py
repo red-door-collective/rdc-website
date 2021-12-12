@@ -22,7 +22,7 @@ from sqlalchemy.orm import raiseload
 from sqlalchemy.exc import IntegrityError
 
 from eviction_tracker.database import db
-from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Plaintiff, PleadingDocument, Judge, Judgment, PhoneNumberVerification
+from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Hearing, Plaintiff, PleadingDocument, Judge, Judgment, PhoneNumberVerification
 from .serializers import *
 from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
 from psycopg2 import errors
@@ -226,7 +226,7 @@ class JudgmentResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination(default_limit=50, max_limit=100)
-    sorting = Sorting('court_date', default='-court_date')
+    sorting = Sorting('file_date', default='-file_date')
 
 
 class JudgmentListResource(JudgmentResourceBase):
@@ -238,6 +238,40 @@ class JudgmentListResource(JudgmentResourceBase):
 
 
 class JudgmentResource(JudgmentResourceBase):
+    def get(self, id):
+        return self.retrieve(id)
+
+    def update_item(self, item, data):
+        data['last_edited_by_id'] = current_user.id
+        super().update_item(item, data)
+
+    def patch(self, id):
+        return self.update(int(id), partial=True)
+
+    def delete(self, id):
+        return self.destroy(int(id))
+
+
+class HearingResourceBase(GenericModelView):
+    model = Hearing
+    schema = hearing_schema
+
+    authentication = HeaderUserAuthentication()
+    authorization = Protected()
+
+    pagination = CursorPagination(default_limit=50, max_limit=100)
+    sorting = Sorting('court_date', default='-court_date')
+
+
+class HearingListResource(HearingResourceBase):
+    def get(self):
+        return self.list()
+
+    def post(self):
+        return self.create()
+
+
+class HearingResource(HearingResourceBase):
     def get(self, id):
         return self.retrieve(id)
 

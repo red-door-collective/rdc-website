@@ -96,6 +96,8 @@ jobs:
           command: cd pages && npm install && npm run build
       - name: Tests
         run: npm test
+        env:
+          GITHUB_TOKEN: secrets.GITHUB_TOKEN
       - name: Add elm-review, elm and elm-format to path
         run: npm bin >> $GITHUB_PATH
       # - uses: sparksp/elm-review-action@v1

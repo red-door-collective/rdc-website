@@ -1,4 +1,4 @@
-module PleadingDocument exposing (Kind, PleadingDocument, decoder, isJudgment)
+module PleadingDocument exposing (Kind(..), PleadingDocument, decoder, isJudgment)
 
 import Json.Decode as Decode exposing (Decoder, nullable, string)
 import Json.Decode.Pipeline exposing (required)

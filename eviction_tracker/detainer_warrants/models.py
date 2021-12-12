@@ -42,6 +42,15 @@ detainer_warrant_defendants = db.Table(
         'defendants.id', ondelete="CASCADE"), primary_key=True)
 )
 
+hearing_defendants = db.Table(
+    'hearing_defendants',
+    db.metadata,
+    Column('hearing_id', db.ForeignKey(
+        'hearings.id', ondelete="CASCADE"), primary_key=True),
+    Column('defendant_id', db.ForeignKey(
+        'defendants.id', ondelete="CASCADE"), primary_key=True)
+)
+
 
 class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
@@ -71,6 +80,11 @@ class Defendant(db.Model, Timestamped):
                                      back_populates='_defendants',
                                      passive_deletes=True
                                      )
+    hearings = relationship('Hearing',
+                            secondary=hearing_defendants,
+                            back_populates='defendants',
+                            passive_deletes=True
+                            )
     verified_phone = relationship(
         'PhoneNumberVerification', back_populates='defendants')
     phone_bank_attempts = relationship(
@@ -137,6 +151,7 @@ class Courtroom(db.Model, Timestamped):
 
     district = relationship('District', back_populates='courtrooms')
     _judgments = relationship('Judgment', back_populates='_courtroom')
+    hearings = relationship('Hearing', back_populates='courtroom')
 
     def __repr__(self):
         return "<Courtroom(name='%s')>" % (self.name)
@@ -160,6 +175,9 @@ class Plaintiff(db.Model, Timestamped):
     _judgments = relationship(
         'Judgment', back_populates='_plaintiff'
     )
+    hearings = relationship(
+        'Hearing', back_populates='plaintiff'
+    )
 
     def __repr__(self):
         return "<Plaintiff(name='%s', district_id='%s')>" % (self.name, self.district_id)
@@ -182,6 +200,80 @@ class Judge(db.Model, Timestamped):
 
     def __repr__(self):
         return "<Judge(name='%s')>" % (self.name)
+
+
+class Hearing(db.Model, Timestamped):
+    __tablename__ = 'hearings'
+    __table_args__ = (
+        db.UniqueConstraint('court_date', 'docket_id'),
+    )
+
+    id = Column(db.Integer, primary_key=True)
+    _court_date = Column(db.DateTime, name='court_date', nullable=False)
+    address = Column(db.String(255), nullable=False)
+
+    docket_id = Column(
+        db.String(255), db.ForeignKey('cases.docket_id'), nullable=False)
+    courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
+    plaintiff_id = Column(db.Integer, db.ForeignKey(
+        'plaintiffs.id', ondelete='CASCADE'))
+    plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
+        'attorneys.id', ondelete=('CASCADE')
+    ))
+    defendant_attorney_id = Column(db.Integer, db.ForeignKey(
+        'attorneys.id', ondelete=('CASCADE')
+    ))
+
+    judgment = relationship(
+        'Judgment', uselist=False, backref='hearing')
+    case = relationship(
+        'Case', back_populates='hearings'
+    )
+    courtroom = relationship(
+        'Courtroom', back_populates='hearings'
+    )
+    plaintiff = relationship(
+        'Plaintiff', back_populates='hearings'
+    )
+    plaintiff_attorney = relationship(
+        'Attorney', foreign_keys=plaintiff_attorney_id
+    )
+    defendant_attorney = relationship(
+        'Attorney', foreign_keys=defendant_attorney_id
+    )
+
+    defendants = relationship('Defendant',
+                              secondary=hearing_defendants,
+                              back_populates='hearings',
+                              cascade="all, delete"
+                              )
+
+    @hybrid_property
+    def court_date(self):
+        if self._court_date:
+            return in_millis(self._court_date.timestamp())
+        else:
+            return None
+
+    @court_date.comparator
+    def court_date(cls):
+        return PosixComparator(cls._court_date)
+
+    @court_date.setter
+    def court_date(self, posix):
+        self._court_date = from_millis(posix)
+
+    def __repr__(self):
+        return "<Hearing(court_date='%s', docket_id='%s')>" % (self._court_date, self.docket_id)
+
+    def update_judgment_from_document(self, document):
+        attrs = Judgment.attributes_from_pdf(document.text)
+        attrs['document_url'] = document.url
+        if self.judgment:
+            self.judgment.update(**attrs)
+        else:
+            self.judgment = Judgment.create(**attrs)
+        return self
 
 
 class Judgment(db.Model, Timestamped):
@@ -214,11 +306,14 @@ class Judgment(db.Model, Timestamped):
     dismissal_basis_id = Column(db.Integer)
     with_prejudice = Column(db.Boolean)
     _court_date = Column(db.Date, name='court_date')
+    _file_date = Column(db.Date, name='file_date')
     mediation_letter = Column(db.Boolean)
     court_order_number = Column(db.Integer)
     _continuance_on = Column(db.Date)
     notes = Column(db.Text)
 
+    hearing_id = Column(db.Integer, db.ForeignKey(
+        'hearings.id'))  # TODO: make non-nullable after data cleanup
     detainer_warrant_id = Column(
         db.String(255), db.ForeignKey('cases.docket_id'), nullable=False)
     judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
@@ -231,13 +326,12 @@ class Judgment(db.Model, Timestamped):
     defendant_attorney_id = Column(db.Integer, db.ForeignKey(
         'attorneys.id', ondelete=('CASCADE')
     ))
+    document_url = Column(db.String, db.ForeignKey('pleading_documents.url'))
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
     _courtroom = relationship(
         'Courtroom', back_populates='_judgments'
     )
-    _detainer_warrant = relationship(
-        'DetainerWarrant', back_populates='_judgments')
 
     _plaintiff = relationship(
         'Plaintiff', back_populates='_judgments'
@@ -249,7 +343,11 @@ class Judgment(db.Model, Timestamped):
         'Attorney', foreign_keys=defendant_attorney_id
     )
     _judge = relationship(
-        'Judge', back_populates='_rulings')
+        'Judge', back_populates='_rulings'
+    )
+    document = relationship(
+        'PleadingDocument', back_populates='judgments'
+    )
     last_edited_by = relationship(
         'User', back_populates='edited_judgments'
     )
@@ -268,6 +366,21 @@ class Judgment(db.Model, Timestamped):
     @court_date.setter
     def court_date(self, posix):
         self._court_date = from_millis(posix)
+
+    @hybrid_property
+    def file_date(self):
+        if self._file_date:
+            return in_millis(datetime.combine(self._file_date, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @file_date.comparator
+    def file_date(cls):
+        return PosixComparator(cls._file_date)
+
+    @file_date.setter
+    def file_date(self, posix):
+        self._file_date = from_millis(posix)
 
     @property
     def courtroom(self):
@@ -416,7 +529,7 @@ class Judgment(db.Model, Timestamped):
     def __repr__(self):
         return "<Judgment(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
 
-    def court_date_guess(text):
+    def file_date_guess(text):
         efile_date_regex = re.compile(r'EFILED\s+(\d+/\d+/\d+)\s+')
         efile_date_match = efile_date_regex.search(text)
         if efile_date_match:
@@ -424,27 +537,21 @@ class Judgment(db.Model, Timestamped):
         else:
             return None
 
-    def update_from_pdf(self, pdf):
-        return self.update(**Judgment.attributes_from_pdf(pdf, guess_court_date=False))
-
-    def from_pdf_as_text(pdf):
-        return Judgment.create(**Judgment.attributes_from_pdf(pdf))
-
-    def attributes_from_pdf(pdf, guess_court_date=True):
+    def attributes_from_pdf(pdf):
         pdf = pdf.replace('\n', ' ').replace('\r', ' ')
         defaults = district_defaults()
         checked = u''
         unchecked = u''
 
         dw_regex = re.compile(r'DOCKET NO.:\s*(\w+)\s*')
-        detainer_warrant_id = dw_regex.search(pdf).group(1)
+        docket_id = dw_regex.search(pdf).group(1)
 
-        if detainer_warrant_id and not DetainerWarrant.query.get(detainer_warrant_id):
-            DetainerWarrant.create(docket_id=detainer_warrant_id)
+        if docket_id and not DetainerWarrant.query.get(docket_id):
+            DetainerWarrant.create(docket_id=docket_id)
             db.session.commit()
 
         plaintiff_regex = re.compile(
-            r'COUNTY, TENNESSEE\s*([\w\s]+?)\s*Plaintiff')
+            r'COUNTY, TENNESSEE\s*(.+?)\s*Plaintiff')
         plaintiff_name = plaintiff_regex.search(pdf).group(1)
 
         plaintiff = None
@@ -539,7 +646,7 @@ class Judgment(db.Model, Timestamped):
             r'Other terms of this Order, if any, are as follows:\s*(.+?)\s*EFILED')
         notes = notes_regex.search(pdf).group(1)
 
-        attrs = dict(
+        return dict(
             awards_possession=awards_possession,
             awards_fees=awards_fees,
             entered_by_id=Judgment.entrances[entered_by] if entered_by else None,
@@ -550,16 +657,11 @@ class Judgment(db.Model, Timestamped):
             with_prejudice=with_prejudice,
             notes=notes,
             in_favor_of_id=Judgment.parties[in_favor_of],
-            detainer_warrant_id=detainer_warrant_id,
+            detainer_warrant_id=docket_id,
+            _file_date=Judgment.file_date_guess(pdf),
             plaintiff_id=plaintiff.id if plaintiff else None,
             judge_id=judge.id if judge else None
         )
-
-        if guess_court_date:
-            attrs['_court_date'] = Judgment.court_date_guess(pdf)
-            return attrs
-        else:
-            return attrs
 
 
 class PleadingDocument(db.Model, Timestamped):
@@ -577,6 +679,7 @@ class PleadingDocument(db.Model, Timestamped):
 
     _detainer_warrant = relationship(
         'DetainerWarrant', back_populates='pleadings')
+    judgments = relationship('Judgment', back_populates='document')
 
     @hybrid_property
     def kind(self):
@@ -640,6 +743,7 @@ class Case(db.Model, Timestamped):
     ))
     type = Column(db.String(50))
 
+    hearings = relationship('Hearing', back_populates='case')
     _plaintiff = relationship('Plaintiff', back_populates='detainer_warrants')
     _plaintiff_attorney = relationship(
         'Attorney', back_populates='detainer_warrants')
@@ -776,7 +880,6 @@ class DetainerWarrant(Case):
     pleading_document_check_mismatched_html = Column(db.Text)
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
-    _judgments = relationship('Judgment', back_populates='_detainer_warrant')
     pleadings = relationship(
         'PleadingDocument', back_populates='_detainer_warrant')
     last_edited_by = relationship('User', back_populates='edited_warrants')
@@ -842,29 +945,6 @@ class DetainerWarrant(Case):
             self._courtroom = db.session.query(Courtroom).get(c_id)
         else:
             self._courtroom = courtroom
-
-    @property
-    def judgments(self):
-        return sorted(self._judgments, key=lambda j: (j.court_date is not None, j.court_date), reverse=True)
-
-    @judgments.setter
-    def judgments(self, judgments):
-        if (all(isinstance(j, Judgment) for j in judgments)):
-            self._judgments = judgments
-        else:
-            if (len(judgments) < len(self._judgments)):
-                original = set([j.id for j in self._judgments])
-                new = set([j.get("id") for j in judgments])
-                judgments_to_delete = original - new
-                for j_id in judgments_to_delete:
-                    db.session.delete(db.session.query(Judgment).get(j_id))
-
-            self._judgments = [
-                db.session.query(Judgment).get(j.get('id')).update(**j)
-                if j.get('id') is not None
-                else Judgment.create(**j, detainer_warrant_id=self.docket_id)
-                for j in judgments
-            ]
 
 
 class PhoneNumberVerification(db.Model, Timestamped):
