@@ -10,6 +10,7 @@ import Json.Decode as Decode exposing (Decoder, bool, float, int, nullable, stri
 import Json.Decode.Pipeline exposing (custom, optional, required)
 import Judge exposing (Judge)
 import Plaintiff exposing (Plaintiff)
+import PleadingDocument exposing (PleadingDocument)
 import String.Extra
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
@@ -67,6 +68,7 @@ type alias Judgment =
     , judge : Maybe Judge
     , conditions : Maybe Conditions
     , hearing : Hearing
+    , document : Maybe PleadingDocument
     }
 
 
@@ -344,6 +346,7 @@ fromConditions conditions =
         |> required "judge" (nullable Judge.decoder)
         |> custom (Decode.succeed conditions)
         |> required "hearing" Hearing.decoder
+        |> required "document" (nullable PleadingDocument.decoder)
 
 
 decoder : Decoder Judgment

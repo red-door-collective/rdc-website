@@ -12,7 +12,7 @@ import gspread
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.admin.models import User, user_datastore
 from eviction_tracker.database import db
-from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, Defendant, Judgment, District
+from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, PleadingDocument, Defendant, Judgment, District
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import uuid
@@ -180,19 +180,19 @@ def verify_phone(phone_number):
 
 
 @click.command()
-@click.argument('file_name')
-@with_appcontext
-def extract_judgment(file_name):
-    """Extract judgment from pdf"""
-    text = detainer_warrants.caselink.pleadings.extract_text_from_pdf(
-        file_name)
-    Judgment.from_pdf_as_text(text)
-
-
-@click.command()
 @with_appcontext
 def bulk_extract_pleading_document_details():
     detainer_warrants.caselink.pleadings.bulk_extract_pleading_document_details()
+
+
+@click.command()
+@click.argument('url')
+@with_appcontext
+def update_judgment_from_document(url):
+    """Extract judgment from pdf"""
+    document = PleadingDocument.query.get(url)
+    detainer_warrants.caselink.pleadings.update_judgment_from_document(
+        document)
 
 
 @click.command()

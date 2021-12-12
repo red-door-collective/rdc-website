@@ -92,12 +92,13 @@ class JudgmentSchema(Schema):
     plaintiff = fields.Nested(PlaintiffSchema, allow_none=True)
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     defendant_attorney = fields.Nested(AttorneySchema, allow_none=True)
+    document = fields.Nested(lambda: PleadingDocumentSchema, allow_none=True)
 
     class Meta:
         fields = ("id", "hearing", "detainer_warrant_id", "file_date", "in_favor_of", "awards_possession",
                   "awards_fees", "continuance_on", "entered_by", "interest", "interest_rate",
                   "interest_follows_site", "dismissal_basis", "with_prejudice", "notes",
-                  "judge", "plaintiff", "plaintiff_attorney", "defendant_attorney"
+                  "judge", "plaintiff", "plaintiff_attorney", "defendant_attorney", "document"
                   )
 
 

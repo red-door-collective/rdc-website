@@ -18,6 +18,7 @@ import FeatherIcons
 import Head
 import Head.Seo as Seo
 import Hearing exposing (Hearing)
+import Html
 import Html.Attributes
 import Http
 import Json.Decode as Decode
@@ -52,6 +53,7 @@ import UI.Icon as Icon
 import UI.Palette as Palette
 import UI.RenderConfig exposing (RenderConfig)
 import UI.TextField as TextField
+import Url
 import Url.Builder
 import View exposing (View)
 
@@ -66,6 +68,7 @@ type alias FormOptions =
     , plaintiffs : List Plaintiff
     , judges : List Judge
     , showHelp : Bool
+    , showDocument : Maybe Bool
     , renderConfig : RenderConfig
     }
 
@@ -110,6 +113,7 @@ type alias Model =
     , saveState : SaveState
     , newFormOnSuccess : Bool
     , showHelp : Bool
+    , showDocument : Maybe Bool
     }
 
 
@@ -268,6 +272,7 @@ init pageUrl sharedModel static =
                     NotFound
       , saveState = Done
       , showHelp = False
+      , showDocument = Nothing
       , newFormOnSuccess = False
       }
     , case maybeId of
@@ -306,6 +311,7 @@ type Msg
     | ChangedAttorneySearchBox (SearchBox.ChangeEvent Attorney)
     | ChangedJudgeSearchBox (SearchBox.ChangeEvent Judge)
     | ChangedNotes String
+    | ToggleOpenDocument
     | SubmitForm
     | SubmitAndAddAnother
     | UpdatedJudgment (Result Http.Error (Rest.Item Judgment))
@@ -452,6 +458,12 @@ update pageUrl navKey sharedModel static msg model =
                     ( { model
                         | judgment = Just judgmentPage.data
                         , form = Ready (judgmentFormInit today judgmentPage.data)
+                        , showDocument =
+                            if judgmentPage.data.document == Nothing then
+                                Nothing
+
+                            else
+                                Just False
                       }
                     , Cmd.none
                     )
@@ -728,6 +740,21 @@ update pageUrl navKey sharedModel static msg model =
         ChangedNotes notes ->
             updateForm (\form -> { form | notes = notes }) model
 
+        ToggleOpenDocument ->
+            ( case model.judgment of
+                Just judgment ->
+                    case judgment.document of
+                        Just _ ->
+                            { model | showDocument = Maybe.map not model.showDocument }
+
+                        Nothing ->
+                            model
+
+                Nothing ->
+                    model
+            , Cmd.none
+            )
+
         SubmitForm ->
             submitForm today domain session model
 
@@ -992,6 +1019,7 @@ formOptions cfg today judgment model =
     , attorneys = model.attorneys
     , judges = model.judges
     , showHelp = False
+    , showDocument = model.showDocument
     , renderConfig = cfg
     }
 
@@ -1388,14 +1416,29 @@ viewJudgmentDefendant options form =
 viewJudgment : FormOptions -> JudgmentForm -> Element Msg
 viewJudgment options form =
     column
-        [ width fill
-        , spacing 10
-        , padding 20
-        , Border.width 1
-        , Palette.toBorderColor Palette.gray300
-        , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
-        , Border.rounded 5
-        ]
+        ([ width fill
+         , spacing 10
+         , padding 20
+         , Border.width 1
+         , Palette.toBorderColor Palette.gray300
+         , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
+         , Border.rounded 5
+         ]
+            ++ (case options.originalJudgment.document of
+                    Just pleading ->
+                        [ inFront
+                            (row [ Element.alignRight, padding 20 ]
+                                [ Button.fromIcon (Icon.legacyReport "Open PDF")
+                                    |> Button.cmd ToggleOpenDocument Button.primary
+                                    |> Button.renderElement options.renderConfig
+                                ]
+                            )
+                        ]
+
+                    Nothing ->
+                        []
+               )
+        )
         [ row
             [ spacing 5
             ]
@@ -1448,6 +1491,28 @@ viewJudgment options form =
               else
                 Element.none
             , viewNotes options form
+            , row [ spacing 5, width fill ]
+                [ if options.showDocument == Just True then
+                    case options.originalJudgment.document of
+                        Just pleading ->
+                            column [ width fill ]
+                                [ row [ width fill ]
+                                    [ Element.html <|
+                                        Html.embed
+                                            [ Html.Attributes.width 800
+                                            , Html.Attributes.height 1600
+                                            , Html.Attributes.src (Url.toString pleading.url)
+                                            ]
+                                            []
+                                    ]
+                                ]
+
+                        Nothing ->
+                            Element.none
+
+                  else
+                    Element.none
+                ]
             ]
         ]
 

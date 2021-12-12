@@ -288,10 +288,6 @@ update pageUrl navKey sharedModel static msg model =
                 )
 
         GotJudgments (Err httpError) ->
-            let
-                logg =
-                    Debug.log "err" httpError
-            in
             ( model, logHttpError httpError )
 
         InfiniteScrollMsg subMsg ->
