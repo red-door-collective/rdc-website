@@ -1111,11 +1111,10 @@ viewCourtDate options =
         { tooltip = Just FileDateDetail
         , description = "The date this judgment was determined."
         , children =
-            [ TextField.static
-                "Court date"
-                (Date.format "MMMM ddd, yyyy" <| Date.Extra.fromPosix options.originalJudgment.hearing.courtDate)
-                |> TextField.setLabelVisible True
-                |> TextField.renderElement options.renderConfig
+            [ column [ spacing 5, width fill ]
+                [ el labelAttrs (text "Courtroom")
+                , el [] (text (Date.format "MMMM ddd, yyyy t" <| Date.Extra.fromPosix options.originalJudgment.hearing.courtDate))
+                ]
             ]
         }
 
