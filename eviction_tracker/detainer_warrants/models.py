@@ -614,9 +614,9 @@ class Judgment(db.Model, Timestamped):
         interest_follows_site = checked in re.compile(
             r'granted as follows:\s*(.+)\s*at the rate posted').search(pdf).group(1)
         interest_rate_regex = re.compile(
-            r'Courts.\s*(.+)\s*at the rate of %\s*([\d\.]*)\s*per annum')
+            r'Courts.\s*(.+)\s*at\s+the\s+rate\s+of\s+%\s*([\d\.]*)\s*per\s+annum')
         interest_rate_match = interest_rate_regex.search(pdf)
-        if checked in interest_rate_match.group(1):
+        if interest_rate_match and checked in interest_rate_match.group(1):
             interest_rate = interest_rate_match.group(2)
         else:
             interest_rate = None
