@@ -639,13 +639,14 @@ class Judgment(db.Model, Timestamped):
                 dismissal_basis = 'NON_SUIT_BY_PLAINTIFF'
 
             with_prejudice_regex = re.compile(
-                r'Dismissal is:\s*(.+)\s*Without prejudice')
+                r'Dismissal\s+is:\s*(.+)\s*Without prejudice')
             with_prejudice = not checked in with_prejudice_regex.search(
                 pdf).group(1)
 
         notes_regex = re.compile(
-            r'Other terms of this Order, if any, are as follows:\s*(.+?)\s*EFILED')
-        notes = notes_regex.search(pdf).group(1)
+            r'Other\s+terms\s+of\s+this\s+Order,\s+if\s+any,\s+are\s+as\s+follows:\s*(.+?)\s*EFILED')
+        notes_match = notes_regex.search(pdf)
+        notes = notes_match.group(1) if notes_match else None
 
         return dict(
             awards_possession=awards_possession,
