@@ -560,8 +560,9 @@ class Judgment(db.Model, Timestamped):
                 db.session, Plaintiff, name=plaintiff_name, defaults=defaults)
 
         judge_regex = re.compile(
-            r'The foregoing is hereby.+Judge (.+?),{0,1}\s+Division')
-        judge_name = judge_regex.search(pdf).group(1)
+            r'The foregoing is hereby.+Judge\s+(.+?),{0,1}\s+Division')
+        judge_match = judge_regex.search(pdf)
+        judge_name = judge_match.group(1) if judge_match else None
 
         judge = None
         if judge_name:
