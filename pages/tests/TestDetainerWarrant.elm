@@ -16,9 +16,9 @@ minimalJson =
         "defendants": [],
         "docket_id": "21GC11668",
         "file_date": null,
+        "hearings": [],
         "is_cares": null,
         "is_legacy": null,
-        "judgments": [],
         "pleadings": [],
         "last_edited_by": {
           "active": true,
@@ -52,7 +52,7 @@ minimalDetainer =
     { docketId = "21GC11668"
     , amountClaimed = Nothing
     , claimsPossession = Nothing
-    , judgments = []
+    , hearings = []
     , pleadings = []
     , defendants = []
     , fileDate = Nothing
@@ -75,9 +75,9 @@ maximumJson =
         "defendants": [],
         "docket_id": "21GT11668",
         "file_date": 1635901200000,
+        "hearings": [],
         "is_cares": true,
         "is_legacy": false,
-        "judgments": [],
         "pleadings": [],
         "last_edited_by": {
           "active": true,
@@ -112,6 +112,7 @@ maximumDetainer =
     , amountClaimed = Just 123.45
     , claimsPossession = Just True
     , fileDate = Just (Time.millisToPosix 1635901200000)
+    , hearings = []
     , isCares = Just True
     , isLegacy = Just False
     , nonpayment = Just True
@@ -119,7 +120,6 @@ maximumDetainer =
     , notes = Just "some notes"
     , plaintiff = Nothing
     , plaintiffAttorney = Nothing
-    , judgments = []
     , pleadings = []
     , defendants = []
     }
