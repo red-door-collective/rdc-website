@@ -17,6 +17,9 @@ def date_as_str(d, format):
     return datetime.strptime(d, format).date()
 
 
+DOCKET_ID = '21GT1234'
+
+
 class TestDataImport(TestCase):
 
     def create_app(self):
@@ -37,12 +40,13 @@ class TestDataImport(TestCase):
         db.session.commit()
         District.create(name='Davidson County')
         db.session.commit()
+        DetainerWarrant.create(docket_id=DOCKET_ID)
         with open('tests/fixtures/caselink/judgment-pdf-as-text.txt') as f:
             PleadingDocument.create(
-                url='123', kind='JUDGMENT', text=f.read(), docket_id='21GT1234')
+                url='123', kind='JUDGMENT', text=f.read(), docket_id=DOCKET_ID)
 
         Hearing.create(_court_date=datetime.now(),
-                       docket_id='21GT1234', address='example')
+                       docket_id=DOCKET_ID, address='example')
         db.session.commit()
 
     def tearDown(self):
@@ -55,9 +59,9 @@ class TestDataImport(TestCase):
         hearing.update_judgment_from_document(document)
         judgment = hearing.judgment
 
-        self.assertEqual(judgment.detainer_warrant_id, '21GT1234')
+        self.assertEqual(judgment.detainer_warrant_id, DOCKET_ID)
         self.assertEqual(datetime.strftime(
-            '%m/%d/%y', judgment._file_date), '09/02/21')
+            judgment._file_date, '%m/%d/%y'), '09/02/21')
         self.assertEqual(judgment.plaintiff.name, 'REDACTED REDACTED')
         self.assertEqual(judgment.judge.name, 'Redacted Redacted')
         self.assertEqual(judgment.in_favor_of, 'PLAINTIFF')
