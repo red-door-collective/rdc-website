@@ -530,7 +530,7 @@ class Judgment(db.Model, Timestamped):
         return "<Judgment(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
 
     def file_date_guess(text):
-        efile_date_regex = re.compile(r'EFILED\s+(\d+/\d+/\d+)\s+')
+        efile_date_regex = re.compile(r'EFILED\s*(\d+/\d+/\d+)\s*')
         efile_date_match = efile_date_regex.search(text)
         if efile_date_match:
             return datetime.strptime(efile_date_match.group(1), '%m/%d/%y').date()

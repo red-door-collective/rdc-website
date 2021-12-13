@@ -191,6 +191,10 @@ def update_judgment_from_document(document):
     if document.kind == 'JUDGMENT' and document.text:
         text = document.text
         file_date = Judgment.file_date_guess(text)
+        if not file_date:
+            logger.warning(f'could not guess file date for {document.url}')
+            return
+
         existing_hearing = Hearing.query.filter(
             and_(
                 Hearing._court_date >= file_date -
