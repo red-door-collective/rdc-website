@@ -179,17 +179,12 @@ COURT_DATE_REGEX = re.compile(
 
 def parse_court_date(text):
     match = COURT_DATE_REGEX.search(text)
-    if not match:
-        print(text)
     court_date = match.group(1)
     time = match.group(2)
     return datetime.strptime(court_date + ' ' + time, '%m/%d/%Y %I:%M%p')
 
 
 def parse_html(html):
-    with open('testing.html', 'w') as f:
-        f.write(html)
-
     defaults = district_defaults()
 
     d = pq(html)
@@ -232,8 +227,6 @@ def scrape_docket(url):
 
 def scrape():
     links = requests.get(URL, data=DATA).json()
-    print(CASELINK_URL)
     for link in links:
         docket_url = f'{CASELINK_URL}{link[-1]}'
-        print(docket_url)
         scrape_docket(docket_url)
