@@ -61,4 +61,4 @@ def extract_pleading_document_details():
 def import_sessions_site_hearings():
     with scheduler.app.app_context():
         logger.info(f'Scraping General Sessions website')
-        detainer_warrants.circuitclerk.hearings.scrape_entire_site()
+        detainer_warrants.circuitclerk.hearings.scrape()

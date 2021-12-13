@@ -11,6 +11,7 @@ import eviction_tracker.detainer_warrants as detainer_warrants
 from datetime import datetime
 from decimal import Decimal
 import uuid
+import io
 
 
 def date_as_str(d, format):
@@ -44,36 +45,37 @@ class TestDocketImport(TestCase):
 
     def test_docket_import(self):
         docket = None
-        with open('tests/fixtures/circuitclerk/docket.html') as f:
-            docket = detainer_warrants.circuitclerk.hearings.parse(
-                '1A', f.read())
+        pdf_memory_file = io.BytesIO()
+        with open('tests/fixtures/circuitclerk/docket.pdf', 'rb') as f:
+            pdf_memory_file.write(f.read())
 
-        self.assertEqual(len(docket), 16)
+        docket_html = detainer_warrants.circuitclerk.hearings.extract_html_from_pdf(
+            pdf_memory_file)
+        docket = detainer_warrants.circuitclerk.hearings.parse_html(
+            docket_html)
+
+        self.assertEqual(len(docket), 51)
         first_hearing = docket[0]
 
-        self.assertEqual(first_hearing.docket_id, '03GT2307')
-        self.assertEqual(first_hearing.plaintiff.name, 'XXXXXGX XXXXX XXTX')
+        self.assertEqual(first_hearing.docket_id, '21GC15108')
+        self.assertEqual(first_hearing.plaintiff.name,
+                         'MANGRUM TRUCKING & EXCAVATING, LLC')
         self.assertEqual(first_hearing.plaintiff_attorney.name,
-                         'XXXXXGXX, XXTXXX XXXXXXX')
-        self.assertEqual(first_hearing.defendants[0].name, 'XXXGX X XXXXXTX')
+                         'Bethany M Vanhooser')
         self.assertEqual(
-            first_hearing.address, '110 XXX XXXXXX XXXXX XXT X 126 XXXXXGX XXXXX XXTX XXXXXXXXX,TX 37207')
+            first_hearing.defendants[0].name, 'LLC AMERICAN SITEWORKS')
+        self.assertEqual(
+            first_hearing.address, 'C/O PIPER LYNN SHEETS 1725 LONDONVIEW PLACE ANTIOCH, TN 37013')
         self.assertEqual(first_hearing._court_date, datetime.strptime(
-            '21-11-23 09:00', '%y-%m-%d %H:%M'))
-        self.assertEqual(first_hearing.courtroom.name, '1A')
+            '21-12-15 08:00', '%y-%m-%d %H:%M'))
+        self.assertEqual(first_hearing.courtroom.name, '1B')
         self.assertEqual(first_hearing.court_order_number, 0)
 
         second_hearing = docket[1]
-        self.assertEqual(second_hearing.docket_id, '21GT5329')
+        self.assertEqual(second_hearing.docket_id, '19GC2221')
         self.assertEqual(second_hearing.court_order_number, 1)
         self.assertEqual(second_hearing._court_date, datetime.strptime(
-            '21-11-23 09:00', '%y-%m-%d %H:%M'))
-
-        first_hearing_at_ten = docket[8]
-        self.assertEqual(first_hearing_at_ten.docket_id, '21GC5871')
-        self.assertEqual(first_hearing_at_ten.court_order_number, 8)
-        self.assertEqual(first_hearing_at_ten._court_date, datetime.strptime(
-            '21-11-23 10:00', '%y-%m-%d %H:%M'))
+            '21-12-15 10:00', '%y-%m-%d %H:%M'))
 
 
 if __name__ == '__main__':

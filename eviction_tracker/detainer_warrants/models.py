@@ -323,7 +323,7 @@ class Judgment(db.Model, Timestamped):
     notes = Column(db.Text)
 
     hearing_id = Column(db.Integer, db.ForeignKey(
-        'hearings.id'))  # TODO: make non-nullable after data cleanup
+        'hearings.id', ondelete='CASCADE'))  # TODO: make non-nullable after data cleanup
     detainer_warrant_id = Column(
         db.String(255), db.ForeignKey('cases.docket_id'), nullable=False)
     judge_id = Column(db.Integer, db.ForeignKey('judges.id'))

@@ -38,21 +38,24 @@ def test():
 
 
 @click.command()
-@click.option('-c', '--courtroom', default=None,
-              help='Courtroom')
-@click.option('-d', '--date', default=None,
-              help='Date')
+@click.argument('url')
 @with_appcontext
-def scrape_sessions_site(courtroom, date):
-    logger.info(f'Scraping Sessions site for courtroom: {courtroom} on {date}')
-    detainer_warrants.circuitclerk.hearings.scrape(courtroom, date)
+def parse_docket(url):
+    detainer_warrants.circuitclerk.hearings.parse(url)
+
+
+@click.command()
+@click.argument('url')
+@with_appcontext
+def scrape_docket(url):
+    detainer_warrants.circuitclerk.hearings.scrape_docket(url)
 
 
 @click.command()
 @with_appcontext
-def scrape_sessions_week():
+def scrape_dockets():
     logger.info(f'Scraping Sessions site for the upcoming week')
-    detainer_warrants.circuitclerk.hearings.scrape_entire_site()
+    detainer_warrants.circuitclerk.hearings.scrape()
 
 
 @click.command()

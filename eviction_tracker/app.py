@@ -443,8 +443,9 @@ def register_commands(app):
     """Register Click commands."""
     app.cli.add_command(commands.test)
     app.cli.add_command(commands.import_from_caselink)
-    app.cli.add_command(commands.scrape_sessions_site)
-    app.cli.add_command(commands.scrape_sessions_week)
+    app.cli.add_command(commands.parse_docket)
+    app.cli.add_command(commands.scrape_docket)
+    app.cli.add_command(commands.scrape_dockets)
     app.cli.add_command(commands.export)
     app.cli.add_command(commands.export_courtroom_dockets)
     app.cli.add_command(commands.verify_phone)
