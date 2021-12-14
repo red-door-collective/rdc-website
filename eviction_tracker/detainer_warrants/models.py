@@ -56,7 +56,7 @@ class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
     __table_args__ = (
         db.UniqueConstraint('first_name', 'middle_name',
-                            'last_name', 'suffix', 'address', 'district_id', 'potential_phones'),
+                            'last_name', 'suffix', 'district_id', 'potential_phones'),
     )
 
     id = Column(db.Integer, primary_key=True)
@@ -67,7 +67,6 @@ class Defendant(db.Model, Timestamped):
     aliases = Column(db.ARRAY(db.String(255)),
                      nullable=False, server_default='{}')
     potential_phones = Column(db.String(255))
-    address = Column(db.String(255))
 
     district_id = Column(db.Integer, db.ForeignKey(
         'districts.id'), nullable=False)
@@ -116,7 +115,7 @@ class Defendant(db.Model, Timestamped):
             self.first_name = full_name
 
     def __repr__(self):
-        return f"<Defendant(name='{self.name}', phones='{self.potential_phones}', address='{self.address}')>"
+        return f"<Defendant(name='{self.name}', phones='{self.potential_phones}')>"
 
 
 class Attorney(db.Model, Timestamped):
@@ -875,6 +874,7 @@ class DetainerWarrant(Case):
         'SATURDAY': 6
     }
 
+    address = Column(db.String(255))
     court_date_recurring_id = Column(db.Integer)
     amount_claimed = Column(db.Numeric(scale=2))  # USD
     claims_possession = Column(db.Boolean)

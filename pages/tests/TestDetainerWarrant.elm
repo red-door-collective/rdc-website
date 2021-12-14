@@ -10,6 +10,7 @@ import Time
 minimalJson =
     """
     {
+        "address": "123 Some Street, Nashville, TN 37010",
         "amount_claimed": null,
         "claims_possession": null,
         "created_at": 1633382326000,
@@ -50,6 +51,7 @@ minimalJson =
 minimalDetainer : DetainerWarrant
 minimalDetainer =
     { docketId = "21GC11668"
+    , address = Just "123 Some Street, Nashville, TN 37010"
     , amountClaimed = Nothing
     , claimsPossession = Nothing
     , hearings = []
@@ -69,6 +71,7 @@ minimalDetainer =
 maximumJson =
     """
     {
+        "address": "123 Some Street, Nashville, TN 37010",
         "amount_claimed": 123.45,
         "claims_possession": true,
         "created_at": 1633382326000,
@@ -109,6 +112,7 @@ maximumJson =
 maximumDetainer : DetainerWarrant
 maximumDetainer =
     { docketId = "21GT11668"
+    , address = Just "123 Some Street, Nashville, TN 37010"
     , amountClaimed = Just 123.45
     , claimsPossession = Just True
     , fileDate = Just (Time.millisToPosix 1635901200000)

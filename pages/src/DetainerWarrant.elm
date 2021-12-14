@@ -24,6 +24,7 @@ type Status
 
 type alias DetainerWarrant =
     { docketId : String
+    , address : Maybe String
     , fileDate : Maybe Posix
     , status : Maybe Status
     , plaintiff : Maybe Plaintiff
@@ -46,6 +47,7 @@ type alias Related =
 
 type alias DetainerWarrantEdit =
     { docketId : String
+    , address : Maybe String
     , fileDate : Maybe Posix
     , status : Maybe Status
     , plaintiff : Maybe Related
@@ -111,6 +113,7 @@ decoder : Decoder DetainerWarrant
 decoder =
     Decode.succeed DetainerWarrant
         |> required "docket_id" string
+        |> required "address" (nullable string)
         |> required "file_date" (nullable posixDecoder)
         |> required "status" (nullable statusDecoder)
         |> required "plaintiff" (nullable Plaintiff.decoder)
@@ -149,7 +152,7 @@ mostRecentCourtDate warrant =
 
 
 toTableRowView : (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T.Eight
-toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
+toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants, address } as warrant) =
     rowEmpty
         |> rowCellText (Text.body2 docketId)
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString fileDate))
@@ -157,11 +160,11 @@ toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney,
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name <| List.head defendants))
-        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .address <| List.head defendants))
+        |> rowCellText (Text.body2 (Maybe.withDefault "" <| address))
         |> rowCellButton (toEditButton warrant)
 
 
-toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants } as warrant) =
+toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants, address } as warrant) =
     detailsEmpty
         |> detailShown
             { label = "Docket ID"
@@ -189,7 +192,7 @@ toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney,
             }
         |> detailShown
             { label = "Address"
-            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .address <| List.head defendants)
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| address)
             }
         |> detailShown
             { label = "Edit"
@@ -197,5 +200,5 @@ toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney,
             }
 
 
-toTableCover { docketId, defendants } =
-    { title = docketId, caption = Maybe.map .address <| List.head defendants }
+toTableCover { docketId, address } =
+    { title = docketId, caption = address }

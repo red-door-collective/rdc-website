@@ -221,7 +221,7 @@ editForm today warrant =
     , amountClaimed = Maybe.withDefault "" <| Maybe.map (Mask.floatDecimal Mask.defaultDecimalOptions) warrant.amountClaimed
     , claimsPossession = warrant.claimsPossession
     , claimsPossessionDropdown = Dropdown.init "claims-possession-dropdown"
-    , address = Maybe.withDefault "" <| List.head <| List.map .address warrant.defendants
+    , address = Maybe.withDefault "" warrant.address
     , defendants = List.map (initDefendantForm << Just) warrant.defendants
     , hearings = warrant.hearings
     , notes = Maybe.withDefault "" warrant.notes
@@ -2329,8 +2329,8 @@ type alias ApiForms =
     }
 
 
-toDefendantData : String -> DefendantForm -> Defendant
-toDefendantData address defendant =
+toDefendantData : DefendantForm -> Defendant
+toDefendantData defendant =
     { id = Maybe.withDefault -1 defendant.id
     , name = ""
     , verifiedPhone = Nothing
@@ -2350,7 +2350,6 @@ toDefendantData address defendant =
             Just defendant.suffix
     , aliases =
         []
-    , address = address
     , potentialPhones =
         if List.isEmpty defendant.potentialPhones || defendant.potentialPhones == [ "" ] then
             Nothing
@@ -2368,6 +2367,12 @@ toDetainerWarrant : Date -> TrimmedForm -> ApiForms
 toDetainerWarrant today (Trimmed form) =
     { detainerWarrant =
         { docketId = form.docketId
+        , address =
+            if form.address == "" then
+                Nothing
+
+            else
+                Just form.address
         , fileDate = Maybe.andThen Date.Extra.toPosix form.fileDate.date
         , status = form.status
         , plaintiff = Maybe.map (related << .id) form.plaintiff.person
@@ -2385,7 +2390,7 @@ toDetainerWarrant today (Trimmed form) =
             else
                 Just form.notes
         }
-    , defendants = List.map (toDefendantData form.address) form.defendants
+    , defendants = List.map toDefendantData form.defendants
     , plaintiff =
         form.plaintiff.person
     , attorney =
@@ -2416,7 +2421,6 @@ upsertDefendant domain maybeCred index form =
             Encode.object
                 ([ ( "first_name", Encode.string form.firstName )
                  , ( "last_name", Encode.string form.lastName )
-                 , ( "address", Encode.string form.address )
                  , defaultDistrict
                  ]
                     ++ conditional "id" Encode.int (remoteId form)
@@ -2513,6 +2517,7 @@ updateDetainerWarrant domain maybeCred form =
                  ]
                     ++ nullable "claims_possession" Encode.bool form.claimsPossession
                     ++ nullable "file_date" Time.Utils.posixEncoder form.fileDate
+                    ++ nullable "address" Encode.string form.address
                     ++ nullable "status" Encode.string (Maybe.map DetainerWarrant.statusText form.status)
                     ++ nullable "plaintiff" encodeRelated form.plaintiff
                     ++ nullable "plaintiff_attorney" encodeRelated form.plaintiffAttorney

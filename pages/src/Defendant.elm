@@ -19,7 +19,6 @@ type alias Defendant =
     , lastName : String
     , suffix : Maybe String
     , aliases : List String
-    , address : String
     , potentialPhones : Maybe String
     , verifiedPhone : Maybe VerifiedPhone
     }
@@ -43,6 +42,5 @@ decoder =
         |> optional "last_name" string ""
         |> required "suffix" (nullable string)
         |> required "aliases" (list string)
-        |> optional "address" string ""
         |> required "potential_phones" (nullable string)
         |> required "verified_phone" (nullable verifiedPhoneDecoder)

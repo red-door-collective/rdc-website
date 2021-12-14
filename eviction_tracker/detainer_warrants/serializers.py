@@ -35,8 +35,8 @@ class DefendantSchema(Schema):
         PhoneNumberVerificationSchema)
 
     class Meta:
-        fields = ("id", "name", "first_name", "middle_name", "last_name", "suffix", "aliases",
-                  "address", "verified_phone", "potential_phones", "district_id")
+        fields = ("id", "name", "first_name", "middle_name", "last_name", "suffix",
+                  "aliases", "verified_phone", "potential_phones", "district_id")
 
 
 defendant_schema = DefendantSchema()
@@ -120,9 +120,7 @@ class HearingSchema(Schema):
 
     class Meta:
         fields = ("id", "court_date", "docket_id", "address", "courtroom",
-                  "judgment", "plaintiff", "plaintiff_attorney", "defendant_attorney",
-                  "defendants"
-                  )
+                  "judgment", "plaintiff", "plaintiff_attorney", "defendant_attorney")
 
 
 hearing_schema = HearingSchema()
@@ -148,6 +146,7 @@ class DetainerWarrantSchema(Schema):
     last_edited_by = fields.Nested(serializers.UserSchema)
 
     docket_id = fields.String()
+    address = fields.String(allow_none=True)
     file_date = fields.Int(allow_none=True)
     status = fields.String(allow_none=True)
     amount_claimed = fields.Float(allow_none=True)
@@ -161,8 +160,8 @@ class DetainerWarrantSchema(Schema):
     updated_at = fields.Int()
 
     class Meta:
-        fields = ("docket_id", "order_number", "file_date", "status", "court_date", "amount_claimed",
-                  "claims_possession", "hearings", "last_edited_by", "plaintiff", "plaintiff_attorney", "defendants",
+        fields = ("docket_id", "address", "order_number", "file_date", "status", "court_date", "amount_claimed",
+                  "claims_possession", "hearings", "last_edited_by", "plaintiff", "plaintiff_attorney",  "defendants",
                   "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "pleadings", "created_at", "updated_at")
 
 

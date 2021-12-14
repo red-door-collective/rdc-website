@@ -567,7 +567,7 @@ sortersInit =
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiff)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << List.head << .defendants)
-        |> sortBy (Maybe.withDefault "" << Maybe.map .address << List.head << .defendants)
+        |> sortBy (Maybe.withDefault "" << .address)
         |> unsortable
 
 

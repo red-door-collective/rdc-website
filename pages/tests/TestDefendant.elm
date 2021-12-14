@@ -9,7 +9,6 @@ import Test exposing (..)
 minimalJson =
     """
     {
-        "address": "123 Some Street, Nashville, TN 37010",
         "aliases": [],
         "district_id": 1,
         "first_name": "HEATHER",
@@ -27,7 +26,6 @@ minimalJson =
 minimalDefendant : Defendant
 minimalDefendant =
     { id = 123
-    , address = "123 Some Street, Nashville, TN 37010"
     , aliases = []
     , firstName = "HEATHER"
     , middleName = Just ""
@@ -42,7 +40,6 @@ minimalDefendant =
 maximumJson =
     """
     {
-        "address": "123 Some Street, Nashville, TN 37010",
         "aliases": [ "TRUCKER" ],
         "district_id": 1,
         "first_name": "HEATHER",
@@ -64,7 +61,6 @@ maximumJson =
 maximumDefendant : Defendant
 maximumDefendant =
     { id = 123
-    , address = "123 Some Street, Nashville, TN 37010"
     , aliases = [ "TRUCKER" ]
     , firstName = "HEATHER"
     , middleName = Just "TRUCK"

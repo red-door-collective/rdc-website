@@ -50,8 +50,7 @@ def filter_any_field(model, value):
     return or_(
         model._plaintiff.has(Plaintiff.name.ilike(f'%{value}%')),
         model._plaintiff_attorney.has(Attorney.name.ilike(f'%{value}%')),
-        model._defendants.any(Defendant.name.ilike(f'%{value}%')),
-        model._defendants.any(Defendant.address.ilike(f'%{value}%'))
+        model._defendants.any(Defendant.name.ilike(f'%{value}%'))
     )
 
 
@@ -297,11 +296,6 @@ def filter_defendant_name(model, defendant_name):
 
 
 @model_filter(fields.String())
-def filter_address(model, address):
-    return model._defendants.any(Defendant.address.ilike(f'%{address}%'))
-
-
-@model_filter(fields.String())
 def filter_plaintiff_name(model, plaintiff_name):
     return model._plaintiff.has(Plaintiff.name.ilike(f'%{plaintiff_name}%'))
 
@@ -362,7 +356,7 @@ class DetainerWarrantResourceBase(GenericModelView):
         court_date=filter_court_date,
         plaintiff=filter_plaintiff_name,
         plaintiff_attorney=filter_plaintiff_attorney_name,
-        address=filter_address,
+        address=ColumnFilter(operator.eq),
         free_text=filter_any_field
     )
 
