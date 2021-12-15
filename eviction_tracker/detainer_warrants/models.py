@@ -61,9 +61,9 @@ class Defendant(db.Model, Timestamped):
 
     id = Column(db.Integer, primary_key=True)
     first_name = Column(db.String(255))
-    middle_name = Column(db.String(50))
-    last_name = Column(db.String(50))
-    suffix = Column(db.String(20))
+    middle_name = Column(db.String(255))
+    last_name = Column(db.String(255))
+    suffix = Column(db.String(255))
     aliases = Column(db.ARRAY(db.String(255)),
                      nullable=False, server_default='{}')
     potential_phones = Column(db.String(255))
