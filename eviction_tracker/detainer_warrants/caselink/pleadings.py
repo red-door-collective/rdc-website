@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 
 CONTINUANCE_REGEX = re.compile(r'COURT\s+DATE\s+CONTINUANCE\s+(\d+\.\d+\.\d+)')
 HEARING_REGEX = re.compile(r'COURT\s+DATE\s+(\d+\.\d+\.\d+)')
+DOCUMENTS_REGEX = re.compile(
+    r'\,\s*"ý(https://caselinkimages.nashville.gov.+?\.pdf)ý*"')
 
 
 def is_between(begin_date, end_date, check_date=None):
@@ -42,20 +44,24 @@ def date_from_str(some_str, format):
     return datetime.strptime(some_str, format)
 
 
-@circuit(expected_exception=TimeoutException)
+@circuit(expected_exception=TimeoutException, recovery_timeout=20, failure_threshold=3)
 def import_from_dw_page(browser, docket_id):
     postback_HTML = None
 
     try:
         browser.switch_to.frame(ids.POSTBACK_FRAME)
 
-        script_tag = browser.find_element(By.XPATH, "/html")
-        postback_HTML = script_tag.get_attribute('outerHTML')
+        documents_match = None
+        for attempt_number in range(4):
+            script_tag = browser.find_element(By.XPATH, "/html")
+            postback_HTML = script_tag.get_attribute('outerHTML')
+            documents_match = DOCUMENTS_REGEX.search(postback_HTML)
+            if documents_match:
+                break
+            else:
+                time.sleep(.5)
 
-        documents_regex = re.compile(
-            r'\,\s*"ý(https://caselinkimages.nashville.gov.+?\.pdf)ý*"')
-
-        urls_mess = documents_regex.search(postback_HTML).group(1)
+        urls_mess = documents_match.group(1)
         urls = [url for url in urls_mess.split('ý') if url != '']
 
         created_count = 0
@@ -95,7 +101,6 @@ def import_from_dw_page(browser, docket_id):
             hearing_match = HEARING_REGEX.search(pleading_description)
             if continuance_match:
                 hearing_date = date_from_str(pleading_date_str, '%m/%d/%Y')
-                print(hearing_date)
                 continuance_date = date_from_str(
                     continuance_match.group(1), '%m.%d.%y')
                 existing_hearing = Hearing.query.filter(
@@ -137,7 +142,7 @@ def import_documents(browser, docket_id):
 
     search(browser)
 
-    time.sleep(3)
+    time.sleep(1)
 
     import_from_dw_page(browser, docket_id)
 
@@ -152,8 +157,6 @@ def bulk_import_documents(browser, docket_ids):
 
     for docket_id in docket_ids:
         try:
-            time.sleep(3)
-
             docket_search = WebDriverWait(browser, 5).until(
                 EC.element_to_be_clickable(
                     (By.NAME, names.DOCKET_NUMBER_INPUT))
@@ -163,7 +166,7 @@ def bulk_import_documents(browser, docket_ids):
 
             search(browser)
 
-            time.sleep(3)
+            time.sleep(1)
 
             postback_HTML = import_from_dw_page(browser, docket_id)
 
@@ -173,7 +176,7 @@ def bulk_import_documents(browser, docket_ids):
                 )
             ).click()
         except:
-            logger.error(
+            logger.warning(
                 f'failed to gather documents for {docket_id}. Exception: {traceback.format_exc()}')
             DetainerWarrant.query.get(docket_id).update(
                 _last_pleading_documents_check=datetime.utcnow(),
