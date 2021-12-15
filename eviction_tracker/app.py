@@ -5,6 +5,7 @@ from eviction_tracker.extensions import cors, db, marshmallow, migrate, api, log
 from eviction_tracker.admin.models import User, user_datastore
 import os
 import time
+import calendar
 
 from sqlalchemy import and_, or_, func, desc
 from eviction_tracker import commands, detainer_warrants, admin, direct_action
@@ -421,6 +422,18 @@ def register_extensions(app):
             desc(DetainerWarrant.updated_at)).first()
         return flask.jsonify({
             'last_detainer_warrant_update': last_warrant.updated_at if last_warrant else None
+        })
+
+    @app.route('/api/v1/rollup/year/<int:year_number>/month/<int:month_number>')
+    def monthly_rollup(year_number, month_number):
+        start_date, end_date = calendar.monthrange(year_number, month_number)
+        start_of_month = date(year_number, month_number, start_date + 1)
+        end_of_month = date(year_number, month_number, end_date)
+        return flask.jsonify({
+            'detainer_warrants_filed': between_dates(start_of_month, end_of_month, DetainerWarrant.query).count(),
+            'eviction_judgments': Judgment.query.filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.awards_possession == True).count(),
+            'plaintiff_awards': db.session.query(func.sum(Judgment.awards_fees)).filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.awards_fees != None).scalar(),
+            'evictions_entered_by_default': Judgment.query.filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.entered_by_id == 0).count()
         })
 
     @app.route('/api/v1/current-user')
