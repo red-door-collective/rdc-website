@@ -52,6 +52,19 @@ def sync(workbook_name, limit, service_account_key):
 
 
 @click.command()
+@click.option('-w', '--workbook-name', default='GS Dockets (Starting March 15)',
+              help='Name of Google spreadsheet')
+@click.option('-l', '--limit', default=None,
+              help='Number of rows to insert')
+@click.option('-k', '--service-account-key', default=None,
+              help='Google Service Account filepath')
+@with_appcontext
+def sync_judgments(workbook_name, limit, service_account_key):
+    detainer_warrants.judgment_imports.from_workbook(
+        workbook_name, limit=limit, service_account_key=service_account_key)
+
+
+@click.command()
 @click.argument('url')
 @with_appcontext
 def parse_docket(url):
