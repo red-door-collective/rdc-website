@@ -189,19 +189,21 @@ def update_pending_warrants():
 
     three_days_ago = current_time - timedelta(days=3)
 
-    queue = db.session.query(DetainerWarrant.docket_id).filter(and_(
-        DetainerWarrant.status == 'PENDING',
-        or_(
-            DetainerWarrant._last_pleading_documents_check == None,
-            DetainerWarrant._judgments.any(
-                DetainerWarrant._last_pleading_documents_check < Judgment._court_date
+    queue = db.session.query(DetainerWarrant.docket_id)\
+        .order_by(DetainerWarrant._file_date.desc())\
+        .filter(and_(
+            DetainerWarrant.status == 'PENDING',
+            # or_(
+            #     DetainerWarrant._last_pleading_documents_check == None,
+            #     DetainerWarrant.hearings.any(
+            #         DetainerWarrant._last_pleading_documents_check < Hearing._court_date
+            #     )
+            # ),
+            or_(
+                DetainerWarrant._last_pleading_documents_check == None,
+                DetainerWarrant._last_pleading_documents_check < three_days_ago
             )
-        ),
-        or_(
-            DetainerWarrant._last_pleading_documents_check == None,
-            DetainerWarrant._last_pleading_documents_check < three_days_ago
-        )
-    ))
+        ))
     bulk_import_documents([id[0] for id in queue])
 
 
