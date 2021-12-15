@@ -1,12 +1,13 @@
 from flask import current_app
 from selenium import webdriver
-from selenium.common.exceptions import ElementNotInteractableException, StaleElementReferenceException
+from selenium.common.exceptions import ElementNotInteractableException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.wait import WebDriverWait
 import selenium.webdriver.support.expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from sqlalchemy import and_, or_
+from sqlalchemy import Date, cast
 import time
 import os
 import re
@@ -23,9 +24,13 @@ from datetime import datetime, date, timedelta
 from pdfminer.high_level import extract_pages, extract_text
 import requests
 import io
+from circuitbreaker import circuit
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
+
+CONTINUANCE_REGEX = re.compile(r'COURT\s+DATE\s+CONTINUANCE\s+(\d+\.\d+\.\d+)')
+HEARING_REGEX = re.compile(r'COURT\s+DATE\s+(\d+\.\d+\.\d+)')
 
 
 def is_between(begin_date, end_date, check_date=None):
@@ -33,6 +38,11 @@ def is_between(begin_date, end_date, check_date=None):
     return check_date >= begin_date and check_date <= end_date
 
 
+def date_from_str(some_str, format):
+    return datetime.strptime(some_str, format)
+
+
+@circuit(expected_exception=TimeoutException)
 def import_from_dw_page(browser, docket_id):
     postback_HTML = None
 
@@ -67,6 +77,50 @@ def import_from_dw_page(browser, docket_id):
 
         browser.switch_to.default_content()
         browser.switch_to.frame(ids.UPDATE_FRAME)
+
+        pleading_dates = WebDriverWait(browser, 5).until(
+            EC.visibility_of_all_elements_located(
+                (By.XPATH, '//*[@id="GRIDTBL_1A"]/tbody/tr[*]/td[2]/input'))
+        )
+        pleading_descriptions = WebDriverWait(browser, 5).until(
+            EC.visibility_of_all_elements_located(
+                (By.XPATH, '//*[@id="GRIDTBL_1A"]/tbody/tr[*]/td[3]/input'))
+        )
+
+        for pleading_date_el, pleading_description_el in zip(pleading_dates, pleading_descriptions):
+            pleading_date_str = pleading_date_el.get_attribute('value')
+            pleading_description = pleading_description_el.get_attribute(
+                'value')
+            continuance_match = CONTINUANCE_REGEX.search(pleading_description)
+            hearing_match = HEARING_REGEX.search(pleading_description)
+            if continuance_match:
+                hearing_date = date_from_str(pleading_date_str, '%m/%d/%Y')
+                print(hearing_date)
+                continuance_date = date_from_str(
+                    continuance_match.group(1), '%m.%d.%y')
+                existing_hearing = Hearing.query.filter(
+                    Hearing.docket_id == docket_id,
+                    cast(Hearing._court_date, Date) == pleading_date
+                ).first()
+                if existing_hearing:
+                    existing_hearing.update(_continuance_on=continuance_date)
+                else:
+                    Hearing.create(_court_date=pleading_date, docket_id=docket_id,
+                                   address="unknown", _continuance_on=continuance_date)
+                db.session.commit()
+
+            elif hearing_match:
+                hearing_date = date_from_str(
+                    hearing_match.group(1), '%m.%d.%y')
+                existing_hearing = Hearing.query.filter(
+                    Hearing.docket_id == docket_id,
+                    cast(Hearing._court_date, Date) == hearing_date
+                ).first()
+                if not existing_hearing:
+                    Hearing.create(docket_id=docket_id,
+                                   _court_date=hearing_date, address="unknown")
+                db.session.commit()
+
     finally:
         return postback_HTML
 
@@ -205,8 +259,9 @@ def update_judgment_from_document(document):
         if existing_hearing:
             existing_hearing.update_judgment_from_document(document)
         else:
-            logger.warning(
-                f"Could not match {document.url} with existing hearing.")
+            hearing = Hearing.create(
+                _court_date=file_date, docket_id=document.docket_id, address="unknown")
+            hearing.update_judgment_from_document(document)
 
 
 def update_judgments_from_documents():

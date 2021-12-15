@@ -4,7 +4,7 @@ import io
 from nameparser import HumanName
 from sqlalchemy.orm.exc import MultipleResultsFound
 
-from .models import db, Plaintiff, Attorney, Defendant, DetainerWarrant
+from .models import db, Case, Plaintiff, Attorney, Defendant, DetainerWarrant
 from .util import district_defaults, get_or_create, normalize
 
 
@@ -47,8 +47,10 @@ def from_csv_row(defaults, row):
     warrant = {k: normalize(v) for k, v in row.items()}
     docket_id = warrant['Docket #']
 
-    dw, _ = get_or_create(db.session, DetainerWarrant,
-                          docket_id=docket_id, defaults={'last_edited_by_id': -1})
+    case = Case.query.get(docket_id)
+
+    if not case:
+        case = Case.create(docket_id=docket_id)
 
     if 'DETAINER WARRANT' not in warrant['Description']:
         return
@@ -65,18 +67,18 @@ def from_csv_row(defaults, row):
 
     defendants = create_defendant(
         defaults,
-        dw.docket_id,
+        case.docket_id,
         warrant['Defendant']
     )
 
-    dw.update(status=warrant['Status'],
-              _file_date=warrant['File Date'],
-              _plaintiff=plaintiff,
-              _plaintiff_attorney=plaintiff_attorney,
-              defendants=[{'id': d.id} for d in defendants if d]
-              )
+    case.update(status=warrant['Status'],
+                _file_date=warrant['File Date'],
+                _plaintiff=plaintiff,
+                _plaintiff_attorney=plaintiff_attorney,
+                defendants=[{'id': d.id} for d in defendants if d]
+                )
 
-    db.session.add(dw)
+    db.session.add(case)
     db.session.commit()
 
 

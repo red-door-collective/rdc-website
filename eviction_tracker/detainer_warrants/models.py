@@ -211,6 +211,8 @@ class Hearing(db.Model, Timestamped):
     _court_date = Column(db.DateTime, name='court_date', nullable=False)
     address = Column(db.String(255), nullable=False)
 
+    _continuance_on = Column(db.Date, name='continuance_on')
+
     docket_id = Column(
         db.String(255), db.ForeignKey('cases.docket_id'), nullable=False)
     courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
@@ -257,6 +259,21 @@ class Hearing(db.Model, Timestamped):
     @court_date.comparator
     def court_date(cls):
         return PosixComparator(cls._court_date)
+
+    @hybrid_property
+    def continuance_on(self):
+        if self._continuance_on:
+            return in_millis(datetime.combine(self._continuance_on, datetime.min.time()).timestamp())
+        else:
+            return None
+
+    @continuance_on.comparator
+    def continuance_on(cls):
+        return PosixComparator(cls._continuance_on)
+
+    @continuance_on.setter
+    def continuance_on(self, posix):
+        self._continuance_on = from_millis(posix)
 
     @court_date.setter
     def court_date(self, posix):
@@ -318,7 +335,6 @@ class Judgment(db.Model, Timestamped):
     _file_date = Column(db.Date, name='file_date')
     mediation_letter = Column(db.Boolean)
     court_order_number = Column(db.Integer)
-    _continuance_on = Column(db.Date)
     notes = Column(db.Text)
 
     hearing_id = Column(db.Integer, db.ForeignKey(
@@ -519,21 +535,6 @@ class Judgment(db.Model, Timestamped):
             return 'Dismissed'
         else:
             return ''
-
-    @hybrid_property
-    def continuance_on(self):
-        if self._continuance_on:
-            return in_millis(datetime.combine(self._continuance_on, datetime.min.time()).timestamp())
-        else:
-            return None
-
-    @continuance_on.comparator
-    def continuance_on(cls):
-        return PosixComparator(cls._continuance_on)
-
-    @continuance_on.setter
-    def continuance_on(self, posix):
-        self._continuance_on = from_millis(posix)
 
     def __repr__(self):
         return "<Judgment(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
