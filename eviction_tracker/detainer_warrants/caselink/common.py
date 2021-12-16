@@ -29,7 +29,7 @@ CASELINK_URL = 'https://caselink.nashville.gov'
 
 def chrome_options():
     options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
+    # options.add_argument('--headless')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--no-sandbox')
@@ -78,5 +78,7 @@ def login(browser):
 
 
 def search(browser):
-    browser.find_element(By.NAME, names.SEARCH_BUTTON).click()
+    WebDriverWait(browser, 2)\
+        .until(EC.element_to_be_clickable((By.NAME, names.SEARCH_BUTTON)))\
+        .click()
     time.sleep(1.5)

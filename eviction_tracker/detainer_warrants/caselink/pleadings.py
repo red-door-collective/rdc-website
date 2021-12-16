@@ -24,7 +24,6 @@ from datetime import datetime, date, timedelta
 from pdfminer.high_level import extract_pages, extract_text
 import requests
 import io
-from circuitbreaker import circuit
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -44,11 +43,11 @@ def date_from_str(some_str, format):
     return datetime.strptime(some_str, format)
 
 
-@circuit(expected_exception=TimeoutException, recovery_timeout=5, failure_threshold=3)
 def import_from_dw_page(browser, docket_id):
     postback_HTML = None
 
     try:
+        browser.switch_to.default_content()
         browser.switch_to.frame(ids.POSTBACK_FRAME)
 
         documents_match = None
@@ -59,6 +58,7 @@ def import_from_dw_page(browser, docket_id):
             if documents_match:
                 break
             else:
+                print('document match #', attempt_number)
                 time.sleep(.5)
 
         urls_mess = documents_match.group(1)
@@ -83,6 +83,8 @@ def import_from_dw_page(browser, docket_id):
 
         browser.switch_to.default_content()
         browser.switch_to.frame(ids.UPDATE_FRAME)
+
+        print('trying to get hearing info')
 
         pleading_dates = WebDriverWait(browser, 2).until(
             EC.visibility_of_all_elements_located(
@@ -137,20 +139,19 @@ def import_documents(browser, docket_id):
     search_for_warrant(browser, docket_id)
 
 
-def search_for_warrant(browser, docket_id, first_time=True):
-    docket_search = browser.find_element(By.NAME, names.DOCKET_NUMBER_INPUT)
-
-    if not first_time:
-        WebDriverWait(browser, 5).until(EC.staleness_of(docket_search))
-
-        docket_search = WebDriverWait(browser, 5)\
-            .until(EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT)))
-
+def search_for_warrant(browser, docket_id):
     for attempt in range(4):
         try:
+            docket_search = browser.find_element(
+                By.NAME, names.DOCKET_NUMBER_INPUT)
             docket_search.send_keys(docket_id)
+            print('succeeded attempt #', attempt)
             break
         except ElementNotInteractableException:
+            print('failed attempt #', attempt)
+            WebDriverWait(browser, 1).until(EC.staleness_of(docket_search))
+            WebDriverWait(browser, 1)\
+                .until(EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT)))
             time.sleep(.5)
 
     search(browser)
@@ -160,22 +161,15 @@ def search_for_warrant(browser, docket_id, first_time=True):
 
 @run_with_chrome
 def bulk_import_documents(browser, docket_ids):
-    login(browser)
-
     logger.info(f'checking {len(docket_ids)} dockets')
 
     postback_HTML = None
 
     for index, docket_id in enumerate(docket_ids):
-        try:
-            postback_HTML = search_for_warrant(
-                browser, docket_id, first_time=index == 0)
+        login(browser)
 
-            WebDriverWait(browser, 2).until(
-                EC.element_to_be_clickable(
-                    (By.NAME, names.NEW_SEARCH_BUTTON)
-                )
-            ).click()
+        try:
+            postback_HTML = search_for_warrant(browser, docket_id)
 
         except:
             logger.warning(
@@ -186,7 +180,6 @@ def bulk_import_documents(browser, docket_ids):
                 pleading_document_check_was_successful=False
             )
             db.session.commit()
-            login(browser)  # just keep swimming...
 
 
 def update_pending_warrants():
