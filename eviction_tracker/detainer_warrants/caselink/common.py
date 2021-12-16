@@ -19,7 +19,6 @@ import eviction_tracker.config as config
 import logging
 import logging.config
 import traceback
-from circuitbreaker import circuit
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -59,20 +58,26 @@ def run_with_chrome(f, options=None):
     return wrapper
 
 
-@circuit(expected_exception=ConnectionError, failure_threshold=3, recovery_timeout=5)
 def login(browser):
-    browser.get(CASELINK_URL)
-    browser.switch_to.frame(ids.UPDATE_FRAME)
+    for attempt in range(4):
+        try:
+            browser.get(CASELINK_URL)
+            browser.switch_to.frame(ids.UPDATE_FRAME)
 
-    username_field = WebDriverWait(browser, 5).until(
-        EC.presence_of_element_located((By.ID, ids.USERNAME_LOGIN_FIELD))
-    )
-    username_field.send_keys(current_app.config['CASELINK_USERNAME'])
+            username_field = WebDriverWait(browser, 5).until(
+                EC.presence_of_element_located(
+                    (By.ID, ids.USERNAME_LOGIN_FIELD))
+            )
+            username_field.send_keys(current_app.config['CASELINK_USERNAME'])
 
-    password_field = browser.find_element(By.ID, ids.PASSWORD_LOGIN_FIELD)
-    password_field.send_keys(current_app.config['CASELINK_PASSWORD'])
+            password_field = browser.find_element(
+                By.ID, ids.PASSWORD_LOGIN_FIELD)
+            password_field.send_keys(current_app.config['CASELINK_PASSWORD'])
 
-    browser.find_element(By.ID, ids.LOGIN_BUTTON).click()
+            browser.find_element(By.ID, ids.LOGIN_BUTTON).click()
+            break
+        except:
+            time.sleep(1)
 
     time.sleep(1.5)
 
