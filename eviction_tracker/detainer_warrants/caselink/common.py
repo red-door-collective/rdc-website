@@ -74,6 +74,9 @@ def login(browser):
 
     browser.find_element(By.ID, ids.LOGIN_BUTTON).click()
 
+    time.sleep(1.5)
+
 
 def search(browser):
     browser.find_element(By.NAME, names.SEARCH_BUTTON).click()
+    time.sleep(1.5)

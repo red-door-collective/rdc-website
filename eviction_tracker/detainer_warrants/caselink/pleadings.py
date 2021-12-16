@@ -150,16 +150,12 @@ def search_for_warrant(browser, docket_id, first_time=True):
 
     search(browser)
 
-    time.sleep(1.5)
-
     return import_from_dw_page(browser, docket_id)
 
 
 @run_with_chrome
 def bulk_import_documents(browser, docket_ids):
     login(browser)
-
-    time.sleep(1.5)
 
     logger.info(f'checking {len(docket_ids)} dockets')
 
