@@ -79,11 +79,11 @@ def login(browser):
         except:
             time.sleep(1)
 
-    time.sleep(1.5)
+    time.sleep(current_app.config.get('LOGIN_WAIT', 1.5))
 
 
 def search(browser):
     WebDriverWait(browser, 2)\
         .until(EC.element_to_be_clickable((By.NAME, names.SEARCH_BUTTON)))\
         .click()
-    time.sleep(1.5)
+    time.sleep(current_app.config.get('SEARCH_WAIT', 1.5))

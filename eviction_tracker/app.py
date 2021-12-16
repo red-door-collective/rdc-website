@@ -78,6 +78,8 @@ def create_app(testing=False):
     app.config['CASELINK_USERNAME'] = os.environ['CASELINK_USERNAME']
     app.config['CASELINK_PASSWORD'] = os.environ['CASELINK_PASSWORD']
     app.config['TESTING'] = testing
+    app.config['LOGIN_WAIT'] = os.environ['LOGIN_WAIT']
+    app.config['SEARCH_WAIT'] = os.environ['SEARCH_WAIT']
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
