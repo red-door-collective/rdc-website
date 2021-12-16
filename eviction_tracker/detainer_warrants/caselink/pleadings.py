@@ -44,7 +44,7 @@ def date_from_str(some_str, format):
     return datetime.strptime(some_str, format)
 
 
-@circuit(expected_exception=TimeoutException, recovery_timeout=20, failure_threshold=3)
+@circuit(expected_exception=TimeoutException, recovery_timeout=5, failure_threshold=3)
 def import_from_dw_page(browser, docket_id):
     postback_HTML = None
 
@@ -84,11 +84,11 @@ def import_from_dw_page(browser, docket_id):
         browser.switch_to.default_content()
         browser.switch_to.frame(ids.UPDATE_FRAME)
 
-        pleading_dates = WebDriverWait(browser, 5).until(
+        pleading_dates = WebDriverWait(browser, 2).until(
             EC.visibility_of_all_elements_located(
                 (By.XPATH, '//*[@id="GRIDTBL_1A"]/tbody/tr[*]/td[2]/input'))
         )
-        pleading_descriptions = WebDriverWait(browser, 5).until(
+        pleading_descriptions = WebDriverWait(browser, 2).until(
             EC.visibility_of_all_elements_located(
                 (By.XPATH, '//*[@id="GRIDTBL_1A"]/tbody/tr[*]/td[3]/input'))
         )
@@ -134,47 +134,48 @@ def import_from_dw_page(browser, docket_id):
 def import_documents(browser, docket_id):
     login(browser)
 
-    docket_search = WebDriverWait(browser, 5, ignored_exceptions=[ElementNotInteractableException]).until(
-        EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT))
-    )
+    search_for_warrant(browser, docket_id)
+
+
+def search_for_warrant(browser, docket_id, first_time=True):
+    docket_search = browser.find_element(By.NAME, names.DOCKET_NUMBER_INPUT)
+
+    if not first_time:
+        WebDriverWait(browser, 2).until(EC.staleness_of(docket_search))
+
+        docket_search = WebDriverWait(browser, 2)\
+            .until(EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT)))
 
     docket_search.send_keys(docket_id)
 
     search(browser)
 
-    time.sleep(1)
+    time.sleep(1.5)
 
-    import_from_dw_page(browser, docket_id)
+    return import_from_dw_page(browser, docket_id)
 
 
 @run_with_chrome
 def bulk_import_documents(browser, docket_ids):
     login(browser)
 
+    time.sleep(1.5)
+
     logger.info(f'checking {len(docket_ids)} dockets')
 
     postback_HTML = None
 
-    for docket_id in docket_ids:
+    for index, docket_id in enumerate(docket_ids):
         try:
-            docket_search = WebDriverWait(browser, 5).until(
-                EC.element_to_be_clickable(
-                    (By.NAME, names.DOCKET_NUMBER_INPUT))
-            )
+            postback_HTML = search_for_warrant(
+                browser, docket_id, first_time=index == 0)
 
-            docket_search.send_keys(docket_id)
-
-            search(browser)
-
-            time.sleep(1)
-
-            postback_HTML = import_from_dw_page(browser, docket_id)
-
-            WebDriverWait(browser, 5).until(
+            WebDriverWait(browser, 2).until(
                 EC.element_to_be_clickable(
                     (By.NAME, names.NEW_SEARCH_BUTTON)
                 )
             ).click()
+
         except:
             logger.warning(
                 f'failed to gather documents for {docket_id}. Exception: {traceback.format_exc()}')
@@ -196,12 +197,6 @@ def update_pending_warrants():
         .order_by(DetainerWarrant._file_date.desc())\
         .filter(and_(
             DetainerWarrant.status == 'PENDING',
-            # or_(
-            #     DetainerWarrant._last_pleading_documents_check == None,
-            #     DetainerWarrant.hearings.any(
-            #         DetainerWarrant._last_pleading_documents_check < Hearing._court_date
-            #     )
-            # ),
             or_(
                 DetainerWarrant._last_pleading_documents_check == None,
                 DetainerWarrant._last_pleading_documents_check < three_days_ago
