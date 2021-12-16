@@ -250,6 +250,7 @@ def update_judgment_from_document(document):
             hearing = Hearing.create(
                 _court_date=file_date, docket_id=document.docket_id, address="unknown")
             hearing.update_judgment_from_document(document)
+        db.session.commit()
 
 
 def update_judgments_from_documents():
