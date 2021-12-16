@@ -47,7 +47,6 @@ def import_from_dw_page(browser, docket_id):
     postback_HTML = None
 
     try:
-        browser.switch_to.default_content()
         browser.switch_to.frame(ids.POSTBACK_FRAME)
 
         documents_match = None
@@ -58,7 +57,6 @@ def import_from_dw_page(browser, docket_id):
             if documents_match:
                 break
             else:
-                print('document match #', attempt_number)
                 time.sleep(.5)
 
         urls_mess = documents_match.group(1)
@@ -83,8 +81,6 @@ def import_from_dw_page(browser, docket_id):
 
         browser.switch_to.default_content()
         browser.switch_to.frame(ids.UPDATE_FRAME)
-
-        print('trying to get hearing info')
 
         pleading_dates = WebDriverWait(browser, 2).until(
             EC.visibility_of_all_elements_located(
@@ -145,10 +141,8 @@ def search_for_warrant(browser, docket_id):
             docket_search = browser.find_element(
                 By.NAME, names.DOCKET_NUMBER_INPUT)
             docket_search.send_keys(docket_id)
-            print('succeeded attempt #', attempt)
             break
         except ElementNotInteractableException:
-            print('failed attempt #', attempt)
             WebDriverWait(browser, 1).until(EC.staleness_of(docket_search))
             WebDriverWait(browser, 1)\
                 .until(EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT)))
