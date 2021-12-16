@@ -141,9 +141,9 @@ def search_for_warrant(browser, docket_id, first_time=True):
     docket_search = browser.find_element(By.NAME, names.DOCKET_NUMBER_INPUT)
 
     if not first_time:
-        WebDriverWait(browser, 2).until(EC.staleness_of(docket_search))
+        WebDriverWait(browser, 5).until(EC.staleness_of(docket_search))
 
-        docket_search = WebDriverWait(browser, 2)\
+        docket_search = WebDriverWait(browser, 5)\
             .until(EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT)))
 
     docket_search.send_keys(docket_id)

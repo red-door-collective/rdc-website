@@ -59,7 +59,7 @@ def run_with_chrome(f, options=None):
     return wrapper
 
 
-@circuit(expected_exception=ConnectionError)
+@circuit(expected_exception=ConnectionError, failure_threshold=3, recovery_timeout=5)
 def login(browser):
     browser.get(CASELINK_URL)
     browser.switch_to.frame(ids.UPDATE_FRAME)
