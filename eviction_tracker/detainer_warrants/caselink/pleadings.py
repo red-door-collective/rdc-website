@@ -146,7 +146,12 @@ def search_for_warrant(browser, docket_id, first_time=True):
         docket_search = WebDriverWait(browser, 5)\
             .until(EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT)))
 
-    docket_search.send_keys(docket_id)
+    for attempt in range(4):
+        try:
+            docket_search.send_keys(docket_id)
+            break
+        except ElementNotInteractableException:
+            time.sleep(.5)
 
     search(browser)
 
