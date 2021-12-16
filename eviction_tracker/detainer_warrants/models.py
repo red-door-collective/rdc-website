@@ -284,6 +284,8 @@ class Hearing(db.Model, Timestamped):
 
     def update_judgment_from_document(self, document):
         attrs = Judgment.attributes_from_pdf(document.text)
+        if not attrs:
+            return self
         attrs['document_url'] = document.url
         if self.judgment:
             self.judgment.update(**attrs)
@@ -300,6 +302,9 @@ def search(regex, text, default=None):
 def match(regex, text, default=None):
     match = regex.search(text)
     return match if match else default
+
+
+JUDGMENT_DOCKET_ID_REGEX = re.compile(r'DOCKET\s+NO.\s*:\s*(\w+)\s*')
 
 
 class Judgment(db.Model, Timestamped):
@@ -553,8 +558,11 @@ class Judgment(db.Model, Timestamped):
         checked = u''
         unchecked = u''
 
-        dw_regex = re.compile(r'DOCKET NO.:\s*(\w+)\s*')
-        docket_id = dw_regex.search(pdf).group(1)
+        docket_match = JUDGMENT_DOCKET_ID_REGEX.search(pdf)
+        if not docket_match:
+            return
+
+        docket_id = docket_match.group(1)
 
         if docket_id and not DetainerWarrant.query.get(docket_id):
             DetainerWarrant.create(docket_id=docket_id)
