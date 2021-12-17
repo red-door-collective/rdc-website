@@ -8,6 +8,7 @@ import time
 import calendar
 
 from sqlalchemy import and_, or_, func, desc
+from sqlalchemy.sql import text
 from eviction_tracker import commands, detainer_warrants, admin, direct_action
 import json
 from datetime import datetime, date, timedelta
@@ -80,6 +81,7 @@ def create_app(testing=False):
     app.config['TESTING'] = testing
     app.config['LOGIN_WAIT'] = float(os.environ['LOGIN_WAIT'])
     app.config['SEARCH_WAIT'] = float(os.environ['SEARCH_WAIT'])
+    # app.config['SQLALCHEMY_ECHO'] = True
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
@@ -116,6 +118,15 @@ def next_month(dt):
 
 
 def top_evictions_between_dates(start, end):
+    return between_dates(start, end, db.session.query(Plaintiff.id, Plaintiff.name, func.count(DetainerWarrant.plaintiff_id)))\
+        .join(Plaintiff)\
+        .group_by(DetainerWarrant.plaintiff_id, Plaintiff.id)\
+        .order_by(desc(func.count('*')))\
+        .limit(10)\
+        .all()
+
+
+def top_evictions_between_dates(start, end):
     return between_dates(start, end, db.session.query(Plaintiff, func.count(DetainerWarrant.plaintiff_id)))\
         .join(Plaintiff)\
         .group_by(DetainerWarrant.plaintiff_id, Plaintiff.id)\
@@ -124,17 +135,30 @@ def top_evictions_between_dates(start, end):
         .all()
 
 
-def evictions_between_dates(start, end, plaintiff_id):
-    return between_dates(start, end, db.session.query(Plaintiff))\
-        .join(DetainerWarrant)\
-        .filter_by(plaintiff_id=plaintiff_id)\
-        .count()
+def evictions_by_month(plaintiff_id, months):
+    return db.session.execute(text("""
+    select
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_1_start AND date(cases.file_date) <= :d_1_end) as ":1",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_2_start AND date(cases.file_date) <= :d_2_end) as ":2",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_3_start AND date(cases.file_date) <= :d_3_end) as ":3",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_4_start AND date(cases.file_date) <= :d_4_end) as ":4",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_5_start AND date(cases.file_date) <= :d_5_end) as ":5",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_6_start AND date(cases.file_date) <= :d_6_end) as ":6",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_7_start AND date(cases.file_date) <= :d_7_end) as ":7",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_8_start AND date(cases.file_date) <= :d_8_end) as ":8",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_9_start AND date(cases.file_date) <= :d_9_end) as ":9",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_10_start AND date(cases.file_date) <= :d_10_end) as ":10",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_11_start AND date(cases.file_date) <= :d_11_end) as ":11",
+        count(cases.docket_id) filter (where date(cases.file_date)  >= :d_12_start AND date(cases.file_date) <= :d_12_end) as ":12"
+    FROM plaintiffs p JOIN cases ON p.id = cases.plaintiff_id AND cases.type = 'detainer_warrant'
+    WHERE cases.plaintiff_id = :plaintiff_id
+    """), {"plaintiff_id": plaintiff_id, **months})
 
 
 def top_plaintiff_attorneys_bet(start, end):
     # TODO: perhaps figure this out in python
     return db.session.execute("""
-    with top as 
+    with top as
         (select a.name, count(dw.docket_id) as warrantCount
     from attorneys a
     inner join cases dw on dw.plaintiff_attorney_id = a.id
@@ -143,11 +167,11 @@ def top_plaintiff_attorneys_bet(start, end):
     order by count(dw.docket_id) desc)
     select *
     from top
-    union 
+    union
     (select 'ALL OTHER' as name,
         sum(top.warrantCount) as warrantCount
     from top
-    where top.name not in 
+    where top.name not in
         (select top.name
         from top
         limit 5))
@@ -159,20 +183,19 @@ def top_plaintiff_attorneys_bet(start, end):
 def top_judges_bet(start, end):
     # TODO: perhaps figure this out in python
     return db.session.execute("""
-    with top as 
-        (select j.name, count(dw.docket_id) as warrantCount
+    with top as
+        (select j.name, count(jm.detainer_warrant_id) as warrantCount
     from judges j
-    inner join cases dw on dw.presiding_judge_id = j.id
-    where dw.type = 'detainer_warrant'
+    inner join judgments jm on jm.judge_id = j.id
     group by j.id, j.name
-    order by count(dw.docket_id) desc)
+    order by count(jm.detainer_warrant_id) desc)
     select *
     from top
-    union 
+    union
     (select 'ALL OTHER' as name,
         sum(top.warrantCount) as warrantCount
     from top
-    where top.name not in 
+    where top.name not in
         (select top.name
         from top
         limit 5))
@@ -184,8 +207,8 @@ def top_judges_bet(start, end):
 def top_plaintiff_ranges_bet(start, end):
     # TODO: perhaps figure this out in python
     return db.session.execute("""
-    with top as 
-        (select p.name, 
+    with top as
+        (select p.name,
          count(dw.docket_id) as warrant_count,
          sum(CASE WHEN dw.amount_claimed > 2000 THEN 1 ELSE 0 END) as high,
          sum(case when dw.amount_claimed > 1500 and dw.amount_claimed <= 2000 then 1 else 0 end) as medium_high,
@@ -199,7 +222,7 @@ def top_plaintiff_ranges_bet(start, end):
     order by warrant_count desc)
     select *
     from top
-    union 
+    union
     (select 'ALL OTHER' as name,
         sum(top.warrant_count) as warrant_count,
         sum(top.high),
@@ -208,7 +231,7 @@ def top_plaintiff_ranges_bet(start, end):
         sum(top.medium_low),
         sum(top.low)
     from top
-    where top.name not in 
+    where top.name not in
         (select top.name
         from top
         limit 5))
@@ -315,21 +338,25 @@ def register_extensions(app):
         end_dt = date.today()
         dates = [(dt, next_month(dt))
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
+        months = {}
+        for i, d_range in enumerate(dates):
+            start, end = d_range
+            months[str(i)] = str(i)
+            months[f'd_{i}_start'] = start.strftime('%Y-%m-%d')
+            months[f'd_{i}_end'] = end.strftime('%Y-%m-%d')
 
         top_ten = top_evictions_between_dates(start_dt, end_dt)
 
-        counts = {plaintiff.name: [] for plaintiff, eviction_court in top_ten}
-        for (start, end) in dates:
-            for plaintiff, plaintiff_total_evictions in top_ten:
-                eviction_count = evictions_between_dates(
-                    start, end, plaintiff.id)
-                plaintiff_evictions = counts[plaintiff.name]
-                stats = {'date': millis_timestamp(
-                    start), 'eviction_count': eviction_count}
-                counts[plaintiff.name] = plaintiff_evictions + [stats]
-
-        top_evictors = [{'name': plaintiff, 'history': history}
-                        for plaintiff, history in counts.items()]
+        plaintiffs = {}
+        top_evictors = []
+        for plaintiff, plaintiff_total_evictions in top_ten:
+            counts = evictions_by_month(plaintiff.id, months).fetchone()
+            history = []
+            for i in range(12):
+                history.append({'date': millis_timestamp(
+                    dates[i][0]), 'eviction_count': counts[i]
+                })
+            top_evictors.append({'name': plaintiff.name, 'history': history})
 
         return flask.jsonify(top_evictors)
 

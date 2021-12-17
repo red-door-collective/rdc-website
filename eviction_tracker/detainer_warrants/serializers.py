@@ -142,7 +142,6 @@ class DetainerWarrantSchema(Schema):
     plaintiff_attorney = fields.Nested(AttorneySchema, allow_none=True)
     defendants = fields.Nested(DefendantSchema, many=True)
     hearings = fields.Nested(HearingSchema, many=True)
-    pleadings = fields.Nested(PleadingDocumentSchema, many=True)
     last_edited_by = fields.Nested(serializers.UserSchema)
 
     docket_id = fields.String()
@@ -162,7 +161,7 @@ class DetainerWarrantSchema(Schema):
     class Meta:
         fields = ("docket_id", "address", "order_number", "file_date", "status", "court_date", "amount_claimed",
                   "claims_possession", "hearings", "last_edited_by", "plaintiff", "plaintiff_attorney",  "defendants",
-                  "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "pleadings", "created_at", "updated_at")
+                  "zip_code", "is_legacy", "is_cares", "nonpayment", "notes", "created_at", "updated_at")
 
 
 detainer_warrant_schema = DetainerWarrantSchema()

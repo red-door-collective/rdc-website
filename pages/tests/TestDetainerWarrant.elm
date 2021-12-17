@@ -20,7 +20,6 @@ minimalJson =
         "hearings": [],
         "is_cares": null,
         "is_legacy": null,
-        "pleadings": [],
         "last_edited_by": {
           "active": true,
           "first_name": "System",
@@ -55,7 +54,6 @@ minimalDetainer =
     , amountClaimed = Nothing
     , claimsPossession = Nothing
     , hearings = []
-    , pleadings = []
     , defendants = []
     , fileDate = Nothing
     , isCares = Nothing
@@ -81,7 +79,6 @@ maximumJson =
         "hearings": [],
         "is_cares": true,
         "is_legacy": false,
-        "pleadings": [],
         "last_edited_by": {
           "active": true,
           "first_name": "System",
@@ -124,7 +121,6 @@ maximumDetainer =
     , notes = Just "some notes"
     , plaintiff = Nothing
     , plaintiffAttorney = Nothing
-    , pleadings = []
     , defendants = []
     }
 

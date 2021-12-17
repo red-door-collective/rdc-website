@@ -62,12 +62,14 @@ def import_from_dw_page(browser, docket_id):
         urls_mess = documents_match.group(1)
         urls = [url for url in urls_mess.split('ý') if url != '']
 
-        created_count = 0
+        created_count, seen_count = 0, 0
         for url in urls:
             document, was_created = get_or_create(
                 db.session, PleadingDocument, url=url, docket_id=docket_id)
             if was_created:
                 created_count += 1
+            else:
+                seen_count += 1
 
         DetainerWarrant.query.get(docket_id).update(
             _last_pleading_documents_check=datetime.utcnow(),
@@ -77,7 +79,7 @@ def import_from_dw_page(browser, docket_id):
         db.session.commit()
 
         logger.info(
-            f'created {created_count} pleading documents for {docket_id}')
+            f'{docket_id}: created {created_count}, seen {seen_count} pleading documents')
 
         browser.switch_to.default_content()
         browser.switch_to.frame(ids.UPDATE_FRAME)

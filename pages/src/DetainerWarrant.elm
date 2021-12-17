@@ -36,7 +36,6 @@ type alias DetainerWarrant =
     , nonpayment : Maybe Bool
     , defendants : List Defendant
     , hearings : List Hearing
-    , pleadings : List PleadingDocument
     , notes : Maybe String
     }
 
@@ -125,7 +124,6 @@ decoder =
         |> required "nonpayment" (nullable bool)
         |> required "defendants" (list Defendant.decoder)
         |> required "hearings" (list Hearing.decoder)
-        |> required "pleadings" (list PleadingDocument.decoder)
         |> required "notes" (nullable string)
 
 
