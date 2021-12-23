@@ -18,11 +18,11 @@ DOCKET NO.: 21GT1234
 
 Detainer Warrant Order
 
-\uf0fd Judgment is granted to Plaintiff against  REDACTED REDACTED
+ Judgment is granted to Plaintiff against  REDACTED REDACTED
 
-\uf06f
+
 
-\uf0fd
+
 
 for possession of the described property in the Detainer Warrant and all costs of suit
 
@@ -34,35 +34,35 @@ judgment in the amount of $ 7639.56 and all costs of suit for which execution ma
 
 issue.
 
-Judgment is entered by: \uf06f Default.
+Judgment is entered by:  Default.
 
-\uf0fd Agreement of parties.
+ Agreement of parties.
 
-\uf06f Trial in Court.
+ Trial in Court.
 
 Post-judgment interest is also granted as follows:
 
-\uf0fd at the rate posted on the website of the Administrative Office of the Courts.
+ at the rate posted on the website of the Administrative Office of the Courts.
 
-\uf06f at the rate of % per annum
+ at the rate of % per annum
 
-\uf06f Case is dismissed and all costs are to be paid by Plaintiff(s) for which execution may issue.
+ Case is dismissed and all costs are to be paid by Plaintiff(s) for which execution may issue.
 
 Dismissal is based on:
 
-\uf06f Failure to prosecute.
+ Failure to prosecute.
 
-\uf06f Finding in favor of Defendant(s) after trial.
+ Finding in favor of Defendant(s) after trial.
 
-\uf06f Non-suit by Plaintiff(s).
+ Non-suit by Plaintiff(s).
 
-Dismissal is: \uf06f Without prejudice.
+Dismissal is:  Without prejudice.
 
 \x0cCOPY
 
 EFILED  09/02/21 09:54 AM  CASE NO. 21GT1234  Richard R. Rooker, Clerk
 
-\uf06f With prejudice.
+ With prejudice.
 
 Other terms of this Order, if any, are as follows:
 

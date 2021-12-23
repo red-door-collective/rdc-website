@@ -304,9 +304,8 @@ def match(regex, text, default=None):
     match = regex.search(text)
     return match if match else default
 
-
-checked = u'f0fd'
-unchecked = u'f06f'
+checked = ''  # \uf0fd
+unchecked = ''  # \uf06f
 
 
 class Judgment(db.Model, Timestamped):

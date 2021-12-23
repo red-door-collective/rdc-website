@@ -4,11 +4,11 @@ DOCKET_ID = re.compile(r'DOCKET\s+NO.\s*:\s*(\w+)\s*')
 PLAINTIFF = re.compile(r'COUNTY, TENNESSEE\s*(.+?)\s*Plaintiff')
 JUDGE = re.compile(r'The foregoing is hereby.+Judge\s+(.+?),{0,1}\s+Division')
 IN_FAVOR_PLAINTIFF = re.compile(
-    r'Order\s*(\\uf06f|\\uf0fd)\s*Judgment\s+is\s+granted')
+    r'Order\s*(|)\s*Judgment\s+is\s+granted')
 IN_FAVOR_DEFENDANT = re.compile(
-    r'per\s+annum\s*(\\uf06f|\\uf0fd)\s*Case\s+is\s+dismissed')
+    r'per\s+annum\s*(|)\s*Case\s+is\s+dismissed')
 AWARDS = re.compile(
-    r'(\\uf06f|\\uf0fd)\s*(\\uf06f|\\uf0fd)\s*for\s+possession\s+of\s+the\s+described\s+property'
+    r'(|)\s*(|)\s*for\s+possession\s+of\s+the\s+described\s+property'
 )
 AWARDS_FEES_AMOUNT = re.compile(r'\$\s*([\d\.]+?)\s+')
 ENTERED_BY_DEFAULT = re.compile(r'Judgment is entered by:\s*(.+)\s*Default.')
