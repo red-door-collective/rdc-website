@@ -461,8 +461,8 @@ def register_extensions(app):
         return flask.jsonify({
             'detainer_warrants_filed': between_dates(start_of_month, end_of_month, DetainerWarrant.query).count(),
             'eviction_judgments': Judgment.query.filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.awards_possession == True).count(),
-            'plaintiff_awards': db.session.query(func.sum(Judgment.awards_fees)).filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.awards_fees != None).scalar(),
-            'evictions_entered_by_default': Judgment.query.filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.entered_by_id == 0).count()
+            'plaintiff_awards': float(db.session.query(func.sum(Judgment.awards_fees)).filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.awards_fees != None).scalar()),
+            'evictions_entered_by_default': float(Judgment.query.filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.entered_by_id == 0).count())
         })
 
     @app.route('/api/v1/current-user')

@@ -8,6 +8,7 @@ from nameparser import HumanName
 from ..util import get_or_create
 import re
 from flask_sqlalchemy import BaseQuery
+from .judgments import regexes
 
 
 def district_defaults():
@@ -304,7 +305,8 @@ def match(regex, text, default=None):
     return match if match else default
 
 
-JUDGMENT_DOCKET_ID_REGEX = re.compile(r'DOCKET\s+NO.\s*:\s*(\w+)\s*')
+checked = '\uf0fd'
+unchecked = '\uf06f'
 
 
 class Judgment(db.Model, Timestamped):
@@ -555,10 +557,8 @@ class Judgment(db.Model, Timestamped):
     def attributes_from_pdf(pdf):
         pdf = pdf.replace('\n', ' ').replace('\r', ' ')
         defaults = district_defaults()
-        checked = u''
-        unchecked = u''
 
-        docket_match = JUDGMENT_DOCKET_ID_REGEX.search(pdf)
+        docket_match = regexes.DOCKET_ID.search(pdf)
         if not docket_match:
             return
 
@@ -568,33 +568,25 @@ class Judgment(db.Model, Timestamped):
             DetainerWarrant.create(docket_id=docket_id)
             db.session.commit()
 
-        plaintiff_regex = re.compile(
-            r'COUNTY, TENNESSEE\s*(.+?)\s*Plaintiff')
-        plaintiff_name = search(plaintiff_regex, pdf)
+        plaintiff_name = search(regexes.PLAINTIFF, pdf)
 
         plaintiff = None
         if plaintiff_name:
             plaintiff, _ = get_or_create(
                 db.session, Plaintiff, name=plaintiff_name, defaults=defaults)
 
-        judge_regex = re.compile(
-            r'The foregoing is hereby.+Judge\s+(.+?),{0,1}\s+Division')
-        judge_name = search(judge_regex, pdf)
+        judge_name = search(regexes.JUDGE, pdf)
 
         judge = None
         if judge_name:
             judge, _ = get_or_create(
                 db.session, Judge, name=judge_name, defaults=defaults)
 
-        in_favor_plaintiff_regex = re.compile(
-            r'Order\s*(.+)\s*Judgment is granted')
         in_favor_plaintiff = checked in search(
-            in_favor_plaintiff_regex, pdf, default='')
+            regexes.IN_FAVOR_PLAINTIFF, pdf, default='')
 
-        in_favor_defendant_regex = re.compile(
-            r'per annum\s*(.+)\s*Case is dismissed')
         in_favor_defendant = checked in search(
-            in_favor_defendant_regex, pdf, default='')
+            regexes.IN_FAVOR_DEFENDANT, pdf, default='')
 
         in_favor_of = None
         if in_favor_defendant:
@@ -602,36 +594,26 @@ class Judgment(db.Model, Timestamped):
         elif in_favor_plaintiff:
             in_favor_of = 'PLAINTIFF'
 
-        fees_regex = re.compile(
-            r'against\s*(.+)\s*for possession of the described property in the Detainer Warrant and all costs')
-        possession_regex = re.compile(
-            r'issue\.\s*(.+)\s*for possession of the described property in the Detainer Warrant, plus a monetary')
-        awards_possession = checked in search(
-            possession_regex, pdf, default='')
+        awards_match = regexes.AWARDS.search(pdf)
+        awards_possession = None
+        if awards_match:
+            awards_possession_and_suit = awards_match.group(1) == checked
+            awards_possession_and_fees = awards_match.group(2) == checked
+            awards_possession = awards_possession_and_suit or awards_possession_and_fees
 
-        awards_fees_amount_regex = re.compile(r'\$\s*([\d\.]+?)\s+')
+        awards_fees = search(regexes.AWARDS_FEES_AMOUNT, pdf)
 
-        awards_fees = search(awards_fees_amount_regex, pdf)
-
-        entered_by_default_regex = re.compile(
-            r'Judgment is entered by:\s*(.+)\s*Default.')
-        entered_by_agreement_regex = re.compile(
-            r'Default.\s*(.+)\s*Agreement of parties.')
-        entered_by_trial_regex = re.compile(
-            r'parties.\s*(.+)\s*Trial in Court')
         entered_by = None
-        if checked in search(entered_by_default_regex, pdf, default=''):
+        if checked in search(regexes.ENTERED_BY_DEFAULT, pdf, default=''):
             entered_by = 'DEFAULT'
-        elif checked in search(entered_by_agreement_regex, pdf, default=''):
+        elif checked in search(regexes.ENTERED_BY_AGREEMENT, pdf, default=''):
             entered_by = 'AGREEMENT_OF_PARTIES'
-        elif checked in search(entered_by_trial_regex, pdf, default=''):
+        elif checked in search(regexes.ENTERED_BY_TRIAL, pdf, default=''):
             entered_by = 'TRIAL_IN_COURT'
 
-        interest_follows_site = checked in search(re.compile(
-            r'granted as follows:\s*(.+)\s*at the rate posted'), pdf, default='')
-        interest_rate_regex = re.compile(
-            r'Courts.\s*(.+)\s*at\s+the\s+rate\s+of\s+%\s*([\d\.]*)\s*per\s+annum')
-        interest_rate_match = match(interest_rate_regex, pdf, default='')
+        interest_follows_site = checked in search(
+            regexes.INTEREST_FOLLOWS_SITE, pdf, default='')
+        interest_rate_match = match(regexes.INTEREST_RATE, pdf, default='')
         if interest_rate_match and checked in interest_rate_match.group(1):
             interest_rate = interest_rate_match.group(2)
         else:
@@ -640,28 +622,17 @@ class Judgment(db.Model, Timestamped):
 
         dismissal_basis, with_prejudice = None, None
         if in_favor_defendant:
-            dismissal_failure_regex = re.compile(
-                r'Dismissal is based on:\s*(.+)\s*Failure to prosecute.')
-            dismissal_favor_regex = re.compile(
-                r'prosecute\.\s*(.+)\s*Finding in favor of Defendant')
-            dismissal_non_suit_regex = re.compile(
-                r'after trial.\s*(.+)\s*Non-suit by Plaintiff')
-
-            if checked in search(dismissal_failure_regex, pdf, default=''):
+            if checked in search(regexes.DISMISSAL_FAILURE, pdf, default=''):
                 dismissal_basis = 'FAILURE_TO_PROSECUTE'
-            elif checked in search(dismissal_favor_regex, pdf, default=''):
+            elif checked in search(regexes.DISMISSAL_FAVOR, pdf, default=''):
                 dismissal_basis = 'FINDING_IN_FAVOR_OF_DEFENDANT'
-            elif checked in search(dismissal_non_suit_regex, pdf, default=''):
+            elif checked in search(regexes.DISMISSAL_NON_SUIT, pdf, default=''):
                 dismissal_basis = 'NON_SUIT_BY_PLAINTIFF'
 
-            with_prejudice_regex = re.compile(
-                r'Dismissal\s+is:\s*(.+)\s*Without prejudice')
             with_prejudice = not checked in search(
-                with_prejudice_regex, pdf, default='')
+                regexes.WITH_PREJUDICE, pdf, default='')
 
-        notes_regex = re.compile(
-            r'Other\s+terms\s+of\s+this\s+Order,\s+if\s+any,\s+are\s+as\s+follows:\s*(.+?)\s*EFILED')
-        notes = search(notes_regex, pdf)
+        notes = search(regexes.NOTES, pdf)
 
         return dict(
             awards_possession=awards_possession,
