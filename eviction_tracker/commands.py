@@ -210,6 +210,14 @@ def verify_phone(phone_number):
 
 
 @click.command()
+@click.argument('url')
+@with_appcontext
+def extract_pleading_document_text(url):
+    document = PleadingDocument.query.get(url)
+    detainer_warrants.caselink.pleadings.extract_text_from_document(document)
+
+
+@click.command()
 @with_appcontext
 def bulk_extract_pleading_document_details():
     detainer_warrants.caselink.pleadings.bulk_extract_pleading_document_details()
@@ -237,6 +245,12 @@ def update_judgments_from_documents():
 def gather_pleading_documents(docket_id):
     """Gather pleading documents for a detainer warrant"""
     detainer_warrants.caselink.pleadings.import_documents(docket_id)
+
+
+@click.command()
+@with_appcontext
+def parse_mismatched_pleading_documents():
+    detainer_warrants.caselink.pleadings.parse_mismatched_html()
 
 
 @click.command()

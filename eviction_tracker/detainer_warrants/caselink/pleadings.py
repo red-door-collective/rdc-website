@@ -31,7 +31,9 @@ logger = logging.getLogger(__name__)
 CONTINUANCE_REGEX = re.compile(r'COURT\s+DATE\s+CONTINUANCE\s+(\d+\.\d+\.\d+)')
 HEARING_REGEX = re.compile(r'COURT\s+DATE\s+(\d+\.\d+\.\d+)')
 DOCUMENTS_REGEX = re.compile(
-    r'\,\s*"ý(https://caselinkimages.nashville.gov.+?\.pdf)ý*"')
+    r'\,\s*"ý*(https://caselinkimages.nashville.gov.+?\.pdf)ý*"')
+STALE_HTML_REGEX = re.compile(
+    r'<title>\s*CaseLink\s*Public\s*Inquiry\s*</title>')
 
 
 def is_between(begin_date, end_date, check_date=None):
@@ -41,6 +43,34 @@ def is_between(begin_date, end_date, check_date=None):
 
 def date_from_str(some_str, format):
     return datetime.strptime(some_str, format)
+
+
+def import_from_postback_html(html):
+    return DOCUMENTS_REGEX.search(html)
+
+
+def populate_pleadings(docket_id, documents_match):
+    urls_mess = documents_match.group(1)
+    urls = [url for url in urls_mess.split('ý') if url != '']
+
+    created_count, seen_count = 0, 0
+    for url in urls:
+        document = PleadingDocument.query.get(url)
+        if document:
+            seen_count += 1
+        else:
+            created_count += 1
+            PleadingDocument.create(url=url, docket_id=docket_id)
+
+    logger.info(
+        f'{docket_id}: created {created_count}, seen {seen_count} pleading documents')
+
+    DetainerWarrant.query.get(docket_id).update(
+        _last_pleading_documents_check=datetime.utcnow(),
+        pleading_document_check_mismatched_html=None,
+        pleading_document_check_was_successful=True
+    )
+    db.session.commit()
 
 
 def import_from_dw_page(browser, docket_id):
@@ -53,33 +83,13 @@ def import_from_dw_page(browser, docket_id):
         for attempt_number in range(4):
             script_tag = browser.find_element(By.XPATH, "/html")
             postback_HTML = script_tag.get_attribute('outerHTML')
-            documents_match = DOCUMENTS_REGEX.search(postback_HTML)
+            documents_match = import_from_postback_html(postback_HTML)
             if documents_match:
                 break
             else:
                 time.sleep(.5)
 
-        urls_mess = documents_match.group(1)
-        urls = [url for url in urls_mess.split('ý') if url != '']
-
-        created_count, seen_count = 0, 0
-        for url in urls:
-            document, was_created = get_or_create(
-                db.session, PleadingDocument, url=url, docket_id=docket_id)
-            if was_created:
-                created_count += 1
-            else:
-                seen_count += 1
-
-        DetainerWarrant.query.get(docket_id).update(
-            _last_pleading_documents_check=datetime.utcnow(),
-            pleading_document_check_mismatched_html=None,
-            pleading_document_check_was_successful=True
-        )
-        db.session.commit()
-
-        logger.info(
-            f'{docket_id}: created {created_count}, seen {seen_count} pleading documents')
+        populate_pleadings(docket_id, documents_match)
 
         browser.switch_to.default_content()
         browser.switch_to.frame(ids.UPDATE_FRAME)
@@ -176,6 +186,25 @@ def bulk_import_documents(browser, docket_ids):
                 pleading_document_check_was_successful=False
             )
             db.session.commit()
+
+
+def parse_mismatched_html():
+    queue = DetainerWarrant.query.filter(
+        DetainerWarrant.pleading_document_check_mismatched_html != None
+    )
+
+    logger.info(f're-parsing {queue.count} detainer warrants')
+
+    for dw in queue:
+        logger.info(f're-parsing docket #: {dw.docket_id}')
+        html = dw.pleading_document_check_mismatched_html.replace(
+            '\n', ' ').replace('\r', ' ')
+        staleness_match = STALE_HTML_REGEX.search(html)
+
+        if staleness_match or 'Search for Case(s)' in html or 'LVP.MAIN_POSTREAD' in html or 'TktAlert' in html:
+            dw.update(pleading_document_check_mismatched_html=None)
+        else:
+            populate_pleadings(dw.docket_id, import_from_postback_html(html))
 
 
 def update_pending_warrants():

@@ -38,40 +38,31 @@ class TestDataImport(TestCase):
         user_datastore.create_user(id=-1, email="system-user@reddoorcollective.org", first_name="System",
                                    last_name="User", password=hash_password(str(uuid.uuid4())), roles=['Superuser'])
         db.session.commit()
-        District.create(name='Davidson County')
-        db.session.commit()
-        DetainerWarrant.create(docket_id=DOCKET_ID)
-        with open('tests/fixtures/caselink/judgment-pdf-as-text.txt') as f:
-            PleadingDocument.create(
-                url='123', kind='JUDGMENT', text=f.read(), docket_id=DOCKET_ID)
-
-        Hearing.create(_court_date=datetime.now(),
-                       docket_id=DOCKET_ID, address='example')
-        db.session.commit()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
 
-    def test_judgment_import(self):
-        hearing = Hearing.query.first()
-        document = PleadingDocument.query.first()
-        hearing.update_judgment_from_document(document)
-        judgment = hearing.judgment
+    def test_pleadings_import(self):
+        match = None
+        with open('tests/fixtures/caselink/detainer-warrant-page.html') as f:
+            match = detainer_warrants.caselink.pleadings.import_from_postback_html(
+                f.read())
 
-        self.assertEqual(judgment.detainer_warrant_id, DOCKET_ID)
-        self.assertEqual(datetime.strftime(
-            judgment._file_date, '%m/%d/%y'), '09/02/21')
-        self.assertEqual(judgment.plaintiff.name, 'REDACTED APARTMENTS')
-        self.assertEqual(judgment.judge.name, 'Redacted Redacted')
-        self.assertEqual(judgment.in_favor_of, 'PLAINTIFF')
-        self.assertEqual(judgment.awards_possession, True)
-        self.assertEqual(judgment.awards_fees, Decimal('7639.56'))
-        self.assertEqual(judgment.entered_by, 'AGREEMENT_OF_PARTIES')
-        self.assertIsNone(judgment.interest_rate)
-        self.assertEqual(judgment.interest_follows_site, True)
-        self.assertIsNone(judgment.dismissal_basis)
-        self.assertIsNone(judgment.with_prejudice)
+        urls_mess = match.group(1)
+        urls = [url for url in urls_mess.split('ý') if url != '']
+
+        self.assertEqual(len(urls), 5)
+        self.assertEqual(
+            urls[0], 'https://caselinkimages.nashville.gov/PublicSessions/21/21GT9999/2221242.pdf')
+        self.assertEqual(
+            urls[1], 'https://caselinkimages.nashville.gov/PublicSessions/21/21GT9999/02221243.pdf')
+        self.assertEqual(
+            urls[2], 'https://caselinkimages.nashville.gov/PublicSessions/21/21GT9999/02234860.pdf')
+        self.assertEqual(
+            urls[3], 'https://caselinkimages.nashville.gov/PublicSessions/21/21GT9999/02244410.pdf')
+        self.assertEqual(
+            urls[4], 'https://caselinkimages.nashville.gov/PublicSessions/21/21GT9999/02245154.pdf')
 
 
 if __name__ == '__main__':

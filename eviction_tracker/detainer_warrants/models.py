@@ -305,8 +305,8 @@ def match(regex, text, default=None):
     return match if match else default
 
 
-checked = '\uf0fd'
-unchecked = '\uf06f'
+checked = u'f0fd'
+unchecked = u'f06f'
 
 
 class Judgment(db.Model, Timestamped):
@@ -597,8 +597,8 @@ class Judgment(db.Model, Timestamped):
         awards_match = regexes.AWARDS.search(pdf)
         awards_possession = None
         if awards_match:
-            awards_possession_and_suit = awards_match.group(1) == checked
-            awards_possession_and_fees = awards_match.group(2) == checked
+            awards_possession_and_suit = checked in awards_match.group(1)
+            awards_possession_and_fees = checked in awards_match.group(2)
             awards_possession = awards_possession_and_suit or awards_possession_and_fees
 
         awards_fees = search(regexes.AWARDS_FEES_AMOUNT, pdf)
@@ -644,7 +644,7 @@ class Judgment(db.Model, Timestamped):
             dismissal_basis_id=Judgment.dismissal_bases[dismissal_basis] if dismissal_basis else None,
             with_prejudice=with_prejudice,
             notes=notes,
-            in_favor_of_id=Judgment.parties[in_favor_of],
+            in_favor_of_id=Judgment.parties[in_favor_of] if in_favor_of else None,
             detainer_warrant_id=docket_id,
             _file_date=Judgment.file_date_guess(pdf),
             plaintiff_id=plaintiff.id if plaintiff else None,
