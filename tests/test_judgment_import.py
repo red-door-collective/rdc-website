@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_testing import TestCase
 from eviction_tracker.app import create_app, db, DetainerWarrant
 from eviction_tracker.admin.models import User, user_datastore
-from eviction_tracker.detainer_warrants.models import District, Hearing, PleadingDocument, Judgment
+from eviction_tracker.detainer_warrants.models import District, Hearing, Plaintiff, PleadingDocument, Judge, Judgment
 from flask_security import hash_password, auth_token_required
 import eviction_tracker.detainer_warrants as detainer_warrants
 from datetime import datetime
@@ -72,6 +72,28 @@ class TestDataImport(TestCase):
         self.assertEqual(judgment.interest_follows_site, True)
         self.assertIsNone(judgment.dismissal_basis)
         self.assertIsNone(judgment.with_prejudice)
+
+    def test_judgment_parsing(self):
+        attrs = None
+        with open('tests/fixtures/caselink/judgment-pdf-as-text-suit.txt') as f:
+            attrs = Judgment.attributes_from_pdf(f.read())
+
+        plaintiff_id = Plaintiff.query.first().id
+        judge_id = Judge.query.first().id
+
+        self.assertEqual(attrs['detainer_warrant_id'], DOCKET_ID)
+        self.assertEqual(datetime.strftime(
+            attrs['_file_date'], '%m/%d/%y'), '11/04/21')
+        self.assertEqual(attrs['plaintiff_id'], plaintiff_id)
+        self.assertEqual(attrs['judge_id'], judge_id)
+        self.assertEqual(attrs['in_favor_of_id'], 0)
+        self.assertEqual(attrs['awards_possession'], True)
+        self.assertIsNone(attrs['awards_fees'])
+        self.assertEqual(attrs['entered_by_id'], 0)
+        self.assertIsNone(attrs['interest_rate'])
+        self.assertIsNone(attrs['interest_follows_site'])
+        self.assertIsNone(attrs['dismissal_basis_id'])
+        self.assertIsNone(attrs['with_prejudice'])
 
 
 if __name__ == '__main__':

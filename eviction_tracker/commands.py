@@ -12,7 +12,7 @@ import gspread
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.admin.models import User, user_datastore
 from eviction_tracker.database import db
-from eviction_tracker.detainer_warrants.models import PhoneNumberVerification, PleadingDocument, Defendant, Judgment, District
+from eviction_tracker.detainer_warrants.models import Attorney, PhoneNumberVerification, PleadingDocument, Defendant, Judgment, District
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import uuid

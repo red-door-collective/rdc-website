@@ -8,7 +8,7 @@ IN_FAVOR_PLAINTIFF = re.compile(
 IN_FAVOR_DEFENDANT = re.compile(
     r'per\s+annum\s*(|)\s*Case\s+is\s+dismissed')
 AWARDS = re.compile(
-    r'(|)\s*(|)\s*for\s+possession\s+of\s+the\s+described\s+property'
+    r'(|)\s*(|)\s*(?=for\s+possession\s+of\s+the\s+described\s+property|Judgment\s+is\s+entered\s+by:)'
 )
 AWARDS_FEES_AMOUNT = re.compile(r'\$\s*([\d\.]+?)\s+')
 ENTERED_BY_DEFAULT = re.compile(r'Judgment is entered by:\s*(.+)\s*Default.')

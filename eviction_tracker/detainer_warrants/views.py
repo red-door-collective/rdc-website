@@ -320,6 +320,9 @@ class PleadingDocumentResourceBase(GenericModelView):
 
     pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('updated_at', default='-updated_at')
+    filtering = Filtering(
+        docket_id=ColumnFilter(operator.eq)
+    )
 
 
 class PleadingDocumentListResource(PleadingDocumentResourceBase):
