@@ -301,8 +301,9 @@ viewEditButton plaintiff =
     Button.fromIcon (Icon.edit "Go to edit page")
         |> Button.redirect
             (Link.link <|
-                Url.Builder.relative
-                    [ "attorneys"
+                Url.Builder.absolute
+                    [ "admin"
+                    , "attorneys"
                     , "edit"
                     ]
                     (Endpoint.toQueryArgs [ ( "id", String.fromInt plaintiff.id ) ])

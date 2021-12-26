@@ -456,8 +456,9 @@ viewEditButton judgment =
     Button.fromIcon (Icon.edit "Go to edit page")
         |> Button.redirect
             (Link.link <|
-                Url.Builder.relative
-                    [ "judgments"
+                Url.Builder.absolute
+                    [ "admin"
+                    , "judgments"
                     , "edit"
                     ]
                     (Endpoint.toQueryArgs [ ( "id", String.fromInt judgment.id ) ])
