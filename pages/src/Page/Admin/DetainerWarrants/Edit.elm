@@ -1184,9 +1184,7 @@ nextStepSave today domain session model =
                         ( model, Cmd.none )
 
                 SavingWarrant ->
-                    ( { model | saveState = Done }
-                    , Cmd.none
-                    )
+                    nextStepSave today domain session { model | saveState = Done }
 
                 Done ->
                     let
@@ -2196,8 +2194,6 @@ type TrimmedForm
 type ValidatedField
     = DocketId
     | FileDate
-    | CourtDate
-    | DefendantAddress
     | DefendantFirstName Int
     | DefendantLastName Int
     | DefendantPhoneNumber Int Int
@@ -2212,8 +2208,6 @@ fieldsToValidate defendants =
     List.concat
         [ [ DocketId
           , FileDate
-          , CourtDate
-          , DefendantAddress
           ]
         , List.map DefendantFirstName <| List.range 0 numDefendants
         , List.map DefendantLastName <| List.range 0 numDefendants
@@ -2255,16 +2249,6 @@ validateField today (Trimmed form) field =
 
             FileDate ->
                 []
-
-            CourtDate ->
-                []
-
-            DefendantAddress ->
-                if String.isEmpty form.address then
-                    [ "Defendant address cannot be blank" ]
-
-                else
-                    []
 
             DefendantFirstName defIndex ->
                 let
