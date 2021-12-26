@@ -39,9 +39,9 @@ import UI.Icon as Icon
 import UI.Link as Link
 import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import UI.Size
-import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteRangeDateFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
 import UI.TextField as TextField
-import UI.Utils.DateInput exposing (DateInput)
+import UI.Utils.DateInput exposing (DateInput, RangeDate)
 import UI.Utils.TypeNumbers as T
 import Url.Builder
 import View exposing (View)
@@ -139,7 +139,7 @@ exportToSpreadsheet domain session =
 
 type Msg
     = InputDocketId (Maybe String)
-    | InputFileDate (Maybe DateInput)
+    | InputFileDate (Maybe RangeDate)
     | InputCourtDate (Maybe DateInput)
     | InputPlaintiff (Maybe String)
     | InputPlaintiffAttorney (Maybe String)
@@ -238,7 +238,15 @@ update pageUrl navKey sharedModel static msg model =
             updateFiltersAndReload domain session (\filters -> { filters | docketId = query }) model
 
         InputFileDate query ->
-            updateFiltersAndReload domain session (\filters -> { filters | fileDate = Maybe.andThen (fromFormattedToPosix << UI.Utils.DateInput.toDD_MM_YYYY "-") query }) model
+            updateFiltersAndReload domain
+                session
+                (\filters ->
+                    { filters
+                        | fileDateStart = Maybe.andThen (fromFormattedToPosix << UI.Utils.DateInput.toDD_MM_YYYY "-" << .from) query
+                        , fileDateEnd = Maybe.andThen (fromFormattedToPosix << UI.Utils.DateInput.toDD_MM_YYYY "-" << .to) query
+                    }
+                )
+                model
 
         InputCourtDate query ->
             updateFiltersAndReload domain session (\filters -> { filters | courtDate = Maybe.andThen (fromFormattedToPosix << UI.Utils.DateInput.toDD_MM_YYYY "-") query }) model
@@ -372,7 +380,7 @@ viewFilter filters =
     in
     List.concat
         [ ifNonEmpty "docket number contains " identity filters.docketId
-        , ifNonEmpty "file date is " Time.Utils.toIsoString filters.fileDate
+        , ifNonEmpty "file date is after" Time.Utils.toIsoString filters.fileDateStart
         , ifNonEmpty "court date is " Time.Utils.toIsoString filters.courtDate
         , ifNonEmpty "plaintiff contains " identity filters.plaintiff
         , ifNonEmpty "plaintiff attorney contains " identity filters.plaintiffAttorney
@@ -550,7 +558,7 @@ searchFilters : Search.DetainerWarrants -> Filters Msg DetainerWarrant T.Eight
 searchFilters filters =
     filtersEmpty
         |> remoteSingleTextFilter filters.docketId InputDocketId
-        |> remoteSingleDateFilter Time.utc filters.fileDate InputFileDate
+        |> remoteRangeDateFilter Time.utc filters.fileDateStart filters.fileDateEnd InputFileDate
         |> remoteSingleDateFilter Time.utc filters.courtDate InputCourtDate
         |> remoteSingleTextFilter filters.plaintiff InputPlaintiff
         |> remoteSingleTextFilter filters.plaintiffAttorney InputPlaintiffAttorney

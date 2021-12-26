@@ -15,7 +15,8 @@ type Cursor
 
 type alias DetainerWarrants =
     { docketId : Maybe String
-    , fileDate : Maybe Posix
+    , fileDateStart : Maybe Posix
+    , fileDateEnd : Maybe Posix
     , courtDate : Maybe Posix
     , plaintiff : Maybe String
     , plaintiffAttorney : Maybe String
@@ -59,7 +60,8 @@ type alias Search filters =
 detainerWarrantsDefault : DetainerWarrants
 detainerWarrantsDefault =
     { docketId = Nothing
-    , fileDate = Nothing
+    , fileDateStart = Nothing
+    , fileDateEnd = Nothing
     , courtDate = Nothing
     , plaintiff = Nothing
     , plaintiffAttorney = Nothing
@@ -109,7 +111,8 @@ dwFromString str =
                 |> QueryParams.toDict
     in
     { docketId = Dict.get "docket_id" params |> Maybe.andThen List.head
-    , fileDate = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
+    , fileDateStart = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.andThen (String.split "-" >> List.head) |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
+    , fileDateEnd = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.andThen (String.split "-" >> List.drop 1 >> List.head) |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
     , courtDate = Dict.get "court_date" params |> Maybe.andThen List.head |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
     , plaintiff = Dict.get "plaintiff" params |> Maybe.andThen List.head
     , plaintiffAttorney = Dict.get "plaintiff_attorney" params |> Maybe.andThen List.head
@@ -172,7 +175,14 @@ posixToString =
 detainerWarrantsArgs : DetainerWarrants -> List ( String, String )
 detainerWarrantsArgs filters =
     toPair "docket_id" filters.docketId
-        ++ toPair "file_date" (Maybe.map posixToString filters.fileDate)
+        ++ toPair "file_date"
+            (case ( filters.fileDateStart, filters.fileDateEnd ) of
+                ( Just start, Just end ) ->
+                    Just <| posixToString start ++ "-" ++ posixToString end
+
+                _ ->
+                    Nothing
+            )
         ++ toPair "court_date" (Maybe.map posixToString filters.courtDate)
         ++ toPair "plaintiff" filters.plaintiff
         ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
@@ -184,7 +194,14 @@ detainerWarrantsArgs filters =
 detainerWarrantsFilterArgs : DetainerWarrants -> List ( String, String )
 detainerWarrantsFilterArgs filters =
     toPair "docket_id" filters.docketId
-        ++ toPair "file_date" (Maybe.map Time.Utils.toIsoString filters.fileDate)
+        ++ toPair "file_date"
+            (case ( filters.fileDateStart, filters.fileDateEnd ) of
+                ( Just start, Just end ) ->
+                    Just <| Time.Utils.toIsoString start ++ "-" ++ Time.Utils.toIsoString end
+
+                _ ->
+                    Nothing
+            )
         ++ toPair "court_date" (Maybe.map Time.Utils.toIsoString filters.courtDate)
         ++ toPair "plaintiff" filters.plaintiff
         ++ toPair "plaintiff_attorney" filters.plaintiffAttorney

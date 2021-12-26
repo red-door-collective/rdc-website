@@ -310,6 +310,15 @@ def filter_court_date(model, court_date):
     return model._judgments.any(Judgment.court_date == court_date)
 
 
+@model_filter(fields.String())
+def filter_file_date(model, file_date_or_range):
+    if '-' in file_date_or_range:
+        start, end = file_date_or_range.split('-')
+        return and_(model.file_date >= start, model.file_date <= end)
+    else:
+        return model.file_date == int(file_date_or_range)
+
+
 class PleadingDocumentResourceBase(GenericModelView):
     model = PleadingDocument
     schema = pleading_document_schema
@@ -355,7 +364,7 @@ class DetainerWarrantResourceBase(GenericModelView):
         docket_id=filter_docket_id,
         defendant_name=filter_defendant_name,
         order_number=operator.eq,
-        file_date=ColumnFilter(operator.eq),
+        file_date=filter_file_date,
         court_date=filter_court_date,
         plaintiff=filter_plaintiff_name,
         plaintiff_attorney=filter_plaintiff_attorney_name,
