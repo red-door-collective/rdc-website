@@ -76,12 +76,14 @@ def create_app(testing=False):
     app.config['ROLLBAR_CLIENT_TOKEN'] = os.environ['ROLLBAR_CLIENT_TOKEN']
     app.config['VERSION'] = os.environ['VERSION']
     app.config['SCHEDULER_API_ENABLED'] = env_var_bool('SCHEDULER_API_ENABLED')
+    app.config['SCHEDULER_TIMEZONE'] = os.environ.get(
+        'SCHEDULER_TIMEZONE', 'UTC')
     app.config['CASELINK_USERNAME'] = os.environ['CASELINK_USERNAME']
     app.config['CASELINK_PASSWORD'] = os.environ['CASELINK_PASSWORD']
     app.config['TESTING'] = testing
     app.config['LOGIN_WAIT'] = float(os.environ['LOGIN_WAIT'])
     app.config['SEARCH_WAIT'] = float(os.environ['SEARCH_WAIT'])
-    # app.config['SQLALCHEMY_ECHO'] = True
+    app.config['SQLALCHEMY_ECHO'] = os.environ.get('SQLALCHEMY_ECHO', False)
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
