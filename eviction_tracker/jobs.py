@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 weekdays = '1-5'
 
 
-@scheduler.task(CronTrigger(day_of_week=weekdays, hour="*", minute=0, second=0, jitter=200), id='export')
+@scheduler.task(CronTrigger(hour="*", minute=0, second=0, jitter=200), id='export')
 def export():
     with scheduler.app.app_context():
         workbook_name = 'Website Export'
