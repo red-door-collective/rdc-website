@@ -535,8 +535,9 @@ viewEditButton warrant =
     Button.fromIcon (Icon.edit "Go to edit page")
         |> Button.redirect
             (Link.link <|
-                Url.Builder.relative
-                    [ "detainer-warrants"
+                Url.Builder.absolute
+                    [ "admin"
+                    , "detainer-warrants"
                     , "edit"
                     ]
                     (Endpoint.toQueryArgs [ ( "docket-id", warrant.docketId ) ])
