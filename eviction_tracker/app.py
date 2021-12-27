@@ -83,7 +83,7 @@ def create_app(testing=False):
     app.config['TESTING'] = testing
     app.config['LOGIN_WAIT'] = float(os.environ['LOGIN_WAIT'])
     app.config['SEARCH_WAIT'] = float(os.environ['SEARCH_WAIT'])
-    app.config['SQLALCHEMY_ECHO'] = os.environ.get('SQLALCHEMY_ECHO', False)
+    app.config['SQLALCHEMY_ECHO'] = env_var_bool('SQLALCHEMY_ECHO')
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
