@@ -90,6 +90,11 @@ view session page =
                 , label = Element.text "Blog"
                 }
             , headerLink []
+                (page.route == Just Events)
+                { url = "/events"
+                , label = Element.text "Events"
+                }
+            , headerLink []
                 (page.route == Just About)
                 { url = "/about"
                 , label = Element.text "About"
