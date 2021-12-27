@@ -12,7 +12,7 @@ import time
 import os
 import re
 import time
-from ..util import get_or_create
+from ...util import get_or_create, file_date_guess
 from ..models import db, PleadingDocument, Hearing, DetainerWarrant, Judgment
 from .constants import ids, names
 from .common import login, search, run_with_chrome
@@ -21,9 +21,12 @@ import logging
 import logging.config
 import traceback
 from datetime import datetime, date, timedelta
+from pdfminer.layout import LAParams
 from pdfminer.high_level import extract_pages, extract_text
 import requests
 import io
+from ..judgments import regexes
+import usaddress
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -224,12 +227,18 @@ def update_pending_warrants():
     bulk_import_documents([id[0] for id in queue])
 
 
-def extract_text_from_pdf(file_name):
-    output_string = ''
-    with open(file_name, 'rb') as fin:
-        output_string = extract_text(fin)
+PARSE_PARAMS = LAParams(
+    all_texts=True,
+    boxes_flow=0.5,
+    line_margin=0.5,
+    word_margin=0.1,
+    char_margin=2.0,
+    detect_vertical=False
+)
 
-    return output_string.strip()
+
+def extract_text_from_pdf(pdf):
+    return extract_text(pdf, laparams=PARSE_PARAMS)
 
 
 def extract_text_from_document(document):
@@ -237,13 +246,20 @@ def extract_text_from_document(document):
         response = requests.get(document.url)
         pdf_memory_file = io.BytesIO()
         pdf_memory_file.write(response.content)
-        text = extract_text(pdf_memory_file)
+        text = extract_text_from_pdf(pdf_memory_file)
         kind = None
-        if 'Other terms of this Order, if any, are as follows' in text:
-            kind = 'JUDGMENT'
-            update_judgment_from_document(document)
+        detainer_warrant_doc_match = re.search(
+            regexes.DETAINER_WARRANT_DOCUMENT)
         document.update(text=text, kind=kind)
         db.session.commit()
+
+        if detainer_warrant_doc_match:
+            kind = 'DETAINER_WARRANT'
+            update_detainer_warrant_from_document(document)
+
+        elif 'Other terms of this Order, if any, are as follows' in text:
+            kind = 'JUDGMENT'
+            update_judgment_from_document(document)
 
     except:
         logger.warning(
@@ -260,28 +276,68 @@ def bulk_extract_pleading_document_details():
         extract_text_from_document(document)
 
 
-def update_judgment_from_document(document):
-    if document.kind == 'JUDGMENT' and document.text:
-        text = document.text
-        file_date = Judgment.file_date_guess(text)
-        if not file_date:
-            logger.warning(f'could not guess file date for {document.url}')
-            return
+def extract_all_pleading_document_details():
+    for document in PleadingDocument.query:
+        extract_text_from_document(document)
 
-        existing_hearing = Hearing.query.filter(
-            and_(
-                Hearing._court_date >= file_date -
-                timedelta(days=3),
-                Hearing.docket_id == document.docket_id,
-            )).first()
 
-        if existing_hearing:
-            existing_hearing.update_judgment_from_document(document)
-        else:
-            hearing = Hearing.create(
-                _court_date=file_date, docket_id=document.docket_id, address="unknown")
-            hearing.update_judgment_from_document(document)
+IMPORTANT_PIECES = ['AddressNumber', 'StreetName',
+                    'PlaceName', 'StateName', 'ZipCode']
+
+
+def get_address(text):
+    for line in text.split('\n'):
+        potential = line.strip()
+        try:
+            pieces, labels = usaddress.tag(potential)
+            valid = all([pieces.get(piece) for piece in IMPORTANT_PIECES])
+            if valid:
+                return potential
+            else:
+                continue
+        except:
+            continue
+
+
+def update_detainer_warrant_from_document(document):
+    text = document.text
+    file_date = file_date_guess(text)
+    if not file_date:
+        logger.warning(f'could not guess file date for {document.url}')
+        return
+
+    detainer_warrant = DetainerWarrant.query.get(document.docket_id)
+
+    address = get_address(text)
+    if address:
+        detainer_warrant.update(address=address)
         db.session.commit()
+    else:
+        logger.warning(
+            f'could not find address in detainer warrant: {document.url}')
+
+
+def update_judgment_from_document(document):
+    text = document.text
+    file_date = file_date_guess(text)
+    if not file_date:
+        logger.warning(f'could not guess file date for {document.url}')
+        return
+
+    existing_hearing = Hearing.query.filter(
+        and_(
+            Hearing._court_date >= file_date -
+            timedelta(days=3),
+            Hearing.docket_id == document.docket_id,
+        )).first()
+
+    if existing_hearing:
+        existing_hearing.update_judgment_from_document(document)
+    else:
+        hearing = Hearing.create(
+            _court_date=file_date, docket_id=document.docket_id, address="unknown")
+        hearing.update_judgment_from_document(document)
+    db.session.commit()
 
 
 def update_judgments_from_documents():

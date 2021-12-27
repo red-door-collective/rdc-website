@@ -1,4 +1,16 @@
 from sqlalchemy.sql import ClauseElement
+from datetime import datetime
+import re
+
+EFILE_DATE_REGEX = re.compile(r'EFILED\s*(\d+/\d+/\d+)\s*')
+
+
+def file_date_guess(text):
+    efile_date_match = EFILE_DATE_REGEX.search(text)
+    if efile_date_match:
+        return datetime.strptime(efile_date_match.group(1), '%m/%d/%y').date()
+    else:
+        return None
 
 
 def get_or_create(session, model, defaults=None, **kwargs):

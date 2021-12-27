@@ -5,7 +5,7 @@ from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
 from nameparser import HumanName
-from ..util import get_or_create
+from ..util import get_or_create, file_date_guess
 import re
 from flask_sqlalchemy import BaseQuery
 from .judgments import regexes
@@ -546,14 +546,6 @@ class Judgment(db.Model, Timestamped):
     def __repr__(self):
         return "<Judgment(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
 
-    def file_date_guess(text):
-        efile_date_regex = re.compile(r'EFILED\s*(\d+/\d+/\d+)\s*')
-        efile_date_match = efile_date_regex.search(text)
-        if efile_date_match:
-            return datetime.strptime(efile_date_match.group(1), '%m/%d/%y').date()
-        else:
-            return None
-
     def attributes_from_pdf(pdf):
         pdf = pdf.replace('\n', ' ').replace('\r', ' ')
         defaults = district_defaults()
@@ -646,7 +638,7 @@ class Judgment(db.Model, Timestamped):
             notes=notes,
             in_favor_of_id=Judgment.parties[in_favor_of] if in_favor_of else None,
             detainer_warrant_id=docket_id,
-            _file_date=Judgment.file_date_guess(pdf),
+            _file_date=file_date_guess(pdf),
             plaintiff_id=plaintiff.id if plaintiff else None,
             judge_id=judge.id if judge else None
         )

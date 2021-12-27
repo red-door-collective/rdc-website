@@ -1,5 +1,8 @@
 import re
 
+DETAINER_WARRANT_DOCUMENT = re.compile(
+    r'unlawfully\s+detaining\s+a\s+certain\s+real\s+property')
+
 DOCKET_ID = re.compile(r'DOCKET\s+NO.\s*:\s*(\w+)\s*')
 PLAINTIFF = re.compile(r'COUNTY, TENNESSEE\s*(.+?)\s*Plaintiff')
 JUDGE = re.compile(r'The foregoing is hereby.+Judge\s+(.+?),{0,1}\s+Division')

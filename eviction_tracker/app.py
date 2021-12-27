@@ -61,8 +61,8 @@ security_config = dict(
 )
 
 
-def env_var_bool(key, default='False'):
-    return os.getenv(key, default).lower() in ('true', '1', 't')
+def env_var_bool(key, default=None):
+    return os.getenv(key, default if default else 'False').lower() in ('true', '1', 't')
 
 
 def create_app(testing=False):
@@ -85,7 +85,7 @@ def create_app(testing=False):
     app.config['SEARCH_WAIT'] = float(os.environ['SEARCH_WAIT'])
     app.config['SQLALCHEMY_ECHO'] = env_var_bool('SQLALCHEMY_ECHO')
     app.config['CHROMEDRIVER_HEADLESS'] = env_var_bool(
-        'CHROMEDRIVER_HEADLESS', 'True')
+        'CHROMEDRIVER_HEADLESS', default='True')
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
@@ -499,6 +499,7 @@ def register_commands(app):
     app.cli.add_command(commands.export_courtroom_dockets)
     app.cli.add_command(commands.verify_phone)
     app.cli.add_command(commands.verify_phones)
+    app.cli.add_command(commands.extract_all_pleading_document_details)
     app.cli.add_command(commands.bulk_extract_pleading_document_details)
     app.cli.add_command(commands.extract_pleading_document_text)
     app.cli.add_command(commands.update_judgment_from_document)
