@@ -247,25 +247,27 @@ def extract_text_from_document(document):
         pdf_memory_file = io.BytesIO()
         pdf_memory_file.write(response.content)
         text = extract_text_from_pdf(pdf_memory_file)
-        kind = None
-        detainer_warrant_doc_match = re.search(
-            regexes.DETAINER_WARRANT_DOCUMENT)
-        document.update(text=text, kind=kind)
-        db.session.commit()
+        detainer_warrant_doc_match = regexes.DETAINER_WARRANT_DOCUMENT.search(
+            text)
 
+        kind = None
         if detainer_warrant_doc_match:
             kind = 'DETAINER_WARRANT'
-            update_detainer_warrant_from_document(document)
-
         elif 'Other terms of this Order, if any, are as follows' in text:
             kind = 'JUDGMENT'
-            update_judgment_from_document(document)
 
+        document.update(text=text, kind=kind)
+        db.session.commit()
     except:
         logger.warning(
             f'Could not extract text for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}')
-        document.update(text="FAILED_TO_PARSE_JUDGMENT")
+        document.update(text="FAILED_TO_EXTRACT_TEXT")
         db.session.commit()
+
+    if document.kind == 'DETAINER_WARRANT':
+        update_detainer_warrant_from_document(document)
+    elif document.kind == 'JUDGMENT':
+        update_judgment_from_document(document)
 
 
 def bulk_extract_pleading_document_details():
