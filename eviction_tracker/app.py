@@ -61,8 +61,8 @@ security_config = dict(
 )
 
 
-def env_var_bool(key):
-    return os.getenv(key, 'False').lower() in ('true', '1', 't')
+def env_var_bool(key, default='False'):
+    return os.getenv(key, default).lower() in ('true', '1', 't')
 
 
 def create_app(testing=False):
@@ -84,6 +84,8 @@ def create_app(testing=False):
     app.config['LOGIN_WAIT'] = float(os.environ['LOGIN_WAIT'])
     app.config['SEARCH_WAIT'] = float(os.environ['SEARCH_WAIT'])
     app.config['SQLALCHEMY_ECHO'] = env_var_bool('SQLALCHEMY_ECHO')
+    app.config['CHROMEDRIVER_HEADLESS'] = env_var_bool(
+        'CHROMEDRIVER_HEADLESS', 'True')
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
