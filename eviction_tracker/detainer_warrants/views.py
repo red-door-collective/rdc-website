@@ -319,6 +319,11 @@ def filter_file_date(model, file_date_or_range):
         return model.file_date == int(file_date_or_range)
 
 
+@model_filter(fields.String())
+def filter_address(model, address):
+    return model.address.ilike(f'%{address}%')
+
+
 class PleadingDocumentResourceBase(GenericModelView):
     model = PleadingDocument
     schema = pleading_document_schema
@@ -368,7 +373,7 @@ class DetainerWarrantResourceBase(GenericModelView):
         court_date=filter_court_date,
         plaintiff=filter_plaintiff_name,
         plaintiff_attorney=filter_plaintiff_attorney_name,
-        address=ColumnFilter(operator.eq),
+        address=filter_address,
         free_text=filter_any_field
     )
 
