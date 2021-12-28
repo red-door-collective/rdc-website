@@ -272,7 +272,8 @@ def extract_text_from_document(document):
 
 def bulk_extract_pleading_document_details():
     queue = PleadingDocument.query.filter(
-        PleadingDocument.text == None
+        PleadingDocument.text == None,
+        PleadingDocument.status == None
     )
     for document in queue:
         extract_text_from_document(document)
