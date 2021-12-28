@@ -261,7 +261,7 @@ def extract_text_from_document(document):
     except:
         logger.warning(
             f'Could not extract text for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}')
-        document.update(text="FAILED_TO_EXTRACT_TEXT")
+        document.update(status="FAILED_TO_EXTRACT_TEXT")
         db.session.commit()
 
     if document.kind == 'DETAINER_WARRANT':
@@ -302,44 +302,57 @@ def get_address(text):
 
 
 def update_detainer_warrant_from_document(document):
-    text = document.text
-    file_date = file_date_guess(text)
-    if not file_date:
-        logger.warning(f'could not guess file date for {document.url}')
-        return
+    try:
+        text = document.text
+        file_date = file_date_guess(text)
+        if not file_date:
+            logger.warning(f'could not guess file date for {document.url}')
+            return
 
-    detainer_warrant = DetainerWarrant.query.get(document.docket_id)
+        detainer_warrant = DetainerWarrant.query.get(document.docket_id)
 
-    address = get_address(text)
-    if address:
-        detainer_warrant.update(address=address)
-        db.session.commit()
-    else:
+        address = get_address(text)
+        if address:
+            detainer_warrant.update(address=address)
+            db.session.commit()
+        else:
+            logger.warning(
+                f'could not find address in detainer warrant: {document.url}')
+    except:
         logger.warning(
-            f'could not find address in detainer warrant: {document.url}')
+            f'failed update detainer warrant {document.docket_id} for {document.url}. Exception: {traceback.format_exc()}')
+        document.update(status='FAILED_TO_UPDATE_DETAINER_WARRANT')
+        db.session.commit()
 
 
 def update_judgment_from_document(document):
-    text = document.text
-    file_date = file_date_guess(text)
-    if not file_date:
-        logger.warning(f'could not guess file date for {document.url}')
-        return
+    try:
+        text = document.text
+        file_date = file_date_guess(text)
+        if not file_date:
+            logger.warning(f'could not guess file date for {document.url}')
+            return
 
-    existing_hearing = Hearing.query.filter(
-        and_(
-            Hearing._court_date >= file_date -
-            timedelta(days=3),
-            Hearing.docket_id == document.docket_id,
-        )).first()
+        existing_hearing = Hearing.query.filter(
+            and_(
+                Hearing._court_date >= file_date -
+                timedelta(days=3),
+                Hearing.docket_id == document.docket_id,
+            )).first()
 
-    if existing_hearing:
-        existing_hearing.update_judgment_from_document(document)
-    else:
-        hearing = Hearing.create(
-            _court_date=file_date, docket_id=document.docket_id, address="unknown")
-        hearing.update_judgment_from_document(document)
-    db.session.commit()
+        if existing_hearing:
+            existing_hearing.update_judgment_from_document(document)
+        else:
+            hearing = Hearing.create(
+                _court_date=file_date, docket_id=document.docket_id, address="unknown")
+            hearing.update_judgment_from_document(document)
+        db.session.commit()
+
+    except:
+        logger.warning(
+            f'failed update judgment {document.docket_id} for {document.url}. Exception: {traceback.format_exc()}')
+        document.update(status='FAILED_TO_UPDATE_JUDGMENT')
+        db.session.commit()
 
 
 def update_judgments_from_documents():

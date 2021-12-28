@@ -650,12 +650,19 @@ class PleadingDocument(db.Model, Timestamped):
         'DETAINER_WARRANT': 1
     }
 
+    statuses = {
+        'FAILED_TO_EXTRACT_TEXT': 0,
+        'FAILED_TO_UPDATE_DETAINER_WARRANT': 1,
+        'FAILED_TO_UPDATE_JUDGMENT': 2
+    }
+
     __tablename__ = 'pleading_documents'
     url = Column(db.String(255), primary_key=True)
     text = Column(db.Text)
     kind_id = Column(db.Integer)
     docket_id = Column(db.String(255), db.ForeignKey(
         'cases.docket_id'), nullable=False)
+    status_id = Column(db.Integer)
 
     _detainer_warrant = relationship(
         'DetainerWarrant', back_populates='pleadings')
@@ -673,6 +680,23 @@ class PleadingDocument(db.Model, Timestamped):
     @kind.expression
     def kind(cls):
         return case([(cls.kind_id == 0, 'JUDGMENT'), (cls.kind_id == 1, 'DETAINER_WARRANT')], else_=None).label("kind")
+
+    @hybrid_property
+    def status(self):
+        status_by_id = {v: k for k, v in PleadingDocument.statuses.items()}
+        return status_by_id[self.status_id] if self.status_id is not None else None
+
+    @status.setter
+    def status(self, status_name):
+        self.status_id = PleadingDocument.statuses[status_name] if status_name else None
+
+    @status.expression
+    def status(cls):
+        return case([
+            (cls.status_id == 0, 'FAILED_TO_EXTRACT_TEXT'),
+            (cls.status_id == 1, 'FAILED_TO_UPDATE_DETAINER_WARRANT'),
+            (cls.status_id == 2, 'FAILED_TO_UPDATE_JUDGMENT')
+        ], else_=None).label("status")
 
     @property
     def detainer_warrant(self):
