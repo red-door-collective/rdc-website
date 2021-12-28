@@ -225,6 +225,12 @@ def extract_all_pleading_document_details():
 
 @click.command()
 @with_appcontext
+def retry_detainer_warrant_extraction():
+    detainer_warrants.caselink.pleadings.retry_detainer_warrant_extraction()
+
+
+@click.command()
+@with_appcontext
 def bulk_extract_pleading_document_details():
     detainer_warrants.caselink.pleadings.bulk_extract_pleading_document_details()
 

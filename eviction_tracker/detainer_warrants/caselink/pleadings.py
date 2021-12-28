@@ -22,7 +22,7 @@ import logging.config
 import traceback
 from datetime import datetime, date, timedelta
 from pdfminer.layout import LAParams
-from pdfminer.high_level import extract_pages, extract_text
+from pdfminer.high_level import extract_pages, extract_text_to_fp
 import requests
 import io
 from ..judgments import regexes
@@ -228,7 +228,7 @@ def update_pending_warrants():
 
 
 PARSE_PARAMS = LAParams(
-    all_texts=True,
+    all_texts=False,
     boxes_flow=0.5,
     line_margin=0.5,
     word_margin=0.1,
@@ -238,7 +238,12 @@ PARSE_PARAMS = LAParams(
 
 
 def extract_text_from_pdf(pdf):
-    return extract_text(pdf, laparams=PARSE_PARAMS)
+    output_string = io.StringIO()
+
+    extract_text_to_fp(pdf, output_string, laparams=PARSE_PARAMS,
+                       output_type='text', codec=None)
+
+    return output_string.getvalue().strip()
 
 
 def extract_text_from_document(document):
@@ -281,6 +286,11 @@ def bulk_extract_pleading_document_details():
 
 def extract_all_pleading_document_details():
     for document in PleadingDocument.query:
+        extract_text_from_document(document)
+
+
+def retry_detainer_warrant_extraction():
+    for document in PleadingDocument.query.filter(PleadingDocument.text.ilike('%detaining%')):
         extract_text_from_document(document)
 
 
