@@ -109,10 +109,11 @@ dwFromString str =
         params =
             QueryParams.fromString str
                 |> QueryParams.toDict
+                |> Debug.log "qp"
     in
     { docketId = Dict.get "docket_id" params |> Maybe.andThen List.head
-    , fileDateStart = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.andThen (String.split "-" >> List.head) |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
-    , fileDateEnd = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.andThen (String.split "-" >> List.drop 1 >> List.head) |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
+    , fileDateStart = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.andThen (String.split "/" >> List.head) |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
+    , fileDateEnd = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.andThen (String.split "/" >> List.drop 1 >> List.head) |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
     , courtDate = Dict.get "court_date" params |> Maybe.andThen List.head |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
     , plaintiff = Dict.get "plaintiff" params |> Maybe.andThen List.head
     , plaintiffAttorney = Dict.get "plaintiff_attorney" params |> Maybe.andThen List.head
@@ -178,7 +179,7 @@ detainerWarrantsArgs filters =
         ++ toPair "file_date"
             (case ( filters.fileDateStart, filters.fileDateEnd ) of
                 ( Just start, Just end ) ->
-                    Just <| posixToString start ++ "-" ++ posixToString end
+                    Just <| posixToString start ++ "/" ++ posixToString end
 
                 _ ->
                     Nothing
@@ -197,7 +198,7 @@ detainerWarrantsFilterArgs filters =
         ++ toPair "file_date"
             (case ( filters.fileDateStart, filters.fileDateEnd ) of
                 ( Just start, Just end ) ->
-                    Just <| Time.Utils.toIsoString start ++ "-" ++ Time.Utils.toIsoString end
+                    Just <| Time.Utils.toIsoString start ++ "/" ++ Time.Utils.toIsoString end
 
                 _ ->
                     Nothing

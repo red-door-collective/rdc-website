@@ -312,16 +312,19 @@ def filter_court_date(model, court_date):
 
 @model_filter(fields.String())
 def filter_file_date(model, file_date_or_range):
-    if '-' in file_date_or_range:
-        start, end = file_date_or_range.split('-')
+    if '/' in file_date_or_range:
+        start, end = file_date_or_range.split('/')
         return and_(model.file_date >= start, model.file_date <= end)
     else:
         return model.file_date == int(file_date_or_range)
 
 
-@model_filter(fields.String())
+@model_filter(fields.String(allow_none=True))
 def filter_address(model, address):
-    return model.address.ilike(f'%{address}%')
+    if address == '$NULL':
+        return model.address == None
+    else:
+        return model.address.ilike(f'%{address}%')
 
 
 class PleadingDocumentResourceBase(GenericModelView):
