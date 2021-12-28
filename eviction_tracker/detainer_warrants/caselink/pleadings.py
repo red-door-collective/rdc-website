@@ -228,7 +228,7 @@ def update_pending_warrants():
 
 
 PARSE_PARAMS = LAParams(
-    all_texts=False,
+    all_texts=True,
     boxes_flow=0.5,
     line_margin=0.5,
     word_margin=0.1,
