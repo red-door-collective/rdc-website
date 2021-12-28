@@ -109,7 +109,6 @@ dwFromString str =
         params =
             QueryParams.fromString str
                 |> QueryParams.toDict
-                |> Debug.log "qp"
     in
     { docketId = Dict.get "docket_id" params |> Maybe.andThen List.head
     , fileDateStart = Dict.get "file_date" params |> Maybe.andThen List.head |> Maybe.andThen (String.split "/" >> List.head) |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
