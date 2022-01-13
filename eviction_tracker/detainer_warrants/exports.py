@@ -88,24 +88,23 @@ def _to_spreadsheet_row(warrant):
             warrant.plaintiff.name if warrant.plaintiff else '',
             warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
             date_str(
-                warrant.judgments[0]._court_date) if len(warrant.judgments) > 0 and warrant.judgments[0]._court_date else '',
+                warrant.hearings[0]._court_date) if len(warrant.hearings) > 0 and warrant.hearings[0]._court_date else '',
             warrant.recurring_court_date if warrant.recurring_court_date else '',
-            warrant.judgments[0].courtroom.name if len(
-                warrant.judgments) > 0 and warrant.judgments[0].courtroom else '',
-            warrant.judgments[0].judge.name if len(
-                warrant.judgments) > 0 and warrant.judgments[0].judge else '',
+            warrant.hearings[0].courtroom.name if len(
+                warrant.hearings) > 0 and warrant.hearings[0].courtroom else '',
+            warrant.hearings[0].judgment.judge.name if len(
+                warrant.hearings) > 0 and warrant.hearings[0].judgment and warrant.hearings[0].judgment.judge else '',
             str(warrant.amount_claimed) if warrant.amount_claimed else '',
             warrant.claims_possession,
             warrant.is_cares,
             warrant.is_legacy,
             warrant.nonpayment,
             warrant.zip_code,
-            warrant.defendants[0].address if len(
-                warrant.defendants) > 0 else ''
+            warrant.address if warrant.address else ''
         ],
         list(chain.from_iterable([defendant_columns(safelist(
             warrant.defendants).get(index)) for index in range(4)])),
-        [warrant.judgments[0].summary if len(warrant.judgments) > 0 else '',
+        [warrant.hearings[0].judgment.summary if len(warrant.hearings) > 0 and warrant.hearings[0].judgment else '',
          warrant.notes
          ]
     ]))]
@@ -242,8 +241,8 @@ def _to_court_watch_row(warrant):
         [
             warrant.plaintiff.name if warrant.plaintiff else '',
             warrant.plaintiff_attorney.name if warrant.plaintiff_attorney else '',
-            warrant.judgments[0].courtroom.name if len(
-                warrant).judgments > 0 and warrant.judgments[0].courtroom else '',
+            warrant.hearings[0].courtroom.name if len(
+                warrant).hearings > 0 and warrant.hearings[0].courtroom else '',
             warrant.notes
         ]
     ]))]
