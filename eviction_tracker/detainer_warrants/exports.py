@@ -121,7 +121,7 @@ def get_or_create_sheet(wb, name, rows=100, cols=25):
 def to_spreadsheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    warrants = DetainerWarrant.query
+    warrants = DetainerWarrant.query.order_by(DetainerWarrant._file_date)
 
     total = warrants.count()
 
@@ -156,14 +156,13 @@ def _to_judgment_row(judgment):
     return [dw if dw else '' for dw in
             [
                 date_str(judgment._court_date) if judgment._court_date else '',
-                judgment.detainer_warrant_id,
+                judgment.hearing.docket_id,
                 judgment.courtroom.name if judgment.courtroom else '',
                 judgment.plaintiff.name if judgment.plaintiff else '',
                 judgment.plaintiff_attorney.name if judgment.plaintiff_attorney else '',
-                defendant_names_column(judgment.detainer_warrant),
+                defendant_names_column(judgment.hearing.case),
                 judgment.defendant_attorney.name if judgment.defendant_attorney else '',
-                judgment.detainer_warrant.defendants[0].address if len(
-                    judgment.detainer_warrant.defendants) > 0 else '',
+                judgment.hearing.address if judgment.hearing.address else '',
                 '',  # reason?
                 str(judgment.awards_fees) if judgment.awards_fees else '',
                 judgment.mediation_letter,
@@ -177,7 +176,7 @@ def _to_judgment_row(judgment):
 def to_judgment_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    judgments = Judgment.query.filter.join(Courtroom).order_by(
+    judgments = Judgment.query.filter(Judgment.in_favor_of_id != None).join(Courtroom).order_by(
         Judgment._court_date, Courtroom.name)
 
     total = judgments.count()
