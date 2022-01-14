@@ -3,8 +3,11 @@ module TestDetainerWarrant exposing (..)
 import DetainerWarrant exposing (DetainerWarrant, Status(..))
 import Expect
 import Json.Decode as Decode
+import PleadingDocument exposing (PleadingDocument)
 import Test exposing (..)
 import Time
+import Url
+import Url.Builder
 
 
 minimalJson =
@@ -16,6 +19,7 @@ minimalJson =
         "created_at": 1633382326000,
         "defendants": [],
         "docket_id": "21GC11668",
+        "document": null,
         "file_date": null,
         "hearings": [],
         "is_cares": null,
@@ -63,6 +67,7 @@ minimalDetainer =
     , plaintiffAttorney = Nothing
     , status = Nothing
     , notes = Nothing
+    , document = Nothing
     }
 
 
@@ -75,6 +80,14 @@ maximumJson =
         "created_at": 1633382326000,
         "defendants": [],
         "docket_id": "21GT11668",
+        "document": {
+          "created_at": 1637071221000,
+          "docket_id": "21GT1234",
+          "kind": "DETAINER_WARRANT",
+          "text": "COPY EFILED  07/20/21 07:28 AM  CASE NO. 21GT1234 ...",
+          "updated_at": 1642214383000,
+          "url": "https://caselinkimages.nashville.gov/PublicSessions/21/21GT1234/2197025.pdf"
+        },
         "file_date": 1635901200000,
         "hearings": [],
         "is_cares": true,
@@ -122,6 +135,21 @@ maximumDetainer =
     , plaintiff = Nothing
     , plaintiffAttorney = Nothing
     , defendants = []
+    , document =
+        Just
+            { createdAt = Time.millisToPosix 1637071221000
+            , kind = Just PleadingDocument.DetainerWarrantDocument
+            , text = Just "COPY EFILED  07/20/21 07:28 AM  CASE NO. 21GT1234 ..."
+            , updatedAt = Time.millisToPosix 1642214383000
+            , url =
+                { protocol = Url.Https
+                , host = "caselinkimages.nashville.gov"
+                , port_ = Nothing
+                , path = "/PublicSessions/21/21GT1234/2197025.pdf"
+                , query = Nothing
+                , fragment = Nothing
+                }
+            }
     }
 
 
