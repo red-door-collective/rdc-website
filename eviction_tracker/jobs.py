@@ -45,7 +45,7 @@ def import_caselink_warrants(start_date=None, end_date=None):
         detainer_warrants.caselink.warrants.import_from_caselink(start, end)
 
 
-@scheduler.task(CronTrigger(day_of_week=weekdays, hour=5, minute=0, second=0, jitter=200), id='import-caselink-pleading-documents')
+@scheduler.task(CronTrigger(day_of_week=weekdays, hour=22, minute=5, second=0, jitter=200), id='import-caselink-pleading-documents')
 def import_caselink_pleading_documents():
     with scheduler.app.app_context():
         detainer_warrants.caselink.pleadings.update_pending_warrants()

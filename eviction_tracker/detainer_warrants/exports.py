@@ -121,7 +121,8 @@ def get_or_create_sheet(wb, name, rows=100, cols=25):
 def to_spreadsheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    warrants = DetainerWarrant.query.order_by(DetainerWarrant._file_date)
+    warrants = DetainerWarrant.query.order_by(
+        DetainerWarrant._file_date.desc())
 
     total = warrants.count()
 

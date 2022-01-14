@@ -20,7 +20,7 @@ import eviction_tracker.config as config
 import logging
 import logging.config
 import traceback
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
 from pdfminer.layout import LAParams
 from pdfminer.high_level import extract_pages, extract_text_to_fp
 import requests
@@ -168,13 +168,23 @@ def search_for_warrant(browser, docket_id):
     return import_from_dw_page(browser, docket_id)
 
 
+def in_between(now, start, end):
+    if start <= end:
+        return start <= now < end
+    else:
+        return start <= now or now < end
+
+
 @run_with_chrome
-def bulk_import_documents(browser, docket_ids):
+def bulk_import_documents(browser, docket_ids, cancel_during_working_hours=False):
     logger.info(f'checking {len(docket_ids)} dockets')
 
     postback_HTML = None
 
     for index, docket_id in enumerate(docket_ids):
+        if cancel_during_working_hours and in_between(datetime.now(), time(8), time(22)):
+            return
+
         login(browser)
 
         try:
@@ -213,7 +223,7 @@ def parse_mismatched_html():
 def update_pending_warrants():
     current_time = datetime.utcnow()
 
-    three_days_ago = current_time - timedelta(days=3)
+    two_days_ago = current_time - timedelta(days=2)
 
     queue = db.session.query(DetainerWarrant.docket_id)\
         .order_by(DetainerWarrant._file_date.desc())\
@@ -221,10 +231,11 @@ def update_pending_warrants():
             DetainerWarrant.status == 'PENDING',
             or_(
                 DetainerWarrant._last_pleading_documents_check == None,
-                DetainerWarrant._last_pleading_documents_check < three_days_ago
+                DetainerWarrant._last_pleading_documents_check < two_days_ago
             )
         ))
-    bulk_import_documents([id[0] for id in queue])
+    bulk_import_documents([id[0] for id in queue],
+                          cancel_during_working_hours=True)
 
 
 PARSE_PARAMS = LAParams(
