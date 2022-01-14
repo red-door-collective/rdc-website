@@ -1,6 +1,6 @@
 from eviction_tracker.database import db, PosixComparator, in_millis, from_millis, Timestamped, Column, Model, relationship
 from datetime import datetime, date, timezone
-from sqlalchemy import func, text, case, and_
+from sqlalchemy import func, text, case
 from flask_security import UserMixin, RoleMixin
 from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -875,8 +875,6 @@ class DetainerWarrant(Case):
     document = relationship(
         'PleadingDocument', foreign_keys=document_url
     )
-    pleadings = relationship(
-        'PleadingDocument', primaryjoin=and_(Case.docket_id == PleadingDocument.docket_id, PleadingDocument.kind == 'DETAINER_WARRANT'))
     last_edited_by = relationship('User', back_populates='edited_warrants')
 
     canvass_attempts = relationship(
