@@ -37,6 +37,7 @@ type alias DetainerWarrant =
     , defendants : List Defendant
     , hearings : List Hearing
     , notes : Maybe String
+    , document : Maybe PleadingDocument
     }
 
 
@@ -125,6 +126,7 @@ decoder =
         |> required "defendants" (list Defendant.decoder)
         |> required "hearings" (list Hearing.decoder)
         |> required "notes" (nullable string)
+        |> required "document" (nullable PleadingDocument.decoder)
 
 
 tableColumns =
