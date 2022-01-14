@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 CONTINUANCE_REGEX = re.compile(r'COURT\s+DATE\s+CONTINUANCE\s+(\d+\.\d+\.\d+)')
 HEARING_REGEX = re.compile(r'COURT\s+DATE\s+(\d+\.\d+\.\d+)')
 DOCUMENTS_REGEX = re.compile(
-    r'\,\s*"ý*(https://caselinkimages.nashville.gov.+?\.pdf)ý*"')
+    r'\,\s*"ý*(https://caselinkimages\.nashville\.gov.+?\.pdf)ý*"')
 STALE_HTML_REGEX = re.compile(
     r'<title>\s*CaseLink\s*Public\s*Inquiry\s*</title>')
 

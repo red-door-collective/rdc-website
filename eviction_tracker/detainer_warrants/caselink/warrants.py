@@ -65,7 +65,7 @@ def fetch_csv_link(browser, start_date, end_date):
     postback_HTML = script_tag.get_attribute('outerHTML')
 
     csv_regex = re.compile(
-        r'\s*"(https{0,1}://caselink.nashville.gov/.+?\.csv)"\s*\,')
+        r'\s*"(https{0,1}://caselink\.nashville\.gov/.+?\.csv)"\s*\,')
 
     return csv_regex.search(postback_HTML).group(1)
 
