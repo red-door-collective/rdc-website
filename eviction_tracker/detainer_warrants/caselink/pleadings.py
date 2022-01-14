@@ -335,7 +335,7 @@ def update_detainer_warrant_from_document(document):
 
         address = get_address(text)
         if address:
-            detainer_warrant.update(address=address)
+            detainer_warrant.update(address=address, document_url=document.url)
             db.session.commit()
         else:
             logger.warning(

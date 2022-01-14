@@ -664,8 +664,6 @@ class PleadingDocument(db.Model, Timestamped):
         'cases.docket_id'), nullable=False)
     status_id = Column(db.Integer)
 
-    _detainer_warrant = relationship(
-        'DetainerWarrant', back_populates='pleadings')
     judgments = relationship('Judgment', back_populates='document')
 
     @hybrid_property
@@ -697,19 +695,6 @@ class PleadingDocument(db.Model, Timestamped):
             (cls.status_id == 1, 'FAILED_TO_UPDATE_DETAINER_WARRANT'),
             (cls.status_id == 2, 'FAILED_TO_UPDATE_JUDGMENT')
         ], else_=None).label("status")
-
-    @property
-    def detainer_warrant(self):
-        return self._detainer_warrant
-
-    @detainer_warrant.setter
-    def detainer_warrant(self, warrant):
-        w_id = warrant and warrant.get('docket_id')
-        if (w_id):
-            self._detainer_warrant = db.session.query(
-                DetainerWarrant).get(w_id)
-        else:
-            self._detainer_warrant = warrant
 
     def __repr__(self):
         return "<PleadingDocument(docket_id='%s', url='%s')>" % (self.docket_id, self.url)
@@ -879,14 +864,16 @@ class DetainerWarrant(Case):
     zip_code = Column(db.String(10))
     nonpayment = Column(db.Boolean)
     notes = Column(db.Text)
+    document_url = Column(db.String, db.ForeignKey('pleading_documents.url'))
     _last_pleading_documents_check = Column(
         db.DateTime, name="last_pleading_documents_check")
     pleading_document_check_was_successful = Column(db.Boolean)
     pleading_document_check_mismatched_html = Column(db.Text)
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
 
-    pleadings = relationship(
-        'PleadingDocument', back_populates='_detainer_warrant')
+    document = relationship(
+        'PleadingDocument', foreign_keys=document_url
+    )
     last_edited_by = relationship('User', back_populates='edited_warrants')
 
     canvass_attempts = relationship(
