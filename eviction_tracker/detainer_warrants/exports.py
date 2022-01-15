@@ -1,5 +1,5 @@
 from .models import db
-from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Judgment, Plaintiff, detainer_warrant_defendants
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Hearing, Judge, Judgment, Plaintiff, detainer_warrant_defendants
 from .util import open_workbook, get_gc
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
@@ -158,13 +158,13 @@ def _to_judgment_row(judgment):
             [
                 date_str(judgment._court_date) if judgment._court_date else '',
                 judgment.hearing.docket_id,
-                judgment.courtroom.name if judgment.courtroom else '',
+                judgment.hearing.courtroom.name if judgment.hearing.courtroom else '',
                 judgment.plaintiff.name if judgment.plaintiff else '',
                 judgment.plaintiff_attorney.name if judgment.plaintiff_attorney else '',
                 defendant_names_column(judgment.hearing.case),
                 judgment.defendant_attorney.name if judgment.defendant_attorney else '',
                 judgment.hearing.address if judgment.hearing.address else '',
-                '',  # reason?
+                judgment.entered_by if judgment.entered_by else '',
                 str(judgment.awards_fees) if judgment.awards_fees else '',
                 judgment.mediation_letter,
                 judgment.notes,
@@ -177,8 +177,10 @@ def _to_judgment_row(judgment):
 def to_judgment_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    judgments = Judgment.query.filter(Judgment.in_favor_of_id != None).join(Courtroom).order_by(
-        Judgment._court_date, Courtroom.name)
+    judgments = Judgment.query\
+        .join(Hearing)\
+        .order_by(Hearing._court_date.desc())\
+        .filter(Judgment.in_favor_of_id != None)
 
     total = judgments.count()
 

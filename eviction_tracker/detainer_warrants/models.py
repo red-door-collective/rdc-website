@@ -150,7 +150,6 @@ class Courtroom(db.Model, Timestamped):
         'districts.id'), nullable=False)
 
     district = relationship('District', back_populates='courtrooms')
-    _judgments = relationship('Judgment', back_populates='_courtroom')
     hearings = relationship('Hearing', back_populates='courtroom')
 
     def __repr__(self):
@@ -349,7 +348,6 @@ class Judgment(db.Model, Timestamped):
     detainer_warrant_id = Column(
         db.String(255), db.ForeignKey('cases.docket_id'), nullable=False)
     judge_id = Column(db.Integer, db.ForeignKey('judges.id'))
-    courtroom_id = Column(db.Integer, db.ForeignKey('courtrooms.id'))
     plaintiff_id = Column(db.Integer, db.ForeignKey(
         'plaintiffs.id', ondelete='CASCADE'))
     plaintiff_attorney_id = Column(db.Integer, db.ForeignKey(
@@ -360,10 +358,6 @@ class Judgment(db.Model, Timestamped):
     ))
     document_url = Column(db.String, db.ForeignKey('pleading_documents.url'))
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
-
-    _courtroom = relationship(
-        'Courtroom', back_populates='_judgments'
-    )
 
     _plaintiff = relationship(
         'Plaintiff', back_populates='_judgments'
@@ -413,18 +407,6 @@ class Judgment(db.Model, Timestamped):
     @file_date.setter
     def file_date(self, posix):
         self._file_date = from_millis(posix)
-
-    @property
-    def courtroom(self):
-        return self._courtroom
-
-    @courtroom.setter
-    def courtroom(self, courtroom):
-        c_id = courtroom and courtroom.get('id')
-        if (c_id):
-            self._courtroom = db.session.query(Courtroom).get(c_id)
-        else:
-            self._courtroom = courtroom
 
     @property
     def in_favor_of(self):
