@@ -333,6 +333,14 @@ def bulk_extract_pleading_document_details():
         extract_text_from_document(document)
 
 
+def extract_no_kind_document_details():
+    queue = PleadingDocument.query.filter(
+        PleadingDocument.kind_id == None
+    )
+    for document in queue:
+        extract_text_from_document(document)
+
+
 def extract_all_pleading_document_details():
     for document in PleadingDocument.query:
         extract_text_from_document(document)
