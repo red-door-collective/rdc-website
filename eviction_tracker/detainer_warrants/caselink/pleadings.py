@@ -27,6 +27,12 @@ import requests
 import io
 from ..judgments import regexes
 import usaddress
+import pdf2image
+try:
+    from PIL import Image
+except ImportError:
+    import Image
+import pytesseract
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -37,6 +43,24 @@ DOCUMENTS_REGEX = re.compile(
     r'\,\s*"ý*(https://caselinkimages\.nashville\.gov.+?\.pdf)ý*"')
 STALE_HTML_REGEX = re.compile(
     r'<title>\s*CaseLink\s*Public\s*Inquiry\s*</title>')
+
+
+def pdf_to_img(pdf):
+    return pdf2image.convert_from_bytes(pdf.read())
+
+
+def ocr_core(file):
+    text = pytesseract.image_to_string(file)
+    return text
+
+
+def all_pages_text(pdf_file):
+    images = pdf_to_img(pdf_file)
+    text_per_page = []
+    for pg, img in enumerate(images):
+        text_per_page.append(ocr_core(img))
+
+    return ' | '.join(text_per_page)
 
 
 def is_between(begin_date, end_date, check_date=None):
@@ -257,20 +281,34 @@ def extract_text_from_pdf(pdf):
     return output_string.getvalue().strip()
 
 
+def determine_kind(text):
+    detainer_warrant_doc_match = regexes.DETAINER_WARRANT_DOCUMENT.search(
+        text)
+
+    kind = None
+    if detainer_warrant_doc_match:
+        kind = 'DETAINER_WARRANT'
+    elif 'Other terms of this Order, if any, are as follows' in text:
+        kind = 'JUDGMENT'
+    return kind
+
+
+def extract_text_via_ocr(pdf):
+    return all_pages_text(pdf)
+
+
 def extract_text_from_document(document):
     try:
         response = requests.get(document.url)
         pdf_memory_file = io.BytesIO()
         pdf_memory_file.write(response.content)
         text = extract_text_from_pdf(pdf_memory_file)
-        detainer_warrant_doc_match = regexes.DETAINER_WARRANT_DOCUMENT.search(
-            text)
 
-        kind = None
-        if detainer_warrant_doc_match:
-            kind = 'DETAINER_WARRANT'
-        elif 'Other terms of this Order, if any, are as follows' in text:
-            kind = 'JUDGMENT'
+        kind = determine_kind(text)
+        if not kind:  # fallback to OCR
+            pdf_memory_file.seek(0)  # reset for another scan
+            text = extract_text_via_ocr(pdf_memory_file)
+            kind = determine_kind(text)
 
         document.update(text=text, kind=kind)
         db.session.commit()
