@@ -307,7 +307,7 @@ def filter_plaintiff_attorney_name(model, plaintiff_attorney_name):
 
 @model_filter(fields.Int())
 def filter_court_date(model, court_date):
-    return model._judgments.any(Judgment.court_date == court_date)
+    return model.hearings.any(Hearing.court_date == court_date)
 
 
 @model_filter(fields.String())
