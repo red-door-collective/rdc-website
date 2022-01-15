@@ -1,0 +1,17 @@
+name: Cleanup Deploy Branch
+
+on: delete
+
+jobs:
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    if: github.event.ref_type == 'branch'
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Fetch branches
+        run: git fetch
+
+      - name: Delete deploy branch
+        run: git push origin --delete ${{ github.event.ref }}-deploy || true
