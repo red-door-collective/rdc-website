@@ -156,7 +156,8 @@ def defendant_names_column_newline(warrant):
 def _to_judgment_row(judgment):
     return [dw if dw else '' for dw in
             [
-                date_str(judgment._court_date) if judgment._court_date else '',
+                date_str(
+                    judgment.hearing._court_date) if judgment.hearing._court_date else '',
                 judgment.hearing.docket_id,
                 judgment.hearing.courtroom.name if judgment.hearing.courtroom else '',
                 judgment.plaintiff.name if judgment.plaintiff else '',
@@ -261,10 +262,10 @@ def _try_court_watch_row(warrant):
 def to_court_watch_sheet(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    warrants = DetainerWarrant.query.join(Judgment).filter(
-        Judgment._court_date != None,
-        Judgment._court_date >= date.today()
-    ).order_by(DetainerWarrant.plaintiff_id.desc(), Judgment._court_date.desc())
+    warrants = DetainerWarrant.query.join(Hearing).filter(
+        Hearing._court_date != None,
+        Hearing._court_date >= date.today()
+    ).order_by(DetainerWarrant.plaintiff_id.desc(), Hearing._court_date.desc())
 
     total = warrants.count()
 
@@ -351,10 +352,10 @@ def to_courtroom_entry_workbook(date, service_account_key=None):
         logger.error('cannot find courtrooms for entry sheet generation!')
         return
 
-    judgments = Judgment.query.filter(
-        Judgment._court_date != None,
-        Judgment._court_date == date,
-    ).order_by(Judgment.court_order_number)
+    hearings = Hearing.query.filter(
+        Hearing._court_date != None,
+        Hearing._court_date == date,
+    ).order_by(Hearing.court_order_number)
 
     _to_courtroom_entry_sheet(wb, date, courtroom_1a, judgments)
     _to_courtroom_entry_sheet(wb, date, courtroom_1b, judgments)

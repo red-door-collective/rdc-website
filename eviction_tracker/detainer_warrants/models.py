@@ -210,6 +210,7 @@ class Hearing(db.Model, Timestamped):
     id = Column(db.Integer, primary_key=True)
     _court_date = Column(db.DateTime, name='court_date', nullable=False)
     address = Column(db.String(255), nullable=False)
+    court_order_number = Column(db.Integer)
 
     _continuance_on = Column(db.Date, name='continuance_on')
 
@@ -337,10 +338,8 @@ class Judgment(db.Model, Timestamped):
     interest_follows_site = Column(db.Boolean)
     dismissal_basis_id = Column(db.Integer)
     with_prejudice = Column(db.Boolean)
-    _court_date = Column(db.Date, name='court_date')
     _file_date = Column(db.Date, name='file_date')
     mediation_letter = Column(db.Boolean)
-    court_order_number = Column(db.Integer)
     notes = Column(db.Text)
 
     hearing_id = Column(db.Integer, db.ForeignKey(
@@ -377,21 +376,6 @@ class Judgment(db.Model, Timestamped):
     last_edited_by = relationship(
         'User', back_populates='edited_judgments'
     )
-
-    @hybrid_property
-    def court_date(self):
-        if self._court_date:
-            return in_millis(datetime.combine(self._court_date, datetime.min.time()).timestamp())
-        else:
-            return None
-
-    @court_date.comparator
-    def court_date(cls):
-        return PosixComparator(cls._court_date)
-
-    @court_date.setter
-    def court_date(self, posix):
-        self._court_date = from_millis(posix)
 
     @hybrid_property
     def file_date(self):
