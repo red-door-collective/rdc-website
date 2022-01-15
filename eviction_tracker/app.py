@@ -32,6 +32,7 @@ options = {
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
 Defendant = detainer_warrants.models.Defendant
+Hearing = detainer_warrants.models.Hearing
 Plaintiff = detainer_warrants.models.Plaintiff
 Judgment = detainer_warrants.models.Judgment
 
@@ -246,10 +247,11 @@ def top_plaintiff_ranges_bet(start, end):
 
 def pending_scheduled_case_count(start, end):
     return db.session.query(DetainerWarrant)\
+        .join(Hearing)\
         .filter(
             and_(
-                func.date(DetainerWarrant.court_date) >= start,
-                func.date(DetainerWarrant.court_date) < end,
+                func.date(Hearing.court_date) >= start,
+                func.date(Hearing.court_date) < end,
                 DetainerWarrant.status_id == DetainerWarrant.statuses['PENDING']
             )
     )\
@@ -258,10 +260,11 @@ def pending_scheduled_case_count(start, end):
 
 def amount_awarded_between(start, end):
     amount = db.session.query(func.sum(Judgment.awards_fees))\
+        .join(Hearing)\
         .filter(
             and_(
-                func.date(Judgment.court_date) >= start,
-                func.date(Judgment.court_date) < end
+                func.date(Hearing.court_date) >= start,
+                func.date(Hearing.court_date) < end
             )
     ).scalar()
     if amount is None:
