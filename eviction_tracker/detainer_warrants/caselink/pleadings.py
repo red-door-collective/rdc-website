@@ -353,24 +353,41 @@ def retry_detainer_warrant_extraction():
         extract_text_from_document(document)
 
 
-def try_ocr_detainer_warrants():
+def try_ocr_detainer_warrants(start_date=None, end_date=None):
     rownb = func.row_number().over(
         order_by=PleadingDocument.created_at.desc(),
         partition_by=PleadingDocument.docket_id
     )
     rownb = rownb.label('rownb')
 
-    subq = db.session.query(PleadingDocument, rownb).filter(
-        PleadingDocument.kind_id == None
-    ).order_by(PleadingDocument.docket_id.desc())
+    subq = db.session.query(PleadingDocument, rownb)\
+        .order_by(PleadingDocument.docket_id.desc())\
+        .filter(PleadingDocument.kind_id == None)
+
+    if start_date or end_date:
+        subq = subq.join(
+            DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)
+
+    if start_date:
+        subq = subq.filter(DetainerWarrant._file_date >= start_date)
+
+    if end_date:
+        subq = subq.filter(DetainerWarrant._file_date <= end_date)
 
     subq = subq.subquery(name="subq", with_labels=True)
     queue = db.session.query(orm.aliased(
         PleadingDocument, alias=subq)).filter(subq.c.rownb == 1)
 
-    logger.info(f'extracting text for {queue.count()} documents')
+    total = queue.count()
 
-    for document in queue:
+    logger.info(f'extracting text for {total} documents')
+
+    log_freq = total // 100
+
+    for i, document in enumerate(queue):
+        if i % log_freq == 0:
+            logger.info(f'{round(i / total * 100)}% done with OCR scan')
+
         extract_text_from_document(document)
 
 
