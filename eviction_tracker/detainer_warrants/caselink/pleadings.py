@@ -206,7 +206,7 @@ def bulk_import_documents(browser, docket_ids, cancel_during_working_hours=False
     postback_HTML = None
 
     for index, docket_id in enumerate(docket_ids):
-        if cancel_during_working_hours and in_between(datetime.now(), time(8), time(22)):
+        if cancel_during_working_hours and in_between(time.now(), time(8), time(22)):
             return
 
         login(browser)
