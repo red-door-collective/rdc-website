@@ -231,6 +231,12 @@ def retry_detainer_warrant_extraction():
 
 @click.command()
 @with_appcontext
+def try_ocr_detainer_warrants():
+    detainer_warrants.caselink.pleadings.try_ocr_detainer_warrants()
+
+
+@click.command()
+@with_appcontext
 def extract_no_kind_pleading_document_text():
     detainer_warrants.caselink.pleadings.extract_no_kind_document_details()
 

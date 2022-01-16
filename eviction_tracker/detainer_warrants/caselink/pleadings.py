@@ -6,7 +6,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 import selenium.webdriver.support.expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func, orm
 from sqlalchemy import Date, cast
 import time
 import os
@@ -284,9 +284,11 @@ def extract_text_from_pdf(pdf):
 def determine_kind(text):
     detainer_warrant_doc_match = regexes.DETAINER_WARRANT_DOCUMENT.search(
         text)
+    old_detainer_warrant_doc_match = regexes.DETAINER_WARRANT_DOCUMENT_OLD.search(
+        text)
 
     kind = None
-    if detainer_warrant_doc_match:
+    if detainer_warrant_doc_match or old_detainer_warrant_doc_match:
         kind = 'DETAINER_WARRANT'
     elif 'Other terms of this Order, if any, are as follows' in text:
         kind = 'JUDGMENT'
@@ -348,6 +350,27 @@ def extract_all_pleading_document_details():
 
 def retry_detainer_warrant_extraction():
     for document in PleadingDocument.query.filter(PleadingDocument.text.ilike('%detaining%')):
+        extract_text_from_document(document)
+
+
+def try_ocr_detainer_warrants():
+    rownb = func.row_number().over(
+        order_by=PleadingDocument.created_at.desc(),
+        partition_by=PleadingDocument.docket_id
+    )
+    rownb = rownb.label('rownb')
+
+    subq = db.session.query(PleadingDocument, rownb).filter(
+        PleadingDocument.kind_id == None
+    ).order_by(PleadingDocument.docket_id.desc())
+
+    subq = subq.subquery(name="subq", with_labels=True)
+    queue = db.session.query(orm.aliased(
+        PleadingDocument, alias=subq)).filter(subq.c.rownb == 1)
+
+    logger.info(f'extracting text for {queue.count()} documents')
+
+    for document in queue:
         extract_text_from_document(document)
 
 

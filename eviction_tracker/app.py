@@ -505,6 +505,7 @@ def register_commands(app):
     app.cli.add_command(commands.extract_all_pleading_document_details)
     app.cli.add_command(commands.extract_no_kind_pleading_document_text)
     app.cli.add_command(commands.retry_detainer_warrant_extraction)
+    app.cli.add_command(commands.try_ocr_detainer_warrants)
     app.cli.add_command(commands.bulk_extract_pleading_document_details)
     app.cli.add_command(commands.extract_pleading_document_text)
     app.cli.add_command(commands.update_judgment_from_document)

@@ -2,6 +2,9 @@ import re
 
 DETAINER_WARRANT_DOCUMENT = re.compile(
     r'unlawfully\s+detaining\s+a\s+certain\s+real\s+property')
+DETAINER_WARRANT_DOCUMENT_OLD = re.compile(
+    r'To\s*Any\s*Lawful\s*Officer\s*To\s*Execute'
+)
 
 DOCKET_ID = re.compile(r'DOCKET\s+NO.\s*:\s*(\w+)\s*')
 PLAINTIFF = re.compile(r'COUNTY, TENNESSEE\s*(.+?)\s*Plaintiff')
