@@ -513,6 +513,8 @@ def update_warrants_from_documents():
     queue = PleadingDocument.query.filter(and_(
         PleadingDocument.kind == 'DETAINER_WARRANT',
         PleadingDocument.text != None
-    ))
+    )).join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)\
+        .filter(DetainerWarrant.document_url == None)
+
     for document in queue:
         update_detainer_warrant_from_document(document)
