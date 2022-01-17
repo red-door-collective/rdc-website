@@ -510,6 +510,7 @@ def register_commands(app):
     app.cli.add_command(commands.extract_pleading_document_text)
     app.cli.add_command(commands.update_judgment_from_document)
     app.cli.add_command(commands.update_judgments_from_documents)
+    app.cli.add_command(commands.update_warrants_from_documents)
     app.cli.add_command(commands.gather_pleading_documents)
     app.cli.add_command(commands.gather_pleading_documents_in_bulk)
     app.cli.add_command(commands.gather_warrants_csv)

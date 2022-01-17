@@ -11,6 +11,9 @@ DETAINER_WARRANT_SCANNED_PRINTED = re.compile(
 DETAINER_WARRANT_SCANNED_DARK = re.compile(
     r'To\s+the\s+sheriff\s+or\s+constable\s+of\s+such\s+county'
 )
+DETAINER_WARRANT_LOOSE = re.compile(
+    r'DETAINER\s+WARRANT'
+)
 
 DOCKET_ID = re.compile(r'DOCKET\s+NO.\s*:\s*(\w+)\s*')
 PLAINTIFF = re.compile(r'COUNTY, TENNESSEE\s*(.+?)\s*Plaintiff')

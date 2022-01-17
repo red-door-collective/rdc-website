@@ -292,10 +292,12 @@ def determine_kind(text):
     scanned_dark_warrant_doc_match = regexes.DETAINER_WARRANT_SCANNED_DARK.search(
         text
     )
+    warrant_loose_match = regexes.DETAINER_WARRANT_LOOSE.search(text)
 
     kind = None
     if detainer_warrant_doc_match or old_detainer_warrant_doc_match or \
-            scanned_printed_warrant_doc_match or scanned_dark_warrant_doc_match:
+            scanned_printed_warrant_doc_match or scanned_dark_warrant_doc_match or \
+            warrant_loose_match:
         kind = 'DETAINER_WARRANT'
     elif 'Other terms of this Order, if any, are as follows' in text:
         kind = 'JUDGMENT'
@@ -396,11 +398,8 @@ def ocr_queue(start_date=None, end_date=None):
     rownb = rownb.label('rownb')
 
     subq = db.session.query(PleadingDocument, rownb)\
-        .filter(PleadingDocument.kind_id == None)
-
-    if start_date or end_date:
-        subq = subq.join(
-            DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)
+        .join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)\
+        .filter(PleadingDocument.kind_id == None, DetainerWarrant.document_url == None)
 
     if start_date:
         subq = subq.filter(DetainerWarrant._file_date >= start_date)
@@ -455,11 +454,6 @@ def get_address(text):
 def update_detainer_warrant_from_document(document):
     try:
         text = document.text
-        file_date = file_date_guess(text)
-        if not file_date:
-            logger.warning(f'could not guess file date for {document.url}')
-            return
-
         detainer_warrant = DetainerWarrant.query.get(document.docket_id)
 
         address = get_address(text)
@@ -513,3 +507,12 @@ def update_judgments_from_documents():
     ))
     for document in queue:
         update_judgment_from_document(document)
+
+
+def update_warrants_from_documents():
+    queue = PleadingDocument.query.filter(and_(
+        PleadingDocument.kind == 'DETAINER_WARRANT',
+        PleadingDocument.text != None
+    ))
+    for document in queue:
+        update_detainer_warrant_from_document(document)
