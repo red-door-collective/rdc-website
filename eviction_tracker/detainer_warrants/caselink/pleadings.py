@@ -33,6 +33,7 @@ try:
 except ImportError:
     import Image
 import pytesseract
+import gc
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -288,9 +289,13 @@ def determine_kind(text):
         text)
     scanned_printed_warrant_doc_match = regexes.DETAINER_WARRANT_SCANNED_PRINTED.search(
         text)
+    scanned_dark_warrant_doc_match = regexes.DETAINER_WARRANT_SCANNED_DARK.search(
+        text
+    )
 
     kind = None
-    if detainer_warrant_doc_match or old_detainer_warrant_doc_match or scanned_printed_warrant_doc_match:
+    if detainer_warrant_doc_match or old_detainer_warrant_doc_match or \
+            scanned_printed_warrant_doc_match or scanned_dark_warrant_doc_match:
         kind = 'DETAINER_WARRANT'
     elif 'Other terms of this Order, if any, are as follows' in text:
         kind = 'JUDGMENT'
@@ -421,6 +426,10 @@ def try_ocr_detainer_warrants(start_date=None, end_date=None):
     for i, document in enumerate(queue):
         if i % log_freq == 0:
             logger.info(f'{round(i / total * 100)}% done with OCR scan')
+
+        if i % 10 == 0:
+            logger.info(
+                f'Garbage collector: collected {gc.collect()} objects.')
 
         extract_text_from_document_ocr(document)
 
