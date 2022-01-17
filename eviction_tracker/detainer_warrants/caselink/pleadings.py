@@ -286,9 +286,11 @@ def determine_kind(text):
         text)
     old_detainer_warrant_doc_match = regexes.DETAINER_WARRANT_DOCUMENT_OLD.search(
         text)
+    scanned_printed_warrant_doc_match = regexes.DETAINER_WARRANT_SCANNED_PRINTED.search(
+        text)
 
     kind = None
-    if detainer_warrant_doc_match or old_detainer_warrant_doc_match:
+    if detainer_warrant_doc_match or old_detainer_warrant_doc_match or scanned_printed_warrant_doc_match:
         kind = 'DETAINER_WARRANT'
     elif 'Other terms of this Order, if any, are as follows' in text:
         kind = 'JUDGMENT'
@@ -299,31 +301,59 @@ def extract_text_via_ocr(pdf):
     return all_pages_text(pdf)
 
 
-def extract_text_from_document(document):
+def fetch_pdf(document):
+    response = requests.get(document.url)
+    pdf_memory_file = io.BytesIO()
+    pdf_memory_file.write(response.content)
+    pdf_memory_file.seek(0)
+    return pdf_memory_file
+
+
+def update_document_parent(document):
+    if document.kind == 'DETAINER_WARRANT':
+        update_detainer_warrant_from_document(document)
+    elif document.kind == 'JUDGMENT':
+        update_judgment_from_document(document)
+
+
+def extract_text_from_pdf_ocr(pdf, document):
     try:
-        response = requests.get(document.url)
-        pdf_memory_file = io.BytesIO()
-        pdf_memory_file.write(response.content)
-        text = extract_text_from_pdf(pdf_memory_file)
-
+        logger.info(
+            f'extracting text via OCR: {document.docket_id}, {document.url}')
+        text = extract_text_via_ocr(pdf)
         kind = determine_kind(text)
-        if not kind:  # fallback to OCR
-            pdf_memory_file.seek(0)  # reset for another scan
-            text = extract_text_via_ocr(pdf_memory_file)
-            kind = determine_kind(text)
-
+        logger.info(f'extracted text via OCR. Kind: `{kind}` determined')
         document.update(text=text, kind=kind)
         db.session.commit()
+    except:
+        logger.warning(
+            f'Could not extract text via OCR for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}')
+        document.update(status="FAILED_TO_EXTRACT_TEXT")
+        db.session.commit()
+
+
+def extract_text_from_document_ocr(document):
+    pdf_memory_file = fetch_pdf(document)
+    extract_text_from_pdf_ocr(pdf_memory_file, document)
+
+
+def extract_text_from_document(document):
+    try:
+        pdf_memory_file = fetch_pdf(document)
+        text = extract_text_from_pdf(pdf_memory_file)
+        kind = determine_kind(text)
+        if kind:
+            document.update(text=text, kind=kind)
+            db.session.commit()
+        else:  # fallback to OCR
+            pdf_memory_file.seek(0)  # reset for another scan, save a fetch
+            extract_text_from_pdf_ocr(pdf_memory_file, document)
+
     except:
         logger.warning(
             f'Could not extract text for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}')
         document.update(status="FAILED_TO_EXTRACT_TEXT")
         db.session.commit()
-
-    if document.kind == 'DETAINER_WARRANT':
-        update_detainer_warrant_from_document(document)
-    elif document.kind == 'JUDGMENT':
-        update_judgment_from_document(document)
 
 
 def bulk_extract_pleading_document_details():
@@ -353,15 +383,14 @@ def retry_detainer_warrant_extraction():
         extract_text_from_document(document)
 
 
-def try_ocr_detainer_warrants(start_date=None, end_date=None):
+def ocr_queue(start_date=None, end_date=None):
     rownb = func.row_number().over(
-        order_by=PleadingDocument.created_at.desc(),
+        order_by=PleadingDocument.created_at,
         partition_by=PleadingDocument.docket_id
     )
     rownb = rownb.label('rownb')
 
     subq = db.session.query(PleadingDocument, rownb)\
-        .order_by(PleadingDocument.docket_id.desc())\
         .filter(PleadingDocument.kind_id == None)
 
     if start_date or end_date:
@@ -375,8 +404,13 @@ def try_ocr_detainer_warrants(start_date=None, end_date=None):
         subq = subq.filter(DetainerWarrant._file_date <= end_date)
 
     subq = subq.subquery(name="subq", with_labels=True)
-    queue = db.session.query(orm.aliased(
+
+    return db.session.query(orm.aliased(
         PleadingDocument, alias=subq)).filter(subq.c.rownb == 1)
+
+
+def try_ocr_detainer_warrants(start_date=None, end_date=None):
+    queue = ocr_queue(start_date, end_date)
 
     total = queue.count()
 
@@ -388,7 +422,7 @@ def try_ocr_detainer_warrants(start_date=None, end_date=None):
         if i % log_freq == 0:
             logger.info(f'{round(i / total * 100)}% done with OCR scan')
 
-        extract_text_from_document(document)
+        extract_text_from_document_ocr(document)
 
 
 IMPORTANT_PIECES = ['AddressNumber', 'StreetName',

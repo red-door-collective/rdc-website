@@ -619,7 +619,8 @@ class PleadingDocument(db.Model, Timestamped):
     statuses = {
         'FAILED_TO_EXTRACT_TEXT': 0,
         'FAILED_TO_UPDATE_DETAINER_WARRANT': 1,
-        'FAILED_TO_UPDATE_JUDGMENT': 2
+        'FAILED_TO_UPDATE_JUDGMENT': 2,
+        'FAILED_TO_EXTRACT_TEXT_OCR': 3
     }
 
     __tablename__ = 'pleading_documents'
@@ -659,7 +660,8 @@ class PleadingDocument(db.Model, Timestamped):
         return case([
             (cls.status_id == 0, 'FAILED_TO_EXTRACT_TEXT'),
             (cls.status_id == 1, 'FAILED_TO_UPDATE_DETAINER_WARRANT'),
-            (cls.status_id == 2, 'FAILED_TO_UPDATE_JUDGMENT')
+            (cls.status_id == 2, 'FAILED_TO_UPDATE_JUDGMENT'),
+            (cls.status_id == 3, 'FAILED_TO_EXTRACT_TEXT_OCR')
         ], else_=None).label("status")
 
     def __repr__(self):

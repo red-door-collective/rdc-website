@@ -5,6 +5,9 @@ DETAINER_WARRANT_DOCUMENT = re.compile(
 DETAINER_WARRANT_DOCUMENT_OLD = re.compile(
     r'To\s*Any\s*Lawful\s*Officer\s*To\s*Execute'
 )
+DETAINER_WARRANT_SCANNED_PRINTED = re.compile(
+    r'DETAINER\s+SUMMONS'
+)
 
 DOCKET_ID = re.compile(r'DOCKET\s+NO.\s*:\s*(\w+)\s*')
 PLAINTIFF = re.compile(r'COUNTY, TENNESSEE\s*(.+?)\s*Plaintiff')
