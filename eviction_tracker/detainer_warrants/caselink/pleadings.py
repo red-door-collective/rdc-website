@@ -437,16 +437,35 @@ IMPORTANT_PIECES = ['AddressNumber', 'StreetName',
                     'PlaceName', 'StateName', 'ZipCode']
 
 
+def tag_address(text):
+    pieces, labels = usaddress.tag(text)
+    return all([pieces.get(piece) for piece in IMPORTANT_PIECES])
+
+
+def try_address(reg, text):
+    reg_match = reg.search(text)
+    if reg_match and tag_address(reg_match.group(1).strip()):
+        return reg_match.group(1).strip()
+
+
+ADDRESS_REGEXES = [regexes.DETAINER_WARRANT_ADDRESS,
+                   regexes.DETAINER_WARRANT_ADDRESS_2]
+
+
 def get_address(text):
+    no_newlines = text.replace('\n', ' ').strip()
+
+    for reg in ADDRESS_REGEXES:
+        addr = try_address(reg, no_newlines)
+        if addr and tag_address(addr):
+            return addr
+
     for line in text.split('\n'):
         potential = line.strip()
         try:
-            pieces, labels = usaddress.tag(potential)
-            valid = all([pieces.get(piece) for piece in IMPORTANT_PIECES])
+            valid = tag_address(potential)
             if valid:
                 return potential
-            else:
-                continue
         except:
             continue
 
@@ -515,6 +534,19 @@ def update_warrants_from_documents():
         PleadingDocument.text != None
     )).join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)\
         .filter(DetainerWarrant.document_url == None)
+
+    for document in queue:
+        update_detainer_warrant_from_document(document)
+
+
+def parse_detainer_warrant_addresses():
+    queue = PleadingDocument.query.filter(
+        PleadingDocument.kind == 'DETAINER_WARRANT',
+        PleadingDocument.text != None
+    )
+
+    logger.info(
+        f'parsing {queue.count()} detainer warrants for tenant address')
 
     for document in queue:
         update_detainer_warrant_from_document(document)

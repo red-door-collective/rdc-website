@@ -274,6 +274,12 @@ def update_warrants_from_documents():
 
 
 @click.command()
+@with_appcontext
+def parse_detainer_warrant_addresses():
+    detainer_warrants.caselink.pleadings.parse_detainer_warrant_addresses()
+
+
+@click.command()
 @click.argument('docket_id')
 @with_appcontext
 def gather_pleading_documents(docket_id):

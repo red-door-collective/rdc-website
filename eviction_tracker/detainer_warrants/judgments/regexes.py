@@ -15,6 +15,12 @@ DETAINER_WARRANT_LOOSE = re.compile(
     r'DETAINER\s+WARRANT'
 )
 
+DETAINER_WARRANT_ADDRESS = re.compile(
+    r'aforementioned,\s+and\s+bounded\s+or\s+known\s+and\s+described\s+as\s+follows\:?\s+(.+?)\s+INCLUDING\s+BUT\s+NOT\s+LIMITED\s+TO\s+ALL\s+PARKING')
+DETAINER_WARRANT_ADDRESS_2 = re.compile(
+    r'bounded\s+or\s+known\s+and\s+described\s+as\s+follows\:?\s+(.+?)\s+AND\s+WHEREAS')
+
+
 DOCKET_ID = re.compile(r'DOCKET\s+NO.\s*:\s*(\w+)\s*')
 PLAINTIFF = re.compile(r'COUNTY, TENNESSEE\s*(.+?)\s*Plaintiff')
 JUDGE = re.compile(r'The foregoing is hereby.+Judge\s+(.+?),{0,1}\s+Division')
