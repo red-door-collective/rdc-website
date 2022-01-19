@@ -305,6 +305,11 @@ def extract_text_from_pdf(pdf):
 
 
 def determine_kind(text):
+    kind = None
+    if 'Other terms of this Order, if any, are as follows' in text:
+        kind = 'JUDGMENT'
+        return kind
+
     detainer_warrant_doc_match = regexes.DETAINER_WARRANT_DOCUMENT.search(
         text)
     old_detainer_warrant_doc_match = regexes.DETAINER_WARRANT_DOCUMENT_OLD.search(
@@ -314,15 +319,12 @@ def determine_kind(text):
     scanned_dark_warrant_doc_match = regexes.DETAINER_WARRANT_SCANNED_DARK.search(
         text
     )
-    warrant_loose_match = regexes.DETAINER_WARRANT_LOOSE.search(text)
+    warrant_summons_match = regexes.DETAINER_WARRANT_SUMMONS.search(text)
 
-    kind = None
     if detainer_warrant_doc_match or old_detainer_warrant_doc_match or \
             scanned_printed_warrant_doc_match or scanned_dark_warrant_doc_match or \
-            warrant_loose_match:
+            warrant_summons_match:
         kind = 'DETAINER_WARRANT'
-    elif 'Other terms of this Order, if any, are as follows' in text:
-        kind = 'JUDGMENT'
     return kind
 
 

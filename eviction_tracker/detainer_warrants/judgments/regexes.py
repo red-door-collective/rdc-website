@@ -11,8 +11,8 @@ DETAINER_WARRANT_SCANNED_PRINTED = re.compile(
 DETAINER_WARRANT_SCANNED_DARK = re.compile(
     r'To\s+the\s+sheriff\s+or\s+constable\s+of\s+such\s+county'
 )
-DETAINER_WARRANT_LOOSE = re.compile(
-    r'DETAINER\s+WARRANT(?!\s+Order)'
+DETAINER_WARRANT_SUMMONS = re.compile(
+    r'We\s+therefore\s+command\s+you\s+to\s+summon\s+the\s+Defendant'
 )
 
 DETAINER_WARRANT_ADDRESS = re.compile(
