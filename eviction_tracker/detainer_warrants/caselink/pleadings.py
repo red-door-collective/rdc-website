@@ -533,12 +533,24 @@ def update_detainer_warrant_from_document(document):
         detainer_warrant = DetainerWarrant.query.get(document.docket_id)
 
         address = get_address(text)
+        warrant_count = PleadingDocument.query.filter(
+            PleadingDocument.docket_id == document.docket_id,
+            PleadingDocument.kind == 'DETAINER_WARRANT'
+        ).count()
+
         if address:
-            detainer_warrant.update(address=address, document_url=document.url)
+            detainer_warrant.update(address=address)
             db.session.commit()
         else:
             logger.warning(
                 f'could not find address in detainer warrant: {document.url}')
+
+        if warrant_count > 1:
+            logger.warning(
+                f'{warrant_count} warrants detected for `{document.docket_id}`')
+        else:
+            detainer_warrant.update(document_url=document.url)
+            db.session.commit()
     except:
         logger.warning(
             f'failed update detainer warrant {document.docket_id} for {document.url}. Exception: {traceback.format_exc()}')
