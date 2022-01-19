@@ -566,7 +566,7 @@ class Judgment(db.Model, Timestamped):
         interest_follows_site = checked in search(
             regexes.INTEREST_FOLLOWS_SITE, pdf, default='')
         interest_rate_match = match(regexes.INTEREST_RATE, pdf, default='')
-        if interest_rate_match and checked in interest_rate_match.group(1):
+        if interest_rate_match and checked in interest_rate_match.group(1) and interest_rate_match.group(2) != '':
             interest_rate = interest_rate_match.group(2)
         else:
             interest_rate = None
