@@ -251,6 +251,12 @@ def try_ocr_extraction(start_date, end_date):
 
 @click.command()
 @with_appcontext
+def classify_documents():
+    detainer_warrants.caselink.pleadings.classify_documents()
+
+
+@click.command()
+@with_appcontext
 def extract_no_kind_pleading_document_text():
     detainer_warrants.caselink.pleadings.extract_no_kind_document_details()
 

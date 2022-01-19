@@ -594,6 +594,25 @@ def update_warrants_from_documents():
         update_detainer_warrant_from_document(document)
 
 
+def classify_document(document):
+    kind = determine_kind(document.text)
+    if kind != document.kind:
+        document.update(kind=kind)
+        db.session.commit()
+
+
+def classify_documents():
+    queue = PleadingDocument.query.filter(
+        PleadingDocument.text != None
+    )
+
+    logger.info(
+        f'classifying {queue.count()} documents')
+
+    for document in queue:
+        classify_document(document)
+
+
 def parse_detainer_warrant_addresses():
     queue = PleadingDocument.query.filter(
         PleadingDocument.kind == 'DETAINER_WARRANT',
