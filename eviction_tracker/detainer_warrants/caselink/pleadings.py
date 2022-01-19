@@ -269,6 +269,21 @@ def update_pending_warrants():
                           cancel_during_working_hours=True)
 
 
+def gather_documents_for_missing_addresses(start_date=None, end_date=None):
+    queue = db.session.query(DetainerWarrant.docket_id).filter(
+        DetainerWarrant.address == None,
+        DetainerWarrant.document_url == None
+    )
+
+    if start_date:
+        queue = queue.filter(DetainerWarrant._file_date >= start_date)
+
+    if end_date:
+        queue = queue.filter(DetainerWarrant._file_date <= end_date)
+
+    bulk_import_documents([id[0] for id in queue])
+
+
 PARSE_PARAMS = LAParams(
     all_texts=True,
     boxes_flow=0.5,

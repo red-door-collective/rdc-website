@@ -305,6 +305,17 @@ def gather_pleading_documents_in_bulk(docket_id):
 
 
 @click.command()
+@click.option('--start-date', '-s')
+@click.option('--end-date', '-e')
+@with_appcontext
+def gather_documents_for_missing_addresses(start_date, end_date):
+    start = datetime.strptime(start_date, '%Y-%m-%d') if start_date else None
+    end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
+    detainer_warrants.caselink.pleadings.gather_documents_for_missing_addresses(
+        start, end)
+
+
+@click.command()
 @click.argument('start_date')
 @click.argument('end_date')
 @with_appcontext
