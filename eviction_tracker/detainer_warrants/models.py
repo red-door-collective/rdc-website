@@ -550,6 +550,8 @@ class Judgment(db.Model, Timestamped):
             awards_possession = awards_possession_and_suit or awards_possession_and_fees
 
         awards_fees = search(regexes.AWARDS_FEES_AMOUNT, pdf)
+        awards_fees = awards_fees.replace(
+            ',', '') if awards_fees else awards_fees
 
         entered_by = None
         if checked in search(regexes.ENTERED_BY_DEFAULT, pdf, default=''):

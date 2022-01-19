@@ -31,7 +31,8 @@ IN_FAVOR_DEFENDANT = re.compile(
 AWARDS = re.compile(
     r'(|)\s*(|)\s*(?=for\s+possession\s+of\s+the\s+described\s+property|Judgment\s+is\s+entered\s+by:)'
 )
-AWARDS_FEES_AMOUNT = re.compile(r'\$\s*([\d\.]+?)\s+')
+AWARDS_FEES_AMOUNT = re.compile(
+    r'[$]\s?([+-]?[0-9]{1,3}(?:(?:,?[0-9]{3}))*(?:\.[0-9]{1,2})?)')
 ENTERED_BY_DEFAULT = re.compile(r'Judgment is entered by:\s*(.+)\s*Default.')
 ENTERED_BY_AGREEMENT = re.compile(r'Default.\s*(.+)\s*Agreement of parties.')
 ENTERED_BY_TRIAL = re.compile(r'parties.\s*(.+)\s*Trial in Court')
