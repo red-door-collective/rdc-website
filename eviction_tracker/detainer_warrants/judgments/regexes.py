@@ -1,18 +1,21 @@
 import re
 
 DETAINER_WARRANT_DOCUMENT = re.compile(
-    r'unlawfully\s+detaining\s+a\s+certain\s+real\s+property')
+    r'unlawfully[\s\n]+detaining[\s\n]+a[\s\n]+certain[\s\n]+real[\s\n]+property')
 DETAINER_WARRANT_DOCUMENT_OLD = re.compile(
-    r'To\s*Any\s*Lawful\s*Officer\s*To\s*Execute'
+    r'To[\s\n]*Any[\s\n]*Lawful[\s\n]*Officer[\s\n]*To[\s\n]*Execute'
 )
 DETAINER_WARRANT_SCANNED_PRINTED = re.compile(
     r'DETAINER\s+SUMMONS'
 )
 DETAINER_WARRANT_SCANNED_DARK = re.compile(
-    r'To\s+the\s+sheriff\s+or\s+constable\s+of\s+such\s+county'
+    r'To[\s\n]+the[\s\n]+sheriff[\s\n]+or[\s\n]+constable[\s\n]+of[\s\n]+such[\s\n]+county'
 )
 DETAINER_WARRANT_SUMMONS = re.compile(
-    r'We\s+therefore\s+command\s+you\s+to\s+summon\s+the\s+Defendant'
+    r'We[\s\n]+therefore[\s\n]+command[\s\n]+you[\s\n]+to[\s\n]+summon[\s\n]+the[\s\n]+Defendant'
+)
+DETAINER_WARRANT_CLAIMS = re.compile(
+    r'claim[\s\n]+the[\s\n]+right[\s\n]+to[\s\n]+the[\s\n]+possession[\s\n]+of[\s\n]+said[\s\n]+real[\s\n]+property'
 )
 
 DETAINER_WARRANT_ADDRESS = re.compile(
