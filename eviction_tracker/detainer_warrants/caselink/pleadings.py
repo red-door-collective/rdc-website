@@ -59,7 +59,7 @@ def all_pages_text(pdf_file):
     text_per_page = []
 
     # do not try to extract text of massive documents, cut it off at 6 pages
-    for pg, img in enumerate(images)[:6]:
+    for pg, img in enumerate(images[:6]):
         text_per_page.append(ocr_core(img))
 
     return ' | '.join(text_per_page)
