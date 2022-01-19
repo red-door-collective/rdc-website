@@ -450,6 +450,42 @@ def try_ocr_detainer_warrants(start_date=None, end_date=None):
         extract_text_from_document_ocr(document)
 
 
+def date_or_inf(d):
+    return d.strftime('%m/%d/%Y') if d else '∞'
+
+
+def try_ocr_extraction(start_date=None, end_date=None):
+    docket_ids = db.session.query(DetainerWarrant.docket_id).filter(
+        DetainerWarrant.document_url == None)
+
+    if start_date:
+        docket_ids = docket_ids.filter(
+            DetainerWarrant._file_date >= start_date)
+
+    if end_date:
+        docket_ids = docket_ids.filter(DetainerWarrant._file_date <= end_date)
+
+    logger.info(
+        f'Extracting text via OCR on all documents between {date_or_inf(start_date)} and {date_or_inf(end_date)}')
+
+    docket_ids_sq = docket_ids.subquery()
+    queue = PleadingDocument.query.filter(
+        PleadingDocument.docket_id.in_(docket_ids_sq.select()))
+
+    total = queue.count()
+
+    logger.info(f'extracting text for {total} documents')
+
+    log_freq = total // 100
+    log_freq = 1 if log_freq == 0 else log_freq
+
+    for i, document in enumerate(queue):
+        if i % log_freq == 0:
+            logger.info(f'{round(i / total * 100)}% done with OCR scan')
+
+        extract_text_from_document_ocr(document)
+
+
 IMPORTANT_PIECES = ['AddressNumber', 'StreetName',
                     'PlaceName', 'StateName', 'ZipCode']
 

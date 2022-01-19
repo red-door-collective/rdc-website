@@ -240,6 +240,16 @@ def try_ocr_detainer_warrants(start_date, end_date):
 
 
 @click.command()
+@click.option('-s', '--start_date', default=None, help='Start window')
+@click.option('-e', '--end_date', default=None, help='End window')
+@with_appcontext
+def try_ocr_extraction(start_date, end_date):
+    start = datetime.strptime(start_date, '%Y-%m-%d') if start_date else None
+    end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
+    detainer_warrants.caselink.pleadings.try_ocr_extraction(start, end)
+
+
+@click.command()
 @with_appcontext
 def extract_no_kind_pleading_document_text():
     detainer_warrants.caselink.pleadings.extract_no_kind_document_details()
