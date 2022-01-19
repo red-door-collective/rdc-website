@@ -626,6 +626,10 @@ class PleadingDocument(db.Model, Timestamped):
     status_id = Column(db.Integer)
 
     judgments = relationship('Judgment', back_populates='document')
+    detainer_warrant = relationship('DetainerWarrant',
+                                    foreign_keys=docket_id,
+                                    back_populates='pleadings'
+                                    )
 
     @hybrid_property
     def kind(self):
@@ -659,7 +663,7 @@ class PleadingDocument(db.Model, Timestamped):
         ], else_=None).label("status")
 
     def __repr__(self):
-        return "<PleadingDocument(docket_id='%s', url='%s')>" % (self.docket_id, self.url)
+        return f"<PleadingDocument(docket_id='{self.docket_id}', kind='{self.kind}', url='{self.url}')>"
 
 
 MAX_CASES_PER_YEAR = 10_000_000
@@ -836,6 +840,9 @@ class DetainerWarrant(Case):
 
     document = relationship(
         'PleadingDocument', foreign_keys=document_url
+    )
+    pleadings = relationship(
+        'PleadingDocument', foreign_keys=PleadingDocument.docket_id, back_populates='detainer_warrant'
     )
     last_edited_by = relationship('User', back_populates='edited_warrants')
     judgments = relationship('Judgment', back_populates='detainer_warrant')
