@@ -376,6 +376,9 @@ class Judgment(db.Model, Timestamped):
     last_edited_by = relationship(
         'User', back_populates='edited_judgments'
     )
+    detainer_warrant = relationship(
+        'DetainerWarrant', back_populates='judgments'
+    )
 
     @hybrid_property
     def file_date(self):
@@ -480,19 +483,6 @@ class Judgment(db.Model, Timestamped):
             self._courtroom = db.session.query(Courtroom).get(c_id)
         else:
             self._courtroom = courtroom
-
-    @property
-    def detainer_warrant(self):
-        return self._detainer_warrant
-
-    @detainer_warrant.setter
-    def detainer_warrant(self, warrant):
-        w_id = warrant and warrant.get('docket_id')
-        if (w_id):
-            self._detainer_warrant = db.session.query(
-                DetainerWarrant).get(w_id)
-        else:
-            self._detainer_warrant = warrant
 
     @property
     def summary(self):
@@ -844,6 +834,7 @@ class DetainerWarrant(Case):
         'PleadingDocument', foreign_keys=document_url
     )
     last_edited_by = relationship('User', back_populates='edited_warrants')
+    judgments = relationship('Judgment', back_populates='detainer_warrant')
 
     canvass_attempts = relationship(
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")

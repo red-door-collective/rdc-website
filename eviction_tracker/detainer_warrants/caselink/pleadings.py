@@ -6,7 +6,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 import selenium.webdriver.support.expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from sqlalchemy import and_, or_, func, orm
+from sqlalchemy import and_, or_, not_, func, orm
 from sqlalchemy import Date, cast
 import time
 import os
@@ -245,20 +245,26 @@ def parse_mismatched_html():
             populate_pleadings(dw.docket_id, import_from_postback_html(html))
 
 
-def update_pending_warrants():
+def pending_warrants_queue():
     current_time = datetime.utcnow()
 
     two_days_ago = current_time - timedelta(days=2)
 
-    queue = db.session.query(DetainerWarrant.docket_id)\
+    return db.session.query(DetainerWarrant.docket_id)\
         .order_by(DetainerWarrant._file_date.desc())\
         .filter(and_(
             DetainerWarrant.status == 'PENDING',
             or_(
                 DetainerWarrant._last_pleading_documents_check == None,
                 DetainerWarrant._last_pleading_documents_check < two_days_ago
-            )
-        ))
+            ),
+            not_(DetainerWarrant.judgments.any(Judgment.with_prejudice == True),
+                 )))
+
+
+def update_pending_warrants():
+    queue = pending_warrants_queue()
+
     bulk_import_documents([id[0] for id in queue],
                           cancel_during_working_hours=True)
 
