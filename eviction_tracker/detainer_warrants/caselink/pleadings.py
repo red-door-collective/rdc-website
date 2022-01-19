@@ -33,7 +33,6 @@ try:
 except ImportError:
     import Image
 import pytesseract
-import gc
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -442,14 +441,11 @@ def try_ocr_detainer_warrants(start_date=None, end_date=None):
     logger.info(f'extracting text for {total} documents')
 
     log_freq = total // 100
+    log_freq = 1 if log_freq == 0 else log_freq
 
     for i, document in enumerate(queue):
         if i % log_freq == 0:
             logger.info(f'{round(i / total * 100)}% done with OCR scan')
-
-        if i % 10 == 0:
-            logger.info(
-                f'Garbage collector: collected {gc.collect()} objects.')
 
         extract_text_from_document_ocr(document)
 
