@@ -13,7 +13,7 @@ import os
 import re
 import time
 from ...util import get_or_create, file_date_guess
-from ..models import db, PleadingDocument, Hearing, DetainerWarrant, Judgment
+from ..models import db, Address, PleadingDocument, Hearing, DetainerWarrant, Judgment
 from .constants import ids, names
 from .common import login, search, run_with_chrome
 import eviction_tracker.config as config
@@ -509,33 +509,45 @@ ADDRESS_REGEXES = [regexes.DETAINER_WARRANT_ADDRESS,
                    regexes.DETAINER_WARRANT_ADDRESS_2]
 
 
-def get_address(text):
+def get_addresses(text):
     no_newlines = text.replace('\n', ' ').strip()
+
+    addresses = []
 
     for reg in ADDRESS_REGEXES:
         addr = try_address(reg, no_newlines)
         if addr and tag_address(addr):
-            return addr
+            addresses.append(addr)
 
     for line in text.split('\n'):
         potential = line.strip()
         try:
             valid = tag_address(potential)
             if valid:
-                return potential
+                addresses.append(potential)
         except:
             continue
+
+    return addresses
 
 
 def update_detainer_warrant_from_document(document):
     text = document.text
     detainer_warrant = DetainerWarrant.query.get(document.docket_id)
-    address = None
     try:
-        address = get_address(text)
+        addresses = get_addresses(text)
 
-        if address:
-            detainer_warrant.update(address=address)
+        if len(addresses) > 0:
+            potential_addresses = set([])
+            for address_text in addresses:
+                address = Address.query.get(address_text)
+                if not address:
+                    address = Address.create(text=address_text)
+                    db.session.commit()
+                potential_addresses.add(address)
+
+            detainer_warrant.update(
+                potential_addresses=list(potential_addresses))
             db.session.commit()
         else:
             logger.warning(
@@ -547,9 +559,7 @@ def update_detainer_warrant_from_document(document):
         document.update(status='FAILED_TO_UPDATE_DETAINER_WARRANT')
         db.session.commit()
     finally:
-        if detainer_warrant.document_url and detainer_warrant.address and not address:
-            return  # don't overwrite an already existing address
-
+        # always provide newest detainer warrant doc
         detainer_warrant.update(document_url=document.url)
         db.session.commit()
 

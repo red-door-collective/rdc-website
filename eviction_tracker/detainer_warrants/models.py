@@ -666,6 +666,28 @@ class PleadingDocument(db.Model, Timestamped):
         return f"<PleadingDocument(docket_id='{self.docket_id}', kind='{self.kind}', url='{self.url}')>"
 
 
+detainer_warrant_addresses = db.Table(
+    'detainer_warrant_addresses',
+    db.metadata,
+    Column('docket_id', db.ForeignKey(
+        'cases.docket_id', ondelete="CASCADE"), primary_key=True),
+    Column('address_id', db.ForeignKey(
+        'addresses.text', ondelete="CASCADE"), primary_key=True)
+)
+
+
+class Address(db.Model, Timestamped):
+    __tablename__ = "addresses"
+
+    text = Column(db.String(255), nullable=False, primary_key=True)
+
+    potential_detainer_warrants = relationship('DetainerWarrant',
+                                               secondary=detainer_warrant_addresses,
+                                               back_populates='potential_addresses',
+                                               passive_deletes=True
+                                               )
+
+
 MAX_CASES_PER_YEAR = 10_000_000
 
 
@@ -846,6 +868,12 @@ class DetainerWarrant(Case):
     )
     last_edited_by = relationship('User', back_populates='edited_warrants')
     judgments = relationship('Judgment', back_populates='detainer_warrant')
+
+    potential_addresses = relationship('Address',
+                                       secondary=detainer_warrant_addresses,
+                                       back_populates='potential_detainer_warrants',
+                                       cascade="all, delete",
+                                       )
 
     canvass_attempts = relationship(
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")
