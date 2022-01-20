@@ -497,6 +497,7 @@ def register_commands(app):
     app.cli.add_command(commands.parse_docket)
     app.cli.add_command(commands.parse_mismatched_pleading_documents)
     app.cli.add_command(commands.parse_detainer_warrant_addresses)
+    app.cli.add_command(commands.pick_best_addresses)
     app.cli.add_command(commands.scrape_docket)
     app.cli.add_command(commands.scrape_dockets)
     app.cli.add_command(commands.export)

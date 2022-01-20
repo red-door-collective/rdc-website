@@ -257,6 +257,12 @@ def classify_documents():
 
 @click.command()
 @with_appcontext
+def pick_best_addresses():
+    detainer_warrants.caselink.pleadings.pick_best_addresses()
+
+
+@click.command()
+@with_appcontext
 def extract_no_kind_pleading_document_text():
     detainer_warrants.caselink.pleadings.extract_no_kind_document_details()
 

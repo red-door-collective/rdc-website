@@ -33,6 +33,7 @@ try:
 except ImportError:
     import Image
 import pytesseract
+import sys
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -645,3 +646,28 @@ def parse_detainer_warrant_addresses():
 
     for document in queue:
         update_detainer_warrant_from_document(document)
+
+
+def choose_most_unique_address(warrant):
+    most_unique, smallest_warrant_count = None, sys.maxsize
+    for addr in warrant.potential_addresses:
+        warrant_count = len(addr.potential_detainer_warrants)
+        if warrant_count < smallest_warrant_count:
+            smallest_warrant_count = warrant_count
+            most_unique = addr
+
+    return most_unique
+
+
+def update_address_from_potential_addresses(warrant):
+    address = choose_most_unique_address(warrant)
+    warrant.update(address=address.text)
+    db.session.commit()
+
+
+def pick_best_addresses():
+    queue = DetainerWarrant.query.filter(
+        DetainerWarrant.potential_addresses.any())
+
+    for warrant in queue:
+        update_address_from_potential_addresses(warrant)
