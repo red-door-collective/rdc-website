@@ -528,10 +528,10 @@ def get_address(text):
 
 
 def update_detainer_warrant_from_document(document):
+    text = document.text
+    detainer_warrant = DetainerWarrant.query.get(document.docket_id)
+    address = None
     try:
-        text = document.text
-        detainer_warrant = DetainerWarrant.query.get(document.docket_id)
-
         address = get_address(text)
 
         if address:
@@ -541,15 +541,16 @@ def update_detainer_warrant_from_document(document):
             logger.warning(
                 f'could not find address in detainer warrant: {document.url}')
 
-        if detainer_warrant.document_url and detainer_warrant.address and not address:
-            return  # don't overwrite an already existing address
-
-        detainer_warrant.update(document_url=document.url)
-        db.session.commit()
     except:
         logger.warning(
             f'failed update detainer warrant {document.docket_id} for {document.url}. Exception: {traceback.format_exc()}')
         document.update(status='FAILED_TO_UPDATE_DETAINER_WARRANT')
+        db.session.commit()
+    finally:
+        if detainer_warrant.document_url and detainer_warrant.address and not address:
+            return  # don't overwrite an already existing address
+
+        detainer_warrant.update(document_url=document.url)
         db.session.commit()
 
 
