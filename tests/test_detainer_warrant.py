@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_testing import TestCase
 from eviction_tracker.app import create_app, db, DetainerWarrant
 from eviction_tracker.admin.models import User, user_datastore
-from eviction_tracker.detainer_warrants.models import District, Hearing, Plaintiff, PleadingDocument, Judge, Judgment
+from eviction_tracker.detainer_warrants.models import Address, District, Hearing, Plaintiff, PleadingDocument, Judge, Judgment
 from flask_security import hash_password, auth_token_required
 import eviction_tracker.detainer_warrants as detainer_warrants
 from datetime import datetime
@@ -57,7 +57,8 @@ class TestDetainerWarrantImport(TestCase):
             document)
 
         dw = DetainerWarrant.query.get(DOCKET_ID)
-        self.assertEqual(dw.address, '123 Fake Street, Nashville, TN 37214')
+        self.assertEqual(dw.potential_addresses, [
+                         Address.query.get('123 Fake Street, Nashville, TN 37214')])
 
 
 if __name__ == '__main__':
