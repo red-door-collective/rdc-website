@@ -533,10 +533,6 @@ def update_detainer_warrant_from_document(document):
         detainer_warrant = DetainerWarrant.query.get(document.docket_id)
 
         address = get_address(text)
-        warrant_count = PleadingDocument.query.filter(
-            PleadingDocument.docket_id == document.docket_id,
-            PleadingDocument.kind == 'DETAINER_WARRANT'
-        ).count()
 
         if address:
             detainer_warrant.update(address=address)
@@ -545,12 +541,11 @@ def update_detainer_warrant_from_document(document):
             logger.warning(
                 f'could not find address in detainer warrant: {document.url}')
 
-        if warrant_count > 1:
-            logger.warning(
-                f'{warrant_count} warrants detected for `{document.docket_id}`')
-        else:
-            detainer_warrant.update(document_url=document.url)
-            db.session.commit()
+        if detainer_warrant.document_url and detainer_warrant.address and not address:
+            return  # don't overwrite an already existing address
+
+        detainer_warrant.update(document_url=document.url)
+        db.session.commit()
     except:
         logger.warning(
             f'failed update detainer warrant {document.docket_id} for {document.url}. Exception: {traceback.format_exc()}')
@@ -598,10 +593,11 @@ def update_judgments_from_documents():
 
 
 def update_warrants_from_documents():
-    queue = PleadingDocument.query.filter(and_(
+    queue = PleadingDocument.query.filter(
         PleadingDocument.kind == 'DETAINER_WARRANT',
         PleadingDocument.text != None
-    )).join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)\
+    ).order_by(PleadingDocument.created_at)\
+        .join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)\
         .filter(DetainerWarrant.document_url == None)
 
     for document in queue:
