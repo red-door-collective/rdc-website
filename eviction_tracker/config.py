@@ -37,6 +37,16 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False
         },
+        'gunicorn': {
+            'level': 'INFO',
+            'handlers': ['file'],
+            'propagate': True,
+        },
+        'eviction_tracker.app': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False
+        },
         'eviction_tracker.commands': {
             'handlers': ['file'],
             'level': 'INFO',
