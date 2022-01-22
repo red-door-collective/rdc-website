@@ -1,15 +1,21 @@
 import os
+from flask_log_request_id import RequestIDLogFilter
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
+    'filters': {
+        'request_id_filter': {
+            '()': RequestIDLogFilter
+        }
+    },
     'formatters': {
         'standard': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
         'json': {
             'class': 'pythonjsonlogger.jsonlogger.JsonFormatter',
-            'format': '%(asctime)s %(name)s %(levelname)s %(message)s'
+            'format': '%(asctime)s %(name)s %(levelname)s %(request_id)s %(message)s'
         },
         'debug_json': {
             'class': 'pythonjsonlogger.jsonlogger.JsonFormatter',
@@ -17,22 +23,17 @@ LOGGING = {
         }
     },
     'handlers': {
-        'default': {
-            'level': 'INFO',
-            'formatter': 'standard',
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://sys.stdout',  # Default is stderr
-        },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
             'level': 'DEBUG',
             'formatter': 'json',
-            'filename': os.environ['LOG_FILE_PATH']
+            'filename': os.environ['LOG_FILE_PATH'],
+            'filters': ['request_id_filter']
         }
     },
     'loggers': {
         '': {  # root logger
-            'handlers': ['default'],
+            'handlers': ['file'],
             'level': 'INFO',
             'propagate': False
         },

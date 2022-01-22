@@ -1,5 +1,5 @@
 import flask
-from flask import Flask, request, redirect
+from flask import g, Flask, request, redirect
 from flask_security import hash_password, auth_token_required
 from eviction_tracker.extensions import cors, db, marshmallow, migrate, api, login_manager, security
 from eviction_tracker.admin.models import User, user_datastore
@@ -20,6 +20,7 @@ from flask_apscheduler import APScheduler
 from datadog import initialize, statsd
 import logging.config
 import eviction_tracker.config as config
+from flask_log_request_id import RequestID, current_request_id
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -92,6 +93,7 @@ def create_app(testing=False):
         initialize(**options)
 
     register_extensions(app)
+    RequestID(app)
     register_shellcontext(app)
     register_commands(app)
 
@@ -327,6 +329,36 @@ def register_extensions(app):
                      direct_action.views.EventResource, app=app)
     api.add_resource('/phone_bank_events/', direct_action.views.PhoneBankEventListResource,
                      direct_action.views.PhoneBankEventResource, app=app)
+
+    @app.before_request
+    def log_request_info():
+        g.start = time.time()
+
+    @app.after_request
+    def log_response_info(response):
+        now = time.time()
+        duration = round(now - g.start, 6)
+        dt = datetime.fromtimestamp(now)
+        timestamp = dt.isoformat()
+
+        args = dict(request.args)
+        log_params = dict(
+            method=request.method,
+            status=response.status_code,
+            duration=duration,
+            time=timestamp,
+            params=args
+        )
+
+        if 'login' not in request.path:
+            log_params['request_headers'] = {
+                k: v for k, v in request.headers.items()}
+            log_params['response_headers'] = {
+                k: v for k, v in response.headers.items()}
+
+        logger.info(request.path, extra=log_params)
+
+        return response
 
     @app.route('/api/v1/rollup/detainer-warrants')
     def detainer_warrant_rollup_by_month():
