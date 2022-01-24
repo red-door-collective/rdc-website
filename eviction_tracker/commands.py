@@ -12,7 +12,7 @@ import gspread
 import eviction_tracker.detainer_warrants as detainer_warrants
 from eviction_tracker.admin.models import User, user_datastore
 from eviction_tracker.database import db
-from eviction_tracker.detainer_warrants.models import Attorney, PhoneNumberVerification, PleadingDocument, Defendant, Judgment, District
+from eviction_tracker.detainer_warrants.models import Attorney, PhoneNumberVerification, PleadingDocument, Defendant, Judgment
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import uuid
@@ -351,12 +351,6 @@ def gather_warrants_csv(start_date, end_date):
 @click.command()
 @with_appcontext
 def bootstrap():
-    district, _ = detainer_warrants.util.get_or_create(
-        db.session, District, name="Davidson County")
-
-    db.session.add(district)
-    db.session.commit()
-
     simple = "123456"
     env = current_app.config.get('ENV')
 
@@ -368,8 +362,7 @@ def bootstrap():
     user_datastore.create_user(id=-1, email="system-user@reddoorcollective.org", first_name="System",
                                last_name="User", password=hash_password(str(uuid.uuid4())), roles=['Superuser'])
 
-    Attorney.create(id=-1, name="Plaintiff Representing Self",
-                    district=district)
+    Attorney.create(id=-1, name="Plaintiff Representing Self")
     db.session.commit()
 
     if env == 'development':

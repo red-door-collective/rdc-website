@@ -11,8 +11,7 @@ minimalJson =
     {
         "id": 123,
         "name": "NAME SURNAME",
-        "aliases": [],
-        "district_id": 1
+        "aliases": []
     }
     """
 
@@ -30,8 +29,7 @@ maximumJson =
     {
         "id": 123,
         "name": "NAME SURNAME",
-        "aliases": [ "UNNAME" ],
-        "district_id": 1
+        "aliases": [ "UNNAME" ]
     }
     """
 

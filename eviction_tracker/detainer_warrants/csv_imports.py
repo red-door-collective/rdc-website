@@ -5,10 +5,10 @@ from nameparser import HumanName
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 from .models import db, Case, Plaintiff, Attorney, Defendant, DetainerWarrant
-from .util import district_defaults, get_or_create, normalize
+from .util import get_or_create, normalize
 
 
-def create_defendant(defaults, docket_id, column):
+def create_defendant(docket_id, column):
     name = HumanName(column.replace('OR ALL OCCUPANTS', ''))
 
     exists_on_this_docket = DetainerWarrant.query.filter(
@@ -29,21 +29,19 @@ def create_defendant(defaults, docket_id, column):
                 first_name=name.first,
                 middle_name=name.middle,
                 last_name=name.last,
-                suffix=name.suffix,
-                defaults=defaults
+                suffix=name.suffix
             )
         except MultipleResultsFound:
             defendant = Defendant.query.filter_by(
                 first_name=name.first,
                 middle_name=name.middle,
                 last_name=name.last,
-                suffix=name.suffix,
-                district=defaults['district']
+                suffix=name.suffix
             ).first()
     return [defendant]
 
 
-def from_csv_row(defaults, row):
+def from_csv_row(row):
     warrant = {k: normalize(v) for k, v in row.items()}
     docket_id = warrant['Docket #']
 
@@ -58,15 +56,14 @@ def from_csv_row(defaults, row):
     plaintiff = None
     if warrant['Plaintiff']:
         plaintiff, _ = get_or_create(
-            db.session, Plaintiff, name=warrant['Plaintiff'], defaults=defaults)
+            db.session, Plaintiff, name=warrant['Plaintiff'])
 
     plaintiff_attorney = None
     if warrant['Pltf. Attorney']:
         plaintiff_attorney, _ = get_or_create(
-            db.session, Attorney, name=warrant['Pltf. Attorney'], defaults=defaults)
+            db.session, Attorney, name=warrant['Pltf. Attorney'])
 
     defendants = create_defendant(
-        defaults,
         case.docket_id,
         warrant['Defendant']
     )
@@ -86,16 +83,12 @@ def from_url(url):
     response = requests.get(url)
     reader = csv.DictReader(io.StringIO(response.text))
 
-    defaults = district_defaults()
-
     for row in reader:
-        from_csv_row(defaults, row)
+        from_csv_row(row)
 
 
 def from_caselink(csvpath):
-    defaults = district_defaults()
-
     with open(csvpath) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            from_csv_row(defaults, row)
+            from_csv_row(row)

@@ -10,8 +10,8 @@ from pdfminer.layout import LAParams
 from pdfminer.high_level import extract_text_to_fp
 import io
 
-from ..models import db, Attorney, Case, Courtroom, Defendant, District, Judge, Hearing, Plaintiff, hearing_defendants
-from ..util import get_or_create, normalize, district_defaults
+from ..models import db, Attorney, Case, Courtroom, Defendant, Judge, Hearing, Plaintiff, hearing_defendants
+from ..util import get_or_create, normalize
 
 CASELINK_URL = 'https://caselink.nashville.gov'
 URL = f'{CASELINK_URL}/cgi-bin/webshell.asp'
@@ -32,7 +32,7 @@ DATA = {
 DOCKET_INDENT = 30
 
 
-def create_defendant(defaults, docket_id, name):
+def create_defendant(docket_id, name):
     if 'ALL OTHER OCCUPANTS' in name:
         return None
 
@@ -52,8 +52,7 @@ def create_defendant(defaults, docket_id, name):
                 first_name=name.first,
                 middle_name=name.middle,
                 last_name=name.last,
-                suffix=name.suffix,
-                defaults=defaults
+                suffix=name.suffix
             )
         except:
             return Defendant.query.filter_by(first_name=name.first,
@@ -65,28 +64,28 @@ def create_defendant(defaults, docket_id, name):
     return defendant
 
 
-def insert_hearing(defaults, docket_id, listing):
+def insert_hearing(docket_id, listing):
     attorney = None
     if listing['plaintiff_attorney']:
         attorney, _ = get_or_create(
-            db.session, Attorney, name=listing['plaintiff_attorney'], defaults=defaults)
+            db.session, Attorney, name=listing['plaintiff_attorney'])
 
     plaintiff = None
     if listing['plaintiff']:
         plaintiff, _ = get_or_create(
-            db.session, Plaintiff, name=listing['plaintiff'], defaults=defaults)
+            db.session, Plaintiff, name=listing['plaintiff'])
 
     court_date = listing['court_date']
 
     courtroom = None
     if listing['courtroom']:
         courtroom, _ = get_or_create(
-            db.session, Courtroom, name=listing['courtroom'], defaults=defaults)
+            db.session, Courtroom, name=listing['courtroom'])
 
     existing_case, _ = get_or_create(
         db.session, Case, docket_id=docket_id)
 
-    defendants = [create_defendant(defaults, docket_id, defendant)
+    defendants = [create_defendant(docket_id, defendant)
                   for defendant in listing['defendants']]
 
     hearing, _ = get_or_create(db.session, Hearing,
@@ -185,8 +184,6 @@ def parse_court_date(text):
 
 
 def parse_html(html):
-    defaults = district_defaults()
-
     d = pq(html)
     courtroom = COURTROOM_REGEX.search(d.text()).group(1)
 
@@ -218,7 +215,7 @@ def parse_html(html):
                 for defendant in defendants:
                     cases[docket_id]['defendants'].append(
                         defendant.splitlines()[0].strip())
-    return [insert_hearing(defaults, docket_id, listing) for docket_id, listing in cases.items()]
+    return [insert_hearing(docket_id, listing) for docket_id, listing in cases.items()]
 
 
 def scrape_docket(url):

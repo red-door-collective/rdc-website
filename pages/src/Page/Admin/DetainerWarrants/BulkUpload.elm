@@ -399,10 +399,6 @@ collectRelated fn warrants =
         |> Dict.fromList
 
 
-defaultDistrict =
-    ( "district_id", Json.Encode.int 1 )
-
-
 insertAttorney : String -> Maybe Cred -> String -> Cmd BulkUploadMsg
 insertAttorney domain maybeCred name =
     let
@@ -414,7 +410,6 @@ insertAttorney domain maybeCred name =
                 [ ( "data"
                   , Json.Encode.object
                         [ ( "name", Json.Encode.string name )
-                        , defaultDistrict
                         ]
                   )
                 ]
@@ -434,7 +429,6 @@ insertPlaintiff domain maybeCred name =
                 [ ( "data"
                   , Json.Encode.object
                         [ ( "name", Json.Encode.string name )
-                        , defaultDistrict
                         ]
                   )
                 ]
@@ -454,7 +448,6 @@ insertDefendant domain maybeCred name =
                 [ ( "data"
                   , Json.Encode.object
                         [ ( "name", Json.Encode.string name )
-                        , defaultDistrict
                         ]
                   )
                 ]

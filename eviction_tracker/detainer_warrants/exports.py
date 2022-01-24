@@ -1,5 +1,5 @@
 from .models import db
-from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Hearing, Judge, Judgment, Plaintiff, detainer_warrant_defendants
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, Hearing, Judge, Judgment, Plaintiff, detainer_warrant_defendants
 from .util import open_workbook, get_gc
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert

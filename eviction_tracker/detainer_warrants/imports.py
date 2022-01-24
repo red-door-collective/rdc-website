@@ -1,6 +1,6 @@
 from .models import db
-from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Plaintiff, detainer_warrant_defendants
-from .util import get_or_create, normalize, open_workbook, dw_rows, district_defaults
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, Judge, Plaintiff, detainer_warrant_defendants
+from .util import get_or_create, normalize, open_workbook, dw_rows
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.dialects.postgresql import insert
@@ -31,7 +31,7 @@ def normalize(value):
         return None
 
 
-def create_defendant(defaults, number, warrant):
+def create_defendant(number, warrant):
     prefix = f'Def_{number}_'
     first_name = warrant[prefix + 'first']
     middle_name = warrant[prefix + 'middle']
@@ -48,7 +48,7 @@ def create_defendant(defaults, number, warrant):
                 middle_name=middle_name,
                 last_name=last_name,
                 suffix=suffix,
-                potential_phones=phones, defaults=defaults
+                potential_phones=phones
             )
         except MultipleResultsFound:
             return Defendant.query.filter_by(first_name=first_name,
@@ -64,15 +64,15 @@ def link_defendant(docket_id, defendant):
                        .values(detainer_warrant_docket_id=docket_id, defendant_id=defendant.id))
 
 
-def _from_workbook_row(raw_warrant, defaults):
+def _from_workbook_row(raw_warrant):
     warrant = {k: normalize(v) for k, v in raw_warrant.items()}
 
     docket_id = warrant[DOCKET_ID]
     address = warrant[ADDRESS] if warrant[ADDRESS] else None
 
-    defendant = create_defendant(defaults, 1, warrant)
-    defendant2 = create_defendant(defaults, 2, warrant)
-    defendant3 = create_defendant(defaults, 3, warrant)
+    defendant = create_defendant(1, warrant)
+    defendant2 = create_defendant(2, warrant)
+    defendant3 = create_defendant(3, warrant)
 
     dw = DetainerWarrant.query.get(docket_id)
     if dw:
@@ -94,10 +94,8 @@ def _from_workbook_row(raw_warrant, defaults):
 
 
 def from_workbook_help(warrants):
-    defaults = district_defaults()
-
     for warrant in warrants:
-        _from_workbook_row(warrant, defaults)
+        _from_workbook_row(warrant)
 
 
 def from_workbook(workbook_name, limit=None, service_account_key=None):

@@ -11,29 +11,6 @@ from flask_sqlalchemy import BaseQuery
 from .judgments import regexes
 
 
-def district_defaults():
-    district = District.query.filter_by(name="Davidson County").first()
-    return {'district': district}
-
-
-class District(db.Model, Timestamped):
-    __tablename__ = 'districts'
-    __table_args__ = (
-        db.UniqueConstraint('name'),
-    )
-    id = Column(db.Integer, primary_key=True)
-    name = Column(db.String(255), nullable=False)
-
-    attorneys = relationship('Attorney', back_populates='district')
-    plaintiffs = relationship('Plaintiff', back_populates='district')
-    defendants = relationship('Defendant', back_populates='district')
-    judges = relationship('Judge', back_populates='district')
-    courtrooms = relationship('Courtroom', back_populates='district')
-
-    def __repr__(self):
-        return "<District(name='%s')>" % (self.name)
-
-
 detainer_warrant_defendants = db.Table(
     'detainer_warrant_defendants',
     db.metadata,
@@ -57,7 +34,7 @@ class Defendant(db.Model, Timestamped):
     __tablename__ = 'defendants'
     __table_args__ = (
         db.UniqueConstraint('first_name', 'middle_name',
-                            'last_name', 'suffix', 'district_id', 'potential_phones'),
+                            'last_name', 'suffix', 'potential_phones'),
     )
 
     id = Column(db.Integer, primary_key=True)
@@ -69,12 +46,9 @@ class Defendant(db.Model, Timestamped):
                      nullable=False, server_default='{}')
     potential_phones = Column(db.String(255))
 
-    district_id = Column(db.Integer, db.ForeignKey(
-        'districts.id'), nullable=False)
     verified_phone_id = Column(db.Integer, db.ForeignKey(
         'phone_number_verifications.id'))
 
-    district = relationship('District', back_populates='defendants')
     detainer_warrants = relationship('DetainerWarrant',
                                      secondary=detainer_warrant_defendants,
                                      back_populates='_defendants',
@@ -121,54 +95,35 @@ class Defendant(db.Model, Timestamped):
 
 class Attorney(db.Model, Timestamped):
     __tablename__ = 'attorneys'
-    __table_args__ = (
-        db.UniqueConstraint('name', 'district_id'),
-    )
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
     aliases = Column(db.ARRAY(db.String(255)),
                      nullable=False, server_default='{}')
-    district_id = Column(db.Integer, db.ForeignKey(
-        'districts.id'), nullable=False)
-
-    district = relationship('District', back_populates='attorneys')
     detainer_warrants = relationship(
         'DetainerWarrant', back_populates='_plaintiff_attorney')
 
     def __repr__(self):
-        return "<Attorney(name='%s', district_id='%s')>" % (self.name, self.district_id)
+        return f"<Attorney(name='{self.name}'>"
 
 
 class Courtroom(db.Model, Timestamped):
     __tablename__ = 'courtrooms'
-    __table_args__ = (
-        db.UniqueConstraint('name', 'district_id'),
-    )
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
-    district_id = Column(db.Integer, db.ForeignKey(
-        'districts.id'), nullable=False)
 
-    district = relationship('District', back_populates='courtrooms')
     hearings = relationship('Hearing', back_populates='courtroom')
 
     def __repr__(self):
-        return "<Courtroom(name='%s')>" % (self.name)
+        return f"<Courtroom(name='{self.name}')>"
 
 
 class Plaintiff(db.Model, Timestamped):
     __tablename__ = 'plaintiffs'
-    __table_args__ = (
-        db.UniqueConstraint('name', 'district_id'),
-    )
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
     aliases = Column(db.ARRAY(db.String(255)),
                      nullable=False, server_default='{}')
-    district_id = Column(db.Integer, db.ForeignKey(
-        'districts.id'), nullable=False)
 
-    district = relationship('District', back_populates='plaintiffs')
     detainer_warrants = relationship(
         'DetainerWarrant', back_populates='_plaintiff')
     _judgments = relationship(
@@ -179,26 +134,20 @@ class Plaintiff(db.Model, Timestamped):
     )
 
     def __repr__(self):
-        return "<Plaintiff(name='%s', district_id='%s')>" % (self.name, self.district_id)
+        return f"<Plaintiff(name='{self.name}')>"
 
 
 class Judge(db.Model, Timestamped):
     __tablename__ = "judges"
-    __table_args__ = (
-        db.UniqueConstraint('name', 'district_id'),
-    )
     id = Column(db.Integer, primary_key=True)
     name = Column(db.String(255), nullable=False)
     aliases = Column(db.ARRAY(db.String(255)),
                      nullable=False, server_default='{}')
-    district_id = Column(db.Integer, db.ForeignKey(
-        'districts.id'), nullable=False)
 
-    district = relationship('District', back_populates='judges')
     _rulings = relationship('Judgment', back_populates='_judge')
 
     def __repr__(self):
-        return "<Judge(name='%s')>" % (self.name)
+        return f"<Judge(name='{self.name}')>"
 
 
 class Hearing(db.Model, Timestamped):
@@ -504,7 +453,6 @@ class Judgment(db.Model, Timestamped):
 
     def attributes_from_pdf(pdf):
         pdf = pdf.replace('\n', ' ').replace('\r', ' ')
-        defaults = district_defaults()
 
         docket_match = regexes.DOCKET_ID.search(pdf)
         if not docket_match:
@@ -521,14 +469,14 @@ class Judgment(db.Model, Timestamped):
         plaintiff = None
         if plaintiff_name:
             plaintiff, _ = get_or_create(
-                db.session, Plaintiff, name=plaintiff_name, defaults=defaults)
+                db.session, Plaintiff, name=plaintiff_name)
 
         judge_name = search(regexes.JUDGE, pdf)
 
         judge = None
         if judge_name:
             judge, _ = get_or_create(
-                db.session, Judge, name=judge_name, defaults=defaults)
+                db.session, Judge, name=judge_name)
 
         in_favor_plaintiff = checked in search(
             regexes.IN_FAVOR_PLAINTIFF, pdf, default='')

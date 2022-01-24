@@ -35,7 +35,6 @@ minimalJson =
             "address": "1234 Example St, Nashville 37206",
             "court_date": 1627966800000,
             "courtroom": {
-                "district_id": 1,
                 "id": 2,
                 "name": "1B"
             },

@@ -2,18 +2,9 @@ from marshmallow import Schema, fields
 from ..admin import serializers
 
 
-class DistrictSchema(Schema):
-    class Meta:
-        fields = ("id", "name")
-
-
-district_schema = DistrictSchema()
-districts_schema = DistrictSchema(many=True)
-
-
 class AttorneySchema(Schema):
     class Meta:
-        fields = ("id", "name", "aliases", "district_id")
+        fields = ("id", "name", "aliases")
 
 
 attorney_schema = AttorneySchema()
@@ -36,7 +27,7 @@ class DefendantSchema(Schema):
 
     class Meta:
         fields = ("id", "name", "first_name", "middle_name", "last_name", "suffix",
-                  "aliases", "verified_phone", "potential_phones", "district_id")
+                  "aliases", "verified_phone", "potential_phones")
 
 
 defendant_schema = DefendantSchema()
@@ -45,7 +36,7 @@ defendants_schema = DefendantSchema(many=True)
 
 class CourtroomSchema(Schema):
     class Meta:
-        fields = ("id", "name", "district_id")
+        fields = ("id", "name")
 
 
 courtroom_schema = CourtroomSchema()
@@ -54,7 +45,7 @@ courtrooms_schema = CourtroomSchema(many=True)
 
 class PlaintiffSchema(Schema):
     class Meta:
-        fields = ("id", "name", "aliases", "district_id")
+        fields = ("id", "name", "aliases")
 
 
 plaintiff_schema = PlaintiffSchema()
@@ -63,7 +54,7 @@ plaintiffs_schema = PlaintiffSchema(many=True)
 
 class JudgeSchema(Schema):
     class Meta:
-        fields = ("id", "name", "aliases", "district_id")
+        fields = ("id", "name", "aliases")
 
 
 judge_schema = JudgeSchema()

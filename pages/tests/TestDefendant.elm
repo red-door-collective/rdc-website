@@ -10,7 +10,6 @@ minimalJson =
     """
     {
         "aliases": [],
-        "district_id": 1,
         "first_name": "HEATHER",
         "id": 123,
         "last_name": "UNIVERSE",
@@ -41,7 +40,6 @@ maximumJson =
     """
     {
         "aliases": [ "TRUCKER" ],
-        "district_id": 1,
         "first_name": "HEATHER",
         "id": 123,
         "last_name": "UNIVERSE",

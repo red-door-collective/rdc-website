@@ -1,6 +1,6 @@
 from .models import db
-from .models import Attorney, Courtroom, Defendant, DetainerWarrant, District, Judge, Hearing, Judgment, Plaintiff, detainer_warrant_defendants
-from .util import get_or_create, normalize, open_workbook, dw_rows, district_defaults
+from .models import Attorney, Courtroom, Defendant, DetainerWarrant, Judge, Hearing, Judgment, Plaintiff, detainer_warrant_defendants
+from .util import get_or_create, normalize, open_workbook, dw_rows
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
@@ -24,7 +24,7 @@ JUDGE = "Judge"
 JUDGEMENT_BASIS = "Judgement Basis"
 
 
-def _from_workbook(defaults, court_date, raw_judgment):
+def _from_workbook(court_date, raw_judgment):
     judgment = {k: normalize(v) for k, v in raw_judgment.items()}
 
     docket_id = judgment[DOCKET_ID]
@@ -49,8 +49,6 @@ def from_workbook(workbook_name, limit=None, service_account_key=None):
     worksheets = [wb.worksheet(datetime.strftime(dt, '%B %Y'))
                   for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
 
-    defaults = district_defaults()
-
     for ws in worksheets:
         all_rows = ws.get_all_records()
 
@@ -61,4 +59,4 @@ def from_workbook(workbook_name, limit=None, service_account_key=None):
         court_date = None
         for judgment in judgments:
             court_date = judgment[COURT_DATE] if judgment[COURT_DATE] else court_date
-            _from_workbook(defaults, court_date, judgment)
+            _from_workbook(court_date, judgment)

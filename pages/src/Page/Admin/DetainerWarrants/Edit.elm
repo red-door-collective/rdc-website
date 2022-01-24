@@ -2450,7 +2450,6 @@ upsertDefendant domain maybeCred index form =
             Encode.object
                 ([ ( "first_name", Encode.string form.firstName )
                  , ( "last_name", Encode.string form.lastName )
-                 , defaultDistrict
                  ]
                     ++ conditional "id" Encode.int (remoteId form)
                     ++ conditional "middle_name" Encode.string form.middleName
@@ -2487,7 +2486,6 @@ upsertAttorney domain maybeCred attorney =
         postData =
             Encode.object
                 ([ ( "name", Encode.string attorney.name )
-                 , defaultDistrict
                  ]
                     ++ conditional "id" Encode.int (remoteId attorney)
                 )
@@ -2503,10 +2501,6 @@ upsertAttorney domain maybeCred attorney =
             Rest.post (Endpoint.attorneys domain []) maybeCred body UpsertedAttorney decoder
 
 
-defaultDistrict =
-    ( "district_id", Encode.int 1 )
-
-
 upsertPlaintiff : String -> Maybe Cred -> Plaintiff -> Cmd Msg
 upsertPlaintiff domain maybeCred plaintiff =
     let
@@ -2516,7 +2510,6 @@ upsertPlaintiff domain maybeCred plaintiff =
         postData =
             Encode.object
                 ([ ( "name", Encode.string plaintiff.name )
-                 , defaultDistrict
                  ]
                     ++ conditional "id" Encode.int (remoteId plaintiff)
                 )

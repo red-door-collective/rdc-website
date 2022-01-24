@@ -1,11 +1,5 @@
-from .models import District
 from sqlalchemy.sql import ClauseElement
 import gspread
-
-
-def district_defaults():
-    district = District.query.filter_by(name="Davidson County").first()
-    return {'district': district}
 
 
 def dw_rows(limit, workbook):

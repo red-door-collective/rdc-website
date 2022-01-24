@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_testing import TestCase
 from eviction_tracker.app import create_app, db, DetainerWarrant
 from eviction_tracker.admin.models import User, user_datastore
-from eviction_tracker.detainer_warrants.models import District, Hearing, Plaintiff, PleadingDocument, Judge, Judgment
+from eviction_tracker.detainer_warrants.models import Hearing, Plaintiff, PleadingDocument, Judge, Judgment
 from flask_security import hash_password, auth_token_required
 import eviction_tracker.detainer_warrants as detainer_warrants
 from datetime import datetime
@@ -37,8 +37,6 @@ class TestDataImport(TestCase):
             db.session.commit()
         user_datastore.create_user(id=-1, email="system-user@reddoorcollective.org", first_name="System",
                                    last_name="User", password=hash_password(str(uuid.uuid4())), roles=['Superuser'])
-        db.session.commit()
-        District.create(name='Davidson County')
         db.session.commit()
         DetainerWarrant.create(docket_id=DOCKET_ID)
         with open('tests/fixtures/caselink/judgment-pdf-as-text.txt') as f:
