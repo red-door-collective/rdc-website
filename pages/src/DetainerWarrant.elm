@@ -1,7 +1,6 @@
 module DetainerWarrant exposing (DetainerWarrant, DetainerWarrantEdit, Status(..), decoder, mostRecentCourtDate, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
 
 import Attorney exposing (Attorney)
-import Defendant exposing (Defendant)
 import Hearing exposing (Hearing)
 import Json.Decode as Decode exposing (Decoder, bool, float, list, nullable, string)
 import Json.Decode.Pipeline exposing (required)
@@ -34,7 +33,6 @@ type alias DetainerWarrant =
     , isCares : Maybe Bool
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
-    , defendants : List Defendant
     , hearings : List Hearing
     , notes : Maybe String
     , document : Maybe PleadingDocument
@@ -57,7 +55,6 @@ type alias DetainerWarrantEdit =
     , isCares : Maybe Bool
     , isLegacy : Maybe Bool
     , nonpayment : Maybe Bool
-    , defendants : List Related
     , notes : Maybe String
     }
 
@@ -123,7 +120,6 @@ decoder =
         |> required "is_cares" (nullable bool)
         |> required "is_legacy" (nullable bool)
         |> required "nonpayment" (nullable bool)
-        |> required "defendants" (list Defendant.decoder)
         |> required "hearings" (list Hearing.decoder)
         |> required "notes" (nullable string)
         |> required "document" (nullable PleadingDocument.decoder)
@@ -136,12 +132,11 @@ tableColumns =
         |> Common.column "Court date" (columnWidthPixels 150)
         |> Common.column "Plaintiff" (columnWidthPixels 240)
         |> Common.column "Pltf. Attorney" (columnWidthPixels 240)
-        |> Common.column "Defendant" (columnWidthPixels 240)
         |> Common.column "Address" (columnWidthPixels 240)
         |> Common.column "" (columnWidthPixels 100)
 
 
-toTableRow : (DetainerWarrant -> Button msg) -> { toKey : DetainerWarrant -> String, view : DetainerWarrant -> Row msg T.Eight }
+toTableRow : (DetainerWarrant -> Button msg) -> { toKey : DetainerWarrant -> String, view : DetainerWarrant -> Row msg T.Seven }
 toTableRow toEditButton =
     { toKey = .docketId, view = toTableRowView toEditButton }
 
@@ -151,20 +146,19 @@ mostRecentCourtDate warrant =
     Maybe.map .courtDate <| List.head warrant.hearings
 
 
-toTableRowView : (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T.Eight
-toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants, address } as warrant) =
+toTableRowView : (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T.Seven
+toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, address } as warrant) =
     rowEmpty
         |> rowCellText (Text.body2 docketId)
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString fileDate))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString (mostRecentCourtDate warrant)))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney))
-        |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name <| List.head defendants))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| address))
         |> rowCellButton (toEditButton warrant)
 
 
-toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, defendants, address } as warrant) =
+toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, address } as warrant) =
     detailsEmpty
         |> detailShown
             { label = "Docket ID"
@@ -185,10 +179,6 @@ toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney,
         |> detailShown
             { label = "Pltf. Attorney"
             , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney)
-            }
-        |> detailShown
-            { label = "Defendant"
-            , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| Maybe.map .name <| List.head defendants)
             }
         |> detailShown
             { label = "Address"

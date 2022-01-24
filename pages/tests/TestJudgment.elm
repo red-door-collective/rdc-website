@@ -39,7 +39,6 @@ minimalJson =
                 "name": "1B"
             },
             "defendant_attorney": null,
-            "defendants": [],
             "docket_id": "21GT1234",
             "id": 12345,
             "judgment": {

@@ -118,7 +118,7 @@ class DefendantListResource(DefendantResourceBase):
 
 
 class DefendantResource(DefendantResourceBase):
-    def get(self):
+    def get(self, id):
         return self.retrieve(id)
 
     def patch(self, id):

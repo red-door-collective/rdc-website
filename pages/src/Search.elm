@@ -1,4 +1,4 @@
-module Search exposing (Attorneys, Cursor(..), DetainerWarrants, Judges, Judgments, Plaintiffs, Search, attorneysArgs, attorneysDefault, attorneysFromString, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, dwFromString, judgesArgs, judgesDefault, judgesFromString, judgmentsArgs, judgmentsDefault, judgmentsFilterArgs, judgmentsFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString)
+module Search exposing (Attorneys, Cursor(..), Defendants, DetainerWarrants, Judges, Judgments, Plaintiffs, Search, attorneysArgs, attorneysDefault, attorneysFromString, defendantsArgs, defendantsDefault, defendantsFromString, detainerWarrantsArgs, detainerWarrantsDefault, detainerWarrantsFilterArgs, dwFromString, judgesArgs, judgesDefault, judgesFromString, judgmentsArgs, judgmentsDefault, judgmentsFilterArgs, judgmentsFromString, plaintiffsArgs, plaintiffsDefault, plaintiffsFromString)
 
 import Dict
 import Iso8601
@@ -47,6 +47,12 @@ type alias Attorneys =
 
 type alias Judges =
     Plaintiffs
+
+
+type alias Defendants =
+    { firstName : Maybe String
+    , lastName : Maybe String
+    }
 
 
 type alias Search filters =
@@ -103,6 +109,18 @@ judgesFromString =
     plaintiffsFromString
 
 
+defendantsFromString : String -> Defendants
+defendantsFromString str =
+    let
+        params =
+            QueryParams.fromString str
+                |> QueryParams.toDict
+    in
+    { firstName = Dict.get "first_name" params |> Maybe.andThen List.head
+    , lastName = Dict.get "last_name" params |> Maybe.andThen List.head
+    }
+
+
 dwFromString : String -> DetainerWarrants
 dwFromString str =
     let
@@ -152,6 +170,13 @@ attorneysDefault =
 judgesDefault : Judges
 judgesDefault =
     plaintiffsDefault
+
+
+defendantsDefault : Defendants
+defendantsDefault =
+    { firstName = Nothing
+    , lastName = Nothing
+    }
 
 
 toPair : a -> Maybe String -> List ( a, String )
@@ -242,3 +267,9 @@ attorneysArgs =
 judgesArgs : Judges -> List ( String, String )
 judgesArgs =
     plaintiffsArgs
+
+
+defendantsArgs : Defendants -> List ( String, String )
+defendantsArgs filters =
+    toPair "first_name" filters.firstName
+        ++ toPair "last_name" filters.lastName

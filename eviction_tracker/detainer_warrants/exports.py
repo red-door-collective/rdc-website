@@ -99,7 +99,7 @@ def _to_spreadsheet_row(warrant):
             warrant.is_cares,
             warrant.is_legacy,
             warrant.nonpayment,
-            warrant.zip_code,
+            '',
             warrant.address if warrant.address else ''
         ],
         list(chain.from_iterable([defendant_columns(safelist(

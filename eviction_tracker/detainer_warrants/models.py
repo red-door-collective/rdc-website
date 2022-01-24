@@ -797,7 +797,6 @@ class DetainerWarrant(Case):
     claims_possession = Column(db.Boolean)
     is_cares = Column(db.Boolean)
     is_legacy = Column(db.Boolean)
-    zip_code = Column(db.String(10))
     nonpayment = Column(db.Boolean)
     notes = Column(db.Text)
     document_url = Column(db.String, db.ForeignKey(

@@ -17,7 +17,6 @@ minimalJson =
         "amount_claimed": null,
         "claims_possession": null,
         "created_at": 1633382326000,
-        "defendants": [],
         "docket_id": "21GC11668",
         "document": null,
         "file_date": null,
@@ -45,8 +44,7 @@ minimalJson =
         "plaintiff": null,
         "plaintiff_attorney": null,
         "status": null,
-        "updated_at": 1634569282000,
-        "zip_code": null
+        "updated_at": 1634569282000
     }
     """
 
@@ -58,7 +56,6 @@ minimalDetainer =
     , amountClaimed = Nothing
     , claimsPossession = Nothing
     , hearings = []
-    , defendants = []
     , fileDate = Nothing
     , isCares = Nothing
     , isLegacy = Nothing
@@ -78,7 +75,6 @@ maximumJson =
         "amount_claimed": 123.45,
         "claims_possession": true,
         "created_at": 1633382326000,
-        "defendants": [],
         "docket_id": "21GT11668",
         "document": {
           "created_at": 1637071221000,
@@ -113,8 +109,7 @@ maximumJson =
         "plaintiff": null,
         "plaintiff_attorney": null,
         "status": "PENDING",
-        "updated_at": 1634569282000,
-        "zip_code": null
+        "updated_at": 1634569282000
     }
     """
 
@@ -134,7 +129,6 @@ maximumDetainer =
     , notes = Just "some notes"
     , plaintiff = Nothing
     , plaintiffAttorney = Nothing
-    , defendants = []
     , document =
         Just
             { createdAt = Time.millisToPosix 1637071221000

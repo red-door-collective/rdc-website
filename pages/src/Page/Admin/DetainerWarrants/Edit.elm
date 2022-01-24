@@ -7,7 +7,6 @@ import DataSource exposing (DataSource)
 import Date exposing (Date)
 import Date.Extra
 import DatePicker exposing (ChangeEvent(..))
-import Defendant exposing (Defendant)
 import DetainerWarrant exposing (DetainerWarrant, DetainerWarrantEdit, Status)
 import Dict
 import Element exposing (Element, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
@@ -74,16 +73,6 @@ validUSNumber number =
         number
 
 
-type alias DefendantForm =
-    { id : Maybe Int
-    , firstName : String
-    , middleName : String
-    , lastName : String
-    , suffix : String
-    , potentialPhones : List String
-    }
-
-
 type alias FormOptions =
     { plaintiffs : List Plaintiff
     , attorneys : List Attorney
@@ -117,7 +106,6 @@ type alias Form =
     , claimsPossession : Maybe Bool
     , claimsPossessionDropdown : Dropdown.State (Maybe Bool)
     , address : String
-    , defendants : List DefendantForm
     , hearings : List Hearing
     , notes : String
     , saveButtonState : SplitButton.State NavigationOnSuccess
@@ -146,7 +134,7 @@ type Tooltip
 
 
 type SaveState
-    = SavingRelatedModels { attorney : Bool, plaintiff : Bool, defendants : Int }
+    = SavingRelatedModels { attorney : Bool, plaintiff : Bool }
     | SavingWarrant
     | Done
 
@@ -186,21 +174,6 @@ initAttorneyForm attorney =
     }
 
 
-initDefendantForm : Maybe Defendant -> DefendantForm
-initDefendantForm defendant =
-    { id = Maybe.map .id defendant
-    , firstName = Maybe.withDefault "" <| Maybe.map .firstName defendant
-    , middleName = Maybe.withDefault "" <| Maybe.andThen .middleName defendant
-    , lastName = Maybe.withDefault "" <| Maybe.map .lastName defendant
-    , suffix = Maybe.withDefault "" <| Maybe.andThen .suffix defendant
-    , potentialPhones =
-        defendant
-            |> Maybe.andThen .potentialPhones
-            |> Maybe.map (String.split ",")
-            |> Maybe.withDefault [ "" ]
-    }
-
-
 editForm : Date -> DetainerWarrant -> Form
 editForm today warrant =
     { docketId = warrant.docketId
@@ -223,7 +196,6 @@ editForm today warrant =
     , claimsPossession = warrant.claimsPossession
     , claimsPossessionDropdown = Dropdown.init "claims-possession-dropdown"
     , address = Maybe.withDefault "" warrant.address
-    , defendants = List.map (initDefendantForm << Just) warrant.defendants
     , hearings = warrant.hearings
     , notes = Maybe.withDefault "" warrant.notes
     , saveButtonState = SplitButton.init "save-button"
@@ -248,7 +220,6 @@ initCreate today =
     , claimsPossession = Nothing
     , claimsPossessionDropdown = Dropdown.init "claims-possession-dropdown"
     , address = ""
-    , defendants = [ initDefendantForm Nothing ]
     , hearings = []
     , notes = ""
     , saveButtonState = SplitButton.init "save-button"
@@ -347,14 +318,6 @@ type Msg
     | NonpaymentDropdownMsg (Dropdown.Msg (Maybe Bool))
     | PickedNonpayment (Maybe (Maybe Bool))
     | ChangedAddress String
-    | ChangedFirstName Int String
-    | ChangedMiddleName Int String
-    | ChangedLastName Int String
-    | ChangedSuffix Int String
-    | ChangedPotentialPhones Int Int String
-    | AddPhone Int
-    | RemovePhone Int Int
-    | AddDefendant
     | ChangedNotes String
     | ToggleOpenDocument
     | SplitButtonMsg (SplitButton.Msg NavigationOnSuccess)
@@ -363,7 +326,6 @@ type Msg
     | Save
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
-    | UpsertedDefendant Int (Result Http.Error (Rest.Item Defendant))
     | CreatedDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
     | GotPlaintiffs (Result Http.Error (Rest.Collection Plaintiff))
     | GotAttorneys (Result Http.Error (Rest.Collection Attorney))
@@ -776,148 +738,6 @@ update pageUrl navKey sharedModel static msg model =
                 (\form -> { form | address = address })
                 model
 
-        ChangedFirstName selected name ->
-            updateForm
-                (\form ->
-                    { form
-                        | defendants =
-                            List.indexedMap
-                                (\index defendant ->
-                                    if index == selected then
-                                        { defendant | firstName = name }
-
-                                    else
-                                        defendant
-                                )
-                                form.defendants
-                    }
-                )
-                model
-
-        ChangedMiddleName selected name ->
-            updateForm
-                (\form ->
-                    { form
-                        | defendants =
-                            List.indexedMap
-                                (\index defendant ->
-                                    if index == selected then
-                                        { defendant | middleName = name }
-
-                                    else
-                                        defendant
-                                )
-                                form.defendants
-                    }
-                )
-                model
-
-        ChangedLastName selected name ->
-            updateForm
-                (\form ->
-                    { form
-                        | defendants =
-                            List.indexedMap
-                                (\index defendant ->
-                                    if index == selected then
-                                        { defendant | lastName = name }
-
-                                    else
-                                        defendant
-                                )
-                                form.defendants
-                    }
-                )
-                model
-
-        ChangedSuffix selected suffix ->
-            updateForm
-                (\form ->
-                    { form
-                        | defendants =
-                            List.indexedMap
-                                (\index defendant ->
-                                    if index == selected then
-                                        { defendant | suffix = suffix }
-
-                                    else
-                                        defendant
-                                )
-                                form.defendants
-                    }
-                )
-                model
-
-        ChangedPotentialPhones selected phoneIndex phone ->
-            updateForm
-                (\form ->
-                    { form
-                        | defendants =
-                            List.indexedMap
-                                (\index defendant ->
-                                    if index == selected then
-                                        { defendant
-                                            | potentialPhones =
-                                                List.indexedMap
-                                                    (\i p ->
-                                                        if i == phoneIndex then
-                                                            Mask.number "###-###-####" phone
-
-                                                        else
-                                                            p
-                                                    )
-                                                    defendant.potentialPhones
-                                        }
-
-                                    else
-                                        defendant
-                                )
-                                form.defendants
-                    }
-                )
-                model
-
-        AddDefendant ->
-            updateForm
-                (\form -> { form | defendants = form.defendants ++ [ initDefendantForm Nothing ] })
-                model
-
-        AddPhone defendantIndex ->
-            updateForm
-                (\form ->
-                    { form
-                        | defendants =
-                            List.indexedMap
-                                (\index def ->
-                                    if index == defendantIndex then
-                                        { def | potentialPhones = def.potentialPhones ++ [ "" ] }
-
-                                    else
-                                        def
-                                )
-                                form.defendants
-                    }
-                )
-                model
-
-        RemovePhone defendantIndex phoneIndex ->
-            updateForm
-                (\form ->
-                    { form
-                        | defendants =
-                            List.indexedMap
-                                (\index def ->
-                                    if index == defendantIndex then
-                                        { def | potentialPhones = List.removeAt phoneIndex def.potentialPhones }
-
-                                    else
-                                        def
-                                )
-                                form.defendants
-                    }
-                )
-                model
-
         ChangedNotes notes ->
             updateForm
                 (\form -> { form | notes = notes })
@@ -1003,40 +823,6 @@ update pageUrl navKey sharedModel static msg model =
                 )
 
         UpsertedPlaintiff (Err httpError) ->
-            ( model, logHttpError httpError )
-
-        UpsertedDefendant index (Ok defendant) ->
-            nextStepSave
-                today
-                domain
-                session
-                (updateFormOnly
-                    (\form ->
-                        { form
-                            | defendants =
-                                List.indexedMap
-                                    (\i def ->
-                                        if i == index then
-                                            initDefendantForm (Just defendant.data)
-
-                                        else
-                                            def
-                                    )
-                                    form.defendants
-                        }
-                    )
-                    { model
-                        | saveState =
-                            case model.saveState of
-                                SavingRelatedModels models ->
-                                    SavingRelatedModels { models | defendants = models.defendants + 1 }
-
-                                _ ->
-                                    model.saveState
-                    }
-                )
-
-        UpsertedDefendant _ (Err httpError) ->
             ( model, logHttpError httpError )
 
         UpsertedAttorney (Ok attorney) ->
@@ -1129,8 +915,6 @@ doneSavingRelatedModels apiForms state =
         SavingRelatedModels models ->
             models.attorney
                 && models.plaintiff
-                && List.length apiForms.defendants
-                >= models.defendants
 
         _ ->
             False
@@ -1152,7 +936,6 @@ submitForm today domain session model =
                     SavingRelatedModels
                         { attorney = apiForms.attorney == Nothing
                         , plaintiff = apiForms.plaintiff == Nothing
-                        , defendants = 0
                         }
 
                 updatedModel =
@@ -1172,7 +955,6 @@ submitForm today domain session model =
                             |> Maybe.map (List.singleton << upsertAttorney domain maybeCred)
                             |> Maybe.withDefault []
                         , Maybe.withDefault [] <| Maybe.map (List.singleton << upsertPlaintiff domain maybeCred) apiForms.plaintiff
-                        , List.indexedMap (upsertDefendant domain maybeCred) apiForms.defendants
                         , List.singleton <| fetchAdjacentDetainerWarrant domain maybeCred model
                         ]
                     )
@@ -1712,7 +1494,7 @@ viewAddress options form =
             , description = "The address where the defendant or defendants reside."
             , children =
                 [ TextField.singlelineText ChangedAddress
-                    "Defendant address"
+                    "Address"
                     form.address
                     |> TextField.setLabelVisible True
                     |> TextField.withPlaceholder "123 Street Address, City, Zip Code"
@@ -1720,182 +1502,6 @@ viewAddress options form =
                     |> TextField.renderElement options.renderConfig
                 ]
             }
-        ]
-
-
-viewFirstName : FormOptions -> Int -> DefendantForm -> Element Msg
-viewFirstName options index defendant =
-    column [ width fill ]
-        [ viewField options.showHelp
-            { tooltip = Nothing
-            , description = ""
-            , children =
-                [ TextField.singlelineText (ChangedFirstName index)
-                    "First name"
-                    defendant.firstName
-                    |> TextField.setLabelVisible True
-                    |> TextField.renderElement options.renderConfig
-
-                --(withValidation (DefendantFirstName index) options.problems (withChanges hasChanges []))
-                ]
-            }
-        ]
-
-
-viewMiddleName : FormOptions -> Int -> DefendantForm -> Element Msg
-viewMiddleName options index defendant =
-    column [ width fill ]
-        [ viewField options.showHelp
-            { tooltip = Nothing
-            , description = ""
-            , children =
-                [ TextField.singlelineText (ChangedMiddleName index)
-                    "Middle name"
-                    defendant.middleName
-                    |> TextField.setLabelVisible True
-                    |> TextField.renderElement options.renderConfig
-                ]
-            }
-        ]
-
-
-viewLastName : FormOptions -> Int -> DefendantForm -> Element Msg
-viewLastName options index defendant =
-    column [ width fill ]
-        [ viewField options.showHelp
-            { tooltip = Nothing
-            , description = ""
-            , children =
-                [ TextField.singlelineText (ChangedLastName index)
-                    "Last name"
-                    defendant.lastName
-                    |> TextField.setLabelVisible True
-                    |> TextField.renderElement options.renderConfig
-
-                -- (withValidation (DefendantLastName index) options.problems (withChanges hasChanges []))
-                ]
-            }
-        ]
-
-
-viewSuffix : FormOptions -> Int -> DefendantForm -> Element Msg
-viewSuffix options index defendant =
-    column [ width (fill |> maximum 100) ]
-        [ viewField options.showHelp
-            { tooltip = Nothing
-            , description = ""
-            , children =
-                [ TextField.singlelineText (ChangedSuffix index)
-                    "Suffix"
-                    defendant.suffix
-                    |> TextField.setLabelVisible True
-                    |> TextField.renderElement options.renderConfig
-                ]
-            }
-        ]
-
-
-viewPotentialPhones : FormOptions -> Int -> DefendantForm -> Element Msg
-viewPotentialPhones options index defendant =
-    wrappedRow [ width fill, spacing 10 ]
-        (List.indexedMap
-            (\i phone ->
-                let
-                    originalPhones : Maybe (List String)
-                    originalPhones =
-                        Maybe.map (String.split ",") <|
-                            Maybe.andThen .potentialPhones <|
-                                Maybe.andThen (List.getAt index) <|
-                                    Maybe.map .defendants options.originalWarrant
-
-                    originalPhone : Maybe String
-                    originalPhone =
-                        Maybe.andThen (List.getAt i) <| originalPhones
-                in
-                column
-                    [ width
-                        (px
-                            (if i == 0 then
-                                495
-
-                             else
-                                205
-                            )
-                        )
-                    ]
-                    [ viewField options.showHelp
-                        { tooltip =
-                            if i == 0 then
-                                Just <| PotentialPhoneNumbersInfo index
-
-                            else
-                                Nothing
-                        , description = "Provide a phone number for the tenant so they will be called and texted during upcoming phonebanks and receive notifications about their detainer warrant updates."
-                        , children =
-                            [ TextField.singlelineText (ChangedPotentialPhones index i)
-                                "Potential phone"
-                                phone
-                                |> TextField.setLabelVisible True
-                                |> TextField.withPlaceholder "123-456-7890"
-                                |> TextField.renderElement options.renderConfig
-                            , if i == 0 then
-                                Element.none
-
-                              else
-                                el
-                                    [ padding 2
-                                    , Element.alignTop
-                                    ]
-                                    (Button.fromIcon (Icon.close "Remove phone")
-                                        |> Button.cmd (RemovePhone index i) Button.clear
-                                        |> Button.withSize UI.Size.extraSmall
-                                        |> Button.renderElement options.renderConfig
-                                    )
-                            ]
-                        }
-                    ]
-            )
-            defendant.potentialPhones
-            ++ [ Button.fromIcon (Icon.add "Add phone")
-                    |> Button.cmd (AddPhone index) Button.clear
-                    |> Button.renderElement options.renderConfig
-               ]
-        )
-
-
-viewDefendantForm : FormOptions -> Int -> DefendantForm -> Element Msg
-viewDefendantForm options index defendant =
-    column
-        [ width fill
-        , spacing 10
-        , padding 20
-        , Border.width 1
-        , Palette.toBorderColor Palette.gray300
-        , Border.innerGlow (Palette.toElementColor Palette.gray300) 1
-        , Border.rounded 5
-        ]
-        [ row [ centerX, spacing 20 ]
-            [ viewFirstName options index defendant
-            , viewMiddleName options index defendant
-            , viewLastName options index defendant
-            , viewSuffix options index defendant
-            ]
-        , viewPotentialPhones options index defendant
-        ]
-
-
-viewDefendants : FormOptions -> Form -> Element Msg
-viewDefendants options form =
-    row [ centerX, width (fill |> maximum 1000), padding 10 ]
-        [ column [ width fill, spacing 20 ]
-            (List.indexedMap (viewDefendantForm options) form.defendants
-                ++ [ el [ Element.alignRight ]
-                        (Button.fromLabeledOnLeftIcon (Icon.add "Add defendant")
-                            |> Button.cmd AddDefendant Button.primary
-                            |> Button.renderElement options.renderConfig
-                        )
-                   ]
-            )
         ]
 
 
@@ -2027,6 +1633,7 @@ viewForm options formStatus =
                         , viewFileDate options form
                         , viewStatus options form
                         ]
+                    , viewAddress options form
                     , formGroup
                         [ viewPlaintiffSearch ChangedPlaintiffSearchBox options form.plaintiff
                         , viewAttorneySearch ChangedPlaintiffAttorneySearchBox options form.plaintiffAttorney
@@ -2043,11 +1650,6 @@ viewForm options formStatus =
                         , viewLegacy options form
                         , viewNonpayment options form
                         ]
-                    ]
-                , tile
-                    [ paragraph [ Font.center, centerX ] [ text "Defendants" ]
-                    , viewAddress options form
-                    , viewDefendants options form
                     ]
                 , tile
                     [ paragraph [ Font.center, centerX ] [ text "Hearings" ]
@@ -2239,25 +1841,13 @@ type TrimmedForm
 type ValidatedField
     = DocketId
     | FileDate
-    | DefendantFirstName Int
-    | DefendantLastName Int
-    | DefendantPhoneNumber Int Int
 
 
-fieldsToValidate : List DefendantForm -> List ValidatedField
-fieldsToValidate defendants =
-    let
-        numDefendants =
-            List.length defendants - 1
-    in
-    List.concat
-        [ [ DocketId
-          , FileDate
-          ]
-        , List.map DefendantFirstName <| List.range 0 numDefendants
-        , List.map DefendantLastName <| List.range 0 numDefendants
-        , List.concat <| List.indexedMap (\i def -> List.indexedMap (\j _ -> DefendantPhoneNumber i j) def.potentialPhones) defendants
-        ]
+fieldsToValidate : List ValidatedField
+fieldsToValidate =
+    [ DocketId
+    , FileDate
+    ]
 
 
 {-| Trim the form and validate its fields. If there are problems, report them!
@@ -2273,7 +1863,7 @@ validate today formStatus =
                 trimmedForm =
                     trimFields form
             in
-            case List.concatMap (validateField today trimmedForm) (fieldsToValidate form.defendants) of
+            case List.concatMap (validateField today trimmedForm) fieldsToValidate of
                 [] ->
                     Ok trimmedForm
 
@@ -2295,46 +1885,6 @@ validateField today (Trimmed form) field =
             FileDate ->
                 []
 
-            DefendantFirstName defIndex ->
-                let
-                    firstName =
-                        List.getAt defIndex form.defendants
-                            |> Maybe.map .firstName
-                            |> Maybe.withDefault ""
-                in
-                if String.isEmpty firstName then
-                    [ "First name cannot be blank" ]
-
-                else
-                    []
-
-            DefendantLastName defIndex ->
-                let
-                    lastName =
-                        List.getAt defIndex form.defendants
-                            |> Maybe.map .lastName
-                            |> Maybe.withDefault ""
-                in
-                if String.isEmpty lastName then
-                    [ "Last name cannot be blank" ]
-
-                else
-                    []
-
-            DefendantPhoneNumber defIndex phoneIndex ->
-                let
-                    phone =
-                        form.defendants
-                            |> List.getAt defIndex
-                            |> Maybe.andThen (List.getAt phoneIndex << .potentialPhones)
-                            |> Maybe.withDefault ""
-                in
-                if validUSNumber phone then
-                    [ "Invalid phone number format" ]
-
-                else
-                    []
-
 
 {-| Don't trim while the user is typing! That would be super annoying.
 Instead, trim only on submit.
@@ -2352,39 +1902,8 @@ trimFields form =
 
 type alias ApiForms =
     { detainerWarrant : DetainerWarrantEdit
-    , defendants : List Defendant
     , plaintiff : Maybe Plaintiff
     , attorney : Maybe Attorney
-    }
-
-
-toDefendantData : DefendantForm -> Defendant
-toDefendantData defendant =
-    { id = Maybe.withDefault -1 defendant.id
-    , name = ""
-    , verifiedPhone = Nothing
-    , firstName = defendant.firstName
-    , middleName =
-        if String.isEmpty defendant.middleName then
-            Nothing
-
-        else
-            Just defendant.middleName
-    , lastName = defendant.lastName
-    , suffix =
-        if String.isEmpty defendant.suffix then
-            Nothing
-
-        else
-            Just defendant.suffix
-    , aliases =
-        []
-    , potentialPhones =
-        if List.isEmpty defendant.potentialPhones || defendant.potentialPhones == [ "" ] then
-            Nothing
-
-        else
-            Just <| String.join "," defendant.potentialPhones
     }
 
 
@@ -2411,7 +1930,6 @@ toDetainerWarrant today (Trimmed form) =
         , nonpayment = form.isNonpayment
         , amountClaimed = String.toFloat <| String.replace "," "" form.amountClaimed
         , claimsPossession = form.claimsPossession
-        , defendants = List.filterMap (Maybe.map related << .id) form.defendants
         , notes =
             if String.isEmpty form.notes then
                 Nothing
@@ -2419,7 +1937,6 @@ toDetainerWarrant today (Trimmed form) =
             else
                 Just form.notes
         }
-    , defendants = List.map toDefendantData form.defendants
     , plaintiff =
         form.plaintiff.person
     , attorney =
@@ -2438,34 +1955,6 @@ nullable fieldName fn field =
 toBody body =
     Encode.object [ ( "data", body ) ]
         |> Http.jsonBody
-
-
-upsertDefendant : String -> Maybe Cred -> Int -> Defendant -> Cmd Msg
-upsertDefendant domain maybeCred index form =
-    let
-        decoder =
-            Rest.itemDecoder Defendant.decoder
-
-        defendant =
-            Encode.object
-                ([ ( "first_name", Encode.string form.firstName )
-                 , ( "last_name", Encode.string form.lastName )
-                 ]
-                    ++ conditional "id" Encode.int (remoteId form)
-                    ++ conditional "middle_name" Encode.string form.middleName
-                    ++ conditional "suffix" Encode.string form.suffix
-                    ++ conditional "potential_phones" Encode.string form.potentialPhones
-                )
-
-        body =
-            toBody defendant
-    in
-    case remoteId form of
-        Just id ->
-            Rest.patch (Endpoint.defendant domain id) maybeCred body (UpsertedDefendant index) decoder
-
-        Nothing ->
-            Rest.post (Endpoint.defendants domain []) maybeCred body (UpsertedDefendant index) decoder
 
 
 remoteId : { a | id : number } -> Maybe number
@@ -2535,7 +2024,6 @@ updateDetainerWarrant domain maybeCred form =
         detainerWarrant =
             Encode.object
                 ([ ( "docket_id", Encode.string form.docketId )
-                 , ( "defendants", Encode.list encodeRelated form.defendants )
                  ]
                     ++ nullable "claims_possession" Encode.bool form.claimsPossession
                     ++ nullable "file_date" Time.Utils.posixEncoder form.fileDate
