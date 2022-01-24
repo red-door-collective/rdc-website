@@ -158,7 +158,7 @@ class Hearing(db.Model, Timestamped):
 
     id = Column(db.Integer, primary_key=True)
     _court_date = Column(db.DateTime, name='court_date', nullable=False)
-    address = Column(db.String(255), nullable=False)
+    address = Column(db.String(255))
     court_order_number = Column(db.Integer)
 
     _continuance_on = Column(db.Date, name='continuance_on')

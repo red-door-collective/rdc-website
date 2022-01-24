@@ -150,8 +150,8 @@ def import_from_dw_page(browser, docket_id):
                 if existing_hearing:
                     existing_hearing.update(_continuance_on=continuance_date)
                 else:
-                    Hearing.create(_court_date=pleading_date, docket_id=docket_id,
-                                   address="unknown", _continuance_on=continuance_date)
+                    Hearing.create(
+                        _court_date=pleading_date, docket_id=docket_id, _continuance_on=continuance_date)
                 db.session.commit()
 
             elif hearing_match:
@@ -163,7 +163,7 @@ def import_from_dw_page(browser, docket_id):
                 ).first()
                 if not existing_hearing:
                     Hearing.create(docket_id=docket_id,
-                                   _court_date=hearing_date, address="unknown")
+                                   _court_date=hearing_date)
                 db.session.commit()
 
     finally:
@@ -584,7 +584,7 @@ def update_judgment_from_document(document):
             existing_hearing.update_judgment_from_document(document)
         else:
             hearing = Hearing.create(
-                _court_date=file_date, docket_id=document.docket_id, address="unknown")
+                _court_date=file_date, docket_id=document.docket_id)
             hearing.update_judgment_from_document(document)
         db.session.commit()
 

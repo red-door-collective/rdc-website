@@ -32,11 +32,11 @@ def _from_workbook(court_date, raw_judgment):
     if not bool(docket_id):
         return
 
-    address = judgment[DEFENDANT_ADDRESS] or "unknown"
+    address = judgment[DEFENDANT_ADDRESS]
 
     hearing = Hearing.query.filter_by(
         docket_id=docket_id, _court_date=court_date).first()
-    if hearing and hearing.address != "unknown":
+    if hearing and not hearing.address:
         hearing.update(address=address)
         db.session.commit()
 
