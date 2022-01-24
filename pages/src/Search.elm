@@ -20,7 +20,7 @@ type alias DetainerWarrants =
     , courtDate : Maybe Posix
     , plaintiff : Maybe String
     , plaintiffAttorney : Maybe String
-    , defendant : Maybe String
+    , defendantId : Maybe Int
     , address : Maybe String
     , freeText : Maybe String
     }
@@ -71,7 +71,7 @@ detainerWarrantsDefault =
     , courtDate = Nothing
     , plaintiff = Nothing
     , plaintiffAttorney = Nothing
-    , defendant = Nothing
+    , defendantId = Nothing
     , address = Nothing
     , freeText = Nothing
     }
@@ -134,7 +134,7 @@ dwFromString str =
     , courtDate = Dict.get "court_date" params |> Maybe.andThen List.head |> Maybe.map Iso8601.toTime |> Maybe.andThen Result.toMaybe
     , plaintiff = Dict.get "plaintiff" params |> Maybe.andThen List.head
     , plaintiffAttorney = Dict.get "plaintiff_attorney" params |> Maybe.andThen List.head
-    , defendant = Dict.get "defendant_name" params |> Maybe.andThen List.head
+    , defendantId = Dict.get "defendant_id" params |> Maybe.andThen List.head |> Maybe.andThen String.toInt
     , address = Dict.get "address" params |> Maybe.andThen List.head
     , freeText = Dict.get "free_text" params |> Maybe.andThen List.head
     }
@@ -211,7 +211,7 @@ detainerWarrantsArgs filters =
         ++ toPair "court_date" (Maybe.map posixToString filters.courtDate)
         ++ toPair "plaintiff" filters.plaintiff
         ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
-        ++ toPair "defendant_name" filters.defendant
+        ++ toPair "defendant_id" (Maybe.map String.fromInt filters.defendantId)
         ++ toPair "address" filters.address
         ++ toPair "free_text" filters.freeText
 
@@ -230,7 +230,7 @@ detainerWarrantsFilterArgs filters =
         ++ toPair "court_date" (Maybe.map Time.Utils.toIsoString filters.courtDate)
         ++ toPair "plaintiff" filters.plaintiff
         ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
-        ++ toPair "defendant_name" filters.defendant
+        ++ toPair "defendant_name" (Maybe.map String.fromInt filters.defendantId)
         ++ toPair "address" filters.address
         ++ toPair "free_text" filters.freeText
 

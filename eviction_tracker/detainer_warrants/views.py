@@ -290,9 +290,9 @@ def filter_docket_id(model, id):
     return model.docket_id.ilike(f'%{id}%')
 
 
-@model_filter(fields.String())
-def filter_defendant_name(model, defendant_name):
-    return model._defendants.any(Defendant.name.ilike(f'%{defendant_name}%'))
+@model_filter(fields.Int())
+def filter_defendant_id(model, id):
+    return model._defendants.any(Defendant.id == id)
 
 
 @model_filter(fields.String())
@@ -370,7 +370,7 @@ class DetainerWarrantResourceBase(GenericModelView):
     sorting = Sorting('order_number', default='-order_number')
     filtering = Filtering(
         docket_id=filter_docket_id,
-        defendant_name=filter_defendant_name,
+        defendant_id=filter_defendant_id,
         order_number=operator.eq,
         file_date=filter_file_date,
         court_date=filter_court_date,

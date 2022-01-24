@@ -1,12 +1,17 @@
-module Defendant exposing (Defendant, decoder, tableColumns, toTableCover, toTableDetails, toTableRow, toTableRowView)
+module Defendant exposing (Defendant, decoder, tableColumns, toTableCover, toTableDetails, toTableRow, toTableRowView, viewLargeWarrantsButton, viewWarrantsButton)
 
 import Json.Decode as Decode exposing (Decoder, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
-import UI.Button exposing (Button)
+import Rest.Endpoint as Endpoint
+import UI.Button as Button exposing (Button)
+import UI.Icon as Icon
+import UI.Link as Link
+import UI.Size
 import UI.Tables.Common as Common exposing (Columns, Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
 import UI.Tables.Stateful exposing (detailShown, detailsEmpty)
 import UI.Text as Text
 import UI.Utils.TypeNumbers as T
+import Url.Builder
 
 
 type alias VerifiedPhone =
@@ -51,11 +56,42 @@ decoder =
         |> required "verified_phone" (nullable verifiedPhoneDecoder)
 
 
-tableColumns : Columns T.Three
+viewLargeWarrantsButton : Defendant -> Button msg
+viewLargeWarrantsButton defendant =
+    Button.fromLabeledOnRightIcon (Icon.shelves "View warrants")
+        |> Button.redirect
+            (Link.link <|
+                Url.Builder.absolute
+                    [ "admin"
+                    , "detainer-warrants"
+                    ]
+                    (Endpoint.toQueryArgs [ ( "defendant_id", String.fromInt defendant.id ) ])
+            )
+            Button.primary
+        |> Button.withSize UI.Size.medium
+
+
+viewWarrantsButton : Defendant -> Button msg
+viewWarrantsButton defendant =
+    Button.fromIcon (Icon.shelves "View warrants")
+        |> Button.redirect
+            (Link.link <|
+                Url.Builder.absolute
+                    [ "admin"
+                    , "detainer-warrants"
+                    ]
+                    (Endpoint.toQueryArgs [ ( "defendant_id", String.fromInt defendant.id ) ])
+            )
+            Button.primary
+        |> Button.withSize UI.Size.small
+
+
+tableColumns : Columns T.Four
 tableColumns =
     columnsEmpty
         |> Common.column "First name" (columnWidthPixels 300)
         |> Common.column "Last name" (columnWidthPixels 300)
+        |> Common.column "" (columnWidthPixels 100)
         |> Common.column "" (columnWidthPixels 100)
 
 
@@ -63,17 +99,18 @@ toTableRow :
     (Defendant -> Button msg)
     ->
         { toKey : Defendant -> String
-        , view : Defendant -> Row msg T.Three
+        , view : Defendant -> Row msg T.Four
         }
 toTableRow toEditButton =
     { toKey = .name, view = toTableRowView toEditButton }
 
 
-toTableRowView : (Defendant -> Button msg) -> Defendant -> Row msg T.Three
+toTableRowView : (Defendant -> Button msg) -> Defendant -> Row msg T.Four
 toTableRowView toEditButton ({ firstName, lastName } as defendant) =
     rowEmpty
         |> rowCellText (Text.body2 firstName)
         |> rowCellText (Text.body2 lastName)
+        |> rowCellButton (viewWarrantsButton defendant)
         |> rowCellButton (toEditButton defendant)
 
 
@@ -90,6 +127,10 @@ toTableDetails toEditButton ({ firstName, lastName } as defendant) =
         |> detailShown
             { label = "Last name"
             , content = cellFromText <| Text.body2 lastName
+            }
+        |> detailShown
+            { label = "Warrants"
+            , content = cellFromButton (viewWarrantsButton defendant)
             }
         |> detailShown
             { label = "Edit"

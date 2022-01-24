@@ -41,7 +41,7 @@ import View exposing (View)
 
 type alias Model =
     { defendants : List Defendant
-    , tableState : Stateful.State Msg Defendant T.Three
+    , tableState : Stateful.State Msg Defendant T.Four
     , search : Search Search.Defendants
     , infiniteScroll : InfiniteScroll.Model Msg
     }
@@ -81,19 +81,21 @@ init pageUrl sharedModel static =
     )
 
 
-searchFilters : Search.Defendants -> Filters Msg Defendant T.Three
+searchFilters : Search.Defendants -> Filters Msg Defendant T.Four
 searchFilters filters =
     filtersEmpty
         |> remoteSingleTextFilter filters.firstName InputFirstName
         |> remoteSingleTextFilter filters.lastName InputLastName
         |> localSingleTextFilter Nothing .name
+        |> localSingleTextFilter Nothing .name
 
 
-sortersInit : Sorters Defendant T.Three
+sortersInit : Sorters Defendant T.Four
 sortersInit =
     sortersEmpty
         |> sortBy .firstName
         |> sortBy .lastName
+        |> unsortable
         |> unsortable
 
 
