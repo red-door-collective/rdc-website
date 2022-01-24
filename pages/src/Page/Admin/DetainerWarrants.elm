@@ -52,7 +52,7 @@ type alias Model =
     , selected : Maybe String
     , hovered : Maybe String
     , search : Search Search.DetainerWarrants
-    , tableState : Stateful.State Msg DetainerWarrant T.Eight
+    , tableState : Stateful.State Msg DetainerWarrant T.Seven
     , infiniteScroll : InfiniteScroll.Model Msg
     }
 
@@ -143,7 +143,6 @@ type Msg
     | InputCourtDate (Maybe DateInput)
     | InputPlaintiff (Maybe String)
     | InputPlaintiffAttorney (Maybe String)
-    | InputDefendant (Maybe String)
     | InputAddress (Maybe String)
     | ForTable (Stateful.Msg DetainerWarrant)
     | GotWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
@@ -256,9 +255,6 @@ update pageUrl navKey sharedModel static msg model =
 
         InputPlaintiffAttorney query ->
             updateFiltersAndReload domain session (\filters -> { filters | plaintiffAttorney = query }) model
-
-        InputDefendant query ->
-            updateFiltersAndReload domain session (\filters -> { filters | defendant = query }) model
 
         InputAddress query ->
             updateFiltersAndReload domain session (\filters -> { filters | address = query }) model
@@ -384,7 +380,6 @@ viewFilter filters =
         , ifNonEmpty "court date is " Time.Utils.toIsoString filters.courtDate
         , ifNonEmpty "plaintiff contains " identity filters.plaintiff
         , ifNonEmpty "plaintiff attorney contains " identity filters.plaintiffAttorney
-        , ifNonEmpty "defendant contains " identity filters.defendant
         , ifNonEmpty "address contains " identity filters.address
         ]
 
@@ -554,7 +549,7 @@ viewEditButton warrant =
         |> Button.withSize UI.Size.small
 
 
-searchFilters : Search.DetainerWarrants -> Filters Msg DetainerWarrant T.Eight
+searchFilters : Search.DetainerWarrants -> Filters Msg DetainerWarrant T.Seven
 searchFilters filters =
     filtersEmpty
         |> remoteSingleTextFilter filters.docketId InputDocketId
@@ -562,12 +557,11 @@ searchFilters filters =
         |> remoteSingleDateFilter Time.utc filters.courtDate InputCourtDate
         |> remoteSingleTextFilter filters.plaintiff InputPlaintiff
         |> remoteSingleTextFilter filters.plaintiffAttorney InputPlaintiffAttorney
-        |> remoteSingleTextFilter filters.defendant InputDefendant
         |> remoteSingleTextFilter filters.address InputAddress
         |> localSingleTextFilter Nothing .docketId
 
 
-sortersInit : Sorters DetainerWarrant T.Eight
+sortersInit : Sorters DetainerWarrant T.Seven
 sortersInit =
     sortersEmpty
         |> sortBy .docketId
@@ -575,7 +569,6 @@ sortersInit =
         |> sortBy (Maybe.withDefault "" << Maybe.map Time.Utils.toIsoString << DetainerWarrant.mostRecentCourtDate)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiff)
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)
-        |> sortBy (Maybe.withDefault "" << Maybe.map .name << List.head << .defendants)
         |> sortBy (Maybe.withDefault "" << .address)
         |> unsortable
 
