@@ -230,7 +230,7 @@ class Hearing(db.Model, Timestamped):
         self._court_date = from_millis(posix)
 
     def __repr__(self):
-        return "<Hearing(court_date='%s', docket_id='%s')>" % (self._court_date, self.docket_id)
+        return f"<Hearing(court_date='{self._court_date}', docket_id='{self.docket_id}')>"
 
     def update_judgment_from_document(self, document):
         attrs = Judgment.attributes_from_pdf(document.text)
@@ -449,7 +449,7 @@ class Judgment(db.Model, Timestamped):
             return ''
 
     def __repr__(self):
-        return "<Judgment(in_favor_of='%s', docket_id='%s')>" % (self.in_favor_of, self.detainer_warrant_id)
+        return f"<Judgment(in_favor_of='{self.in_favor_of}', docket_id='{self.detainer_warrant_id}')>"
 
     def attributes_from_pdf(pdf):
         pdf = pdf.replace('\n', ' ').replace('\r', ' ')
@@ -827,7 +827,7 @@ class DetainerWarrant(Case):
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")
 
     def __repr__(self):
-        return "<DetainerWarrant(docket_id='%s', file_date='%s')>" % (self.docket_id, self._file_date)
+        return f"<DetainerWarrant(docket_id='{self.docket_id}', file_date='{self._file_date}')>"
 
     @hybrid_property
     def court_date(self):
@@ -938,4 +938,4 @@ class PhoneNumberVerification(db.Model, Timestamped):
             caller_type)
 
     def __repr__(self):
-        return "<PhoneNumberVerification(caller_name='%s', phone_type='%s', phone_number='%s')>" % (self.caller_name, self.phone_type, self.phone_number)
+        return f"<PhoneNumberVerification(caller_name='{self.caller_name}', phone_type='{self.phone_type}', phone_number='{self.phone_number}')>"
