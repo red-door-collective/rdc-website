@@ -352,12 +352,6 @@ createNewWarrantButton cfg =
         |> Button.renderElement cfg
 
 
-uploadCsvButton cfg =
-    Button.fromLabel "Upload via CaseLink CSV"
-        |> Button.redirect (Link.link <| "/admin/detainer-warrants/bulk-upload") Button.primary
-        |> Button.renderElement cfg
-
-
 exportButton cfg =
     Button.fromLabel "Export to spreadsheet"
         |> Button.cmd ExportToSpreadsheet Button.primary
@@ -417,7 +411,6 @@ viewDesktop cfg model =
         ]
         [ Element.row [ centerX, spacing 10 ]
             [ createNewWarrantButton cfg
-            , uploadCsvButton cfg
             , exportButton cfg
             ]
         , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
@@ -459,9 +452,6 @@ viewMobile cfg model =
         [ row [ centerX, spacing 10 ]
             [ Button.fromIcon (Icon.add "Enter New Detainer Warrant")
                 |> Button.redirect (Link.link <| "/admin/detainer-warrants/edit") Button.primary
-                |> Button.renderElement cfg
-            , Button.fromIcon (Icon.download "Upload via CaseLink CSV")
-                |> Button.redirect (Link.link <| "/admin/detainer-warrants/bulk-upload") Button.primary
                 |> Button.renderElement cfg
             ]
         , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
