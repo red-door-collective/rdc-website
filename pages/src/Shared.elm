@@ -13,6 +13,7 @@ import OptimizedDecoder.Pipeline exposing (required)
 import Pages.Flags exposing (Flags(..))
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
+import RemoteData exposing (RemoteData(..))
 import Rest exposing (Window)
 import Rest.Endpoint as Endpoint
 import Rest.Static
@@ -62,7 +63,7 @@ type alias Model =
     , queryParams : Maybe String
     , window : Window
     , renderConfig : RenderConfig
-    , profile : Maybe User
+    , profile : RemoteData Http.Error User
     }
 
 
@@ -130,7 +131,7 @@ init navigationKey flags maybePagePath =
                 , height = window.height
                 }
                 RenderConfig.localeEnglish
-      , profile = Nothing
+      , profile = Loading
       }
     , case maybeHostName of
         Just hostName ->
@@ -173,13 +174,18 @@ update msg model =
 
         GotProfile (Ok user) ->
             ( { model
-                | profile = Just user
+                | profile = Success user
               }
-            , Cmd.none
+            , Maybe.withDefault Cmd.none <|
+                Maybe.map
+                    (\key ->
+                        Nav.replaceUrl key ""
+                    )
+                    (Session.navKey model.session)
             )
 
-        GotProfile (Err _) ->
-            ( model, Cmd.none )
+        GotProfile (Err error) ->
+            ( { model | profile = Failure error }, Cmd.none )
 
         SetWindow width height ->
             ( { model | window = { width = width, height = height } }, Cmd.none )

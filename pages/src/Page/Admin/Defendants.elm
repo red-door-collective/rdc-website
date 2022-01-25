@@ -4,7 +4,7 @@ import Browser.Navigation as Nav
 import Color
 import DataSource exposing (DataSource)
 import Defendant exposing (Defendant)
-import Element exposing (Element, centerX, column, fill, height, padding, paragraph, px, row, spacing, text, textColumn, width)
+import Element exposing (Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, textColumn, width)
 import Element.Font as Font
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
@@ -19,6 +19,7 @@ import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import QueryParams
+import RemoteData exposing (RemoteData(..))
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Rollbar exposing (Rollbar)
@@ -36,6 +37,7 @@ import UI.Size
 import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
 import UI.Utils.TypeNumbers as T
 import Url.Builder
+import User
 import View exposing (View)
 
 
@@ -77,7 +79,22 @@ init pageUrl sharedModel static =
                 |> Stateful.stateWithSorters sortersInit
       , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
       }
-    , searchDefendants domain maybeCred search
+    , case sharedModel.profile of
+        NotAsked ->
+            Cmd.none
+
+        Loading ->
+            Cmd.none
+
+        Success profile ->
+            if User.canViewDefendantInformation profile then
+                searchDefendants domain maybeCred search
+
+            else
+                Cmd.none
+
+        Failure _ ->
+            Cmd.none
     )
 
 
@@ -368,6 +385,24 @@ viewDesktop cfg model =
         ]
 
 
+notFound =
+    { title = "Not Found"
+    , body = [ el [ centerX, padding 20 ] (text "Page not found") ]
+    }
+
+
+loading =
+    { title = "Loading"
+    , body = [ el [ centerX, padding 20 ] (text "Loading") ]
+    }
+
+
+errorScreen =
+    { title = "Error"
+    , body = [ el [ centerX, padding 20 ] (text "Something went wrong.") ]
+    }
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -375,12 +410,29 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    { title = title
-    , body =
-        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
-        , viewDesktop sharedModel.renderConfig model
-        ]
-    }
+    case sharedModel.profile of
+        NotAsked ->
+            notFound
+
+        Loading ->
+            loading
+
+        Success profile ->
+            if User.canViewDefendantInformation profile then
+                { title = title
+                , body =
+                    [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+                    , viewDesktop sharedModel.renderConfig model
+                    ]
+                }
+
+            else
+                { title = "Not Found"
+                , body = [ el [ centerX, padding 20 ] (text "Page not found") ]
+                }
+
+        Failure err ->
+            errorScreen
 
 
 loader : Model -> Element Msg
