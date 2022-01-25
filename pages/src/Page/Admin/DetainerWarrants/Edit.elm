@@ -37,6 +37,7 @@ import PhoneNumber.Countries exposing (countryUS)
 import Plaintiff exposing (Plaintiff, PlaintiffForm)
 import PleadingDocument exposing (PleadingDocument)
 import QueryParams
+import RemoteData exposing (RemoteData(..))
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint exposing (toQueryArgs)
 import Rollbar exposing (Rollbar)
@@ -142,7 +143,6 @@ type SaveState
 type alias Model =
     { warrant : Maybe DetainerWarrant
     , cursor : Maybe String
-    , profile : Maybe User
     , nextWarrant : Maybe DetainerWarrant
     , docketId : Maybe String
     , showHelp : Bool
@@ -259,7 +259,6 @@ init pageUrl sharedModel static =
     in
     ( { warrant = Nothing
       , cursor = Nothing
-      , profile = Nothing
       , nextWarrant = Nothing
       , docketId = docketId
       , showHelp = False
@@ -276,7 +275,7 @@ init pageUrl sharedModel static =
       , judges = []
       , courtrooms = []
       , saveState = Done
-      , navigationOnSuccess = Remain
+      , navigationOnSuccess = RemoteData.withDefault Remain <| RemoteData.map .preferredNavigation sharedModel.profile
       , showDocument = Nothing
       }
     , Cmd.batch
@@ -287,7 +286,6 @@ init pageUrl sharedModel static =
             _ ->
                 Cmd.none
         , Rest.get (Endpoint.courtrooms domain []) maybeCred GotCourtrooms (Rest.collectionDecoder Courtroom.decoder)
-        , Rest.get (Endpoint.currentUser domain) maybeCred GotProfile User.decoder
         ]
     )
 
@@ -322,7 +320,6 @@ type Msg
     | ToggleOpenDocument
     | SplitButtonMsg (SplitButton.Msg NavigationOnSuccess)
     | PickedSaveOption (Maybe NavigationOnSuccess)
-    | GotProfile (Result Http.Error User)
     | Save
     | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
     | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
@@ -771,43 +768,17 @@ update pageUrl navKey sharedModel static msg model =
 
         PickedSaveOption option ->
             ( { model | navigationOnSuccess = Maybe.withDefault model.navigationOnSuccess option }
-            , case ( model.profile, option ) of
-                ( Just user, Just nav ) ->
-                    let
-                        body =
-                            toBody
-                                (Encode.object
-                                    [ ( "id", Encode.int user.id )
-                                    , ( "preferred_navigation"
-                                      , Encode.string <| User.navigationToText nav
-                                      )
-                                    ]
-                                )
-                    in
-                    Rest.patch (Endpoint.user domain user.id) maybeCred body GotProfile User.decoder
-
-                _ ->
-                    Cmd.none
-            )
-
-        GotProfile (Ok user) ->
-            ( { model
-                | profile = Just user
-                , navigationOnSuccess = user.preferredNavigation
-              }
             , Cmd.none
             )
 
-        GotProfile (Err _) ->
-            ( model, Cmd.none )
-
         Save ->
-            submitForm today domain session model
+            submitForm today domain sharedModel session model
 
         UpsertedPlaintiff (Ok plaintiffItem) ->
             nextStepSave
                 today
                 domain
+                sharedModel
                 session
                 (updateFormOnly
                     (\form -> { form | plaintiff = initPlaintiffForm (Just plaintiffItem.data) })
@@ -829,6 +800,7 @@ update pageUrl navKey sharedModel static msg model =
             nextStepSave
                 today
                 domain
+                sharedModel
                 session
                 (updateFormOnly
                     (\form -> { form | plaintiffAttorney = initAttorneyForm (Just attorney.data) })
@@ -850,6 +822,7 @@ update pageUrl navKey sharedModel static msg model =
             nextStepSave
                 today
                 domain
+                sharedModel
                 session
                 { model
                     | warrant = Just detainerWarrantItem.data
@@ -920,8 +893,8 @@ doneSavingRelatedModels apiForms state =
             False
 
 
-submitForm : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
-submitForm today domain session model =
+submitForm : Date -> String -> Shared.Model -> Session -> Model -> ( Model, Cmd Msg )
+submitForm today domain sharedModel session model =
     let
         maybeCred =
             Session.cred session
@@ -945,7 +918,7 @@ submitForm today domain session model =
                     }
             in
             if doneSavingRelatedModels apiForms savingRelatedModels then
-                nextStepSave today domain session updatedModel
+                nextStepSave today domain sharedModel session updatedModel
 
             else
                 ( updatedModel
@@ -966,8 +939,8 @@ submitForm today domain session model =
             )
 
 
-nextStepSave : Date -> String -> Session -> Model -> ( Model, Cmd Msg )
-nextStepSave today domain session model =
+nextStepSave : Date -> String -> Shared.Model -> Session -> Model -> ( Model, Cmd Msg )
+nextStepSave today domain sharedModel session model =
     let
         maybeCred =
             Session.cred session
@@ -989,7 +962,7 @@ nextStepSave today domain session model =
                         ( model, Cmd.none )
 
                 SavingWarrant ->
-                    nextStepSave today domain session { model | saveState = Done }
+                    nextStepSave today domain sharedModel session { model | saveState = Done }
 
                 Done ->
                     let
@@ -998,7 +971,24 @@ nextStepSave today domain session model =
                     in
                     ( model
                     , Cmd.batch
-                        (Rest.get (Endpoint.currentUser domain) maybeCred GotProfile User.decoder
+                        ((case ( sharedModel.profile, model.navigationOnSuccess ) of
+                            ( Success user, nav ) ->
+                                let
+                                    body =
+                                        toBody
+                                            (Encode.object
+                                                [ ( "id", Encode.int user.id )
+                                                , ( "preferred_navigation"
+                                                  , Encode.string <| User.navigationToText nav
+                                                  )
+                                                ]
+                                            )
+                                in
+                                Rest.patch (Endpoint.user domain user.id) maybeCred body (\_ -> NoOp) User.decoder
+
+                            _ ->
+                                Cmd.none
+                         )
                             :: (case model.navigationOnSuccess of
                                     Remain ->
                                         [ Maybe.withDefault Cmd.none <|
