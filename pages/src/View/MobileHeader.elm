@@ -8,6 +8,7 @@ import Path exposing (Path)
 import Route exposing (Route(..))
 import Session exposing (Session)
 import UI.Palette as Palette
+import User exposing (User)
 
 
 headerLink attrs isActive =
@@ -34,8 +35,14 @@ noPreloadLink attrs =
         )
 
 
-view : Session -> { path : Path, route : Maybe Route } -> Element msg
-view session page =
+view : Maybe User -> Session -> { path : Path, route : Maybe Route } -> Element msg
+view profile session page =
+    let
+        canViewDefendantInformation =
+            profile
+                |> Maybe.map User.canViewDefendantInformation
+                |> Maybe.withDefault False
+    in
     column
         [ width fill
         , Font.size 28
@@ -72,11 +79,15 @@ view session page =
                 { url = "/admin/judges"
                 , label = Element.text "Judges"
                 }
-            , headerLink []
-                (page.route == Just Admin__Defendants)
-                { url = "/admin/defendants"
-                , label = Element.text "Defendants"
-                }
+            , if canViewDefendantInformation then
+                headerLink []
+                    (page.route == Just Admin__Defendants)
+                    { url = "/admin/defendants"
+                    , label = Element.text "Defendants"
+                    }
+
+              else
+                Element.none
             , noPreloadLink []
                 { url = "/logout"
                 , label = Element.text "Logout"

@@ -12,7 +12,16 @@ import RedDoor
 import Route exposing (Route(..))
 import Session exposing (Session)
 import UI.Palette as Palette
+import User exposing (User, canViewDefendantInformation)
 import View.MobileHeader
+
+
+type alias Config msg =
+    { profile : Maybe User
+    , showMobileMenu : Bool
+    , session : Session
+    , toggleMobileMenu : msg
+    }
 
 
 headerLink attrs isActive =
@@ -71,8 +80,14 @@ mobileMenuButton session toggleMsg page =
         }
 
 
-view : Bool -> Session -> msg -> { path : Path, route : Maybe Route } -> Element msg
-view showMobileMenu session toggleMobileMenuMsg page =
+view : Config msg -> { path : Path, route : Maybe Route } -> Element msg
+view { profile, session, showMobileMenu, toggleMobileMenu } page =
+    let
+        canViewDefendantInformation =
+            profile
+                |> Maybe.map User.canViewDefendantInformation
+                |> Maybe.withDefault False
+    in
     column
         [ width fill
         , Element.htmlAttribute (Attrs.style "position" "sticky")
@@ -131,11 +146,15 @@ view showMobileMenu session toggleMobileMenuMsg page =
                     { url = "/admin/judges"
                     , label = Element.text "Judges"
                     }
-                , headerLink []
-                    (page.route == Just Admin__Defendants)
-                    { url = "/admin/defendants"
-                    , label = Element.text "Defendants"
-                    }
+                , if canViewDefendantInformation then
+                    headerLink []
+                        (page.route == Just Admin__Defendants)
+                        { url = "/admin/defendants"
+                        , label = Element.text "Defendants"
+                        }
+
+                  else
+                    Element.none
                 , noPreloadLink []
                     { url = "/logout"
                     , label = Element.text "Logout"
@@ -187,10 +206,10 @@ view showMobileMenu session toggleMobileMenuMsg page =
                         }
                 ]
              )
-                ++ [ mobileMenuButton session toggleMobileMenuMsg page ]
+                ++ [ mobileMenuButton session toggleMobileMenu page ]
             )
         , if showMobileMenu then
-            View.MobileHeader.view session page
+            View.MobileHeader.view profile session page
 
           else
             Element.none

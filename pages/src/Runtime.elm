@@ -1,4 +1,4 @@
-module Runtime exposing (Environment, RollbarToken, Runtime, codeVersion, decodeCodeVersion, decodeDate, decodeEnvironment, decodeToken, domain, environment, rollbarToken)
+module Runtime exposing (Environment, RollbarToken, Runtime, codeVersion, decodeCodeVersion, decodeDate, decodeEnvironment, decodeToken, domain, domainFromHostName, environment, rollbarToken)
 
 import Date exposing (Date)
 import OptimizedDecoder as Decode exposing (Decoder)
@@ -23,6 +23,24 @@ environment env =
 
         Production ->
             "production"
+
+
+environmentFromHostName : String -> Environment
+environmentFromHostName hostName =
+    case hostName of
+        "localhost" ->
+            Development
+
+        "reddoorcollective.org" ->
+            Production
+
+        _ ->
+            Production
+
+
+domainFromHostName : String -> String
+domainFromHostName =
+    domain << environmentFromHostName
 
 
 type RollbarToken

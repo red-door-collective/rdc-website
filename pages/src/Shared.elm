@@ -6,6 +6,7 @@ import DataSource
 import DataSource.Port
 import Element exposing (fill, width)
 import Html exposing (Html)
+import Http
 import Json.Encode as Encode
 import OptimizedDecoder as Decode exposing (Decoder, int, string)
 import OptimizedDecoder.Pipeline exposing (required)
@@ -13,12 +14,14 @@ import Pages.Flags exposing (Flags(..))
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import Rest exposing (Window)
+import Rest.Endpoint as Endpoint
 import Rest.Static
 import Route exposing (Route)
-import Runtime exposing (Runtime)
+import Runtime exposing (Runtime, domainFromHostName)
 import Session exposing (Session)
 import SharedTemplate exposing (SharedTemplate)
 import UI.RenderConfig as RenderConfig exposing (RenderConfig)
+import User exposing (User)
 import View exposing (View)
 import View.Header
 import Viewer
@@ -43,6 +46,7 @@ type Msg
         }
     | ToggleMobileMenu
     | GotSession Session
+    | GotProfile (Result Http.Error User)
     | SetWindow Int Int
 
 
@@ -58,6 +62,7 @@ type alias Model =
     , queryParams : Maybe String
     , window : Window
     , renderConfig : RenderConfig
+    , profile : Maybe User
     }
 
 
@@ -103,6 +108,15 @@ init navigationKey flags maybePagePath =
 
                 PreRenderFlags ->
                     { width = 0, height = 0 }
+
+        maybeHostName =
+            case flags of
+                BrowserFlags value ->
+                    Decode.decodeValue (Decode.field "hostName" Decode.string) value
+                        |> Result.toMaybe
+
+                PreRenderFlags ->
+                    Nothing
     in
     ( { showMobileMenu = False
       , navigationKey = navigationKey
@@ -116,8 +130,14 @@ init navigationKey flags maybePagePath =
                 , height = window.height
                 }
                 RenderConfig.localeEnglish
+      , profile = Nothing
       }
-    , Cmd.none
+    , case maybeHostName of
+        Just hostName ->
+            Rest.get (Endpoint.currentUser (domainFromHostName hostName)) (Session.cred session) GotProfile User.decoder
+
+        Nothing ->
+            Cmd.none
     )
 
 
@@ -150,6 +170,16 @@ update msg model =
                     )
                     (Session.navKey session)
             )
+
+        GotProfile (Ok user) ->
+            ( { model
+                | profile = Just user
+              }
+            , Cmd.none
+            )
+
+        GotProfile (Err _) ->
+            ( model, Cmd.none )
 
         SetWindow width height ->
             ( { model | window = { width = width, height = height } }, Cmd.none )
@@ -195,7 +225,13 @@ view :
     -> { body : Html msg, title : String }
 view tableOfContents page model toMsg pageView =
     { body =
-        (View.Header.view model.showMobileMenu model.session ToggleMobileMenu page
+        (View.Header.view
+            { profile = model.profile
+            , showMobileMenu = model.showMobileMenu
+            , session = model.session
+            , toggleMobileMenu = ToggleMobileMenu
+            }
+            page
             |> Element.map toMsg
         )
             :: pageView.body

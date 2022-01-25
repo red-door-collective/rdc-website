@@ -161,7 +161,8 @@ export default {
 
     return {
       'window': dimensions,
-      'viewer': localStorage.getItem(storageKey)
+      'viewer': localStorage.getItem(storageKey),
+      'hostName': window.location.hostname
     };
   },
 };

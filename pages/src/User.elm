@@ -1,4 +1,4 @@
-module User exposing (NavigationOnSuccess(..), Permissions(..), Role, User, decoder, navigationToText)
+module User exposing (NavigationOnSuccess(..), Permissions(..), Role, User, canViewDefendantInformation, decoder, navigationToText)
 
 import Json.Decode as Decode exposing (Decoder, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (required)
@@ -30,6 +30,14 @@ type alias User =
     , roles : List Role
     , preferredNavigation : NavigationOnSuccess
     }
+
+
+canViewDefendantInformation : User -> Bool
+canViewDefendantInformation user =
+    user.roles
+        |> List.filter (\role -> List.member role.name [ "Organizer", "Admin", "Superuser" ])
+        |> List.head
+        |> (/=) Nothing
 
 
 navigationToText : NavigationOnSuccess -> String
