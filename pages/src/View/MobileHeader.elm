@@ -52,7 +52,7 @@ view profile session page =
         ( Loading, True ) ->
             Element.none
 
-        ( _, _ ) ->
+        _ ->
             column
                 [ width fill
                 , Font.size 28

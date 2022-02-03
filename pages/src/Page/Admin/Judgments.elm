@@ -22,6 +22,7 @@ import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import QueryParams
+import RemoteData exposing (RemoteData(..))
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Result
@@ -43,6 +44,7 @@ import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, 
 import UI.Utils.DateInput exposing (DateInput)
 import UI.Utils.TypeNumbers as T
 import Url.Builder
+import User exposing (User)
 import View exposing (View)
 
 
@@ -341,8 +343,8 @@ viewEmptyResults filters =
         )
 
 
-viewDesktop : RenderConfig -> Model -> Element Msg
-viewDesktop cfg model =
+viewDesktop : RenderConfig -> User -> Model -> Element Msg
+viewDesktop cfg profile model =
     column
         [ spacing 10
         , padding 10
@@ -371,13 +373,13 @@ viewDesktop cfg model =
                     , height (px 800)
                     , Element.scrollbarY
                     ]
-                    [ viewJudgments cfg model ]
+                    [ viewJudgments cfg profile model ]
             ]
         ]
 
 
-viewMobile : RenderConfig -> Model -> Element Msg
-viewMobile cfg model =
+viewMobile : RenderConfig -> User -> Model -> Element Msg
+viewMobile cfg profile model =
     column
         [ spacing 10
         , paddingXY 0 10
@@ -406,7 +408,7 @@ viewMobile cfg model =
                     , height (px 1000)
                     , Element.htmlAttribute (InfiniteScroll.infiniteScroll InfiniteScrollMsg)
                     ]
-                    [ viewJudgments cfg model ]
+                    [ viewJudgments cfg profile model ]
             ]
         ]
 
@@ -424,17 +426,28 @@ view maybeUrl sharedModel model static =
     in
     { title = title
     , body =
-        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
-        , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
-            (if RenderConfig.isPortrait cfg then
-                viewMobile cfg model
+        case sharedModel.profile of
+            NotAsked ->
+                []
 
-             else
-                viewDesktop (RenderConfig.init { width = 800, height = 375 } RenderConfig.localeEnglish) model
-            )
-        , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-desktop") ]
-            (viewDesktop cfg model)
-        ]
+            Loading ->
+                []
+
+            Success profile ->
+                [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+                , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
+                    (if RenderConfig.isPortrait cfg then
+                        viewMobile cfg profile model
+
+                     else
+                        viewDesktop (RenderConfig.init { width = 800, height = 375 } RenderConfig.localeEnglish) profile model
+                    )
+                , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-desktop") ]
+                    (viewDesktop cfg profile model)
+                ]
+
+            Failure _ ->
+                []
     }
 
 
@@ -451,15 +464,23 @@ loader { infiniteScroll, search } =
         Element.none
 
 
-viewEditButton : Judgment -> Button Msg
-viewEditButton judgment =
-    Button.fromIcon (Icon.edit "Go to edit page")
+viewEditButton : User -> Judgment -> Button Msg
+viewEditButton profile judgment =
+    let
+        ( path, icon ) =
+            if User.canViewDefendantInformation profile then
+                ( "edit", Icon.edit "Go to edit page" )
+
+            else
+                ( "view", Icon.eye "View" )
+    in
+    Button.fromIcon icon
         |> Button.redirect
             (Link.link <|
                 Url.Builder.absolute
                     [ "admin"
                     , "judgments"
-                    , "edit"
+                    , path
                     ]
                     (Endpoint.toQueryArgs [ ( "id", String.fromInt judgment.id ) ])
             )
@@ -489,16 +510,16 @@ sortersInit =
         |> unsortable
 
 
-viewJudgments : RenderConfig -> Model -> Element Msg
-viewJudgments cfg model =
+viewJudgments : RenderConfig -> User -> Model -> Element Msg
+viewJudgments cfg profile model =
     Stateful.table
         { toExternalMsg = ForTable
         , columns = Judgment.tableColumns
-        , toRow = Judgment.toTableRow viewEditButton
+        , toRow = Judgment.toTableRow (viewEditButton profile)
         , state = model.tableState
         }
         |> Stateful.withResponsive
-            { toDetails = Judgment.toTableDetails viewEditButton
+            { toDetails = Judgment.toTableDetails (viewEditButton profile)
             , toCover = Judgment.toTableCover
             }
         |> Stateful.withWidth fill

@@ -3,11 +3,10 @@ module TestDetainerWarrant exposing (..)
 import DetainerWarrant exposing (DetainerWarrant, Status(..))
 import Expect
 import Json.Decode as Decode
-import PleadingDocument exposing (PleadingDocument)
+import PleadingDocument
 import Test exposing (..)
 import Time
 import Url
-import Url.Builder
 
 
 minimalJson =

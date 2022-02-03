@@ -7,34 +7,28 @@ import Courtroom exposing (Courtroom)
 import DataSource exposing (DataSource)
 import Date exposing (Date)
 import Date.Extra
-import DatePicker exposing (ChangeEvent(..))
 import Dict
-import Element exposing (Element, below, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
+import Element exposing (Element, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import FeatherIcons
 import Head
 import Head.Seo as Seo
-import Hearing exposing (Hearing)
 import Html
 import Html.Attributes
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Judge exposing (Judge)
-import Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), Entrance(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm)
+import Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm)
 import List.Extra as List
 import Log
 import Logo
 import Mask
-import Maybe.Extra
 import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import Plaintiff exposing (Plaintiff, PlaintiffForm)
-import PleadingDocument
 import QueryParams
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
@@ -44,7 +38,6 @@ import SearchBox
 import Session exposing (Session)
 import Shared
 import Sprite
-import Time.Utils
 import UI.Button as Button
 import UI.Checkbox as Checkbox
 import UI.Dropdown as Dropdown
@@ -75,7 +68,6 @@ type alias FormOptions =
 
 type Problem
     = InvalidEntry ValidatedField String
-    | ServerError String
 
 
 type Tooltip
@@ -193,7 +185,7 @@ judgmentFormInit today judgment =
             { default
                 | condition = Just PlaintiffOption
                 , awardsFees = Maybe.withDefault "" <| Maybe.map String.fromFloat owed.awardsFees
-                , awardsPossession = owed.awardsPossession
+                , awardsPossession = Maybe.withDefault False owed.awardsPossession
                 , hasInterest = owed.interest /= Nothing
                 , interestRate =
                     case owed.interest of
@@ -409,15 +401,6 @@ updateForm transform model =
       }
     , Cmd.none
     )
-
-
-savingError : Http.Error -> Model -> Model
-savingError httpError model =
-    let
-        problems =
-            [ ServerError "Error saving judgment" ]
-    in
-    { model | problems = problems }
 
 
 update :
@@ -793,7 +776,7 @@ submitForm today domain session model =
             Session.cred session
     in
     case ( validate model.form, model.judgment ) of
-        ( Ok (Trimmed validForm), Just judgment ) ->
+        ( Ok (Trimmed validForm), Just _ ) ->
             let
                 judgmentData =
                     Judgment.editFromForm today validForm
@@ -811,18 +794,14 @@ submitForm today domain session model =
             , Cmd.none
             )
 
-        ( _, _ ) ->
+        _ ->
             ( model, Cmd.none )
 
 
 nextStepSave : Date -> Session -> Model -> ( Model, Cmd Msg )
 nextStepSave today session model =
     case ( validate model.form, model.judgment ) of
-        ( Ok (Trimmed form), Just judgment ) ->
-            let
-                judgmentData =
-                    Judgment.editFromForm today form
-            in
+        ( Ok (Trimmed _), Just judgment ) ->
             case model.saveState of
                 SavingJudgment ->
                     ( { model | saveState = Done }
@@ -840,7 +819,7 @@ nextStepSave today session model =
                             Maybe.map (\key -> Nav.replaceUrl key (Url.Builder.relative [ String.fromInt judgment.id ] [])) (Session.navKey session)
                     )
 
-        ( _, _ ) ->
+        _ ->
             ( model, Cmd.none )
 
 
@@ -849,10 +828,6 @@ type alias Field =
     , description : String
     , children : List (Element Msg)
     }
-
-
-requiredStar =
-    el [ Palette.toFontColor Palette.red, Element.alignTop, width Element.shrink ] (text "*")
 
 
 withTooltip : Bool -> String -> List (Element Msg)
@@ -884,55 +859,6 @@ viewField showHelp field =
         (field.children ++ tooltip)
 
 
-withValidation : ValidatedField -> List Problem -> List (Element.Attr () msg) -> List (Element.Attr () msg)
-withValidation validatedField problems attrs =
-    let
-        maybeError =
-            problems
-                |> List.filterMap
-                    (\problem ->
-                        case problem of
-                            InvalidEntry field problemText ->
-                                if validatedField == field then
-                                    Just problemText
-
-                                else
-                                    Nothing
-
-                            ServerError _ ->
-                                Nothing
-                    )
-                |> List.head
-    in
-    attrs
-        ++ (case maybeError of
-                Just errorText ->
-                    [ Palette.toBorderColor Palette.red
-                    , Element.below
-                        (row [ paddingXY 0 10, spacing 5, Font.size 14 ]
-                            [ FeatherIcons.alertTriangle
-                                |> FeatherIcons.withSize 16
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                                |> Element.el []
-                            , text errorText
-                            ]
-                        )
-                    ]
-
-                Nothing ->
-                    []
-           )
-
-
-textInput attrs config =
-    Input.text ([] ++ attrs) config
-
-
-requiredLabel labelFn str =
-    labelFn [] (row [ spacing 5 ] [ text str, requiredStar ])
-
-
 viewNotes : FormOptions -> JudgmentForm -> Element Msg
 viewNotes options form =
     column [ width fill ]
@@ -950,29 +876,6 @@ viewNotes options form =
                 ]
             }
         ]
-
-
-formGroup : List (Element Msg) -> Element Msg
-formGroup group =
-    row
-        [ spacing 10
-        , width fill
-        ]
-        group
-
-
-tile : List (Element Msg) -> Element Msg
-tile groups =
-    column
-        [ spacing 20
-        , padding 20
-        , width fill
-        , Border.rounded 3
-        , Palette.toBorderColor Palette.gray
-        , Border.width 1
-        , Border.shadow { offset = ( 0, 10 ), size = 1, blur = 30, color = Element.rgb 60 60 60 }
-        ]
-        groups
 
 
 submitAndAddAnother : RenderConfig -> Element Msg
@@ -1030,9 +933,6 @@ viewProblem problem =
         [ case problem of
             InvalidEntry _ _ ->
                 Element.none
-
-            ServerError err ->
-                text ("Something went wrong: " ++ err)
         ]
 
 
@@ -1425,7 +1325,7 @@ viewJudgment options form =
          , Border.rounded 5
          ]
             ++ (case options.originalJudgment.document of
-                    Just pleading ->
+                    Just _ ->
                         [ inFront
                             (row [ Element.alignRight, padding 20 ]
                                 [ Button.fromIcon (Icon.legacyReport "Open PDF")

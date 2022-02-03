@@ -41,6 +41,23 @@ class AllowDefendant(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
             raise ApiError(403, {"code": "invalid_user"})
 
 
+class OnlyOrganizers(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
+    @property
+    def request_user_id(self):
+        return self.get_request_credentials()["user_id"]
+
+    def filter_query(self, query, view):
+        if current_user.has_role('Superuser') or current_user.has_role('Admin') or current_user.has_role('Organizer'):
+            return query
+
+        else:
+            raise ApiError(403, {"code": "insufficient_permissions"})
+
+    def authorize_modify_item(self, item, action):
+        if not self.request_user_id:
+            raise ApiError(403, {"code": "invalid_user"})
+
+
 class Protected(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
     @property
     def request_user_id(self):

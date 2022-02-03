@@ -1,30 +1,25 @@
 module Page.Admin.Defendants.Edit exposing (Data, Model, Msg, page)
 
-import Browser.Events exposing (onMouseDown)
 import Browser.Navigation as Nav
 import DataSource exposing (DataSource)
 import Defendant exposing (Defendant)
 import Dict
-import Element exposing (Element, below, centerX, column, el, fill, height, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
+import Element exposing (Element, centerX, column, el, fill, height, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
 import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Head
 import Head.Seo as Seo
 import Http
-import Json.Decode as Decode
 import Json.Encode as Encode
 import List.Extra
 import Log
 import Logo
-import MultiInput
 import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import QueryParams
-import Regex
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Rollbar exposing (Rollbar)
@@ -66,8 +61,7 @@ type Problem
 
 
 type Tooltip
-    = DefendantInfo
-    | FirstNameInfo
+    = FirstNameInfo
     | MiddleNameInfo
     | LastNameInfo
     | SuffixInfo
@@ -204,28 +198,6 @@ updateForm transform model =
     )
 
 
-updateFormNarrow : (Form -> ( Form, Cmd Msg )) -> Model -> ( Model, Cmd Msg )
-updateFormNarrow transform model =
-    let
-        ( newForm, cmd ) =
-            case model.form of
-                Initializing _ ->
-                    ( model.form, Cmd.none )
-
-                Ready oldForm ->
-                    let
-                        ( updatedForm, dropdownCmd ) =
-                            transform oldForm
-                    in
-                    ( Ready updatedForm, dropdownCmd )
-    in
-    ( { model
-        | form = newForm
-      }
-    , cmd
-    )
-
-
 savingError : Http.Error -> Model -> Model
 savingError httpError model =
     let
@@ -233,15 +205,6 @@ savingError httpError model =
             [ ServerError "Error saving defendant" ]
     in
     { model | problems = problems }
-
-
-defaultSeparators : List String
-defaultSeparators =
-    [ "\n", "\t" ]
-
-
-multiInputUpdateConfig =
-    { separators = defaultSeparators }
 
 
 updatePotentialPhone candidate newPhone index existing =
@@ -536,16 +499,6 @@ viewPartOfName options partOfName =
         ]
 
 
-matches : String -> String -> Bool
-matches regex =
-    let
-        validRegex =
-            Regex.fromString regex
-                |> Maybe.withDefault Regex.never
-    in
-    Regex.findAtMost 1 validRegex >> List.isEmpty >> not
-
-
 formGroup : List (Element Msg) -> Element Msg
 formGroup group =
     row
@@ -801,58 +754,6 @@ view maybeUrl sharedModel model static =
 subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
 subscriptions pageUrl params path model =
     Sub.none
-
-
-isOutsideTooltip : String -> Decode.Decoder Bool
-isOutsideTooltip tooltipId =
-    Decode.oneOf
-        [ Decode.field "id" Decode.string
-            |> Decode.andThen
-                (\id ->
-                    if tooltipId == id then
-                        Decode.succeed False
-
-                    else
-                        Decode.fail "continue"
-                )
-        , Decode.lazy (\_ -> isOutsideTooltip tooltipId |> Decode.field "parentNode")
-        , Decode.succeed True
-        ]
-
-
-outsideTarget : String -> Msg -> Decode.Decoder Msg
-outsideTarget tooltipId msg =
-    Decode.field "target" (isOutsideTooltip tooltipId)
-        |> Decode.andThen
-            (\isOutside ->
-                if isOutside then
-                    Decode.succeed msg
-
-                else
-                    Decode.fail "inside dropdown"
-            )
-
-
-tooltipToString : Tooltip -> String
-tooltipToString tip =
-    case tip of
-        DefendantInfo ->
-            "defendant-info"
-
-        FirstNameInfo ->
-            "first-name-info"
-
-        MiddleNameInfo ->
-            "middle-name-info"
-
-        LastNameInfo ->
-            "last-name-info"
-
-        SuffixInfo ->
-            "suffix-info"
-
-        PotentialPhoneNumbersInfo _ ->
-            "potential-phone-numbers-info"
 
 
 

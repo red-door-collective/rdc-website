@@ -1,10 +1,7 @@
-module Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm, OwedConditions, conditionText, conditionsOptions, decoder, dismissalBasisOption, dismissalBasisOptions, editFromForm, tableColumns, toTableCover, toTableDetails, toTableRow)
+module Judgment exposing (ConditionOption(..), Conditions(..), DismissalBasis(..), DismissalConditions, Entrance(..), Interest(..), Judgment, JudgmentEdit, JudgmentForm, OwedConditions, conditionText, conditionsOptions, conditionsText, decoder, dismissalBasisOption, dismissalBasisOptions, dismissalBasisPrint, editFromForm, tableColumns, toTableCover, toTableDetails, toTableRow)
 
 import Attorney exposing (Attorney)
-import Courtroom exposing (Courtroom)
 import Date exposing (Date)
-import Date.Extra
-import Form.State exposing (DatePickerState)
 import Hearing exposing (Hearing)
 import Json.Decode as Decode exposing (Decoder, bool, float, int, nullable, string)
 import Json.Decode.Pipeline exposing (custom, optional, required)
@@ -41,7 +38,7 @@ type Interest
 
 type alias OwedConditions =
     { awardsFees : Maybe Float
-    , awardsPossession : Bool
+    , awardsPossession : Maybe Bool
     , interest : Maybe Interest
     }
 
@@ -129,6 +126,16 @@ dismissalBasisOptions =
     [ FailureToProsecute, FindingInFavorOfDefendant, NonSuitByPlaintiff ]
 
 
+conditionsText : Conditions -> String
+conditionsText conditions =
+    case conditions of
+        PlaintiffConditions _ ->
+            "Plaintiff"
+
+        DefendantConditions _ ->
+            "Defendant"
+
+
 conditionText : ConditionOption -> String
 conditionText option =
     case option of
@@ -172,6 +179,19 @@ dismissalBasisText basis =
 
         NonSuitByPlaintiff ->
             "NON_SUIT_BY_PLAINTIFF"
+
+
+dismissalBasisPrint : DismissalBasis -> String
+dismissalBasisPrint basis =
+    case basis of
+        FailureToProsecute ->
+            "Failure to prosecute"
+
+        FindingInFavorOfDefendant ->
+            "Finding in favor of defendant"
+
+        NonSuitByPlaintiff ->
+            "Non-suit by plaintiff"
 
 
 editFromForm : Date -> JudgmentForm -> JudgmentEdit
@@ -282,7 +302,7 @@ owedConditionsDecoder : Decoder OwedConditions
 owedConditionsDecoder =
     Decode.succeed OwedConditions
         |> required "awards_fees" (nullable float)
-        |> required "awards_possession" bool
+        |> required "awards_possession" (nullable bool)
         |> custom interestDecoder
 
 

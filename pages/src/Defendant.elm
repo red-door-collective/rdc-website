@@ -1,4 +1,4 @@
-module Defendant exposing (Defendant, decoder, tableColumns, toTableCover, toTableDetails, toTableRow, toTableRowView, viewLargeWarrantsButton, viewWarrantsButton)
+module Defendant exposing (Defendant, decoder, tableColumns, toTableCover, toTableDetails, toTableRow, viewLargeWarrantsButton)
 
 import Json.Decode as Decode exposing (Decoder, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
@@ -91,7 +91,7 @@ tableColumns =
     columnsEmpty
         |> Common.column "First name" (columnWidthPixels 300)
         |> Common.column "Last name" (columnWidthPixels 300)
-        |> Common.column "" (columnWidthPixels 100)
+        |> Common.column "Detainer warrants" (columnWidthPixels 140)
         |> Common.column "" (columnWidthPixels 100)
 
 

@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (DetainerWarrant, DetainerWarrantEdit, Status(..), decoder, mostRecentCourtDate, statusFromText, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
+module DetainerWarrant exposing (Description, DetainerWarrant, DetainerWarrantEdit, Status(..), decoder, description, mostRecentCourtDate, statusHumanReadable, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
 
 import Attorney exposing (Attorney)
 import Hearing exposing (Hearing)
@@ -59,6 +59,39 @@ type alias DetainerWarrantEdit =
     }
 
 
+type alias Description =
+    { docketId : String
+    , address : String
+    , fileDate : String
+    , status : String
+    , plaintiff : String
+    , plaintiffAttorney : String
+    , amountClaimed : String
+    , claimsPossession : String
+    , cares : String
+    , legacy : String
+    , nonpayment : String
+    , notes : String
+    }
+
+
+description : Description
+description =
+    { docketId = "This is the unique id for a detainer warrant. Please take care when entering this."
+    , address = "The address where the defendant or defendants reside."
+    , fileDate = "The date the detainer warrant was created in the court system."
+    , status = "The current status of the case in the court system."
+    , plaintiff = "The plaintiff is typically the landlord seeking money or possession from the defendant (tenant)."
+    , plaintiffAttorney = "The plaintiff attorney is the legal representation for the plaintiff in the eviction process."
+    , amountClaimed = "The monetary amount the plaintiff is requesting from the defendant."
+    , claimsPossession = "Plaintiffs may ask for payment, repossession, or more."
+    , cares = "C.A.R.E.S. was an aid package provided during the pandemic. If a docket number has a \"Notice,\" check to see whether the property falls under the CARES act"
+    , legacy = "L.E.G.A.C.Y. is a special court created for handling evictions during the pandemic. Looks up cases listed under \"LEGACY Case DW Numbers\" tab and check if the case is there or not."
+    , nonpayment = "People can be evicted for a number of reasons, including non-payment of rent. We want to know if people are being evicted for this reason because those cases should go to the diversionary court. We assume cases that request $$ are for non-payment but this box is sometimes checked on eviction forms."
+    , notes = "Any additional notes you have about this case go here! This is a great place to leave feedback for the form as well, perhaps there's another field or field option we need to provide."
+    }
+
+
 ternaryOptions : List (Maybe Bool)
 ternaryOptions =
     [ Nothing, Just True, Just False ]
@@ -77,6 +110,16 @@ statusText status =
 
         Pending ->
             "PENDING"
+
+
+statusHumanReadable : Status -> String
+statusHumanReadable status =
+    case status of
+        Closed ->
+            "Closed"
+
+        Pending ->
+            "Pending"
 
 
 statusFromText : String -> Result String Status

@@ -1,16 +1,14 @@
-module Hearing exposing (Hearing, decoder, tableColumns, toTableRow, toTableRowView)
+module Hearing exposing (Hearing, decoder, tableColumns, toTableRow)
 
 import Attorney exposing (Attorney)
 import Courtroom exposing (Courtroom)
-import Date
 import Json.Decode as Decode exposing (Decoder, int, nullable)
 import Json.Decode.Pipeline exposing (required)
 import Plaintiff exposing (Plaintiff)
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
 import UI.Button exposing (Button)
-import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
-import UI.Tables.Stateless
+import UI.Tables.Common as Common exposing (Row, columnWidthPixels, columnWidthPortion, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
 import UI.Text as Text
 import UI.Utils.TypeNumbers as T
 
@@ -49,10 +47,10 @@ decoder =
 
 tableColumns =
     columnsEmpty
-        |> Common.column "Court date" (columnWidthPixels 150)
-        |> Common.column "Plaintiff" (columnWidthPixels 240)
-        |> Common.column "Pltf. Attorney" (columnWidthPixels 240)
-        |> Common.column "" (columnWidthPixels 100)
+        |> Common.column "Court date" (columnWidthPortion 3)
+        |> Common.column "Plaintiff" (columnWidthPortion 3)
+        |> Common.column "Pltf. Attorney" (columnWidthPortion 3)
+        |> Common.column "" (columnWidthPortion 1)
 
 
 toTableRow : (Hearing -> Button msg) -> { toKey : Hearing -> String, view : Hearing -> Row msg T.Four }

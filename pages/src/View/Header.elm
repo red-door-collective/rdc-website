@@ -14,7 +14,7 @@ import RemoteData exposing (RemoteData(..))
 import Route exposing (Route(..))
 import Session exposing (Session)
 import UI.Palette as Palette
-import User exposing (User, canViewDefendantInformation)
+import User exposing (User)
 import View.MobileHeader
 
 
@@ -97,7 +97,7 @@ view { profile, session, showMobileMenu, toggleMobileMenu } page =
         ( Loading, True ) ->
             Element.none
 
-        ( _, _ ) ->
+        _ ->
             column
                 [ width fill
                 , Element.htmlAttribute (Attrs.style "position" "sticky")

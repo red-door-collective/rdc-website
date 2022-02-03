@@ -24,7 +24,7 @@ from sqlalchemy.exc import IntegrityError
 from eviction_tracker.database import db
 from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Hearing, Plaintiff, PleadingDocument, Judge, Judgment, PhoneNumberVerification
 from .serializers import *
-from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, CursorPagination, AllowDefendant
+from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, OnlyOrganizers, CursorPagination, AllowDefendant
 from psycopg2 import errors
 
 UniqueViolation = errors.lookup('23505')
@@ -98,7 +98,7 @@ class DefendantResourceBase(GenericModelView):
     schema = defendant_schema
 
     authentication = HeaderUserAuthentication()
-    authorization = Protected()
+    authorization = OnlyOrganizers()
 
     pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('id', default='-id')
@@ -333,7 +333,7 @@ class PleadingDocumentResourceBase(GenericModelView):
     id_fields = ('url',)
 
     authentication = HeaderUserAuthentication()
-    authorization = AllowDefendant()
+    authorization = OnlyOrganizers()
 
     pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('updated_at', default='-updated_at')
@@ -364,7 +364,7 @@ class DetainerWarrantResourceBase(GenericModelView):
     id_fields = ('docket_id',)
 
     authentication = HeaderUserAuthentication()
-    authorization = AllowDefendant()
+    authorization = Protected()
 
     pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('order_number', default='-order_number')
@@ -403,7 +403,7 @@ class PhoneNumberVerificationResourceBase(GenericModelView):
     schema = phone_number_verification_schema
 
     authentication = HeaderUserAuthentication()
-    authorization = Protected()
+    authorization = OnlyOrganizers()
 
     pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('phone_number', default='phone_number')

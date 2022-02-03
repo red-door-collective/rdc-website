@@ -431,7 +431,7 @@ view maybeUrl sharedModel model static =
                 , body = [ el [ centerX, padding 20 ] (text "Page not found") ]
                 }
 
-        Failure err ->
+        Failure _ ->
             errorScreen
 
 

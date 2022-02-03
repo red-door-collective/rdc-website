@@ -7,9 +7,8 @@ import Head.Seo as Seo
 import Html exposing (iframe)
 import Html.Attributes as Attr
 import Logo
-import Page exposing (Page, PageWithState, StaticPayload)
+import Page exposing (Page, StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
-import Pages.Url
 import Shared
 import View exposing (View)
 

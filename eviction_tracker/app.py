@@ -13,6 +13,7 @@ from eviction_tracker import commands, detainer_warrants, admin, direct_action
 import json
 from datetime import datetime, date, timedelta
 from dateutil.rrule import rrule, MONTHLY
+from dateutil.relativedelta import relativedelta
 from collections import OrderedDict
 import flask_wtf
 from flask_security import current_user
@@ -362,7 +363,7 @@ def register_extensions(app):
 
     @app.route('/api/v1/rollup/detainer-warrants')
     def detainer_warrant_rollup_by_month():
-        start_dt = (date.today() - timedelta(weeks=52)).replace(day=1)
+        start_dt = (date.today() - relativedelta(years=1)).replace(day=1)
         end_dt = date.today()
         dates = [(dt, next_month(dt))
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
@@ -373,7 +374,7 @@ def register_extensions(app):
 
     @app.route('/api/v1/rollup/plaintiffs')
     def plaintiff_rollup_by_month():
-        start_dt = (date.today() - timedelta(weeks=52)).replace(day=1)
+        start_dt = (date.today() - timedelta(days=365)).replace(day=1)
         end_dt = date.today()
         dates = [(dt, next_month(dt))
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
@@ -401,7 +402,7 @@ def register_extensions(app):
 
     @app.route('/api/v1/rollup/plaintiffs/amount_claimed_bands')
     def plaintiffs_by_amount_claimed():
-        start_dt = (date.today() - timedelta(weeks=52)).replace(day=1)
+        start_dt = (date.today() - relativedelta(years=1)).replace(day=1)
         dates, end_dt = months_since(start_dt)
 
         top_six = top_plaintiff_ranges_bet(start_dt, end_dt)

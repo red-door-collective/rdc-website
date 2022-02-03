@@ -9,11 +9,12 @@ import Date.Extra
 import DatePicker exposing (ChangeEvent(..))
 import DetainerWarrant exposing (DetainerWarrant, DetainerWarrantEdit, Status)
 import Dict
-import Element exposing (Element, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, spacingXY, text, textColumn, width, wrappedRow)
+import Element exposing (Element, centerX, column, el, fill, height, inFront, maximum, minimum, padding, paddingEach, paddingXY, paragraph, px, row, spacing, text, width)
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
+import Field
 import Form.State exposing (DatePickerState)
 import Head
 import Head.Seo as Seo
@@ -23,7 +24,6 @@ import Html.Attributes
 import Http
 import Json.Encode as Encode
 import Judge exposing (Judge)
-import Judgment exposing (Conditions(..), Judgment)
 import List.Extra as List
 import Log
 import Logo
@@ -32,10 +32,7 @@ import Maybe.Extra
 import Page exposing (StaticPayload)
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
-import PhoneNumber
-import PhoneNumber.Countries exposing (countryUS)
 import Plaintiff exposing (Plaintiff, PlaintiffForm)
-import PleadingDocument exposing (PleadingDocument)
 import QueryParams
 import RemoteData exposing (RemoteData(..))
 import Rest exposing (Cred)
@@ -60,18 +57,8 @@ import UI.Tables.Stateless as Stateless
 import UI.TextField as TextField
 import Url
 import Url.Builder
-import User exposing (NavigationOnSuccess(..), User)
+import User exposing (NavigationOnSuccess(..))
 import View exposing (View)
-
-
-validUSNumber : String -> Bool
-validUSNumber number =
-    PhoneNumber.valid
-        { defaultCountry = countryUS
-        , otherCountries = []
-        , types = PhoneNumber.anyType
-        }
-        number
 
 
 type alias FormOptions =
@@ -116,22 +103,6 @@ type alias Form =
 type Problem
     = InvalidEntry ValidatedField String
     | ServerError String
-
-
-type Tooltip
-    = DocketIdInfo
-    | FileDateInfo
-    | StatusInfo
-    | PlaintiffInfo
-    | PlaintiffAttorneyInfo
-    | AmountClaimedInfo
-    | ClaimsPossessionInfo
-    | CaresInfo
-    | LegacyInfo
-    | NonpaymentInfo
-    | AddressInfo
-    | PotentialPhoneNumbersInfo Int
-    | NotesInfo
 
 
 type SaveState
@@ -1019,33 +990,6 @@ nextStepSave today domain sharedModel session model =
             ( model, Cmd.none )
 
 
-type alias Field =
-    { tooltip : Maybe Tooltip
-    , description : String
-    , children : List (Element Msg)
-    }
-
-
-viewField : Bool -> Field -> Element Msg
-viewField showHelp field =
-    let
-        tooltip =
-            case field.tooltip of
-                Just _ ->
-                    withTooltip showHelp field.description
-
-                Nothing ->
-                    []
-    in
-    column
-        [ width fill
-        , height fill
-        , spacingXY 5 5
-        , paddingXY 0 10
-        ]
-        (field.children ++ tooltip)
-
-
 withChanges hasChanged attrs =
     attrs
         ++ (if hasChanged then
@@ -1100,9 +1044,9 @@ withValidation validatedField problems attrs =
 viewDocketId : FormOptions -> Form -> Element Msg
 viewDocketId options form =
     column [ width (fill |> maximum 215), height fill, paddingXY 0 10 ]
-        [ viewField options.showHelp
-            { tooltip = Just DocketIdInfo
-            , description = "This is the unique id for a detainer warrant. Please take care when entering this."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.docketId
+            , label = Nothing
             , children =
                 [ case options.docketId of
                     Just docketId ->
@@ -1132,9 +1076,9 @@ viewFileDate options form =
     --             || (options.originalWarrant == Nothing && form.fileDate.date /= Nothing)
     -- in
     column [ width (fill |> maximum 150), padding 10 ]
-        [ viewField options.showHelp
-            { tooltip = Just FileDateInfo
-            , description = "The date the detainer warrant was created in the court system."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.fileDate
+            , label = Nothing
             , children =
                 [ DatePicker.input (withValidation FileDate options.problems (withChanges False (boxAttrs ++ [ centerX, Element.centerY ])))
                     { onChange = ChangedFileDatePicker
@@ -1241,9 +1185,9 @@ ternaryText isCares =
 viewStatus : FormOptions -> Form -> Element Msg
 viewStatus options form =
     column [ width (fill |> maximum 200) ]
-        [ viewField options.showHelp
-            { tooltip = Just StatusInfo
-            , description = "The current status of the case in the court system."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.status
+            , label = Nothing
             , children =
                 [ column [ spacing 5, width fill ]
                     [ el labelAttrs (text "Status")
@@ -1316,9 +1260,9 @@ viewPlaintiffSearch onChange options form =
                 || (options.originalWarrant == Nothing && form.text /= "")
     in
     row [ width fill ]
-        [ viewField options.showHelp
-            { tooltip = Just PlaintiffInfo
-            , description = "The plaintiff is typically the landlord seeking money or possession from the defendant (tenant)."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.plaintiff
+            , label = Nothing
             , children =
                 [ searchBox (withChanges hasChanges [])
                     { onChange = onChange
@@ -1355,9 +1299,9 @@ viewAttorneySearch onChange options form =
                 || (options.originalWarrant == Nothing && form.text /= "")
     in
     column [ width fill ]
-        [ viewField options.showHelp
-            { tooltip = Just PlaintiffAttorneyInfo
-            , description = "The plaintiff attorney is the legal representation for the plaintiff in this eviction process."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.plaintiffAttorney
+            , label = Nothing
             , children =
                 [ searchBox (withChanges hasChanges [])
                     { onChange = onChange
@@ -1387,9 +1331,9 @@ viewAttorneySearch onChange options form =
 viewAmountClaimed : FormOptions -> Form -> Element Msg
 viewAmountClaimed options form =
     column [ width (fill |> maximum 215) ]
-        [ viewField options.showHelp
-            { tooltip = Just AmountClaimedInfo
-            , description = "The monetary amount the plaintiff is requesting from the defendant."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.amountClaimed
+            , label = Nothing
             , children =
                 [ TextField.singlelineText ChangedAmountClaimed
                     "Amount claimed"
@@ -1411,9 +1355,9 @@ viewAmountClaimed options form =
 viewClaimsPossession : FormOptions -> Form -> Element Msg
 viewClaimsPossession options form =
     column [ width (fill |> maximum 150) ]
-        [ viewField options.showHelp
-            { tooltip = Just ClaimsPossessionInfo
-            , description = "Plaintiffs may ask for payment, repossession, or more."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.claimsPossession
+            , label = Nothing
             , children =
                 [ column [ spacing 5, width fill ]
                     [ el labelAttrs (text "Claims possession")
@@ -1428,9 +1372,9 @@ viewClaimsPossession options form =
 viewCares : FormOptions -> Form -> Element Msg
 viewCares options form =
     column [ width (fill |> maximum 150) ]
-        [ viewField options.showHelp
-            { tooltip = Just CaresInfo
-            , description = "C.A.R.E.S. was an aid package provided during the pandemic. If a docket number has a \"Notice,\" check to see whether the property falls under the CARES act"
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.cares
+            , label = Nothing
             , children =
                 [ column [ spacing 5, width fill ]
                     [ el labelAttrs (text "Is C.A.R.E.S. property?")
@@ -1445,9 +1389,9 @@ viewCares options form =
 viewLegacy : FormOptions -> Form -> Element Msg
 viewLegacy options form =
     column [ width (fill |> maximum 150) ]
-        [ viewField options.showHelp
-            { tooltip = Just LegacyInfo
-            , description = "L.E.G.A.C.Y. is a special court created for handling evictions during the pandemic. Looks up cases listed under \"LEGACY Case DW Numbers\" tab and check if the case is there or not."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.legacy
+            , label = Nothing
             , children =
                 [ column [ spacing 5, width fill ]
                     [ el labelAttrs (text "Is L.E.G.A.C.Y. property?")
@@ -1462,9 +1406,9 @@ viewLegacy options form =
 viewNonpayment : FormOptions -> Form -> Element Msg
 viewNonpayment options form =
     column [ width (fill |> maximum 150) ]
-        [ viewField options.showHelp
-            { tooltip = Just NonpaymentInfo
-            , description = "People can be evicted for a number of reasons, including non-payment of rent. We want to know if people are being evicted for this reason because those cases should go to the diversionary court. We assume cases that request $$ are for non-payment but this box is sometimes checked on eviction forms."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.nonpayment
+            , label = Nothing
             , children =
                 [ column [ spacing 5, width fill ]
                     [ el labelAttrs (text "Is nonpayment?")
@@ -1479,9 +1423,9 @@ viewNonpayment options form =
 viewAddress : FormOptions -> Form -> Element Msg
 viewAddress options form =
     row [ width (fill |> maximum 800) ]
-        [ viewField options.showHelp
-            { tooltip = Just AddressInfo
-            , description = "The address where the defendant or defendants reside."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.address
+            , label = Nothing
             , children =
                 [ TextField.singlelineText ChangedAddress
                     "Address"
@@ -1532,9 +1476,9 @@ viewHearings options form =
 viewNotes : FormOptions -> Form -> Element Msg
 viewNotes options form =
     column [ width fill ]
-        [ viewField options.showHelp
-            { tooltip = Just NotesInfo
-            , description = "Any additional notes you have about this case go here! This is a great place to leave feedback for the form as well, perhaps there's another field or field option we need to provide."
+        [ Field.view options.showHelp
+            { tooltip = Just DetainerWarrant.description.notes
+            , label = Nothing
             , children =
                 [ TextField.multilineText ChangedNotes
                     "Notes"
@@ -1585,7 +1529,7 @@ viewForm options formStatus =
                 [ column
                     (tileAttrs
                         ++ (case Maybe.andThen .document options.originalWarrant of
-                                Just pleading ->
+                                Just _ ->
                                     [ inFront
                                         (row [ Element.alignRight, padding 20 ]
                                             [ Button.fromIcon (Icon.legacyReport "Open PDF")
@@ -1716,30 +1660,6 @@ viewProblem problem =
 viewProblems : List Problem -> Element Msg
 viewProblems problems =
     row [] [ column [] (List.map viewProblem problems) ]
-
-
-viewTooltip : String -> Element Msg
-viewTooltip str =
-    textColumn
-        [ width (fill |> maximum 280)
-        , padding 10
-        , Palette.toBackgroundColor Palette.blue600
-        , Palette.toFontColor Palette.genericWhite
-        , Border.rounded 3
-        , Font.size 14
-        , Border.shadow
-            { offset = ( 0, 3 ), blur = 6, size = 0, color = Element.rgba 0 0 0 0.32 }
-        ]
-        [ paragraph [] [ text str ] ]
-
-
-withTooltip : Bool -> String -> List (Element Msg)
-withTooltip showHelp str =
-    if showHelp then
-        [ viewTooltip str ]
-
-    else
-        []
 
 
 title =
