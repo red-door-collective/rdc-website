@@ -205,7 +205,14 @@ view { profile, session, showMobileMenu, toggleMobileMenu } page =
                             headerLink []
                                 False
                                 { url = "/admin/detainer-warrants"
-                                , label = Element.text "Admin"
+                                , label =
+                                    Element.text
+                                        (if canViewDefendantInformation then
+                                            "Admin"
+
+                                         else
+                                            "Database"
+                                        )
                                 }
 
                           else
