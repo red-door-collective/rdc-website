@@ -88,27 +88,30 @@ def scrape_dockets():
 @click.command()
 @click.option('-w', '--workbook-name', default='Website Export',
               help='Sheet name')
+@click.option('-x', '--omit-defendant-info', default=False, is_flag=True,
+              help='Omit defendant information from export.')
 @click.option('-k', '--service-account-key', default=None,
               help='Google Service Account filepath')
 @click.option('-o', '--only', default=None, help='Only run one sheet')
 @with_appcontext
-def export(workbook_name, service_account_key, only):
+def export(workbook_name, omit_defendant_info, service_account_key, only):
     if only == 'Detainer Warrants':
         detainer_warrants.exports.to_spreadsheet(
-            workbook_name, service_account_key)
+            workbook_name, omit_defendant_info, service_account_key)
     elif only == 'Judgments':
         detainer_warrants.exports.to_judgment_sheet(
-            workbook_name, service_account_key)
-    elif only == 'Court Watch':
+            workbook_name, omit_defendant_info, service_account_key)
+    elif only == 'Court Watch' and not omit_defendant_info:
         detainer_warrants.exports.to_court_watch_sheet(
             workbook_name, service_account_key)
     else:
         detainer_warrants.exports.to_spreadsheet(
-            workbook_name, service_account_key)
+            workbook_name, omit_defendant_info, service_account_key)
         detainer_warrants.exports.to_judgment_sheet(
-            workbook_name, service_account_key)
-        detainer_warrants.exports.to_court_watch_sheet(
-            workbook_name, service_account_key)
+            workbook_name, omit_defendant_info, service_account_key)
+        if not omit_defendant_info:
+            detainer_warrants.exports.to_court_watch_sheet(
+                workbook_name, service_account_key)
 
 
 @click.command()

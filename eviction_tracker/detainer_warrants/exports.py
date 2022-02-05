@@ -55,9 +55,14 @@ def defendant_headers(index):
 
 empty_defendant = ['' for i in range(6)]
 
-header = [
-    DOCKET_ID, FILE_DATE, STATUS, PLAINTIFF, PLTF_ATTORNEY, COURT_DATE, RECURRING_COURT_DATE, COURTROOM, JUDGE, AMT_CLAIMED, AMT_CLAIMED_CAT,
-    IS_CARES, IS_LEGACY, NONPAYMENT, 'Zipcode', ADDRESS] + defendant_headers(1) + defendant_headers(2) + defendant_headers(3) + defendant_headers(4) + [JUDGMENT, NOTES]
+
+def header(omit_defendant_info=False):
+    all_defendant_headers = [] if omit_defendant_info else concat([
+        defendant_headers(i) for i in range(1, 5)])
+
+    return [
+        DOCKET_ID, FILE_DATE, STATUS, PLAINTIFF, PLTF_ATTORNEY, COURT_DATE, RECURRING_COURT_DATE, COURTROOM, JUDGE, AMT_CLAIMED, AMT_CLAIMED_CAT,
+        IS_CARES, IS_LEGACY, NONPAYMENT, 'Zipcode', ADDRESS] + all_defendant_headers + [JUDGMENT, NOTES]
 
 
 def date_str(d):
@@ -79,7 +84,16 @@ def defendant_columns(defendant):
         return empty_defendant
 
 
-def _to_spreadsheet_row(warrant):
+def concat(listOfLists):
+    return list(chain.from_iterable(listOfLists))
+
+
+def defendant_info(warrant):
+    return concat([defendant_columns(safelist(
+        warrant.defendants).get(index)) for index in range(4)])
+
+
+def _to_spreadsheet_row(omit_defendant_info, warrant):
     return [dw if dw else '' for dw in list(chain.from_iterable([
         [
             warrant.docket_id,
@@ -102,8 +116,7 @@ def _to_spreadsheet_row(warrant):
             '',
             warrant.address if warrant.address else ''
         ],
-        list(chain.from_iterable([defendant_columns(safelist(
-            warrant.defendants).get(index)) for index in range(4)])),
+        [] if omit_defendant_info else defendant_info(warrant),
         [warrant.hearings[0].judgment.summary if len(warrant.hearings) > 0 and warrant.hearings[0].judgment else '',
          warrant.notes
          ]
@@ -118,26 +131,45 @@ def get_or_create_sheet(wb, name, rows=100, cols=25):
             title=name, rows=str(rows), cols=str(cols))
 
 
-def to_spreadsheet(workbook_name, service_account_key=None):
+CHUNK_SIZE = 2500
+
+
+def to_spreadsheet(workbook_name, omit_defendant_info=False, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
     warrants = DetainerWarrant.query.order_by(
-        DetainerWarrant._file_date.desc())
+        DetainerWarrant.order_number.desc())
 
     total = warrants.count()
 
+    headers = header(omit_defendant_info)
+
     wks = get_or_create_sheet(wb,
-                              'Detainer Warrants', rows=total + 1, cols=len(header))
+                              'Detainer Warrants', rows=total + 1, cols=len(headers))
 
-    wks.update('A1:AP1', [header])
+    wks.clear()
 
-    rows = [_to_spreadsheet_row(warrant) for warrant in warrants]
+    wks.update('A1:AP1', [headers])
 
-    wks.update(f'A2:AP{total + 1}', rows, value_input_option='USER_ENTERED')
+    rows = []
+    for i, warrant in enumerate(warrants):
+        if i != 0 and i % CHUNK_SIZE == 0:
+            chunk_index = i // CHUNK_SIZE
+            chunk_start, chunk_end = (
+                (CHUNK_SIZE * (chunk_index - 1)) + 2, (CHUNK_SIZE * chunk_index) + 2)
+            cell_range = f'A{chunk_start}:AP{chunk_end}'
+            wks.update(cell_range, rows, value_input_option='USER_ENTERED')
+            rows.clear()
+        rows.append(_to_spreadsheet_row(
+            omit_defendant_info, warrant))
 
 
-judgment_headers = ['Court Date', 'Docket #', 'Courtroom', 'Plaintiff', 'Pltf Lawyer', 'Defendant', 'Def Lawyer', 'Def. Address', 'Reason',
-                    'Amount', '"Mediation Letter"', 'Notes (anything unusual on detainer or in', 'Judgment', 'Judge',	'Judgment Basis']
+DEFENDANT_HEADER = ['Defendant']
+
+
+def judgment_headers(omit_defendant_info=False):
+    return ['Court Date', 'Docket #', 'Courtroom', 'Plaintiff', 'Pltf Lawyer'] + ([] if omit_defendant_info else DEFENDANT_HEADER) + ['Def Lawyer', 'Def. Address', 'Reason',
+                                                                                                                                      'Amount', '"Mediation Letter"', 'Notes (anything unusual on detainer or in', 'Judgment', 'Judge', 'Judgment Basis']
 
 
 def defendant_names_column(warrant):
@@ -153,16 +185,17 @@ def defendant_names_column_newline(warrant):
     return '\n'.join(deduped)
 
 
-def _to_judgment_row(judgment):
+def _to_judgment_row(omit_defendant_info, judgment):
     return [dw if dw else '' for dw in
-            [
+            filter(None, [
                 date_str(
                     judgment.hearing._court_date) if judgment.hearing._court_date else '',
                 judgment.hearing.docket_id,
                 judgment.hearing.courtroom.name if judgment.hearing.courtroom else '',
                 judgment.plaintiff.name if judgment.plaintiff else '',
                 judgment.plaintiff_attorney.name if judgment.plaintiff_attorney else '',
-                defendant_names_column(judgment.hearing.case),
+                None if omit_defendant_info else defendant_names_column(
+                    judgment.hearing.case),
                 judgment.defendant_attorney.name if judgment.defendant_attorney else '',
                 judgment.hearing.address if judgment.hearing.address else '',
                 judgment.entered_by if judgment.entered_by else '',
@@ -172,10 +205,10 @@ def _to_judgment_row(judgment):
                 judgment.summary,
                 judgment.judge.name if judgment.judge else '',
                 judgment.dismissal_basis
-            ]]
+            ])]
 
 
-def to_judgment_sheet(workbook_name, service_account_key=None):
+def to_judgment_sheet(workbook_name, omit_defendant_info, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
     judgments = Judgment.query\
@@ -185,12 +218,16 @@ def to_judgment_sheet(workbook_name, service_account_key=None):
 
     total = judgments.count()
 
+    headers = judgment_headers(omit_defendant_info)
+
     wks = get_or_create_sheet(wb,
-                              'Judgments', rows=total + 1, cols=len(judgment_headers))
+                              'Judgments', rows=total + 1, cols=len(headers))
+    wks.clear()
 
-    wks.update('A1:O1', [judgment_headers])
+    wks.update('A1:O1', [headers])
 
-    rows = [_to_judgment_row(judgment) for judgment in judgments]
+    rows = [_to_judgment_row(omit_defendant_info, judgment)
+            for judgment in judgments]
 
     wks.update(f'A2:O{total + 1}', rows, value_input_option='USER_ENTERED')
 
