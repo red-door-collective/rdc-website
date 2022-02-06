@@ -8,6 +8,7 @@ from flask_security import Security, SQLAlchemyUserDatastore, UserMixin, RoleMix
 from flask_security.models import fsqla_v2 as fsqla
 from flask_apscheduler import APScheduler
 from flask_cors import CORS
+from flask_mail import Mail
 
 
 class CRUDMixin(Model):
@@ -49,3 +50,4 @@ api = Api(prefix='/api/v1')
 security = Security()
 scheduler = APScheduler()
 cors = CORS()
+mail = Mail()

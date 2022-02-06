@@ -1,7 +1,7 @@
 import flask
 from flask import g, send_file, jsonify, Flask, request, redirect
 from flask_security import hash_password, auth_token_required
-from eviction_tracker.extensions import cors, db, marshmallow, migrate, api, login_manager, security
+from eviction_tracker.extensions import cors, db, mail, marshmallow, migrate, api, login_manager, security
 from eviction_tracker.admin.models import User, user_datastore
 import os
 import time
@@ -24,6 +24,7 @@ import logging.config
 import eviction_tracker.config as config
 from flask_log_request_id import RequestID, current_request_id
 import eviction_tracker.tasks as tasks
+from .time_util import millis, millis_timestamp
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -92,6 +93,13 @@ def create_app(testing=False):
     app.config['CHROMEDRIVER_HEADLESS'] = env_var_bool(
         'CHROMEDRIVER_HEADLESS', default='True')
     app.config['DATA_DIR'] = os.environ['DATA_DIR']
+    app.config['MAIL_SERVER'] = os.environ['MAIL_SERVER']
+    app.config['MAIL_PORT'] = os.environ['MAIL_PORT']
+    app.config['MAIL_USE_TLS'] = False
+    app.config['MAIL_USE_SSL'] = True
+    app.config['MAIL_USERNAME'] = os.environ['MAIL_USERNAME']
+    app.config['MAIL_PASSWORD'] = os.environ['MAIL_PASSWORD']
+    app.config['MAIL_ADMIN'] = os.environ['MAIL_ADMIN']
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
@@ -283,14 +291,6 @@ def round_dec(dec):
     return int(round(dec))
 
 
-def millis_timestamp(dt):
-    return round(dt.timestamp() * 1000)
-
-
-def millis(d):
-    return millis_timestamp(datetime.combine(d, datetime.min.time()))
-
-
 def register_extensions(app):
     """Register Flask extensions."""
     db.init_app(app)
@@ -302,6 +302,7 @@ def register_extensions(app):
     security.init_app(app, user_datastore)
     cors.init_app(app)
     flask_wtf.CSRFProtect(app)
+    mail.init_app(app)
 
     api.add_resource('/attorneys/', detainer_warrants.views.AttorneyListResource,
                      detainer_warrants.views.AttorneyResource, app=app)
@@ -511,11 +512,12 @@ def register_extensions(app):
     @app.route('/api/v1/export')
     @auth_token_required
     def download_csv():
-        req_id = current_request_id()
-        thread = Thread(target=tasks.export_zip, args=(app, req_id))
+        task = tasks.Task(current_request_id(),
+                          admin.serializers.user_schema.dump(current_user))
+        thread = Thread(target=tasks.export_zip, args=(app, task))
         thread.daemon = True
         thread.start()
-        return jsonify({'id': current_request_id(), 'progress': 0.0, 'started_at': millis_timestamp(datetime.now())})
+        return jsonify(task.to_json())
 
     @app.route('/api/v1/current-user')
     @auth_token_required

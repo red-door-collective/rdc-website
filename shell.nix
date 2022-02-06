@@ -22,7 +22,8 @@ in pkgs.mkShell {
     export NIX_SSL_CERT_FILE=${caBundle}
     # Make ZIP happy for wheels, doesn't support timestamps before 1980.
     export SOURCE_DATE_EPOCH=315532800
-    export $(cat .env <(echo) .env.dev | xargs)
+    set -o allexport; source .env; set +o allexport
+    set -o allexport; source .env.dev; set +o allexport
   '' +
   lib.optionalString (pkgs.stdenv.hostPlatform.libc == "glibc") ''
     export LOCALE_ARCHIVE=${deps.glibcLocales}/lib/locale/locale-archive

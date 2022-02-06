@@ -154,16 +154,14 @@ exportToSpreadsheet domain session =
 
 type alias BackendTask =
     { id : String
-    , progress : Float
     , startedAt : Posix
     }
 
 
 decodeBackendTask : Json.Decode.Decoder BackendTask
 decodeBackendTask =
-    Json.Decode.map3 BackendTask
+    Json.Decode.map2 BackendTask
         (Json.Decode.field "id" Json.Decode.string)
-        (Json.Decode.field "progress" Json.Decode.float)
         (Json.Decode.field "started_at" posixDecoder)
 
 

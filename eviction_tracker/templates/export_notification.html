@@ -1,0 +1,19 @@
+<p>Hi {{ task.requester.first_name }}</p>,
+
+<p>Your request for eviction data in Davidson County, Tennessee has been fulfilled.
+    Attached is a zip archive of spreadsheets for all attempted evictions as of <b>{{ task.started_at }}</b>.</p>
+
+<p>Any detainer warrant with the status <b>"PENDING"</b> may be updated by the court system in the coming weeks or
+    months.</p>
+
+<p>A future data request <i>may result in changes to pending detainer warrants</i>, based upon court proceedings.</p>
+
+<p>Regards,</p>
+<p>Red Door Collective</p>
+
+<hr />
+
+<p>If there are any issues with accessing the attached data, please email reddoormidtn@gmail.com.</p>
+<p>For an expedited response, either forward this email or send along the following information:</p>
+
+<p>Request ID: {{ task.id }}</p>

@@ -229,13 +229,30 @@ def _to_judgment_row(omit_defendant_info, judgment):
             ])]
 
 
-def to_judgment_sheet(workbook_name, omit_defendant_info, service_account_key=None):
-    wb = open_workbook(workbook_name, service_account_key)
-
-    judgments = Judgment.query\
+def judgments_scope():
+    return Judgment.query\
         .join(Hearing)\
         .order_by(Hearing._court_date.desc())\
         .filter(Judgment.in_favor_of_id != None)
+
+
+def judgments_to_csv(filename, omit_defendant_info=False):
+    headers = judgment_headers(omit_defendant_info)
+
+    judgments = judgments_scope()
+
+    with open(filename, 'w') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(headers)
+
+        for judgment in judgments:
+            writer.writerow(_to_judgment_row(omit_defendant_info, judgment))
+
+
+def to_judgment_sheet(workbook_name, omit_defendant_info, service_account_key=None):
+    wb = open_workbook(workbook_name, service_account_key)
+
+    judgments = judgments_scope()
 
     total = judgments.count()
 

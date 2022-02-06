@@ -4,11 +4,24 @@ import time
 from flask import current_app
 import shutil
 import os
+from .email import export_notification
+from flask_mail import Attachment
+from .time_util import millis_timestamp, file_friendly_timestamp
 
 
-def export_zip(app, req_id):
+class Task:
+    def __init__(self, id, requester):
+        self.id = id
+        self.requester = requester
+        self.started_at = datetime.now()
+
+    def to_json(self):
+        return {'id': self.id, 'started_at': millis_timestamp(self.started_at)}
+
+
+def export_zip(app, task):
     with app.app_context():
-        export_dir = req_id
+        export_dir = task.id
         export_path = f"{current_app.config['DATA_DIR']}/davidson-co/eviction-data/export/{export_dir}"
         if not os.path.exists(export_path):
             os.makedirs(export_path)
@@ -17,7 +30,20 @@ def export_zip(app, req_id):
         detainer_warrants.exports.warrants_to_csv(export_path + '/' + csv_filename,
                                                   omit_defendant_info=True)
 
-        # detainer_warrants.exports.to_judgment_sheet(
-        # workbook_name, omit_defendant_info, service_account_key)
+        judgment_csv_filename = 'judgments.csv'
+        detainer_warrants.exports.judgments_to_csv(
+            export_path + '/' + judgment_csv_filename,
+            omit_defendant_info=True
+        )
 
         shutil.make_archive(export_path, 'zip', export_path)
+
+        attachments = []
+        with open(export_path + '.zip', 'rb') as fp:
+            attachments.append(Attachment(
+                filename=f'eviction-data-davidson-co-{file_friendly_timestamp(task.started_at)}.zip',
+                content_type='application/zip',
+                data=fp.read()
+            ))
+
+        export_notification(task, attachments)
