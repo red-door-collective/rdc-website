@@ -1,11 +1,12 @@
 import flask
-from flask import g, Flask, request, redirect
+from flask import g, send_file, jsonify, Flask, request, redirect
 from flask_security import hash_password, auth_token_required
 from eviction_tracker.extensions import cors, db, marshmallow, migrate, api, login_manager, security
 from eviction_tracker.admin.models import User, user_datastore
 import os
 import time
 import calendar
+from threading import Thread
 
 from sqlalchemy import and_, or_, func, desc
 from sqlalchemy.sql import text
@@ -22,6 +23,7 @@ from datadog import initialize, statsd
 import logging.config
 import eviction_tracker.config as config
 from flask_log_request_id import RequestID, current_request_id
+import eviction_tracker.tasks as tasks
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -89,6 +91,7 @@ def create_app(testing=False):
     app.config['SQLALCHEMY_ECHO'] = env_var_bool('SQLALCHEMY_ECHO')
     app.config['CHROMEDRIVER_HEADLESS'] = env_var_bool(
         'CHROMEDRIVER_HEADLESS', default='True')
+    app.config['DATA_DIR'] = os.environ['DATA_DIR']
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
@@ -370,7 +373,7 @@ def register_extensions(app):
         counts = [{'time': millis_timestamp(start), 'total_warrants': count_between_dates(
             start, end)} for start, end in dates]
 
-        return flask.jsonify(counts)
+        return jsonify(counts)
 
     @app.route('/api/v1/rollup/plaintiffs')
     def plaintiff_rollup_by_month():
@@ -398,7 +401,7 @@ def register_extensions(app):
                 })
             top_evictors.append({'name': plaintiff.name, 'history': history})
 
-        return flask.jsonify(top_evictors)
+        return jsonify(top_evictors)
 
     @app.route('/api/v1/rollup/plaintiffs/amount_claimed_bands')
     def plaintiffs_by_amount_claimed():
@@ -419,7 +422,7 @@ def register_extensions(app):
             'end_date': millis(end_dt)
         } for result in top_six]
 
-        return flask.jsonify(top_plaintiffs)
+        return jsonify(top_plaintiffs)
 
     @app.route('/api/v1/rollup/plaintiff-attorney')
     def plaintiff_attorney_warrant_share():
@@ -442,7 +445,7 @@ def register_extensions(app):
             'end_date': millis(end_dt),
         }
 
-        return flask.jsonify(top_plaintiffs + [prs])
+        return jsonify(top_plaintiffs + [prs])
 
     @app.route('/api/v1/rollup/judges')
     def judge_warrant_share():
@@ -458,7 +461,7 @@ def register_extensions(app):
             'end_date': millis(end_dt)
         } for judge_name, warrant_count in top_six]
 
-        return flask.jsonify(top_judges)
+        return jsonify(top_judges)
 
     @app.route('/api/v1/rollup/detainer-warrants/pending')
     def pending_detainer_warrants():
@@ -466,14 +469,14 @@ def register_extensions(app):
         end_of_month = (date.today().replace(day=1) +
                         timedelta(days=32)).replace(day=1)
 
-        return flask.jsonify({'pending_scheduled_case_count': pending_scheduled_case_count(start_of_month, end_of_month)})
+        return jsonify({'pending_scheduled_case_count': pending_scheduled_case_count(start_of_month, end_of_month)})
 
     @app.route('/api/v1/rollup/amount-awarded')
     def amount_awarded():
         start_of_month = date.today().replace(day=1)
         end_of_month = (date.today().replace(day=1) +
                         timedelta(days=32)).replace(day=1)
-        return flask.jsonify({'data': round_dec(amount_awarded_between(start_of_month, end_of_month))})
+        return jsonify({'data': round_dec(amount_awarded_between(start_of_month, end_of_month))})
 
     @app.route('/api/v1/rollup/amount-awarded/history')
     def amount_awarded_history():
@@ -483,13 +486,13 @@ def register_extensions(app):
                  for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
         awards = [{'time': millis_timestamp(start), 'total_amount': round_dec(amount_awarded_between(
             start, end))} for start, end in dates]
-        return flask.jsonify({'data': awards})
+        return jsonify({'data': awards})
 
     @app.route('/api/v1/rollup/meta')
     def data_meta():
         last_warrant = db.session.query(DetainerWarrant).order_by(
             desc(DetainerWarrant.updated_at)).first()
-        return flask.jsonify({
+        return jsonify({
             'last_detainer_warrant_update': last_warrant.updated_at if last_warrant else None
         })
 
@@ -498,12 +501,21 @@ def register_extensions(app):
         start_date, end_date = calendar.monthrange(year_number, month_number)
         start_of_month = date(year_number, month_number, start_date + 1)
         end_of_month = date(year_number, month_number, end_date)
-        return flask.jsonify({
+        return jsonify({
             'detainer_warrants_filed': between_dates(start_of_month, end_of_month, DetainerWarrant.query).count(),
             'eviction_judgments': Judgment.query.filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.awards_possession == True).count(),
             'plaintiff_awards': float(db.session.query(func.sum(Judgment.awards_fees)).filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.awards_fees != None).scalar()),
             'evictions_entered_by_default': float(Judgment.query.filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.entered_by_id == 0).count())
         })
+
+    @app.route('/api/v1/export')
+    @auth_token_required
+    def download_csv():
+        req_id = current_request_id()
+        thread = Thread(target=tasks.export_zip, args=(app, req_id))
+        thread.daemon = True
+        thread.start()
+        return jsonify({'id': current_request_id(), 'progress': 0.0, 'started_at': millis_timestamp(datetime.now())})
 
     @app.route('/api/v1/current-user')
     @auth_token_required

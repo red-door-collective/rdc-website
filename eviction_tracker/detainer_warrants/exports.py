@@ -12,6 +12,8 @@ from ..database import from_millis
 import usaddress
 import jellyfish
 import itertools
+import csv
+import io
 
 import logging
 import logging.config
@@ -134,11 +136,30 @@ def get_or_create_sheet(wb, name, rows=100, cols=25):
 CHUNK_SIZE = 2500
 
 
+def warrants_scope(omit_defendant_info=False):
+    warrants = DetainerWarrant.query.order_by(
+        DetainerWarrant.order_number.desc())
+
+    return warrants
+
+
+def warrants_to_csv(filename, omit_defendant_info=False):
+    warrants = warrants_scope(omit_defendant_info)
+
+    headers = header(omit_defendant_info)
+
+    with open(filename, 'w') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(headers)
+
+        for warrant in warrants:
+            writer.writerow(_to_spreadsheet_row(omit_defendant_info, warrant))
+
+
 def to_spreadsheet(workbook_name, omit_defendant_info=False, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    warrants = DetainerWarrant.query.order_by(
-        DetainerWarrant.order_number.desc())
+    warrants = warrants_scope(omit_defendant_info)
 
     total = warrants.count()
 

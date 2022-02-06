@@ -24,6 +24,7 @@ type NavigationOnSuccess
 
 type alias User =
     { id : Int
+    , email : String
     , firstName : String
     , lastName : String
     , name : String
@@ -94,6 +95,7 @@ decoder : Decoder User
 decoder =
     Decode.succeed User
         |> required "id" int
+        |> required "email" string
         |> required "first_name" string
         |> required "last_name" string
         |> required "name" string

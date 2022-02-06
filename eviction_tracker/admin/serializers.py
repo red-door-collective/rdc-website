@@ -14,7 +14,7 @@ class UserSchema(Schema):
     roles = fields.Nested(RoleSchema, many=True)
 
     class Meta:
-        fields = ("id", "name", "first_name", "last_name",
+        fields = ("id", "name", "email", "first_name", "last_name",
                   "roles", "active", "preferred_navigation")
 
 

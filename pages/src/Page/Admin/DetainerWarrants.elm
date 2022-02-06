@@ -10,10 +10,11 @@ import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Head
 import Head.Seo as Seo
-import Html.Attributes as Attrs
+import Html.Attributes as Attrs exposing (id)
 import Http
 import InfiniteScroll
 import Iso8601
+import Json.Decode
 import Loader
 import Log
 import Logo
@@ -32,8 +33,9 @@ import Search exposing (Cursor(..), Search)
 import Session exposing (Session)
 import Shared
 import Sprite
-import Time
-import Time.Utils
+import Time exposing (Posix)
+import Time.Utils exposing (posixDecoder)
+import UI.Alert as Alert
 import UI.Button as Button exposing (Button)
 import UI.Effects
 import UI.Icon as Icon
@@ -49,6 +51,13 @@ import User exposing (User)
 import View exposing (View)
 
 
+type alias Alert =
+    { openedAt : Posix
+    , lifetimeInSeconds : Maybe Int
+    , text : String
+    }
+
+
 type alias Model =
     { warrants : List DetainerWarrant
     , selected : Maybe String
@@ -56,6 +65,8 @@ type alias Model =
     , search : Search Search.DetainerWarrants
     , tableState : Stateful.State Msg DetainerWarrant T.Seven
     , infiniteScroll : InfiniteScroll.Model Msg
+    , exportStatus : Maybe BackendTask
+    , alert : Maybe Alert
     }
 
 
@@ -87,6 +98,8 @@ init pageUrl sharedModel static =
                 |> Stateful.stateWithFilters (searchFilters search.filters)
                 |> Stateful.stateWithSorters sortersInit
       , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
+      , exportStatus = Nothing
+      , alert = Nothing
       }
     , searchWarrants domain maybeCred search
     )
@@ -136,7 +149,27 @@ queryArgsWithPagination search =
 
 exportToSpreadsheet : String -> Session -> Cmd Msg
 exportToSpreadsheet domain session =
-    Rest.throwaway (Endpoint.detainerWarrantsExport domain) (Session.cred session) ExportStarted
+    Rest.throwaway (Endpoint.detainerWarrantsExport domain) (Session.cred session) ExportToSheetsStarted
+
+
+type alias BackendTask =
+    { id : String
+    , progress : Float
+    , startedAt : Posix
+    }
+
+
+decodeBackendTask : Json.Decode.Decoder BackendTask
+decodeBackendTask =
+    Json.Decode.map3 BackendTask
+        (Json.Decode.field "id" Json.Decode.string)
+        (Json.Decode.field "progress" Json.Decode.float)
+        (Json.Decode.field "started_at" posixDecoder)
+
+
+export : String -> Session -> Cmd Msg
+export domain session =
+    Rest.get (Endpoint.export domain) (Session.cred session) ExportStarted decodeBackendTask
 
 
 type Msg
@@ -151,8 +184,11 @@ type Msg
     | InfiniteScrollMsg InfiniteScroll.Msg
     | InputFreeTextSearch String
     | OnFreeTextSearch
-    | ExportToSpreadsheet
-    | ExportStarted (Result Http.Error ())
+    | Export
+    | ExportStarted (Result Http.Error BackendTask)
+    | ExportToSheets
+    | ExportToSheetsStarted (Result Http.Error ())
+    | RemoveAlert Posix
     | NoOp
 
 
@@ -333,11 +369,33 @@ update pageUrl navKey sharedModel static msg model =
         OnFreeTextSearch ->
             updateFiltersAndReload domain session identity model
 
-        ExportToSpreadsheet ->
+        Export ->
+            ( model, export domain session )
+
+        ExportStarted (Ok backendTask) ->
+            ( { model
+                | exportStatus = Just backendTask
+                , alert =
+                    Just
+                        { openedAt = backendTask.startedAt
+                        , lifetimeInSeconds = Nothing
+                        , text = "An email with all eviction data will soon be sent to " ++ (RemoteData.withDefault "" <| RemoteData.map .email <| sharedModel.profile)
+                        }
+              }
+            , Cmd.none
+            )
+
+        ExportStarted (Err err) ->
+            ( model, Cmd.none )
+
+        ExportToSheets ->
             ( model, exportToSpreadsheet domain session )
 
-        ExportStarted _ ->
+        ExportToSheetsStarted _ ->
             ( model, Cmd.none )
+
+        RemoveAlert _ ->
+            ( { model | alert = Nothing }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
@@ -354,10 +412,17 @@ createNewWarrantButton cfg =
         |> Button.renderElement cfg
 
 
-exportButton cfg =
-    Button.fromLabel "Export to spreadsheet"
-        |> Button.cmd ExportToSpreadsheet Button.primary
-        |> Button.renderElement cfg
+exportButton : RenderConfig -> User -> Element Msg
+exportButton cfg profile =
+    if User.canViewDefendantInformation profile then
+        Button.fromLabel "Export to Google Sheet"
+            |> Button.cmd ExportToSheets Button.primary
+            |> Button.renderElement cfg
+
+    else
+        Button.fromLabeledOnRightIcon (Icon.download "Download All Warrants")
+            |> Button.cmd Export Button.primary
+            |> Button.renderElement cfg
 
 
 viewFilter filters =
@@ -411,9 +476,18 @@ viewDesktop cfg profile model =
         , padding 10
         , width fill
         ]
-        [ Element.row [ centerX, spacing 10 ]
+        [ case model.alert of
+            Just alert ->
+                Alert.success
+                    alert.text
+                    |> Alert.withGenericIcon
+                    |> Alert.renderElement cfg
+
+            Nothing ->
+                Element.none
+        , Element.row [ centerX, spacing 10 ]
             [ createNewWarrantButton cfg
-            , exportButton cfg
+            , exportButton cfg profile
             ]
         , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
         , row [ width fill ]
@@ -602,7 +676,10 @@ viewWarrants cfg profile model =
 
 subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
 subscriptions pageUrl params path model =
-    Sub.none
+    model.alert
+        |> Maybe.andThen .lifetimeInSeconds
+        |> Maybe.map (\seconds -> Time.every (toFloat seconds * 1000) RemoveAlert)
+        |> Maybe.withDefault Sub.none
 
 
 type alias RouteParams =

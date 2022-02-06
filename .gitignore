@@ -21,3 +21,4 @@ ui/index.html # accidental default gen
 .elm-pages
 .env.dev
 pdfs/
+data/**/*
