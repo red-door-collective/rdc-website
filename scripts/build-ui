@@ -1,4 +1,5 @@
 set -ex -o pipefail
 mkdir -p ./eviction_tracker/static_pages
 cd pages && npm install && npm run build
+./content-hash
 cd .. && cp -R pages/dist/. ./eviction_tracker/static_pages

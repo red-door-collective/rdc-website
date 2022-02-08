@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -e
+
+hash() {
+  # there is no md5sum command on MacOS, instead we need to use `md5 -r``
+  if command -v md5sum > /dev/null; then
+    md5sum $@
+  else
+    md5 -r $@
+  fi
+}
+
+addContentHash() {
+  # update a filename to include its content hash
+  NAME=$1
+  EXT=$2
+  OLDNAME="${NAME}.${EXT}"
+  NEWNAME="${NAME}-$(hash ${OLDNAME} | cut -c 1-6).${EXT}"
+  mv ${OLDNAME} ${NEWNAME}
+  # update html files to use the new name
+  # we specify the backup suffix to be compatible with MacOS
+  sed -i'.bak' -e "s|\"/$OLDNAME\"|\"/$NEWNAME\"|" $(find . -name '*.html')
+  # remove backup files
+  rm $(find . -name '*.html.bak')
+}
+
+cd pages/dist
+
+addContentHash index js
+addContentHash elm js
+addContentHash style css
