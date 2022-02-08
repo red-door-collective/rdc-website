@@ -4,7 +4,7 @@
   "title": "The High Cost of Capitalism",
   "description": "Response to Fox 17's 'High Cost of Homelessness'",
   "image": "/article-covers/high-cost-of-capitalism.png",
-  "published": "2022-02-07",
+  "published": "2022-02-08",
 }
 ---
 
