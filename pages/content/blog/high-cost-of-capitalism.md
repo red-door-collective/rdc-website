@@ -2,7 +2,7 @@
 {
   "authors": [ "Kathryn Brown", "Jack Marr" ],
   "title": "The High Cost of Capitalism",
-  "description": "Red Door Collective’s Response to FOX 17’s \"The High Cost of Homelessness\"",
+  "description": "Response to Fox 17's \"High Cost of Homelessness\"",
   "image": "/article-covers/high-cost-of-capitalism.png",
   "published": "2022-02-07",
 }
@@ -59,5 +59,3 @@ In a society where our existence depends on the survival we can buy, the capital
 > “Americans have long been trained to see the deficiencies of people rather than policy.”
 
 We as a community must rebuke this truly disgraceful propaganda meant to confuse people for problems and the status quo for novel solutions. 
-
-[Printable report available here](/reports/RDC-Nashville-Eviction-Report-Aug-2021.pdf)
