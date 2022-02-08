@@ -68,17 +68,6 @@ type alias Model =
     { hoveringOn : Maybe String }
 
 
-
--- cardRow =
---     row
---         [ centerX
---         , width fill
---         , spacing 60
---         , width fill
---         , height fill
---         ]
-
-
 blogColumn model articles =
     column
         [ width (fill |> maximum 375)
