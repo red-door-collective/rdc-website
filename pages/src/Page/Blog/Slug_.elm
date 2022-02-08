@@ -355,7 +355,7 @@ blogRenderer params =
             Colors.default
 
         colors =
-            if "high-cost-of-capitalism" == Debug.log "slug" params.slug then
+            if "high-cost-of-capitalism" == params.slug then
                 Just
                     { defaultColors
                         | mediumHeaderBackground = rgb255 255 235 0
