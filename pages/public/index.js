@@ -1,5 +1,24 @@
 /** @typedef {{load: (Promise<unknown>); flags: (unknown)}} ElmPagesInit */
 
+const analytics = Object.assign(document.createElement('script'), {
+  src: "https://www.googletagmanager.com/gtag/js?id=G-T90YDWVZF3"
+});
+
+const analytics2 = Object.assign(document.createElement('script'), {
+  innerHTML: `
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-T90YDWVZF3');
+  `
+})
+
+
+const head = document.getElementsByTagName('head')[0]
+
+head.appendChild(analytics)
+head.appendChild(analytics2)
 
 const template = Object.assign(document.createElement('template'), {
   innerHTML: `
