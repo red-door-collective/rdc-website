@@ -6,7 +6,7 @@ import Colors
 import Data.Author as Author
 import DataSource exposing (DataSource)
 import Date exposing (Date)
-import Element exposing (Element, alignLeft, alignRight, alignTop, centerX, column, fill, fillPortion, height, maximum, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, textColumn, width, wrappedRow)
+import Element exposing (Element, alignLeft, alignRight, alignTop, centerX, column, el, fill, fillPortion, height, maximum, minimum, padding, paddingXY, paragraph, px, rgb255, row, spacing, text, textColumn, width, wrappedRow)
 import Element.Font as Font
 import Head
 import Head.Seo as Seo
@@ -164,6 +164,7 @@ view maybeUrl sharedModel static =
             )
         , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-desktop") ]
             (viewDesktop cfg static)
+        , el [ height (px 60) ] (text "")
         ]
     }
 

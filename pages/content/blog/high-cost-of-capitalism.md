@@ -59,3 +59,13 @@ In a society where our existence depends on the survival we can buy, the capital
 > “Americans have long been trained to see the deficiencies of people rather than policy.”
 
 We as a community must rebuke this truly disgraceful propaganda meant to confuse people for problems and the status quo for novel solutions. 
+
+
+### Solidarity
+
+Support the work of [Open Table Nashville](https://opentablenashville.org). Consider volunteering with Open Table, as they work directly with our unhoused neighbors.
+
+Read another critique of "Reclaiming Brookmeade Park" by the [Tennessean](https://www.tennessean.com/story/opinion/2022/01/04/reclaiming-brookmeade-park-does-little-end-homelessness-nashville/9090797002/).
+
+[Printable essay available here](/documents/high-cost-of-capitalism.pdf)
+
