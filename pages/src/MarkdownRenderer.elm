@@ -1,8 +1,10 @@
 module MarkdownRenderer exposing (renderer)
 
+import Colors exposing (grayFont, redFont)
 import Element
     exposing
-        ( Element
+        ( Color
+        , Element
         , alignTop
         , centerX
         , centerY
@@ -36,9 +38,24 @@ import Markdown.Html
 import Markdown.Renderer
 
 
-renderer : Markdown.Renderer.Renderer (Element msg)
-renderer =
-    { heading = heading
+type alias Colors =
+    { largeHeaderFont : Color
+    , largeHeaderBackground : Color
+    , mediumHeaderFont : Color
+    , mediumHeaderBackground : Color
+    , smallHeaderFont : Color
+    , smallHeaderBackground : Color
+    , paragraph : Color
+    }
+
+
+renderer : Maybe Colors -> Markdown.Renderer.Renderer (Element msg)
+renderer maybeColors =
+    let
+        colors =
+            Maybe.withDefault Colors.default maybeColors
+    in
+    { heading = heading colors
     , paragraph =
         paragraph
             [ width fill
@@ -162,14 +179,6 @@ tableBorder =
     ]
 
 
-redFont =
-    rgb255 220 47 54
-
-
-grayFont =
-    rgb255 75 75 75
-
-
 rawTextToId : String -> String
 rawTextToId rawText =
     rawText
@@ -178,8 +187,8 @@ rawTextToId rawText =
         |> String.toLower
 
 
-heading : { level : Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
-heading { level, rawText, children } =
+heading : Colors -> { level : Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
+heading colors { level, rawText, children } =
     let
         attrs =
             [ Font.size 20
@@ -191,7 +200,7 @@ heading { level, rawText, children } =
             , Element.htmlAttribute
                 (Html.Attributes.id (rawTextToId rawText))
             , paddingXY 10 15
-            , Font.color redFont
+            , Font.color colors.smallHeaderFont
             , width fill
             ]
     in
@@ -203,8 +212,8 @@ heading { level, rawText, children } =
             Block.H1 ->
                 paragraph
                     (attrs
-                        ++ [ Background.color grayFont
-                           , Font.color (rgb255 255 87 87)
+                        ++ [ Background.color colors.largeHeaderBackground
+                           , Font.color colors.largeHeaderFont
                            , Font.center
                            , centerX
                            , centerY
@@ -221,8 +230,8 @@ heading { level, rawText, children } =
             Block.H2 ->
                 paragraph
                     (attrs
-                        ++ [ Background.color (rgb255 255 87 87)
-                           , Font.color (rgb255 255 255 255)
+                        ++ [ Background.color colors.mediumHeaderBackground
+                           , Font.color colors.mediumHeaderFont
                            , paddingXY 10 15
                            , Font.size 36
                            ]

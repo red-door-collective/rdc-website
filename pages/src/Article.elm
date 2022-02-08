@@ -63,7 +63,7 @@ type alias ArticleMetadata =
     , description : String
     , published : Date
     , image : Url
-    , author : String
+    , authors : List String
     , draft : Bool
     }
 
@@ -87,7 +87,7 @@ frontmatterDecoder =
             )
         )
         (OptimizedDecoder.field "image" imageDecoder)
-        (OptimizedDecoder.field "author" OptimizedDecoder.string)
+        (OptimizedDecoder.field "authors" (OptimizedDecoder.list OptimizedDecoder.string))
         (OptimizedDecoder.field "draft" OptimizedDecoder.bool
             |> OptimizedDecoder.maybe
             |> OptimizedDecoder.map (Maybe.withDefault False)

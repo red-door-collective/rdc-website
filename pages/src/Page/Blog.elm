@@ -142,10 +142,17 @@ blogTile model index ( route, info ) =
                 , paragraph
                     [ Font.size 17 ]
                     [ text info.description ]
-                , paragraph
-                    [ Font.size 14
-                    ]
-                    [ text (info.author ++ " - " ++ (info.published |> Date.format "MMMM ddd, yyyy")) ]
+                , textColumn [ width fill, spacing 5 ]
+                    (info.authors
+                        |> List.indexedMap
+                            (\i author ->
+                                if i == (List.length info.authors - 1) then
+                                    viewAuthor (Just info.published) author
+
+                                else
+                                    viewAuthor Nothing author
+                            )
+                    )
                 ]
             ]
         ]
@@ -253,6 +260,21 @@ link route attrs children =
         route
 
 
+viewAuthor published author =
+    paragraph [ Font.size 14 ]
+        [ text
+            (author
+                ++ (case published of
+                        Just publishedAt ->
+                            " - " ++ (publishedAt |> Date.format "MMMM ddd, yyyy")
+
+                        Nothing ->
+                            ""
+                   )
+            )
+        ]
+
+
 blogCard : Model -> Int -> ( Route, Article.ArticleMetadata ) -> Element Msg
 blogCard model index ( route, info ) =
     let
@@ -310,10 +332,17 @@ blogCard model index ( route, info ) =
                 , paragraph
                     [ Font.size 17 ]
                     [ text info.description ]
-                , paragraph
-                    [ Font.size 14
-                    ]
-                    [ text (info.author ++ " - " ++ (info.published |> Date.format "MMMM ddd, yyyy")) ]
+                , textColumn [ width fill, spacing 5 ]
+                    (info.authors
+                        |> List.indexedMap
+                            (\i author ->
+                                if i == (List.length info.authors - 1) then
+                                    viewAuthor (Just info.published) author
+
+                                else
+                                    viewAuthor Nothing author
+                            )
+                    )
                 ]
             ]
         ]

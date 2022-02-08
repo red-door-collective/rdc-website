@@ -1,4 +1,4 @@
-module Data.Author exposing (Author, greg, jack, redDoor)
+module Data.Author exposing (Author, greg, jack, kathryn, redDoor)
 
 import Cloudinary
 import Pages.Url exposing (Url)
@@ -24,6 +24,14 @@ jack =
     { name = "Jack Marr"
     , avatar = Cloudinary.urlSquare "avatars/jack-avatar.jpg" Nothing 140
     , bio = "Organizer in Red Door Collective. Data expert."
+    }
+
+
+kathryn : Author
+kathryn =
+    { name = "Kathryn Brown"
+    , avatar = Cloudinary.urlSquare "avatars/kathryn-avatar.jpg" Nothing 140
+    , bio = "Organizer in Red Door Collective. Public health correspondent."
     }
 
 

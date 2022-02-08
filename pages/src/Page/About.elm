@@ -119,7 +119,7 @@ view maybeUrl sharedModel static =
 
 
 elmUiRenderer =
-    MarkdownRenderer.renderer
+    MarkdownRenderer.renderer Nothing
 
 
 viewAlignLeft : List (Element msg) -> Element msg

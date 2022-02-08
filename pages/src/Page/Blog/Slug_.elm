@@ -2,6 +2,7 @@ module Page.Blog.Slug_ exposing (Data, Model, Msg, page)
 
 import Article
 import Cloudinary
+import Colors
 import Data.Author as Author
 import DataSource exposing (DataSource)
 import Date exposing (Date)
@@ -10,7 +11,7 @@ import Element.Font as Font
 import Head
 import Head.Seo as Seo
 import Html
-import Html.Attributes as Attr
+import Html.Attributes as Attrs exposing (id)
 import Markdown.Html
 import MarkdownCodec
 import MarkdownRenderer
@@ -22,6 +23,7 @@ import Path
 import Shared
 import Site
 import StructuredData
+import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import View exposing (View)
 
 
@@ -58,61 +60,135 @@ routes =
             )
 
 
+authorFromString str =
+    case str of
+        "Greg Ziegan" ->
+            Author.greg
+
+        "Jack Marr" ->
+            Author.jack
+
+        "Kathryn Brown" ->
+            Author.kathryn
+
+        _ ->
+            Author.redDoor
+
+
+viewDesktop cfg static =
+    let
+        authors =
+            List.map authorFromString static.data.metadata.authors
+    in
+    column
+        [ width (fill |> minimum 300 |> maximum 750)
+        , centerX
+        , spacing 10
+        , paddingXY 0 10
+        ]
+        [ row
+            [ width fill
+            , padding 10
+            , spacing 20
+            ]
+            (List.map
+                (\author ->
+                    column [ centerX ] [ authorView (List.length authors == 1) author static.data ]
+                )
+                authors
+            )
+        , if List.length authors > 1 then
+            row [ width fill, Font.center ] [ viewDate static.data.metadata.published ]
+
+          else
+            Element.none
+        , row
+            [ width fill ]
+            [ textColumn [ width fill ] static.data.body
+            ]
+        ]
+
+
+viewMobile cfg static =
+    let
+        authors =
+            List.map authorFromString static.data.metadata.authors
+    in
+    column
+        [ width (fill |> minimum 300 |> maximum 750)
+        , centerX
+        , spacing 10
+        , paddingXY 0 10
+        ]
+        [ column
+            [ width fill
+            , padding 10
+            , spacing 20
+            ]
+            (List.map
+                (\author ->
+                    row [ centerX ] [ authorView (List.length authors == 1) author static.data ]
+                )
+                authors
+            )
+        , if List.length authors > 1 then
+            row [ width fill, Font.center ] [ viewDate static.data.metadata.published ]
+
+          else
+            Element.none
+        , row
+            [ width fill ]
+            [ textColumn [ width fill ] static.data.body
+            ]
+        ]
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel static =
+    let
+        cfg =
+            sharedModel.renderConfig
+    in
     { title = static.data.metadata.title
     , body =
-        let
-            author =
-                case static.data.metadata.author of
-                    "Greg Ziegan" ->
-                        Author.greg
+        [ Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
+            (if RenderConfig.isPortrait cfg then
+                viewMobile cfg static
 
-                    "Jack Marr" ->
-                        Author.jack
-
-                    _ ->
-                        Author.redDoor
-        in
-        [ column
-            [ width (fill |> minimum 300 |> maximum 750)
-            , centerX
-            , spacing 10
-            , paddingXY 0 10
-            ]
-            [ row
-                [ width fill
-                , padding 10
-                , spacing 10
-                ]
-                [ column [ centerX ] [ authorView author static.data ]
-                ]
-            , row
-                [ width fill ]
-                [ textColumn [ width fill ] static.data.body
-                ]
-            ]
+             else
+                viewDesktop (RenderConfig.init { width = 800, height = 375 } RenderConfig.localeEnglish) static
+            )
+        , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-desktop") ]
+            (viewDesktop cfg static)
         ]
     }
 
 
-authorView author static =
+viewDate date =
+    paragraph [ Font.color (rgb255 75 75 75) ] [ text (date |> Date.format "MMMM ddd, yyyy") ]
+
+
+authorView withDate author static =
     row [ width fill, spacing 10 ]
         [ Html.img
-            [ Attr.src (author.avatar |> Pages.Url.toString)
-            , Attr.style "border-radius" "50%"
-            , Attr.style "max-width" "75px"
+            [ Attrs.src (author.avatar |> Pages.Url.toString)
+            , Attrs.style "border-radius" "50%"
+            , Attrs.style "max-width" "75px"
             ]
             []
             |> Element.html
             |> Element.el []
         , textColumn [ width fill, spacing 10 ]
             [ paragraph [ Font.bold ] [ text author.name ]
-            , paragraph [ Font.color (rgb255 75 75 75) ] [ text (static.metadata.published |> Date.format "MMMM ddd, yyyy") ]
+            , if withDate then
+                viewDate static.metadata.published
+
+              else
+                Element.none
             ]
         ]
 
@@ -172,8 +248,8 @@ type alias Data =
     }
 
 
-elmUiRenderer =
-    MarkdownRenderer.renderer
+elmUiRenderer colors =
+    MarkdownRenderer.renderer colors
 
 
 viewAlignLeft : List (Element msg) -> Element msg
@@ -273,8 +349,27 @@ viewLegend title =
         ]
 
 
-blogRenderer =
-    { elmUiRenderer
+blogRenderer params =
+    let
+        defaultColors =
+            Colors.default
+
+        colors =
+            if "high-cost-of-capitalism" == Debug.log "slug" params.slug then
+                Just
+                    { defaultColors
+                        | mediumHeaderBackground = rgb255 255 235 0
+                        , mediumHeaderFont = rgb255 0 0 0
+                        , smallHeaderFont = rgb255 0 0 0
+                    }
+
+            else
+                Nothing
+
+        customRenderer =
+            elmUiRenderer colors
+    in
+    { customRenderer
         | html =
             Markdown.Html.oneOf
                 [ Markdown.Html.tag "legend"
@@ -320,14 +415,14 @@ data : RouteParams -> DataSource Data
 data route =
     MarkdownCodec.withFrontmatter Data
         frontmatterDecoder
-        blogRenderer
+        (blogRenderer route)
         ("content/blog/" ++ route.slug ++ ".md")
 
 
 type alias ArticleMetadata =
     { title : String
     , description : String
-    , author : String
+    , authors : List String
     , published : Date
     , image : Pages.Url.Url
     , draft : Bool
@@ -339,7 +434,7 @@ frontmatterDecoder =
     OptimizedDecoder.map6 ArticleMetadata
         (OptimizedDecoder.field "title" OptimizedDecoder.string)
         (OptimizedDecoder.field "description" OptimizedDecoder.string)
-        (OptimizedDecoder.field "author" OptimizedDecoder.string)
+        (OptimizedDecoder.field "authors" (OptimizedDecoder.list OptimizedDecoder.string))
         (OptimizedDecoder.field "published"
             (OptimizedDecoder.string
                 |> OptimizedDecoder.andThen
