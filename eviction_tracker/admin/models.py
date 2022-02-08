@@ -46,7 +46,7 @@ class User(db.Model, UserMixin):
     fs_uniquifier = Column(db.String(255), unique=True, nullable=False)
     confirmed_at = Column(db.DateTime())
     preferred_navigation_id = Column(
-        db.Integer, nullable=False, server_default='0')
+        db.Integer, nullable=False, server_default='0', default=0)
 
     roles = relationship('Role',
                          secondary=roles_users,
@@ -71,8 +71,8 @@ class User(db.Model, UserMixin):
         return navigation_by_id[self.preferred_navigation_id] if self.preferred_navigation_id is not None else None
 
     @preferred_navigation.setter
-    def preferred_navigation(self, option):
-        self.preferred_navigation_id = option and User.navigation_options[option]
+    def preferred_navigation(self, option='REMAIN'):
+        self.preferred_navigation_id = User.navigation_options[option]
 
     def __repr__(self):
         return f"<User(name='{self.name}', email='{self.email}')>"

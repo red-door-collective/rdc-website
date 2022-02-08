@@ -143,7 +143,7 @@ type Msg
     = InputName (Maybe String)
     | InputAliases (Maybe String)
     | ForTable (Stateful.Msg Plaintiff)
-    | GotAttorneys (Result Http.Error (Rest.Collection Plaintiff))
+    | GotAttorneys (Result Rest.HttpError (Rest.Collection Plaintiff))
     | NoOp
 
 

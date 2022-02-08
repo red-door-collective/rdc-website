@@ -14,6 +14,7 @@
             "NoRedInk/elm-json-decode-pipeline": "1.0.1",
             "NoRedInk/elm-rollbar": "2.0.1",
             "PaackEng/paack-ui": "7.11.0",
+            "SiriusStarr/elm-password-strength": "1.0.2",
             "avh4/elm-color": "1.0.0",
             "cuducos/elm-format-number": "8.1.4",
             "danyx23/elm-mimetype": "4.0.1",

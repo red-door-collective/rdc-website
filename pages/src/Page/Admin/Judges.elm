@@ -144,7 +144,7 @@ type Msg
     = InputName (Maybe String)
     | InputAliases (Maybe String)
     | ForTable (Stateful.Msg Judge)
-    | GotJudges (Result Http.Error (Rest.Collection Judge))
+    | GotJudges (Result Rest.HttpError (Rest.Collection Judge))
     | NoOp
 
 

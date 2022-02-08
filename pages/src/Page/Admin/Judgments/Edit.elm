@@ -282,10 +282,10 @@ getJudgment domain id maybeCred =
 
 
 type Msg
-    = GotJudgment (Result Http.Error (Rest.Item Judgment))
-    | GotPlaintiffs (Result Http.Error (Rest.Collection Plaintiff))
-    | GotAttorneys (Result Http.Error (Rest.Collection Attorney))
-    | GotJudges (Result Http.Error (Rest.Collection Attorney))
+    = GotJudgment (Result Rest.HttpError (Rest.Item Judgment))
+    | GotPlaintiffs (Result Rest.HttpError (Rest.Collection Plaintiff))
+    | GotAttorneys (Result Rest.HttpError (Rest.Collection Attorney))
+    | GotJudges (Result Rest.HttpError (Rest.Collection Attorney))
     | CloseTooltip
     | PickedConditions (Maybe (Maybe ConditionOption))
     | ConditionsDropdownMsg (Dropdown.Msg (Maybe ConditionOption))
@@ -306,7 +306,7 @@ type Msg
     | ToggleOpenDocument
     | SubmitForm
     | SubmitAndAddAnother
-    | UpdatedJudgment (Result Http.Error (Rest.Item Judgment))
+    | UpdatedJudgment (Result Rest.HttpError (Rest.Item Judgment))
     | NoOp
 
 

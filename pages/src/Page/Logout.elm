@@ -23,7 +23,7 @@ type alias Model =
 
 
 type Msg
-    = GotLogout (Result Http.Error ())
+    = GotLogout (Result Rest.HttpError ())
     | NoOp
 
 

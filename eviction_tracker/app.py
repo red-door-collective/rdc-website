@@ -1,7 +1,9 @@
 import flask
-from flask import g, send_file, jsonify, Flask, request, redirect
-from flask_security import hash_password, auth_token_required
-from eviction_tracker.extensions import cors, db, mail, marshmallow, migrate, api, login_manager, security
+from flask import g, send_file, jsonify, Flask, request, redirect, current_app
+from flask_security import hash_password, auth_token_required, send_mail
+from flask_security.confirmable import generate_confirmation_link
+from flask_security.utils import config_value
+from eviction_tracker.extensions import cors, db, mail, marshmallow, csrf, migrate, api, login_manager, security
 from eviction_tracker.admin.models import User, user_datastore
 import os
 import time
@@ -16,7 +18,6 @@ from datetime import datetime, date, timedelta
 from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
 from collections import OrderedDict
-import flask_wtf
 from flask_security import current_user
 from flask_apscheduler import APScheduler
 from datadog import initialize, statsd
@@ -56,6 +57,14 @@ security_config = dict(
     SECURITY_RESET_ERROR_VIEW="/reset-password",
     SECURITY_REDIRECT_BEHAVIOR="spa",
 
+    # Features
+    SECURITY_RECOVERABLE=True,
+    SECURITY_TRACKABLE=True,
+    SECURITY_CHANGEABLE=True,
+    SECURITY_CONFIRMABLE=True,
+
+    SECURITY_AUTO_LOGIN_AFTER_CONFIRM=False,
+
     # CSRF protection is critical for all session-based browser UIs
     # enforce CSRF protection for session / browser - but allow token-based
     # API calls to go through
@@ -63,7 +72,8 @@ security_config = dict(
     SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS=True,
     SECURITY_CSRF_COOKIE={"key": "XSRF-TOKEN"},
     WTF_CSRF_CHECK_DEFAULT=False,
-    WTF_CSRF_TIME_LIMIT=None
+    WTF_CSRF_TIME_LIMIT=None,
+    SECURITY_REDIRECT_HOST='localhost:1234'
 )
 
 
@@ -301,7 +311,7 @@ def register_extensions(app):
     login_manager.login_view = None
     security.init_app(app, user_datastore)
     cors.init_app(app)
-    flask_wtf.CSRFProtect(app)
+    csrf.init_app(app)
     mail.init_app(app)
 
     api.add_resource('/attorneys/', detainer_warrants.views.AttorneyListResource,
@@ -519,10 +529,62 @@ def register_extensions(app):
         thread.start()
         return jsonify(task.to_json())
 
+    @app.route('/api/v1/accounts/register', methods=['POST'])
+    def register():
+        data = request.get_json()
+        email = data['email']
+        user_exists = db.session.query(User).filter_by(email=email).first()
+        if user_exists:
+            return jsonify({
+                'errors': [
+                    {'code': 409,
+                     'title': 'Email taken',
+                     'details': email + ' is already associated with another user.'
+                     }
+                ]
+            }), 409
+
+        else:
+            user = register_user(dict(
+                email=email,
+                password=data['password'],
+                first_name=data['first_name'],
+                last_name=data['last_name']))
+            return jsonify(admin.serializers.user_schema.dump(user))
+
     @app.route('/api/v1/current-user')
     @auth_token_required
     def me():
         return admin.serializers.user_schema.dump(current_user)
+
+
+def register_user(user_model_kwargs):
+    user_model_kwargs["password"] = hash_password(
+        user_model_kwargs["password"])
+    user = user_datastore.create_user(**user_model_kwargs)
+    db.session.commit()
+
+    confirmation_link, token = generate_confirmation_link(user)
+
+    from flask_security.signals import user_registered
+
+    user_registered.send(
+        current_app._get_current_object(),
+        user=user,
+        confirm_token=token,
+        form_data=user_model_kwargs
+    )
+
+    if config_value("SEND_REGISTER_EMAIL"):
+        send_mail(
+            config_value("EMAIL_SUBJECT_REGISTER"),
+            user.email,
+            "welcome",
+            user=user,
+            confirmation_link=confirmation_link,
+        )
+
+    return user
 
 
 def register_shellcontext(app):

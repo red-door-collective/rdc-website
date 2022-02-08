@@ -1,5 +1,6 @@
 module Page.Admin.DetainerWarrants exposing (Data, Model, Msg, page)
 
+import Alert exposing (Alert)
 import Browser.Navigation as Nav
 import Color
 import DataSource exposing (DataSource)
@@ -33,6 +34,7 @@ import Search exposing (Cursor(..), Search)
 import Session exposing (Session)
 import Shared
 import Sprite
+import Svg.Attributes exposing (type_)
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
 import UI.Alert as Alert
@@ -49,13 +51,6 @@ import UI.Utils.TypeNumbers as T
 import Url.Builder
 import User exposing (User)
 import View exposing (View)
-
-
-type alias Alert =
-    { openedAt : Posix
-    , lifetimeInSeconds : Maybe Int
-    , text : String
-    }
 
 
 type alias Model =
@@ -178,14 +173,14 @@ type Msg
     | InputPlaintiffAttorney (Maybe String)
     | InputAddress (Maybe String)
     | ForTable (Stateful.Msg DetainerWarrant)
-    | GotWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
+    | GotWarrants (Result Rest.HttpError (Rest.Collection DetainerWarrant))
     | InfiniteScrollMsg InfiniteScroll.Msg
     | InputFreeTextSearch String
     | OnFreeTextSearch
     | Export
-    | ExportStarted (Result Http.Error BackendTask)
+    | ExportStarted (Result Rest.HttpError BackendTask)
     | ExportToSheets
-    | ExportToSheetsStarted (Result Http.Error ())
+    | ExportToSheetsStarted (Result Rest.HttpError ())
     | RemoveAlert Posix
     | NoOp
 
@@ -255,6 +250,15 @@ update :
     -> Model
     -> ( Model, Cmd Msg )
 update pageUrl navKey sharedModel static msg model =
+    case sharedModel.profile of
+        Just (Success profile) ->
+            updatePage profile sharedModel static msg model
+
+        _ ->
+            ( model, Cmd.none )
+
+
+updatePage profile sharedModel static msg model =
     let
         rollbar =
             Log.reporting static.sharedData.runtime
@@ -375,10 +379,10 @@ update pageUrl navKey sharedModel static msg model =
                 | exportStatus = Just backendTask
                 , alert =
                     Just
-                        { openedAt = backendTask.startedAt
-                        , lifetimeInSeconds = Nothing
-                        , text = "An email with all eviction data will soon be sent to " ++ (RemoteData.withDefault "" <| RemoteData.map .email <| sharedModel.profile)
-                        }
+                        (Alert.sticky <|
+                            "An email with all eviction data will soon be sent to "
+                                ++ profile.email
+                        )
               }
             , Cmd.none
             )
@@ -477,7 +481,7 @@ viewDesktop cfg profile model =
         [ case model.alert of
             Just alert ->
                 Alert.success
-                    alert.text
+                    (Alert.text alert)
                     |> Alert.withGenericIcon
                     |> Alert.renderElement cfg
 
@@ -571,13 +575,13 @@ view maybeUrl sharedModel model static =
     { title = title
     , body =
         case sharedModel.profile of
-            NotAsked ->
+            Just NotAsked ->
                 [ text "Refresh the page." ]
 
-            Loading ->
+            Just Loading ->
                 [ text "Loading" ]
 
-            Success profile ->
+            Just (Success profile) ->
                 [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
                 , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
                     (if RenderConfig.isPortrait cfg then
@@ -590,8 +594,11 @@ view maybeUrl sharedModel model static =
                     (viewDesktop cfg profile model)
                 ]
 
-            Failure _ ->
+            Just (Failure _) ->
                 [ text "Something went wrong." ]
+
+            Nothing ->
+                [ text "Page Not Found" ]
     }
 
 
@@ -674,10 +681,7 @@ viewWarrants cfg profile model =
 
 subscriptions : Maybe PageUrl -> RouteParams -> Path -> Model -> Sub Msg
 subscriptions pageUrl params path model =
-    model.alert
-        |> Maybe.andThen .lifetimeInSeconds
-        |> Maybe.map (\seconds -> Time.every (toFloat seconds * 1000) RemoveAlert)
-        |> Maybe.withDefault Sub.none
+    Sub.none
 
 
 type alias RouteParams =

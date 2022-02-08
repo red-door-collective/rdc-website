@@ -168,14 +168,14 @@ getPlaintiff domain id maybeCred =
 
 
 type Msg
-    = GotPlaintiff (Result Http.Error (Rest.Item Plaintiff))
+    = GotPlaintiff (Result Rest.HttpError (Rest.Item Plaintiff))
     | ChangeTooltip Tooltip
     | CloseTooltip
     | ChangedName String
     | ChangedAliases MultiInput.Msg
     | SubmitForm
     | SubmitAndAddAnother
-    | CreatedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
+    | CreatedPlaintiff (Result Rest.HttpError (Rest.Item Plaintiff))
     | NoOp
 
 
@@ -216,7 +216,7 @@ updateFormNarrow transform model =
     )
 
 
-savingError : Http.Error -> Model -> Model
+savingError : Rest.HttpError -> Model -> Model
 savingError httpError model =
     let
         problems =

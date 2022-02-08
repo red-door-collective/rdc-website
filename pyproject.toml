@@ -43,6 +43,7 @@ pillow = "^9.0.0"
 pytesseract = "^0.3.8"
 flask-log-request-id = "^0.10.1"
 Flask-Mail = "^0.9.1"
+Flask-WTF = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 autopep8 = "^1.5.7"

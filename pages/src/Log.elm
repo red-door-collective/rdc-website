@@ -1,14 +1,15 @@
 module Log exposing (error, httpErrorMessage, reporting)
 
 import Dict
-import Http exposing (Error(..))
+import Http
+import Rest exposing (HttpError(..))
 import Rollbar exposing (Rollbar)
 import Runtime exposing (Runtime)
 import Task
 import Uuid exposing (Uuid)
 
 
-httpErrorMessage : Http.Error -> String
+httpErrorMessage : Rest.HttpError -> String
 httpErrorMessage httpError =
     case httpError of
         BadUrl url ->
@@ -20,11 +21,11 @@ httpErrorMessage httpError =
         NetworkError ->
             "Network Error"
 
-        BadStatus statusCode ->
-            "Bad HTTP Status: Code " ++ String.fromInt statusCode
+        BadStatus metadata _ ->
+            "Bad HTTP Status: Code " ++ String.fromInt metadata.statusCode
 
-        BadBody badBody ->
-            "Bad HTTP Body: " ++ badBody
+        BadBody _ errors ->
+            "Bad HTTP Body: " ++ (String.join "\n" <| List.map Rest.errorToString errors)
 
 
 reporting : Runtime -> Rollbar
@@ -36,6 +37,6 @@ reporting { rollbarToken, environment, codeVersion } =
         "eviction-tracker"
 
 
-error : Rollbar -> (Result Error Uuid -> msg) -> String -> Cmd msg
+error : Rollbar -> (Result Http.Error Uuid -> msg) -> String -> Cmd msg
 error rollbar toMsg report =
     Task.attempt toMsg (rollbar.error report Dict.empty)
