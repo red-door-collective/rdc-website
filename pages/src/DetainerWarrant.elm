@@ -1,4 +1,4 @@
-module DetainerWarrant exposing (Description, DetainerWarrant, DetainerWarrantEdit, Status(..), auditStatusName, auditStatusOptions, auditStatusText, decoder, description, mostRecentCourtDate, statusHumanReadable, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
+module DetainerWarrant exposing (AuditStatus(..), Description, DetainerWarrant, DetainerWarrantEdit, Status(..), auditStatusName, auditStatusOptions, auditStatusText, decoder, description, mostRecentCourtDate, statusHumanReadable, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
 
 import Attorney exposing (Attorney)
 import Element exposing (Attribute, Element, fill, rgb255, width)

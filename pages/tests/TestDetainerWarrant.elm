@@ -1,6 +1,6 @@
 module TestDetainerWarrant exposing (..)
 
-import DetainerWarrant exposing (DetainerWarrant, Status(..))
+import DetainerWarrant exposing (AuditStatus(..), DetainerWarrant, Status(..))
 import Expect
 import Json.Decode as Decode
 import PleadingDocument
@@ -43,7 +43,8 @@ minimalJson =
         "plaintiff": null,
         "plaintiff_attorney": null,
         "status": null,
-        "updated_at": 1634569282000
+        "updated_at": 1634569282000,
+        "audit_status": null
     }
     """
 
@@ -64,6 +65,7 @@ minimalDetainer =
     , status = Nothing
     , notes = Nothing
     , document = Nothing
+    , auditStatus = Nothing
     }
 
 
@@ -108,7 +110,8 @@ maximumJson =
         "plaintiff": null,
         "plaintiff_attorney": null,
         "status": "PENDING",
-        "updated_at": 1634569282000
+        "updated_at": 1634569282000,
+        "audit_status": "CONFIRMED"
     }
     """
 
@@ -143,6 +146,7 @@ maximumDetainer =
                 , fragment = Nothing
                 }
             }
+    , auditStatus = Just Confirmed
     }
 
 
