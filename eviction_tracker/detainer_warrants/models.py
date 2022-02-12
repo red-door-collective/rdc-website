@@ -791,6 +791,12 @@ class DetainerWarrant(Case):
         'SATURDAY': 6
     }
 
+    audit_statuses = {
+        'CONFIRMED': 0,
+        'ADDRESS_CONFIRMED': 1,
+        'JUDGMENT_CONFIRMED': 2,
+    }
+
     address = Column(db.String(255))
     court_date_recurring_id = Column(db.Integer)
     amount_claimed = Column(db.Numeric(scale=2))  # USD
@@ -806,6 +812,7 @@ class DetainerWarrant(Case):
     pleading_document_check_was_successful = Column(db.Boolean)
     pleading_document_check_mismatched_html = Column(db.Text)
     last_edited_by_id = Column(db.Integer, db.ForeignKey('user.id'))
+    audit_status_id = Column(db.Integer)
 
     document = relationship(
         'PleadingDocument', foreign_keys=document_url
@@ -821,6 +828,24 @@ class DetainerWarrant(Case):
                                        back_populates='potential_detainer_warrants',
                                        cascade="all, delete",
                                        )
+
+    @hybrid_property
+    def audit_status(self):
+        status_by_id = {v: k for k,
+                        v in DetainerWarrant.audit_statuses.items()}
+        return status_by_id[self.audit_status_id] if self.audit_status_id is not None else None
+
+    @audit_status.setter
+    def audit_status(self, name):
+        self.audit_status_id = DetainerWarrant.audit_statuses[name] if name else None
+
+    @audit_status.expression
+    def audit_status(cls):
+        return case([
+            (cls.audit_status_id == 0, 'CONFIRMED'),
+            (cls.audit_status_id == 1, 'ADDRESS_CONFIRMED'),
+            (cls.audit_status_id == 2, 'JUDGMENT_CONFIRMED')
+        ], else_=None).label("audit_status")
 
     canvass_attempts = relationship(
         'CanvassEvent', secondary=canvass_warrants, back_populates='warrants', cascade="all, delete")
