@@ -73,7 +73,7 @@ security_config = dict(
     SECURITY_CSRF_COOKIE={"key": "XSRF-TOKEN"},
     WTF_CSRF_CHECK_DEFAULT=False,
     WTF_CSRF_TIME_LIMIT=None,
-    SECURITY_REDIRECT_HOST='localhost:1234'
+    SECURITY_REDIRECT_HOST=os.environ['SECURITY_REDIRECT_HOST']
 )
 
 
