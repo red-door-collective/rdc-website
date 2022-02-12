@@ -377,7 +377,8 @@ class DetainerWarrantResourceBase(GenericModelView):
         plaintiff=filter_plaintiff_name,
         plaintiff_attorney=filter_plaintiff_attorney_name,
         address=filter_address,
-        free_text=filter_any_field
+        free_text=filter_any_field,
+        audit_status=operator.eq
     )
 
 

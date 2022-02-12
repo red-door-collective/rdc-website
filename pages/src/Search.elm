@@ -22,6 +22,7 @@ type alias DetainerWarrants =
     , plaintiffAttorney : Maybe String
     , defendantId : Maybe Int
     , address : Maybe String
+    , auditStatus : Maybe String
     , freeText : Maybe String
     }
 
@@ -73,6 +74,7 @@ detainerWarrantsDefault =
     , plaintiffAttorney = Nothing
     , defendantId = Nothing
     , address = Nothing
+    , auditStatus = Nothing
     , freeText = Nothing
     }
 
@@ -136,6 +138,7 @@ dwFromString str =
     , plaintiffAttorney = Dict.get "plaintiff_attorney" params |> Maybe.andThen List.head
     , defendantId = Dict.get "defendant_id" params |> Maybe.andThen List.head |> Maybe.andThen String.toInt
     , address = Dict.get "address" params |> Maybe.andThen List.head
+    , auditStatus = Dict.get "audit_status" params |> Maybe.andThen List.head
     , freeText = Dict.get "free_text" params |> Maybe.andThen List.head
     }
 
@@ -213,6 +216,7 @@ detainerWarrantsArgs filters =
         ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
         ++ toPair "defendant_id" (Maybe.map String.fromInt filters.defendantId)
         ++ toPair "address" filters.address
+        ++ toPair "audit_status" filters.auditStatus
         ++ toPair "free_text" filters.freeText
 
 
@@ -232,6 +236,7 @@ detainerWarrantsFilterArgs filters =
         ++ toPair "plaintiff_attorney" filters.plaintiffAttorney
         ++ toPair "defendant_name" (Maybe.map String.fromInt filters.defendantId)
         ++ toPair "address" filters.address
+        ++ toPair "audit_status" filters.auditStatus
         ++ toPair "free_text" filters.freeText
 
 

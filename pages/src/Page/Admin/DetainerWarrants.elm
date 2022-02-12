@@ -44,7 +44,7 @@ import UI.Icon as Icon
 import UI.Link as Link
 import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import UI.Size
-import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteRangeDateFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
+import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteRangeDateFilter, remoteSelectFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
 import UI.TextField as TextField
 import UI.Utils.DateInput exposing (DateInput, RangeDate)
 import UI.Utils.TypeNumbers as T
@@ -58,7 +58,7 @@ type alias Model =
     , selected : Maybe String
     , hovered : Maybe String
     , search : Search Search.DetainerWarrants
-    , tableState : Stateful.State Msg DetainerWarrant T.Seven
+    , tableState : Stateful.State Msg DetainerWarrant T.Eight
     , infiniteScroll : InfiniteScroll.Model Msg
     , exportStatus : Maybe BackendTask
     , alert : Maybe Alert
@@ -172,6 +172,7 @@ type Msg
     | InputPlaintiff (Maybe String)
     | InputPlaintiffAttorney (Maybe String)
     | InputAddress (Maybe String)
+    | SelectAuditStatus (Maybe Int)
     | ForTable (Stateful.Msg DetainerWarrant)
     | GotWarrants (Result Rest.HttpError (Rest.Collection DetainerWarrant))
     | InfiniteScrollMsg InfiniteScroll.Msg
@@ -298,6 +299,25 @@ updatePage profile sharedModel static msg model =
 
         InputAddress query ->
             updateFiltersAndReload domain session (\filters -> { filters | address = query }) model
+
+        SelectAuditStatus maybeIndex ->
+            updateFiltersAndReload domain
+                session
+                (\filters ->
+                    { filters
+                        | auditStatus =
+                            case maybeIndex of
+                                Just index ->
+                                    DetainerWarrant.auditStatusOptions
+                                        |> List.drop index
+                                        |> List.head
+                                        |> Maybe.andThen (Maybe.map DetainerWarrant.auditStatusText)
+
+                                Nothing ->
+                                    Nothing
+                    }
+                )
+                model
 
         ForTable subMsg ->
             let
@@ -639,7 +659,7 @@ viewEditButton profile warrant =
         |> Button.withSize UI.Size.small
 
 
-searchFilters : Search.DetainerWarrants -> Filters Msg DetainerWarrant T.Seven
+searchFilters : Search.DetainerWarrants -> Filters Msg DetainerWarrant T.Eight
 searchFilters filters =
     filtersEmpty
         |> remoteSingleTextFilter filters.docketId InputDocketId
@@ -648,10 +668,11 @@ searchFilters filters =
         |> remoteSingleTextFilter filters.plaintiff InputPlaintiff
         |> remoteSingleTextFilter filters.plaintiffAttorney InputPlaintiffAttorney
         |> remoteSingleTextFilter filters.address InputAddress
+        |> remoteSelectFilter (List.map (Maybe.withDefault "Not Audited" << Maybe.map DetainerWarrant.auditStatusName) DetainerWarrant.auditStatusOptions) Nothing SelectAuditStatus
         |> localSingleTextFilter Nothing .docketId
 
 
-sortersInit : Sorters DetainerWarrant T.Seven
+sortersInit : Sorters DetainerWarrant T.Eight
 sortersInit =
     sortersEmpty
         |> sortBy .docketId
@@ -661,6 +682,7 @@ sortersInit =
         |> sortBy (Maybe.withDefault "" << Maybe.map .name << .plaintiffAttorney)
         |> sortBy (Maybe.withDefault "" << .address)
         |> unsortable
+        |> unsortable
 
 
 viewWarrants : RenderConfig -> User -> Model -> Element Msg
@@ -668,7 +690,7 @@ viewWarrants cfg profile model =
     Stateful.table
         { toExternalMsg = ForTable
         , columns = DetainerWarrant.tableColumns
-        , toRow = DetainerWarrant.toTableRow (viewEditButton profile)
+        , toRow = DetainerWarrant.toTableRow cfg (viewEditButton profile)
         , state = model.tableState
         }
         |> Stateful.withResponsive

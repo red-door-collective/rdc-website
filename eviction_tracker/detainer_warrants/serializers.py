@@ -146,13 +146,14 @@ class DetainerWarrantSchema(Schema):
     is_legacy = fields.Bool(allow_none=True)
     nonpayment = fields.Bool(allow_none=True)
     notes = fields.String(allow_none=True)
+    audit_status = fields.String(allow_none=True)
     created_at = fields.Int()
     updated_at = fields.Int()
 
     class Meta:
         fields = ("docket_id", "address", "order_number", "file_date", "status", "court_date", "amount_claimed",
                   "claims_possession", "hearings", "last_edited_by", "plaintiff", "plaintiff_attorney",
-                  "is_legacy", "is_cares", "nonpayment", "notes", "created_at", "updated_at", "document")
+                  "is_legacy", "is_cares", "nonpayment", "notes", "audit_status", "created_at", "updated_at", "document")
 
 
 detainer_warrant_schema = DetainerWarrantSchema()

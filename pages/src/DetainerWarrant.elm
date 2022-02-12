@@ -1,7 +1,10 @@
-module DetainerWarrant exposing (Description, DetainerWarrant, DetainerWarrantEdit, Status(..), decoder, description, mostRecentCourtDate, statusHumanReadable, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
+module DetainerWarrant exposing (Description, DetainerWarrant, DetainerWarrantEdit, Status(..), auditStatusName, auditStatusOptions, auditStatusText, decoder, description, mostRecentCourtDate, statusHumanReadable, statusOptions, statusText, tableColumns, ternaryOptions, toTableCover, toTableDetails, toTableRow)
 
 import Attorney exposing (Attorney)
+import Element exposing (Attribute, Element, fill, rgb255, width)
+import Element.Background
 import Hearing exposing (Hearing)
+import Html.Attributes as HtmlAttrs
 import Json.Decode as Decode exposing (Decoder, bool, float, list, nullable, string)
 import Json.Decode.Pipeline exposing (required)
 import Maybe
@@ -10,15 +13,23 @@ import PleadingDocument exposing (PleadingDocument)
 import Time exposing (Posix)
 import Time.Utils exposing (posixDecoder)
 import UI.Button exposing (Button)
-import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellText, rowEmpty)
+import UI.Icon as Icon
+import UI.RenderConfig exposing (RenderConfig)
+import UI.Tables.Common as Common exposing (Row, cellFromButton, cellFromText, columnWidthPixels, columnsEmpty, rowCellButton, rowCellCustom, rowCellText, rowEmpty)
 import UI.Tables.Stateful exposing (detailShown, detailsEmpty)
-import UI.Text as Text
+import UI.Text as Text exposing (Text)
 import UI.Utils.TypeNumbers as T
 
 
 type Status
     = Closed
     | Pending
+
+
+type AuditStatus
+    = Confirmed
+    | AddressConfirmed
+    | JudgmentConfirmed
 
 
 type alias DetainerWarrant =
@@ -36,6 +47,7 @@ type alias DetainerWarrant =
     , hearings : List Hearing
     , notes : Maybe String
     , document : Maybe PleadingDocument
+    , auditStatus : Maybe AuditStatus
     }
 
 
@@ -149,6 +161,62 @@ statusDecoder =
             )
 
 
+auditStatusFromText : String -> Result String AuditStatus
+auditStatusFromText str =
+    case str of
+        "CONFIRMED" ->
+            Result.Ok Confirmed
+
+        "ADDRESS_CONFIRMED" ->
+            Result.Ok AddressConfirmed
+
+        "JUDGMENT_CONFIRMED" ->
+            Result.Ok JudgmentConfirmed
+
+        _ ->
+            Result.Err "Invalid Audit Status"
+
+
+auditStatusName : AuditStatus -> String
+auditStatusName auditStatus =
+    case auditStatus of
+        Confirmed ->
+            "Confirmed"
+
+        AddressConfirmed ->
+            "Address confirmed"
+
+        JudgmentConfirmed ->
+            "Judgment confirmed"
+
+
+auditStatusText : AuditStatus -> String
+auditStatusText auditStatus =
+    case auditStatus of
+        Confirmed ->
+            "CONFIRMED"
+
+        AddressConfirmed ->
+            "ADDRESS_CONFIRMED"
+
+        JudgmentConfirmed ->
+            "JUDGMENT_CONFIRMED"
+
+
+auditStatusDecoder : Decoder AuditStatus
+auditStatusDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                case auditStatusFromText str of
+                    Ok status ->
+                        Decode.succeed status
+
+                    Err msg ->
+                        Decode.fail msg
+            )
+
+
 decoder : Decoder DetainerWarrant
 decoder =
     Decode.succeed DetainerWarrant
@@ -166,6 +234,7 @@ decoder =
         |> required "hearings" (list Hearing.decoder)
         |> required "notes" (nullable string)
         |> required "document" (nullable PleadingDocument.decoder)
+        |> required "audit_status" (nullable auditStatusDecoder)
 
 
 tableColumns =
@@ -176,12 +245,13 @@ tableColumns =
         |> Common.column "Plaintiff" (columnWidthPixels 240)
         |> Common.column "Pltf. Attorney" (columnWidthPixels 240)
         |> Common.column "Address" (columnWidthPixels 240)
+        |> Common.column "Audit Status" (columnWidthPixels 120)
         |> Common.column "" (columnWidthPixels 100)
 
 
-toTableRow : (DetainerWarrant -> Button msg) -> { toKey : DetainerWarrant -> String, view : DetainerWarrant -> Row msg T.Seven }
-toTableRow toEditButton =
-    { toKey = .docketId, view = toTableRowView toEditButton }
+toTableRow : RenderConfig -> (DetainerWarrant -> Button msg) -> { toKey : DetainerWarrant -> String, view : DetainerWarrant -> Row msg T.Eight }
+toTableRow cfg toEditButton =
+    { toKey = .docketId, view = toTableRowView cfg toEditButton }
 
 
 mostRecentCourtDate : DetainerWarrant -> Maybe Posix
@@ -189,8 +259,54 @@ mostRecentCourtDate warrant =
     Maybe.map .courtDate <| List.head warrant.hearings
 
 
-toTableRowView : (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T.Seven
-toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, address } as warrant) =
+
+-- cellTextAttributes : List (Attribute msg)
+-- cellTextAttributes =
+--     [ Element.width fill
+--     , Element.clipX
+--     , Element.paddingXY 8 0
+--     , Element.centerY
+--     , Element.htmlAttribute <| HtmlAttrs.style "overflow" "visible"
+--     ]
+-- simpleText : RenderConfig -> Text -> Element msg
+-- simpleText renderConfig text =
+--     text
+--         |> Text.withOverflow Text.ellipsizeWithTooltip
+--         |> Text.renderElement renderConfig
+--         |> Element.el cellTextAttributes
+--         |> Element.el
+--             [ Element.width fill
+--             , Element.htmlAttribute <| HtmlAttrs.style "overflow" "visible"
+--             ]
+-- coloredText : RenderConfig -> Text -> Element msg
+-- coloredText cfg text =
+--     Element.el [ width fill, Element.Background.color (rgb255 200 200 200) ] (simpleText cfg text)
+
+
+auditStatusOptions =
+    [ Nothing, Just Confirmed, Just AddressConfirmed, Just JudgmentConfirmed ]
+
+
+auditStatusCell cfg auditStatus =
+    Icon.renderElement cfg <|
+        case auditStatus of
+            Just status ->
+                case status of
+                    Confirmed ->
+                        Icon.checkmark "Fully audited."
+
+                    AddressConfirmed ->
+                        Icon.fixing "Address confirmed, awaiting judgment confirmation."
+
+                    JudgmentConfirmed ->
+                        Icon.fixing "Judgment confirmed, awaiting address confirmation."
+
+            Nothing ->
+                Icon.fix "Needs auditing"
+
+
+toTableRowView : RenderConfig -> (DetainerWarrant -> Button msg) -> DetainerWarrant -> Row msg T.Eight
+toTableRowView cfg toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, address, auditStatus } as warrant) =
     rowEmpty
         |> rowCellText (Text.body2 docketId)
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map Time.Utils.toIsoString fileDate))
@@ -198,10 +314,11 @@ toTableRowView toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney,
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiff))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| Maybe.map .name plaintiffAttorney))
         |> rowCellText (Text.body2 (Maybe.withDefault "" <| address))
+        |> rowCellCustom (auditStatusCell cfg auditStatus)
         |> rowCellButton (toEditButton warrant)
 
 
-toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, address } as warrant) =
+toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney, address, auditStatus } as warrant) =
     detailsEmpty
         |> detailShown
             { label = "Docket ID"
@@ -226,6 +343,10 @@ toTableDetails toEditButton ({ docketId, fileDate, plaintiff, plaintiffAttorney,
         |> detailShown
             { label = "Address"
             , content = cellFromText <| Text.body2 (Maybe.withDefault "" <| address)
+            }
+        |> detailShown
+            { label = "Audit Status"
+            , content = cellFromText <| Text.body2 (Maybe.withDefault "Not audited" <| Maybe.map auditStatusName auditStatus)
             }
         |> detailShown
             { label = "Edit"
