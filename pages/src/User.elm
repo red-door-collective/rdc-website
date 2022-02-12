@@ -1,4 +1,4 @@
-module User exposing (NavigationOnSuccess(..), Permissions(..), Role, User, canViewDefendantInformation, decoder, navigationToText)
+module User exposing (NavigationOnSuccess(..), Permissions(..), Role, User, canViewCourtData, canViewDefendantInformation, databaseHomeUrl, decoder, navigationToText)
 
 import Json.Decode as Decode exposing (Decoder, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (required)
@@ -31,6 +31,22 @@ type alias User =
     , roles : List Role
     , preferredNavigation : NavigationOnSuccess
     }
+
+
+databaseHomeUrl user =
+    if canViewDefendantInformation user then
+        "/admin/detainer-warrants"
+
+    else
+        "/admin/plaintiffs"
+
+
+canViewCourtData : User -> Bool
+canViewCourtData user =
+    user.roles
+        |> List.filter (\role -> List.member role.name [ "Partner", "Organizer", "Admin", "Superuser" ])
+        |> List.head
+        |> (/=) Nothing
 
 
 canViewDefendantInformation : User -> Bool

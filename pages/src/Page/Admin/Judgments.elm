@@ -126,7 +126,7 @@ type Msg
     | InputPlaintiff (Maybe String)
     | InputPlaintiffAttorney (Maybe String)
     | ForTable (Stateful.Msg Judgment)
-    | GotJudgments (Result Http.Error (Rest.Collection Judgment))
+    | GotJudgments (Result Rest.HttpError (Rest.Collection Judgment))
     | InfiniteScrollMsg InfiniteScroll.Msg
     | NoOp
 
@@ -427,13 +427,13 @@ view maybeUrl sharedModel model static =
     { title = title
     , body =
         case sharedModel.profile of
-            NotAsked ->
+            Just NotAsked ->
                 []
 
-            Loading ->
+            Just Loading ->
                 []
 
-            Success profile ->
+            Just (Success profile) ->
                 [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
                 , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
                     (if RenderConfig.isPortrait cfg then
@@ -446,7 +446,10 @@ view maybeUrl sharedModel model static =
                     (viewDesktop cfg profile model)
                 ]
 
-            Failure _ ->
+            Just (Failure _) ->
+                []
+
+            Nothing ->
                 []
     }
 

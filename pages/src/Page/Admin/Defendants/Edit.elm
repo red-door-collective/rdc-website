@@ -168,7 +168,7 @@ getDefendant domain id maybeCred =
 
 
 type Msg
-    = GotDefendant (Result Http.Error (Rest.Item Defendant))
+    = GotDefendant (Result Rest.HttpError (Rest.Item Defendant))
     | ToggleHelp
     | ChangedFirstName String
     | ChangedMiddleName String
@@ -179,7 +179,7 @@ type Msg
     | RemovePhone Int
     | SubmitForm
     | SubmitAndAddAnother
-    | CreatedDefendant (Result Http.Error (Rest.Item Defendant))
+    | CreatedDefendant (Result Rest.HttpError (Rest.Item Defendant))
     | NoOp
 
 
@@ -198,7 +198,7 @@ updateForm transform model =
     )
 
 
-savingError : Http.Error -> Model -> Model
+savingError : Rest.HttpError -> Model -> Model
 savingError httpError model =
     let
         problems =

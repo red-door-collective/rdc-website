@@ -246,7 +246,11 @@ init pageUrl sharedModel static =
       , judges = []
       , courtrooms = []
       , saveState = Done
-      , navigationOnSuccess = RemoteData.withDefault Remain <| RemoteData.map .preferredNavigation sharedModel.profile
+      , navigationOnSuccess =
+            sharedModel.profile
+                |> Maybe.andThen RemoteData.toMaybe
+                |> Maybe.map .preferredNavigation
+                |> Maybe.withDefault Remain
       , showDocument = Nothing
       }
     , Cmd.batch
@@ -267,8 +271,8 @@ getWarrant domain id maybeCred =
 
 
 type Msg
-    = GotDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
-    | GotDetainerWarrants (Result Http.Error (Rest.Collection DetainerWarrant))
+    = GotDetainerWarrant (Result Rest.HttpError (Rest.Item DetainerWarrant))
+    | GotDetainerWarrants (Result Rest.HttpError (Rest.Collection DetainerWarrant))
     | ToggleHelp
     | ChangedDocketId String
     | ChangedFileDatePicker ChangeEvent
@@ -292,12 +296,12 @@ type Msg
     | SplitButtonMsg (SplitButton.Msg NavigationOnSuccess)
     | PickedSaveOption (Maybe NavigationOnSuccess)
     | Save
-    | UpsertedPlaintiff (Result Http.Error (Rest.Item Plaintiff))
-    | UpsertedAttorney (Result Http.Error (Rest.Item Attorney))
-    | CreatedDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
-    | GotPlaintiffs (Result Http.Error (Rest.Collection Plaintiff))
-    | GotAttorneys (Result Http.Error (Rest.Collection Attorney))
-    | GotCourtrooms (Result Http.Error (Rest.Collection Courtroom))
+    | UpsertedPlaintiff (Result Rest.HttpError (Rest.Item Plaintiff))
+    | UpsertedAttorney (Result Rest.HttpError (Rest.Item Attorney))
+    | CreatedDetainerWarrant (Result Rest.HttpError (Rest.Item DetainerWarrant))
+    | GotPlaintiffs (Result Rest.HttpError (Rest.Collection Plaintiff))
+    | GotAttorneys (Result Rest.HttpError (Rest.Collection Attorney))
+    | GotCourtrooms (Result Rest.HttpError (Rest.Collection Courtroom))
     | NoOp
 
 
@@ -351,7 +355,7 @@ updateFormNarrow transform model =
     )
 
 
-savingError : Http.Error -> Model -> Model
+savingError : Rest.HttpError -> Model -> Model
 savingError httpError model =
     let
         problems =
@@ -943,7 +947,7 @@ nextStepSave today domain sharedModel session model =
                     ( model
                     , Cmd.batch
                         ((case ( sharedModel.profile, model.navigationOnSuccess ) of
-                            ( Success user, nav ) ->
+                            ( Just (Success user), nav ) ->
                                 let
                                     body =
                                         toBody

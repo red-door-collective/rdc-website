@@ -7,19 +7,21 @@ import Element.Font as Font
 import Element.Input as Input
 import FeatherIcons
 import Html.Attributes as Attrs
-import Http
 import Path exposing (Path)
+import Profile
 import RedDoor
 import RemoteData exposing (RemoteData(..))
+import Rest
 import Route exposing (Route(..))
 import Session exposing (Session)
 import UI.Palette as Palette
+import UI.Utils.Element exposing (renderIf)
 import User exposing (User)
 import View.MobileHeader
 
 
 type alias Config msg =
-    { profile : RemoteData Http.Error User
+    { profile : Maybe (RemoteData Rest.HttpError User)
     , showMobileMenu : Bool
     , session : Session
     , toggleMobileMenu : msg
@@ -85,16 +87,17 @@ mobileMenuButton session toggleMsg page =
 view : Config msg -> { path : Path, route : Maybe Route } -> Element msg
 view { profile, session, showMobileMenu, toggleMobileMenu } page =
     let
+        canViewCourtData =
+            Profile.can User.canViewCourtData profile
+
         canViewDefendantInformation =
-            profile
-                |> RemoteData.map User.canViewDefendantInformation
-                |> RemoteData.withDefault False
+            Profile.can User.canViewDefendantInformation profile
 
         isAdmin =
             List.member "admin" <| Path.toSegments page.path
     in
     case ( profile, isAdmin ) of
-        ( Loading, True ) ->
+        ( Just Loading, True ) ->
             Element.none
 
         _ ->
@@ -128,20 +131,22 @@ view { profile, session, showMobileMenu, toggleMobileMenu } page =
                                         RedDoor.view RedDoor.default
                             }
                         , sectionLink []
-                            { url = "/admin/detainer-warrants"
+                            { url = Profile.map User.databaseHomeUrl "/admin/plaintiffs" profile
                             , label = Element.text "RDC Admin"
                             }
+                        , renderIf canViewCourtData <|
+                            headerLink [ alignRight ]
+                                (page.route == Just Admin__DetainerWarrants)
+                                { url = "/admin/detainer-warrants"
+                                , label = Element.text "Detainer Warrants"
+                                }
+                        , renderIf canViewCourtData <|
+                            headerLink []
+                                (page.route == Just Admin__Judgments)
+                                { url = "/admin/judgments"
+                                , label = Element.text "Judgments"
+                                }
                         , headerLink [ alignRight ]
-                            (page.route == Just Admin__DetainerWarrants)
-                            { url = "/admin/detainer-warrants"
-                            , label = Element.text "Detainer Warrants"
-                            }
-                        , headerLink []
-                            (page.route == Just Admin__Judgments)
-                            { url = "/admin/judgments"
-                            , label = Element.text "Judgments"
-                            }
-                        , headerLink []
                             (page.route == Just Admin__Plaintiffs)
                             { url = "/admin/plaintiffs"
                             , label = Element.text "Plaintiffs"
@@ -204,7 +209,7 @@ view { profile, session, showMobileMenu, toggleMobileMenu } page =
                         , if Session.isLoggedIn session then
                             headerLink []
                                 False
-                                { url = "/admin/detainer-warrants"
+                                { url = Profile.map User.databaseHomeUrl "/admin/plaintiffs" profile
                                 , label =
                                     Element.text
                                         (if canViewDefendantInformation then

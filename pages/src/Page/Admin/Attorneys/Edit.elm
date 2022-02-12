@@ -168,14 +168,14 @@ getAttorney domain id maybeCred =
 
 
 type Msg
-    = GotAttorney (Result Http.Error (Rest.Item Attorney))
+    = GotAttorney (Result Rest.HttpError (Rest.Item Attorney))
     | ChangeTooltip Tooltip
     | CloseTooltip
     | ChangedName String
     | ChangedAliases MultiInput.Msg
     | SubmitForm
     | SubmitAndAddAnother
-    | CreatedAttorney (Result Http.Error (Rest.Item Attorney))
+    | CreatedAttorney (Result Rest.HttpError (Rest.Item Attorney))
     | NoOp
 
 
@@ -216,7 +216,7 @@ updateFormNarrow transform model =
     )
 
 
-savingError : Http.Error -> Model -> Model
+savingError : Rest.HttpError -> Model -> Model
 savingError httpError model =
     let
         problems =

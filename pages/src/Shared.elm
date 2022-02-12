@@ -6,13 +6,13 @@ import DataSource
 import DataSource.Port
 import Element exposing (fill, width)
 import Html exposing (Html)
-import Http
 import Json.Encode as Encode
 import OptimizedDecoder as Decode exposing (Decoder, int, string)
 import OptimizedDecoder.Pipeline exposing (required)
 import Pages.Flags exposing (Flags(..))
 import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
+import Profile
 import RemoteData exposing (RemoteData(..))
 import Rest exposing (Window)
 import Rest.Endpoint as Endpoint
@@ -47,7 +47,7 @@ type Msg
         }
     | ToggleMobileMenu
     | GotSession Session
-    | GotProfile (Result Http.Error User)
+    | GotProfile (Result Rest.HttpError User)
     | SetWindow Int Int
 
 
@@ -63,7 +63,9 @@ type alias Model =
     , queryParams : Maybe String
     , window : Window
     , renderConfig : RenderConfig
-    , profile : RemoteData Http.Error User
+    , profile : Maybe (RemoteData Rest.HttpError User)
+    , hostName : Maybe String
+    , loginRedirection : Bool
     }
 
 
@@ -131,13 +133,21 @@ init navigationKey flags maybePagePath =
                 , height = window.height
                 }
                 RenderConfig.localeEnglish
-      , profile = Loading
+      , profile =
+            if Session.isLoggedIn session then
+                Just Loading
+
+            else
+                Nothing
+      , hostName =
+            maybeHostName
+      , loginRedirection = False
       }
-    , case maybeHostName of
-        Just hostName ->
+    , case ( maybeHostName, Session.isLoggedIn session ) of
+        ( Just hostName, True ) ->
             Rest.get (Endpoint.currentUser (domainFromHostName hostName)) (Session.cred session) GotProfile User.decoder
 
-        Nothing ->
+        _ ->
             Cmd.none
     )
 
@@ -157,35 +167,52 @@ update msg model =
             ( { model | showMobileMenu = not model.showMobileMenu }, Cmd.none )
 
         GotSession session ->
-            ( { model | session = session }
-            , Maybe.withDefault Cmd.none <|
-                Maybe.map
-                    (\key ->
-                        Nav.replaceUrl key
-                            (if Session.isLoggedIn session then
-                                "/admin/detainer-warrants"
+            ( { model | session = session, loginRedirection = Session.isLoggedIn session }
+            , Cmd.batch
+                [ Maybe.withDefault Cmd.none <|
+                    Maybe.map
+                        (\hostName ->
+                            Rest.get (Endpoint.currentUser (domainFromHostName hostName)) (Session.cred session) GotProfile User.decoder
+                        )
+                        model.hostName
+                , if Session.isLoggedIn session then
+                    Cmd.none
 
-                             else
-                                "/"
+                  else
+                    Maybe.withDefault Cmd.none <|
+                        Maybe.map
+                            (\key ->
+                                Nav.replaceUrl key "/"
                             )
-                    )
-                    (Session.navKey session)
+                            (Session.navKey model.session)
+                ]
             )
 
         GotProfile (Ok user) ->
-            ( { model
-                | profile = Success user
-              }
-            , Maybe.withDefault Cmd.none <|
-                Maybe.map
-                    (\key ->
-                        Nav.replaceUrl key ""
-                    )
-                    (Session.navKey model.session)
-            )
+            if model.loginRedirection then
+                ( { model | loginRedirection = False }
+                , Maybe.withDefault Cmd.none <|
+                    Maybe.map
+                        (\key ->
+                            Nav.replaceUrl key (User.databaseHomeUrl user)
+                        )
+                        (Session.navKey model.session)
+                )
+
+            else
+                ( { model
+                    | profile = Just <| Success user
+                  }
+                , Maybe.withDefault Cmd.none <|
+                    Maybe.map
+                        (\key ->
+                            Nav.replaceUrl key ""
+                        )
+                        (Session.navKey model.session)
+                )
 
         GotProfile (Err error) ->
-            ( { model | profile = Failure error }, Cmd.none )
+            ( { model | profile = Just <| Failure error }, Cmd.none )
 
         SetWindow width height ->
             ( { model | window = { width = width, height = height } }, Cmd.none )

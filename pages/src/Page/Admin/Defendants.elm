@@ -80,20 +80,23 @@ init pageUrl sharedModel static =
       , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
       }
     , case sharedModel.profile of
-        NotAsked ->
+        Just NotAsked ->
             Cmd.none
 
-        Loading ->
+        Just Loading ->
             Cmd.none
 
-        Success profile ->
+        Just (Success profile) ->
             if User.canViewDefendantInformation profile then
                 searchDefendants domain maybeCred search
 
             else
                 Cmd.none
 
-        Failure _ ->
+        Just (Failure _) ->
+            Cmd.none
+
+        Nothing ->
             Cmd.none
     )
 
@@ -162,7 +165,7 @@ type Msg
     = InputFirstName (Maybe String)
     | InputLastName (Maybe String)
     | ForTable (Stateful.Msg Defendant)
-    | GotDefendants (Result Http.Error (Rest.Collection Defendant))
+    | GotDefendants (Result Rest.HttpError (Rest.Collection Defendant))
     | NoOp
 
 
@@ -411,13 +414,13 @@ view :
     -> View Msg
 view maybeUrl sharedModel model static =
     case sharedModel.profile of
-        NotAsked ->
+        Just NotAsked ->
             notFound
 
-        Loading ->
+        Just Loading ->
             loading
 
-        Success profile ->
+        Just (Success profile) ->
             if User.canViewDefendantInformation profile then
                 { title = title
                 , body =
@@ -431,8 +434,11 @@ view maybeUrl sharedModel model static =
                 , body = [ el [ centerX, padding 20 ] (text "Page not found") ]
                 }
 
-        Failure _ ->
+        Just (Failure _) ->
             errorScreen
+
+        Nothing ->
+            notFound
 
 
 loader : Model -> Element Msg

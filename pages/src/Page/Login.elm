@@ -5,7 +5,8 @@ module Page.Login exposing (Data, Model, Msg, page)
 
 import Browser.Navigation as Nav
 import DataSource exposing (DataSource)
-import Element exposing (Element, centerX, column, fill, maximum, padding, row, spacing, text, width)
+import Element exposing (Element, centerX, column, fill, height, maximum, padding, px, row, spacing, text, width)
+import Form exposing (Problem(..))
 import Head
 import Head.Seo as Seo
 import Http
@@ -18,15 +19,43 @@ import Rest
 import Runtime
 import Session exposing (Session)
 import Shared
+import Sprite
 import UI.Button as Button
-import UI.RenderConfig as RenderConfig exposing (RenderConfig)
+import UI.Icon as Icon
+import UI.Link as Link
+import UI.RenderConfig exposing (RenderConfig)
+import UI.Size
 import UI.TextField as TextField
 import View exposing (View)
 import Viewer exposing (Viewer)
 
 
-loginForm : RenderConfig -> Form -> Element Msg
-loginForm cfg form =
+loginForm : RenderConfig -> List (Problem ValidatedField) -> Form -> Element Msg
+loginForm cfg problems form =
+    let
+        emailField =
+            TextField.username EnteredEmail
+                "Email"
+                form.email
+                |> TextField.withPlaceholder "your.name@reddoorcollective.org"
+                |> TextField.setLabelVisible True
+                |> TextField.withWidth TextField.widthFull
+
+        emailErrors =
+            List.filterMap toEmailProblems problems
+
+        passwordField =
+            TextField.currentPassword EnteredPassword
+                "Password"
+                form.password
+                |> TextField.withPlaceholder "********"
+                |> TextField.setLabelVisible True
+                |> TextField.withWidth TextField.widthFull
+                |> TextField.withOnEnterPressed GetCredentials
+
+        passwordErrors =
+            List.filterMap toPasswordProblems problems
+    in
     Element.column
         [ Element.centerY
         , Element.centerX
@@ -34,25 +63,29 @@ loginForm cfg form =
         , Element.padding 32
         , width (fill |> maximum 400)
         ]
-        [ TextField.username EnteredEmail
-            "Email"
-            form.email
-            |> TextField.withPlaceholder "your.name@reddoorcollective.org"
-            |> TextField.setLabelVisible True
-            |> TextField.withWidth TextField.widthFull
-            |> TextField.renderElement cfg
-        , TextField.currentPassword EnteredPassword
-            "Password"
-            form.password
-            |> TextField.withPlaceholder "********"
-            |> TextField.setLabelVisible True
-            |> TextField.withWidth TextField.widthFull
-            |> TextField.withOnEnterPressed GetCredentials
-            |> TextField.renderElement cfg
-        , Button.fromLabel "Log in"
-            |> Button.cmd GetCredentials Button.primary
-            |> Button.withDisabledIf (form.password == "")
-            |> Button.renderElement cfg
+        [ TextField.renderElement cfg <|
+            if List.isEmpty emailErrors then
+                emailField
+
+            else
+                TextField.withError (String.join " " emailErrors) emailField
+        , TextField.renderElement cfg <|
+            if List.isEmpty passwordErrors then
+                passwordField
+
+            else
+                TextField.withError (String.join " " passwordErrors) passwordField
+        , row [ width fill ]
+            [ Button.fromLabel "Log in"
+                |> Button.cmd GetCredentials Button.primary
+                |> Button.renderElement cfg
+            ]
+        , row [ width fill ]
+            [ Button.fromLabeledOnLeftIcon (Icon.arrowRight "Need an account? Register")
+                |> Button.redirect (Link.link "/register") Button.hyperlink
+                |> Button.withSize UI.Size.medium
+                |> Button.renderElement cfg
+            ]
         ]
 
 
@@ -104,17 +137,9 @@ head static =
 
 type alias Model =
     { session : Session
-    , problems : List Problem
+    , problems : List (Problem ValidatedField)
     , form : Form
     }
-
-
-{-| Recording validation problems on a per-field basis facilitates displaying
-them inline next to the field where the error occurred.
--}
-type Problem
-    = InvalidEntry ValidatedField String
-    | ServerError String
 
 
 type alias Form =
@@ -148,6 +173,63 @@ title =
     "Red Door Collective | Login"
 
 
+toEmailProblems problem =
+    case problem of
+        InvalidEntry Email errMsg ->
+            Just errMsg
+
+        InvalidEntry _ _ ->
+            Nothing
+
+        ServerError errors ->
+            errors
+                |> List.filterMap
+                    (\e ->
+                        if e.title == "email" then
+                            Just e.details
+
+                        else
+                            Nothing
+                    )
+                |> String.join " "
+                |> Just
+
+
+toPasswordProblems problem =
+    case problem of
+        InvalidEntry Password errMsg ->
+            Just errMsg
+
+        InvalidEntry _ _ ->
+            Nothing
+
+        ServerError errors ->
+            errors
+                |> List.filterMap
+                    (\e ->
+                        if e.title == "password" then
+                            Just e.details
+
+                        else
+                            Nothing
+                    )
+                |> String.join " "
+                |> Just
+
+
+isFormWide problem =
+    case problem of
+        InvalidEntry _ _ ->
+            False
+
+        ServerError errors ->
+            List.isEmpty
+                (List.filter
+                    (\e -> List.member e.title [ "email", "password" ])
+                    errors
+                )
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -155,37 +237,27 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
+    let
+        formWideProblems =
+            List.filter isFormWide model.problems
+
+        cfg =
+            sharedModel.renderConfig
+    in
     { title = title
     , body =
-        [ column [ width fill, centerX, spacing 20, padding 20 ]
-            [ row [ centerX ] (List.map viewProblem model.problems)
+        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+        , column [ width fill, centerX, spacing 20, padding 20 ]
+            [ row [ centerX ] (List.map Form.viewProblem formWideProblems)
             , row [ width fill ]
                 [ loginForm
-                    (RenderConfig.init
-                        { width = sharedModel.window.width
-                        , height = sharedModel.window.height
-                        }
-                        RenderConfig.localeEnglish
-                    )
+                    sharedModel.renderConfig
+                    model.problems
                     model.form
                 ]
             ]
         ]
     }
-
-
-viewProblem : Problem -> Element msg
-viewProblem problem =
-    let
-        errorMessage =
-            case problem of
-                InvalidEntry _ str ->
-                    str
-
-                ServerError str ->
-                    str
-    in
-    column [] [ text errorMessage ]
 
 
 
@@ -196,7 +268,7 @@ type Msg
     = GetCredentials
     | EnteredEmail String
     | EnteredPassword String
-    | CompletedLogin (Result Http.Error Viewer)
+    | CompletedLogin (Result Rest.HttpError Viewer)
 
 
 update :
@@ -228,12 +300,14 @@ update pageUrl navKey sharedModel payload msg model =
             updateForm (\form -> { form | password = password }) model
 
         CompletedLogin (Err error) ->
-            let
-                serverErrors =
-                    Rest.decodeErrors error
-                        |> List.map ServerError
-            in
-            ( { model | problems = List.append model.problems serverErrors }
+            ( { model
+                | problems =
+                    error
+                        |> Rest.httpErrorToSpec
+                        |> ServerError
+                        |> List.singleton
+                        |> List.append model.problems
+              }
             , Cmd.none
             )
 
@@ -287,7 +361,7 @@ fieldsToValidate =
 
 {-| Trim the form and validate its fields. If there are problems, report them!
 -}
-validate : Form -> Result (List Problem) TrimmedForm
+validate : Form -> Result (List (Problem ValidatedField)) TrimmedForm
 validate form =
     let
         trimmedForm =
@@ -301,7 +375,7 @@ validate form =
             Err problems
 
 
-validateField : TrimmedForm -> ValidatedField -> List Problem
+validateField : TrimmedForm -> ValidatedField -> List (Problem ValidatedField)
 validateField (Trimmed form) field =
     List.map (InvalidEntry field) <|
         case field of

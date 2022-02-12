@@ -168,14 +168,14 @@ getJudge domain id maybeCred =
 
 
 type Msg
-    = GotJudge (Result Http.Error (Rest.Item Judge))
+    = GotJudge (Result Rest.HttpError (Rest.Item Judge))
     | ChangeTooltip Tooltip
     | CloseTooltip
     | ChangedName String
     | ChangedAliases MultiInput.Msg
     | SubmitForm
     | SubmitAndAddAnother
-    | CreatedJudge (Result Http.Error (Rest.Item Judge))
+    | CreatedJudge (Result Rest.HttpError (Rest.Item Judge))
     | NoOp
 
 
@@ -216,7 +216,7 @@ updateFormNarrow transform model =
     )
 
 
-savingError : Http.Error -> Model -> Model
+savingError : Rest.HttpError -> Model -> Model
 savingError httpError model =
     let
         problems =

@@ -99,7 +99,7 @@ getWarrant domain id maybeCred =
 
 
 type Msg
-    = GotDetainerWarrant (Result Http.Error (Rest.Item DetainerWarrant))
+    = GotDetainerWarrant (Result Rest.HttpError (Rest.Item DetainerWarrant))
     | ToggleHelp
     | ToggleOpenDocument
     | NoOp
@@ -433,7 +433,7 @@ view maybeUrl sharedModel model static =
                     ]
                 , row [ width fill ]
                     [ case ( sharedModel.profile, model.warrant ) of
-                        ( Success profile, Just warrant ) ->
+                        ( Just (Success profile), Just warrant ) ->
                             viewForm cfg profile model warrant
 
                         _ ->

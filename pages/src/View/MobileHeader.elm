@@ -6,10 +6,13 @@ import Element.Font as Font
 import Html.Attributes as Attrs
 import Http
 import Path exposing (Path)
+import Profile
 import RemoteData exposing (RemoteData(..))
+import Rest
 import Route exposing (Route(..))
 import Session exposing (Session)
 import UI.Palette as Palette
+import UI.Utils.Element exposing (renderIf)
 import User exposing (User)
 
 
@@ -37,19 +40,20 @@ noPreloadLink attrs =
         )
 
 
-view : RemoteData Http.Error User -> Session -> { path : Path, route : Maybe Route } -> Element msg
+view : Maybe (RemoteData Rest.HttpError User) -> Session -> { path : Path, route : Maybe Route } -> Element msg
 view profile session page =
     let
+        canViewCourtData =
+            Profile.can User.canViewCourtData profile
+
         canViewDefendantInformation =
-            profile
-                |> RemoteData.map User.canViewDefendantInformation
-                |> RemoteData.withDefault False
+            Profile.can User.canViewDefendantInformation profile
 
         isAdmin =
             List.member "admin" <| Path.toSegments page.path
     in
     case ( profile, isAdmin ) of
-        ( Loading, True ) ->
+        ( Just Loading, True ) ->
             Element.none
 
         _ ->
@@ -64,16 +68,18 @@ view profile session page =
                 -- , Border.widthEach { top = 0, bottom = 1, left = 0, right = 0 }
                 ]
                 (if String.startsWith "/admin" <| Path.toAbsolute page.path then
-                    [ headerLink []
-                        (page.route == Just Admin__DetainerWarrants)
-                        { url = "/admin/detainer-warrants"
-                        , label = Element.text "Detainer Warrants"
-                        }
-                    , headerLink []
-                        (page.route == Just Admin__Judgments)
-                        { url = "/admin/judgments"
-                        , label = Element.text "Judgments"
-                        }
+                    [ renderIf canViewCourtData <|
+                        headerLink []
+                            (page.route == Just Admin__DetainerWarrants)
+                            { url = "/admin/detainer-warrants"
+                            , label = Element.text "Detainer Warrants"
+                            }
+                    , renderIf canViewCourtData <|
+                        headerLink []
+                            (page.route == Just Admin__Judgments)
+                            { url = "/admin/judgments"
+                            , label = Element.text "Judgments"
+                            }
                     , headerLink []
                         (page.route == Just Admin__Plaintiffs)
                         { url = "/admin/plaintiffs"
@@ -133,7 +139,7 @@ view profile session page =
                     , if Session.isLoggedIn session then
                         headerLink []
                             False
-                            { url = "/admin/detainer-warrants"
+                            { url = Profile.map User.databaseHomeUrl "/admin/plaintiffs" profile
                             , label =
                                 Element.text
                                     (if canViewDefendantInformation then

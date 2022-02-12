@@ -89,7 +89,7 @@ getJudgment domain id maybeCred =
 
 
 type Msg
-    = GotJudgment (Result Http.Error (Rest.Item Judgment))
+    = GotJudgment (Result Rest.HttpError (Rest.Item Judgment))
     | NoOp
 
 
