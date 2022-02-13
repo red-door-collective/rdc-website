@@ -360,7 +360,7 @@ def gather_csv_week(start, end, retries=0):
     try:
         detainer_warrants.caselink.warrants.import_from_caselink(
             start, end)
-    except e:
+    except:
         if retires < 3:
             gather_csv_week(start, end, retries=retries+1)
         else:
