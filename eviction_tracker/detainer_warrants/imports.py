@@ -26,7 +26,10 @@ def normalize(value):
         return value
     elif type(value) is str:
         no_trailing = value.strip()
-        return no_trailing if no_trailing not in ['', 'NA'] else None
+        if value in ['No', 'Yes']:
+            return value == 'Yes'
+        else:
+            return no_trailing if no_trailing not in ['', 'NA', 'Not Specified', 'Unknown'] else None
     else:
         return None
 
@@ -69,6 +72,19 @@ def _from_workbook_row(raw_warrant):
 
     docket_id = warrant[DOCKET_ID]
     address = warrant[ADDRESS] if warrant[ADDRESS] else None
+    is_cares = warrant[IS_CARES] in [
+        True, 'MDHA'] if warrant[IS_CARES] else None
+    is_legacy = warrant[IS_LEGACY] if warrant[IS_LEGACY] else None
+
+    notes_from_nonpayment, is_nonpayment = None, None
+    if type(warrant[NONPAYMENT]) is str:
+        notes_from_nonpayment = warrant[NONPAYMENT]
+    else:
+        is_nonpayment = warrant[NONPAYMENT]
+
+    notes = warrant[NOTES] if warrant[NOTES] else None
+    if notes_from_nonpayment:
+        notes = (notes if notes else '') + '\n' + notes_from_nonpayment
 
     defendant = create_defendant(1, warrant)
     defendant2 = create_defendant(2, warrant)
@@ -76,7 +92,15 @@ def _from_workbook_row(raw_warrant):
 
     dw = DetainerWarrant.query.get(docket_id)
     if dw:
-        dw.update(address=address)
+        audit_status = 'CONFIRMED' if dw.audit_status == 'JUDGMENT_CONFIRMED' else 'ADDRESS_CONFIRMED'
+        dw.update(
+            address=address,
+            is_cares=is_cares,
+            is_legacy=is_legacy,
+            nonpayment=is_nonpayment,
+            notes=notes,
+            audit_status_id=DetainerWarrant.audit_statuses[audit_status]
+        )
         db.session.commit()
 
     try:
