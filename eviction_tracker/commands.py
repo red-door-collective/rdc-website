@@ -18,7 +18,8 @@ from twilio.base.exceptions import TwilioRestException
 import uuid
 import logging.config
 import eviction_tracker.config as config
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from dateutil.rrule import rrule, WEEKLY
 from io import StringIO
 
 logging.config.dictConfig(config.LOGGING)
@@ -27,6 +28,10 @@ logger = logging.getLogger(__name__)
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
 TEST_PATH = os.path.join(PROJECT_ROOT, 'tests')
+
+
+def next_week(dt):
+    return dt + timedelta(weeks=1)
 
 
 @click.command()
@@ -349,6 +354,23 @@ def gather_warrants_csv(start_date, end_date):
     start = datetime.strptime(start_date, '%Y-%m-%d')
     end = datetime.strptime(end_date, '%Y-%m-%d')
     detainer_warrants.caselink.warrants.import_from_caselink(start, end)
+
+
+@click.command()
+@click.argument('start_date')
+@click.argument('end_date')
+@with_appcontext
+def gather_warrants_csv_monthly(start_date, end_date):
+    """Gather detainer warrants as a CSV, weekly"""
+    start = datetime.strptime(start_date, '%Y-%m-%d')
+    end = datetime.strptime(end_date, '%Y-%m-%d')
+
+    dates = [(dt, next_week(dt))
+             for dt in rrule(WEEKLY, dtstart=start, until=end)]
+
+    for start_week, end_week in dates:
+        detainer_warrants.caselink.warrants.import_from_caselink(
+            start_week, end_week)
 
 
 @click.command()

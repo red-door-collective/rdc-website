@@ -628,4 +628,5 @@ def register_commands(app):
     app.cli.add_command(commands.gather_pleading_documents)
     app.cli.add_command(commands.gather_pleading_documents_in_bulk)
     app.cli.add_command(commands.gather_warrants_csv)
+    app.cli.add_command(commands.gather_warrants_csv_monthly)
     app.cli.add_command(commands.bootstrap)
