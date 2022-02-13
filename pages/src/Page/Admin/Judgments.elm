@@ -343,6 +343,10 @@ viewEmptyResults filters =
         )
 
 
+insufficentPermissions =
+    [ paragraph [ Font.center ] [ text "You do not have permissions to view judgment data." ] ]
+
+
 viewDesktop : RenderConfig -> User -> Model -> Element Msg
 viewDesktop cfg profile model =
     column
@@ -350,32 +354,37 @@ viewDesktop cfg profile model =
         , padding 10
         , width fill
         ]
-        [ row [ width fill ]
-            (case model.search.totalMatches of
-                Just total ->
-                    if total > 1 then
-                        [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " judgments matched your search.") ] ]
+        (if User.canViewCourtData profile then
+            [ row [ width fill ]
+                (case model.search.totalMatches of
+                    Just total ->
+                        if total > 1 then
+                            [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " judgments matched your search.") ] ]
 
-                    else
+                        else
+                            []
+
+                    Nothing ->
                         []
+                )
+            , row [ width fill ]
+                [ if model.search.totalMatches == Just 0 then
+                    Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
 
-                Nothing ->
-                    []
-            )
-        , row [ width fill ]
-            [ if model.search.totalMatches == Just 0 then
-                Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
-
-              else
-                column
-                    [ centerX
-                    , Element.inFront (loader model)
-                    , height (px 800)
-                    , Element.scrollbarY
-                    ]
-                    [ viewJudgments cfg profile model ]
+                  else
+                    column
+                        [ centerX
+                        , Element.inFront (loader model)
+                        , height (px 800)
+                        , Element.scrollbarY
+                        ]
+                        [ viewJudgments cfg profile model ]
+                ]
             ]
-        ]
+
+         else
+            insufficentPermissions
+        )
 
 
 viewMobile : RenderConfig -> User -> Model -> Element Msg
@@ -385,32 +394,37 @@ viewMobile cfg profile model =
         , paddingXY 0 10
         , width fill
         ]
-        [ row [ width fill ]
-            (case model.search.totalMatches of
-                Just total ->
-                    if total > 1 then
-                        [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " judgments matched your search.") ] ]
+        (if User.canViewCourtData profile then
+            [ row [ width fill ]
+                (case model.search.totalMatches of
+                    Just total ->
+                        if total > 1 then
+                            [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " judgments matched your search.") ] ]
 
-                    else
+                        else
+                            []
+
+                    Nothing ->
                         []
+                )
+            , row [ width fill ]
+                [ if model.search.totalMatches == Just 0 then
+                    Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
 
-                Nothing ->
-                    []
-            )
-        , row [ width fill ]
-            [ if model.search.totalMatches == Just 0 then
-                Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
-
-              else
-                column
-                    [ width fill
-                    , Element.inFront (loader model)
-                    , height (px 1000)
-                    , Element.htmlAttribute (InfiniteScroll.infiniteScroll InfiniteScrollMsg)
-                    ]
-                    [ viewJudgments cfg profile model ]
+                  else
+                    column
+                        [ width fill
+                        , Element.inFront (loader model)
+                        , height (px 1000)
+                        , Element.htmlAttribute (InfiniteScroll.infiniteScroll InfiniteScrollMsg)
+                        ]
+                        [ viewJudgments cfg profile model ]
+                ]
             ]
-        ]
+
+         else
+            insufficentPermissions
+        )
 
 
 view :

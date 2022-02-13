@@ -24,7 +24,7 @@ from sqlalchemy.exc import IntegrityError
 from eviction_tracker.database import db
 from .models import DetainerWarrant, Attorney, Defendant, Courtroom, Hearing, Plaintiff, PleadingDocument, Judge, Judgment, PhoneNumberVerification
 from .serializers import *
-from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, OnlyMe, OnlyOrganizers, CursorPagination, AllowDefendant
+from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, PartnerProtected, OnlyMe, OnlyOrganizers, CursorPagination, AllowDefendant
 from psycopg2 import errors
 
 UniqueViolation = errors.lookup('23505')
@@ -222,7 +222,7 @@ class JudgmentResourceBase(GenericModelView):
     schema = judgment_schema
 
     authentication = HeaderUserAuthentication()
-    authorization = Protected()
+    authorization = PartnerProtected()
 
     pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('file_date', default='-file_date')
@@ -364,7 +364,7 @@ class DetainerWarrantResourceBase(GenericModelView):
     id_fields = ('docket_id',)
 
     authentication = HeaderUserAuthentication()
-    authorization = Protected()
+    authorization = PartnerProtected()
 
     pagination = CursorPagination(default_limit=50, max_limit=100)
     sorting = Sorting('order_number', default='-order_number')

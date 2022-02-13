@@ -11,6 +11,7 @@ import Http exposing (Body, Expect, Metadata, Response(..), expectBytesResponse,
 import Json.Decode as Decode exposing (Decoder, Value, bool, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
+import RemoteData exposing (RemoteData)
 import Rest.Endpoint as Endpoint exposing (Endpoint)
 
 

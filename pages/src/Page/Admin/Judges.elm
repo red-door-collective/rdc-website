@@ -9,7 +9,7 @@ import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Head
 import Head.Seo as Seo
-import Http
+import Html.Attributes as Attrs
 import InfiniteScroll
 import Judge exposing (Judge)
 import Loader
@@ -20,6 +20,7 @@ import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import Plaintiff
 import QueryParams
+import RemoteData exposing (RemoteData(..))
 import Rest exposing (Cred)
 import Rest.Endpoint as Endpoint
 import Rollbar exposing (Rollbar)
@@ -32,11 +33,13 @@ import UI.Button as Button exposing (Button)
 import UI.Effects
 import UI.Icon as Icon
 import UI.Link as Link
-import UI.RenderConfig exposing (RenderConfig)
+import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import UI.Size
 import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
+import UI.Utils.Element exposing (renderIf)
 import UI.Utils.TypeNumbers as T
 import Url.Builder
+import User
 import View exposing (View)
 
 
@@ -329,13 +332,54 @@ viewJudges cfg model =
         |> Stateful.renderElement cfg
 
 
-viewDesktop cfg model =
+viewActions cfg profile =
+    renderIf (User.canViewDefendantInformation profile) (createNewJudge cfg)
+
+
+viewMobile cfg profile model =
     column
         [ centerX
         , spacing 10
         , padding 10
         ]
-        [ createNewJudge cfg
+        [ viewActions cfg profile
+        , row [ width fill ]
+            [ case model.search.totalMatches of
+                Just total ->
+                    if total > 1 then
+                        paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " judges matched your search.") ]
+
+                    else
+                        Element.none
+
+                Nothing ->
+                    Element.none
+            ]
+        , row [ width fill ]
+            [ if model.search.totalMatches == Just 0 then
+                Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
+
+              else
+                column
+                    [ centerX
+                    , Element.inFront (loader model)
+                    , height (px 800)
+                    , width fill
+                    , Element.scrollbarY
+                    ]
+                    [ viewJudges cfg model
+                    ]
+            ]
+        ]
+
+
+viewDesktop cfg profile model =
+    column
+        [ centerX
+        , spacing 10
+        , padding 10
+        ]
+        [ viewActions cfg profile
         , row [ width fill ]
             [ case model.search.totalMatches of
                 Just total ->
@@ -375,9 +419,35 @@ view :
 view maybeUrl sharedModel model static =
     { title = title
     , body =
-        [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
-        , viewDesktop sharedModel.renderConfig model
-        ]
+        let
+            cfg =
+                sharedModel.renderConfig
+        in
+        case sharedModel.profile of
+            Just NotAsked ->
+                [ text "Refresh the page." ]
+
+            Just Loading ->
+                [ text "Loading" ]
+
+            Just (Success profile) ->
+                [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
+                , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
+                    (if RenderConfig.isPortrait cfg then
+                        viewMobile cfg profile model
+
+                     else
+                        viewDesktop (RenderConfig.init { width = 800, height = 375 } RenderConfig.localeEnglish) profile model
+                    )
+                , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-desktop") ]
+                    (viewDesktop cfg profile model)
+                ]
+
+            Just (Failure _) ->
+                [ text "Something went wrong." ]
+
+            Nothing ->
+                [ text "Page Not Found" ]
     }
 
 

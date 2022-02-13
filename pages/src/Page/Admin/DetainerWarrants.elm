@@ -25,12 +25,12 @@ import Pages.PageUrl exposing (PageUrl)
 import Path exposing (Path)
 import QueryParams
 import RemoteData exposing (RemoteData(..))
-import Rest exposing (Cred)
+import Rest exposing (Cred, HttpError)
 import Rest.Endpoint as Endpoint
 import Result
 import Rollbar exposing (Rollbar)
 import Runtime
-import Search exposing (Cursor(..), Search)
+import Search exposing (Cursor(..), Search, detainerWarrantsDefault)
 import Session exposing (Session)
 import Shared
 import Sprite
@@ -47,6 +47,7 @@ import UI.Size
 import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteRangeDateFilter, remoteSelectFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
 import UI.TextField as TextField
 import UI.Utils.DateInput exposing (DateInput, RangeDate)
+import UI.Utils.Element exposing (renderIf)
 import UI.Utils.TypeNumbers as T
 import Url.Builder
 import User exposing (User)
@@ -54,7 +55,7 @@ import View exposing (View)
 
 
 type alias Model =
-    { warrants : List DetainerWarrant
+    { warrants : RemoteData HttpError (List DetainerWarrant)
     , selected : Maybe String
     , hovered : Maybe String
     , search : Search Search.DetainerWarrants
@@ -84,7 +85,7 @@ init pageUrl sharedModel static =
         search =
             { filters = filters, cursor = NewSearch, previous = Just filters, totalMatches = Nothing }
     in
-    ( { warrants = []
+    ( { warrants = NotAsked
       , search = search
       , selected = Nothing
       , hovered = Nothing
@@ -174,7 +175,7 @@ type Msg
     | InputAddress (Maybe String)
     | SelectAuditStatus (Maybe Int)
     | ForTable (Stateful.Msg DetainerWarrant)
-    | GotWarrants (Result Rest.HttpError (Rest.Collection DetainerWarrant))
+    | GotWarrants (Result HttpError (Rest.Collection DetainerWarrant))
     | InfiniteScrollMsg InfiniteScroll.Msg
     | InputFreeTextSearch String
     | OnFreeTextSearch
@@ -347,21 +348,32 @@ updatePage profile sharedModel static msg model =
             if updatedModel.search.previous == Just updatedModel.search.filters then
                 ( let
                     warrants =
-                        model.warrants ++ detainerWarrantsPage.data
+                        case model.warrants of
+                            NotAsked ->
+                                Success detainerWarrantsPage.data
+
+                            Loading ->
+                                Success detainerWarrantsPage.data
+
+                            Success existing ->
+                                Success <| existing ++ detainerWarrantsPage.data
+
+                            Failure err ->
+                                Success <| detainerWarrantsPage.data
                   in
                   { updatedModel
                     | warrants = warrants
                     , infiniteScroll =
                         InfiniteScroll.stopLoading model.infiniteScroll
                             |> InfiniteScroll.loadMoreCmd (loadMore domain maybeCred search)
-                    , tableState = Stateful.stateWithItems warrants model.tableState
+                    , tableState = Stateful.stateWithItems (RemoteData.withDefault [] warrants) model.tableState
                   }
                 , Cmd.none
                 )
 
             else
                 ( { updatedModel
-                    | warrants = detainerWarrantsPage.data
+                    | warrants = Success detainerWarrantsPage.data
                     , infiniteScroll =
                         InfiniteScroll.stopLoading model.infiniteScroll
                             |> InfiniteScroll.loadMoreCmd (loadMore domain maybeCred search)
@@ -491,6 +503,17 @@ freeTextSearch cfg filters =
         |> TextField.renderElement cfg
 
 
+viewActions cfg profile =
+    Element.row [ centerX, spacing 10 ]
+        [ renderIf (User.canViewDefendantInformation profile) (createNewWarrantButton cfg)
+        , renderIf (User.canViewCourtData profile) (exportButton cfg profile)
+        ]
+
+
+insufficentPermissions =
+    [ paragraph [ Font.center ] [ text "You do not have permissions to view detainer warrant data." ] ]
+
+
 viewDesktop : RenderConfig -> User -> Model -> Element Msg
 viewDesktop cfg profile model =
     column
@@ -498,7 +521,7 @@ viewDesktop cfg profile model =
         , padding 10
         , width fill
         ]
-        [ case model.alert of
+        ((case model.alert of
             Just alert ->
                 Alert.success
                     (Alert.text alert)
@@ -507,37 +530,41 @@ viewDesktop cfg profile model =
 
             Nothing ->
                 Element.none
-        , Element.row [ centerX, spacing 10 ]
-            [ createNewWarrantButton cfg
-            , exportButton cfg profile
-            ]
-        , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
-        , row [ width fill ]
-            (case model.search.totalMatches of
-                Just total ->
-                    if total > 1 then
-                        [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " detainer warrants matched your search.") ] ]
+         )
+            :: (if User.canViewCourtData profile then
+                    [ viewActions cfg profile
+                    , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
+                    , row [ width fill ]
+                        (case model.search.totalMatches of
+                            Just total ->
+                                if total > 1 then
+                                    [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " detainer warrants matched your search.") ] ]
 
-                    else
-                        []
+                                else
+                                    []
 
-                Nothing ->
-                    []
-            )
-        , row [ width fill ]
-            [ if model.search.totalMatches == Just 0 then
-                Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
+                            Nothing ->
+                                []
+                        )
+                    , row [ width fill ]
+                        [ if model.search.totalMatches == Just 0 then
+                            Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
 
-              else
-                column
-                    [ centerX
-                    , Element.inFront (loader model)
-                    , height (px 800)
-                    , Element.scrollbarY
+                          else
+                            column
+                                [ centerX
+                                , Element.inFront (loader model)
+                                , height (px 800)
+                                , Element.scrollbarY
+                                ]
+                                [ viewWarrants cfg profile model ]
+                        ]
                     ]
-                    [ viewWarrants cfg profile model ]
-            ]
-        ]
+
+                else
+                    insufficentPermissions
+               )
+        )
 
 
 viewMobile : RenderConfig -> User -> Model -> Element Msg
@@ -547,38 +574,39 @@ viewMobile cfg profile model =
         , paddingXY 0 10
         , width fill
         ]
-        [ row [ centerX, spacing 10 ]
-            [ Button.fromIcon (Icon.add "Enter New Detainer Warrant")
-                |> Button.redirect (Link.link <| "/admin/detainer-warrants/edit") Button.primary
-                |> Button.renderElement cfg
-            ]
-        , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
-        , row [ width fill ]
-            (case model.search.totalMatches of
-                Just total ->
-                    if total > 1 then
-                        [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " detainer warrants matched your search.") ] ]
+        (if User.canViewCourtData profile then
+            [ viewActions cfg profile
+            , row [ centerX ] [ freeTextSearch cfg model.search.filters ]
+            , row [ width fill ]
+                (case model.search.totalMatches of
+                    Just total ->
+                        if total > 1 then
+                            [ paragraph [ Font.center ] [ text (FormatNumber.format { usLocale | decimals = Exact 0 } (toFloat total) ++ " detainer warrants matched your search.") ] ]
 
-                    else
+                        else
+                            []
+
+                    Nothing ->
                         []
+                )
+            , row [ width fill ]
+                [ if model.search.totalMatches == Just 0 then
+                    Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
 
-                Nothing ->
-                    []
-            )
-        , row [ width fill ]
-            [ if model.search.totalMatches == Just 0 then
-                Maybe.withDefault Element.none <| Maybe.map viewEmptyResults model.search.previous
-
-              else
-                column
-                    [ width fill
-                    , Element.inFront (loader model)
-                    , height (px 1000)
-                    , Element.htmlAttribute (InfiniteScroll.infiniteScroll InfiniteScrollMsg)
-                    ]
-                    [ viewWarrants cfg profile model ]
+                  else
+                    column
+                        [ width fill
+                        , Element.inFront (loader model)
+                        , height (px 1000)
+                        , Element.htmlAttribute (InfiniteScroll.infiniteScroll InfiniteScrollMsg)
+                        ]
+                        [ viewWarrants cfg profile model ]
+                ]
             ]
-        ]
+
+         else
+            insufficentPermissions
+        )
 
 
 view :
