@@ -356,6 +356,17 @@ def gather_warrants_csv(start_date, end_date):
     detainer_warrants.caselink.warrants.import_from_caselink(start, end)
 
 
+def gather_csv_week(start, end, retries=0):
+    try:
+        detainer_warrants.caselink.warrants.import_from_caselink(
+            start, end)
+    except e:
+        if retires < 3:
+            gather_csv_week(start, end, retries=retries+1)
+        else:
+            logger.error(f'Failed to gather warrants between {start}-{end}')
+
+
 @click.command()
 @click.argument('start_date')
 @click.argument('end_date')
@@ -369,8 +380,8 @@ def gather_warrants_csv_monthly(start_date, end_date):
              for dt in rrule(WEEKLY, dtstart=start, until=end)]
 
     for start_week, end_week in dates:
-        detainer_warrants.caselink.warrants.import_from_caselink(
-            start_week, end_week)
+        logger.info(f'Gathering warrants between {start_week}-{end_week}')
+        gather_csv_week(start_week, end_week)
 
 
 @click.command()
