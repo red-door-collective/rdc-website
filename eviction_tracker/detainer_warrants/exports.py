@@ -41,6 +41,7 @@ NONPAYMENT = 'Nonpayment'
 ADDRESS = 'Address'
 JUDGMENT = 'Judgment'
 NOTES = 'Notes'
+AUDIT_STATUS = 'Audit_status'
 
 
 class safelist(list):
@@ -65,7 +66,7 @@ def header(omit_defendant_info=False):
 
     return [
         DOCKET_ID, FILE_DATE, STATUS, PLAINTIFF, PLTF_ATTORNEY, COURT_DATE, RECURRING_COURT_DATE, COURTROOM, JUDGE, AMT_CLAIMED, AMT_CLAIMED_CAT,
-        IS_CARES, IS_LEGACY, NONPAYMENT, 'Zipcode', ADDRESS] + all_defendant_headers + [JUDGMENT, NOTES]
+        IS_CARES, IS_LEGACY, NONPAYMENT, 'Zipcode', ADDRESS] + all_defendant_headers + [JUDGMENT, NOTES, AUDIT_STATUS]
 
 
 def date_str(d):
@@ -121,7 +122,8 @@ def _to_spreadsheet_row(omit_defendant_info, warrant):
         ],
         [] if omit_defendant_info else defendant_info(warrant),
         [warrant.hearings[0].judgment.summary if len(warrant.hearings) > 0 and warrant.hearings[0].judgment else '',
-         warrant.notes
+         warrant.notes,
+         warrant.audit_status if warrant.audit_status else ''
          ]
     ]))]
 
