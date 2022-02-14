@@ -1,6 +1,7 @@
 from .models import db
 from .models import Attorney, Courtroom, Defendant, DetainerWarrant, Hearing, Judge, Judgment, Plaintiff, detainer_warrant_defendants
 from .util import open_workbook, get_gc
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
@@ -138,7 +139,15 @@ CHUNK_SIZE = 2500
 
 def warrants_scope(omit_defendant_info=False):
     warrants = DetainerWarrant.query.order_by(
-        DetainerWarrant.order_number.desc())
+        DetainerWarrant.order_number.desc()
+    ).filter(
+        or_(
+            DetainerWarrant.hearings.any(
+                Hearing._court_date >= date(2017, 1, 1)),
+            DetainerWarrant._file_date >= date(2017, 1, 1)
+        ))
+
+    logger.info(f'Exporting {warrants.count()} warrants')
 
     return warrants
 
