@@ -446,17 +446,11 @@ createNewWarrantButton cfg =
         |> Button.renderElement cfg
 
 
-exportButton : RenderConfig -> User -> Element Msg
-exportButton cfg profile =
-    if User.canViewDefendantInformation profile then
-        Button.fromLabel "Export to Google Sheet"
-            |> Button.cmd ExportToSheets Button.primary
-            |> Button.renderElement cfg
-
-    else
-        Button.fromLabeledOnRightIcon (Icon.download "Download All Warrants")
-            |> Button.cmd Export Button.primary
-            |> Button.renderElement cfg
+exportButton : RenderConfig -> Element Msg
+exportButton cfg =
+    Button.fromLabeledOnRightIcon (Icon.download "Download All Warrants")
+        |> Button.cmd Export Button.primary
+        |> Button.renderElement cfg
 
 
 viewFilter filters =
@@ -506,7 +500,7 @@ freeTextSearch cfg filters =
 viewActions cfg profile =
     Element.row [ centerX, spacing 10 ]
         [ renderIf (User.canViewDefendantInformation profile) (createNewWarrantButton cfg)
-        , renderIf (User.canViewCourtData profile) (exportButton cfg profile)
+        , renderIf (User.canViewCourtData profile) (exportButton cfg)
         ]
 
 
