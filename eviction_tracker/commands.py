@@ -361,7 +361,7 @@ def gather_csv_week(start, end, retries=0):
         detainer_warrants.caselink.warrants.import_from_caselink(
             start, end)
     except:
-        if retires < 3:
+        if retries < 3:
             gather_csv_week(start, end, retries=retries+1)
         else:
             logger.error(f'Failed to gather warrants between {start}-{end}')
