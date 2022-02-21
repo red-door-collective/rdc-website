@@ -2,6 +2,10 @@
 
 [This website](https://reddoorcollective.org/) gathers public data from [Davidson County courts](https://caselink.nashville.gov/) to provide tenant-anonymized insights for eviction trends in Nashville, Tennessee.
 
+### Eviction 101
+
+See our [Eviction Training document](eviction-training.md) to understand the eviction process.
+
 ### Technologies
 
 The project uses a Python backend and an Elm frontend.
