@@ -512,11 +512,28 @@ def register_extensions(app):
         start_date, end_date = calendar.monthrange(year_number, month_number)
         start_of_month = date(year_number, month_number, start_date + 1)
         end_of_month = date(year_number, month_number, end_date)
+        awards = db.session.query(func.sum(Judgment.awards_fees))\
+            .filter(
+                Judgment._file_date >= start_of_month,
+                Judgment._file_date <= end_of_month,
+                Judgment.awards_fees != None
+        ).scalar()
+        eviction_judgments = Judgment.query.filter(
+            Judgment._file_date >= start_of_month,
+            Judgment._file_date <= end_of_month,
+            Judgment.awards_possession == True
+        ).count()
+        default_evictions = Judgment.query.filter(
+            Judgment._file_date >= start_of_month,
+            Judgment._file_date <= end_of_month,
+            Judgment.entered_by_id == 0
+        ).count()
+
         return jsonify({
             'detainer_warrants_filed': between_dates(start_of_month, end_of_month, DetainerWarrant.query).count(),
-            'eviction_judgments': Judgment.query.filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.awards_possession == True).count(),
-            'plaintiff_awards': float(db.session.query(func.sum(Judgment.awards_fees)).filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.awards_fees != None).scalar()),
-            'evictions_entered_by_default': float(Judgment.query.filter(Judgment._file_date > start_of_month, Judgment._file_date < end_of_month, Judgment.entered_by_id == 0).count())
+            'eviction_judgments': eviction_judgments,
+            'plaintiff_awards': float(awards) if awards else 0.0,
+            'evictions_entered_by_default': float(default_evictions)
         })
 
     @app.route('/api/v1/export')

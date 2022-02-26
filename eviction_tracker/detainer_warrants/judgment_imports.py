@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
 from datetime import date, datetime
 from dateutil.rrule import rrule, MONTHLY
+import re
 
 COURT_DATE = "Court Date"
 DOCKET_ID = "Docket #"
@@ -16,12 +17,14 @@ DEFENDANT = "Defendant"
 DEFENDANT_ATTORNEY = "Def Lawyer"
 DEFENDANT_ADDRESS = "Def. Address"
 REASON = "Reason"
-AMOUNT = "Amount"
+AMOUNT = "Amount Awarded"
 MEDIATION_LETTER = "\"Mediation Letter\""
 NOTES = "Notes (anything unusual on detainer or in "
 JUDGMENT = "Judgement"
 JUDGE = "Judge"
 JUDGMENT_BASIS = "Judgement Basis"
+
+FEES_REGEX = re.compile(r'\$\s*([\d\.\,]+?)\s+Judge?ment')
 
 
 def extract_dismissal_basis(outcome, basis):
@@ -36,7 +39,7 @@ def extract_dismissal_basis(outcome, basis):
             return None
 
 
-def _from_workbook(court_date, raw_judgment):
+def _from_workbook(month, court_date, raw_judgment):
     judgment = {k: normalize(v) for k, v in raw_judgment.items()}
 
     docket_id = judgment[DOCKET_ID]
@@ -74,15 +77,26 @@ def _from_workbook(court_date, raw_judgment):
 
     awards_possession, awards_fees, in_favor_of = None, None, None
     outcome = judgment[JUDGMENT].lower() if judgment[JUDGMENT] else None
+
+    # Before July, claims were tracked in the amount awards column
+    # Awards were tracked in the notes
+    if month < datetime.combine(date(2021, 7, 1), datetime.min.time()):  # July
+        claims_fees = judgment[AMOUNT]
+        dw.update(claims_fees=claims_fees)
+        db.session.commit()
+        fees_match = FEES_REGEX.search(
+            judgment[NOTES]) if judgment[NOTES] else False
+        if fees_match:
+            awards_fees = fees_match.group(1)
+            print(awards_fees)
+    # After July, claims were not tracked. only fees awarded.
+    else:
+        awards_fees = Decimal(str(judgment[AMOUNT]).replace(
+            '$', '').replace(',', '')) if outcome and 'fees' in outcome and judgment[AMOUNT] else None
+
     if outcome:
         in_favor_of = 'PLAINTIFF' if 'poss' in outcome or 'fees' in outcome else 'DEFENDANT'
         awards_possession = 'poss' in outcome
-        try:
-            awards_fees = Decimal(str(judgment[AMOUNT]).replace(
-                '$', '').replace(',', '')) if 'fees' in outcome and judgment[AMOUNT] else None
-        except KeyError:
-            awards_fees = Decimal(str(judgment["Amount Awarded"]).replace(
-                '$', '').replace(',', '')) if 'fees' in outcome and judgment["Amount Awarded"] else None
 
     basis = judgment[JUDGMENT_BASIS].lower(
     ) if judgment[JUDGMENT_BASIS] else None
@@ -160,10 +174,10 @@ def from_workbook(workbook_name, limit=None, service_account_key=None):
 
     start_dt = date(2021, 3, 1)
     end_dt = date(2021, 11, 30)
-    worksheets = [wb.worksheet(datetime.strftime(dt, '%B %Y'))
+    worksheets = [(dt, wb.worksheet(datetime.strftime(dt, '%B %Y')))
                   for dt in rrule(MONTHLY, dtstart=start_dt, until=end_dt)]
 
-    for ws in worksheets:
+    for month, ws in worksheets:
         all_rows = ws.get_all_records()
 
         stop_index = int(limit) if limit else all_rows
@@ -173,4 +187,4 @@ def from_workbook(workbook_name, limit=None, service_account_key=None):
         court_date = None
         for judgment in judgments:
             court_date = judgment[COURT_DATE] if judgment[COURT_DATE] else court_date
-            _from_workbook(court_date, judgment)
+            _from_workbook(month, court_date, judgment)

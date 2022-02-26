@@ -82,6 +82,12 @@ def _from_workbook_row(raw_warrant):
     else:
         is_nonpayment = warrant[NONPAYMENT]
 
+    amount_claimed = None
+    if warrant[AMT_CLAIMED]:
+        amount_claimed = Decimal(str(warrant[AMT_CLAIMED]).replace(
+            '$', '').replace(',', ''))
+    claims_possession = warrant[AMT_CLAIMED_CAT] in [
+        'POSS', 'BOTH'] if warrant[AMT_CLAIMED_CAT] else None
     notes = warrant[NOTES] if warrant[NOTES] else None
     if notes_from_nonpayment:
         notes = (notes if notes else '') + '\n' + notes_from_nonpayment
@@ -95,6 +101,8 @@ def _from_workbook_row(raw_warrant):
         audit_status = 'CONFIRMED' if dw.audit_status == 'JUDGMENT_CONFIRMED' else 'ADDRESS_CONFIRMED'
         dw.update(
             address=address,
+            amount_claimed=amount_claimed,
+            claims_possession=claims_possession,
             is_cares=is_cares,
             is_legacy=is_legacy,
             nonpayment=is_nonpayment,
