@@ -88,7 +88,6 @@ def _from_workbook(month, court_date, raw_judgment):
             judgment[NOTES]) if judgment[NOTES] else False
         if fees_match:
             awards_fees = fees_match.group(1)
-            print(awards_fees)
     # After July, claims were not tracked. only fees awarded.
     else:
         awards_fees = Decimal(str(judgment[AMOUNT]).replace(

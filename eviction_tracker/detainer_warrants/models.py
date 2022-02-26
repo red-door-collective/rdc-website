@@ -798,6 +798,7 @@ class DetainerWarrant(Case):
     }
 
     address = Column(db.String(255))
+    address_certainty = Column(db.Float)
     court_date_recurring_id = Column(db.Integer)
     amount_claimed = Column(db.Numeric(scale=2))  # USD
     claims_possession = Column(db.Boolean)

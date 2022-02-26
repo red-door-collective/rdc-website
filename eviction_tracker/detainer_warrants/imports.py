@@ -136,3 +136,29 @@ def from_workbook(workbook_name, limit=None, service_account_key=None):
     warrants = dw_rows(limit, wb)
 
     from_workbook_help(warrants)
+
+
+def address_rows(workbook):
+    all_rows = []
+    for sheet in workbook.worksheets():
+        all_rows.extend(sheet.get_all_records())
+
+    return all_rows
+
+
+def from_address_audits(workbook_name, limit=None, service_account_key=None):
+    wb = open_workbook(workbook_name, service_account_key)
+
+    warrants = address_rows(wb)
+
+    for warrant in warrants:
+        dw = DetainerWarrant.query.get(warrant['Docket ID'])
+        attrs = dict(address_certainty=1.0)
+
+        if warrant['Correct Address'].strip():
+            attrs['address'] = warrant['Correct Address'].strip()
+        else:
+            attrs['address'] = warrant['Automated Address Extraction Result'].strip()
+
+        dw.update(**attrs)
+        db.session.commit()

@@ -620,6 +620,7 @@ def register_commands(app):
     app.cli.add_command(commands.import_from_caselink)
     app.cli.add_command(commands.sync)
     app.cli.add_command(commands.sync_judgments)
+    app.cli.add_command(commands.import_address_audits)
     app.cli.add_command(commands.parse_docket)
     app.cli.add_command(commands.parse_mismatched_pleading_documents)
     app.cli.add_command(commands.parse_detainer_warrant_addresses)
