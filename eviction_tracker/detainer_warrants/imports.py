@@ -190,9 +190,11 @@ def from_historical_records(workbook_name, service_account_key=None):
             db.session.commit()
 
         if warrant['Address']:
+            audit_status = 'CONFIRMED' if dw.audit_status == 'JUDGMENT_CONFIRMED' else 'ADDRESS_CONFIRMED'
             dw.update(
                 address=warrant['Address'],
-                address_certainty=1.0
+                address_certainty=1.0,
+                audit_status_id=DetainerWarrant.audit_statuses[audit_status]
             )
             db.session.commit()
 
