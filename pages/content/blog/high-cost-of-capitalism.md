@@ -13,6 +13,8 @@
 
 ## The High Cost of Capitalism
 
+> A shortened version of this post is now available in [the Tennessean](https://www.tennessean.com/story/opinion/2022/02/25/report-ignores-role-capitalism-homelessness-blames-unhoused/6931585001/).
+
 #### Our response to FOX 17’s "High Cost of Homelessness"
 
 As the housing crisis in Nashville worsens, some have turned their frustration and blame towards those suffering the most. 
