@@ -82,6 +82,18 @@ def import_address_audits(workbook_name, service_account_key):
 
 
 @click.command()
+@click.option('-w', '--workbook-name', default='2017 to 2019 Cleaned DWs',
+              help='Name of Google spreadsheet')
+@click.option('-k', '--service-account-key', default=None,
+              help='Google Service Account filepath')
+@with_appcontext
+def import_historical_warrants(workbook_name, service_account_key):
+    detainer_warrants.imports.from_historical_records(
+        workbook_name, service_account_key=service_account_key
+    )
+
+
+@click.command()
 @click.argument('url')
 @with_appcontext
 def parse_docket(url):

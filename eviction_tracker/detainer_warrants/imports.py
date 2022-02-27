@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.dialects.postgresql import insert
 from decimal import Decimal
+from datetime import datetime
 
 DOCKET_ID = 'Docket #'
 FILE_DATE = 'File_date'
@@ -40,7 +41,7 @@ def create_defendant(number, warrant):
     middle_name = warrant[prefix + 'middle']
     last_name = warrant[prefix + 'last']
     suffix = warrant[prefix + 'suffix']
-    phones = warrant[prefix + 'phone']
+    phones = warrant.get(prefix + 'phone')
 
     defendant = None
     if bool(first_name) or bool(phones):
@@ -67,6 +68,11 @@ def link_defendant(docket_id, defendant):
                        .values(detainer_warrant_docket_id=docket_id, defendant_id=defendant.id))
 
 
+def money_to_dec(amt):
+    return Decimal(str(amt).replace(
+        '$', '').replace(',', ''))
+
+
 def _from_workbook_row(raw_warrant):
     warrant = {k: normalize(v) for k, v in raw_warrant.items()}
 
@@ -84,8 +90,7 @@ def _from_workbook_row(raw_warrant):
 
     amount_claimed = None
     if warrant[AMT_CLAIMED]:
-        amount_claimed = Decimal(str(warrant[AMT_CLAIMED]).replace(
-            '$', '').replace(',', ''))
+        amount_claimed = money_to_dec(warrant[AMT_CLAIMED])
     claims_possession = warrant[AMT_CLAIMED_CAT] in [
         'POSS', 'BOTH'] if warrant[AMT_CLAIMED_CAT] else None
     notes = warrant[NOTES] if warrant[NOTES] else None
@@ -146,7 +151,7 @@ def address_rows(workbook):
     return all_rows
 
 
-def from_address_audits(workbook_name, limit=None, service_account_key=None):
+def from_address_audits(workbook_name, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
     warrants = address_rows(wb)
@@ -162,3 +167,62 @@ def from_address_audits(workbook_name, limit=None, service_account_key=None):
 
         dw.update(**attrs)
         db.session.commit()
+
+
+def from_historical_records(workbook_name, service_account_key=None):
+    wb = open_workbook(workbook_name, service_account_key)
+
+    warrants = wb.worksheet('01 2017 to 12 2019').get_all_records()
+
+    for raw_warrant in warrants:
+        warrant = {k: normalize(v) for k, v in raw_warrant.items()}
+        docket_id = warrant['Docket_number']
+        dw = DetainerWarrant.query.get(docket_id)
+
+        if not dw:
+            dw = DetainerWarrant.create(
+                docket_id=warrant['Docket_number'],
+                _file_date=datetime.strptime(warrant['File_date'], '%m/%d/%Y'),
+                status=warrant['Status'],
+                plaintiff=warrant['Plaintiff'],
+                plaintiff_attorney=warrant['Plaintiff_atty']
+            )
+            db.session.commit()
+
+        if warrant['Address']:
+            dw.update(
+                address=warrant['Address'],
+                address_certainty=1.0
+            )
+            db.session.commit()
+
+        defendant = create_defendant(1, warrant)
+        defendant2 = create_defendant(2, warrant)
+        defendant3 = create_defendant(3, warrant)
+
+        try:
+            if defendant:
+                link_defendant(docket_id, defendant)
+            if defendant2:
+                link_defendant(docket_id, defendant2)
+            if defendant3:
+                link_defendant(docket_id, defendant3)
+
+        except IntegrityError:
+            pass
+
+        db.session.commit()
+
+        # TODO: gather hearing and judgment dates via CaseLink
+        # claims_possession, in_favor_of = None, None
+        # if warrant['Judgment']:
+        #     if 'POSS' in warrant['Judgment']:
+        #         claims_possession = True
+
+        #     in_favor_of = 'PLAINTIFF'
+        #     if warrant['Judgment'] in ['Dismissed', 'Non-suit']:
+        #         in_favor_of = 'DEFENDANT'
+
+        # awards_fees = None
+        # if warrant['Judgment_amt'] and warrant['Judgment_amt'] != '$0.00':
+        #     awards_fees = money_to_dec(warrant['Judgment_amt'])
