@@ -17,7 +17,7 @@
 
 As the housing crisis in Nashville worsens, some have turned their frustration and blame towards those suffering the most. 
 
-In the US, surviving is attributed to one’s **individual** actions and decisions; if someone succeeds it is because they have worked hard and are an upstanding person. More importantly, basic needs are only met by work that is deemed valuable. Alternative ways to thrive include owning the means of productions, or simply inheriting property or wealth. Conversely, anyone without housing, a job, childcare, a car, healthcare, and many other necessities is blamed for this failing. Such a perspective conveniently leaves out all factors outside of the individual that may have led to houselessness, poverty, illiteracy, hunger, and so on. 
+In the US, surviving is attributed to one’s **individual** actions and decisions; if someone succeeds it is because they have worked hard and are an upstanding person. More importantly, basic needs are only met by work that is deemed valuable. Alternative ways to thrive include owning the means of production, or simply inheriting property or wealth. Conversely, anyone without housing, a job, childcare, a car, healthcare, and many other necessities is blamed for this failing. Such a perspective conveniently leaves out all factors outside of the individual that may have led to houselessness, poverty, illiteracy, hunger, and so on. 
 
 ***While Nashvillians face astronomical rent increases, severe lack of affordable housing, no guaranteed healthcare, and few protections in the workplace, some still find time to speak about our unhoused neighbors with malice and disgust.***
 
