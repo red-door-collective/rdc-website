@@ -46,7 +46,13 @@ def import_caselink_pleading_documents():
         detainer_warrants.caselink.pleadings.update_pending_warrants()
 
 
-@scheduler.task(CronTrigger(day_of_week=weekdays, hour=9, minute=0, second=0, jitter=200), id='extract-pleading-document-details')
+@scheduler.task(CronTrigger(day_of_week=weekdays, hour=9, minute=0, second=0, jitter=200), id='classify-pleading-documents')
+def classify_caselink_pleading_documents():
+    with scheduler.app.app_context():
+        detainer_warrants.caselink.pleadings.classify_documents()
+
+
+@scheduler.task(CronTrigger(day_of_week=weekdays, hour=11, minute=0, second=0, jitter=200), id='extract-pleading-document-details')
 def extract_pleading_document_details():
     with scheduler.app.app_context():
         detainer_warrants.caselink.pleadings.bulk_extract_pleading_document_details()
