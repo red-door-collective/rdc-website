@@ -9,7 +9,7 @@ in pkgs.mkShell {
   name = "eviction-tracker";
   buildInputs = deps.shellInputs ++ [
     pkgs.cypress
-    (with pkgs.dotnetCorePackages; combinePackages [ sdk_5_0 net_5_0 ])
+    # (with pkgs.dotnetCorePackages; combinePackages [ sdk_5_0 net_5_0 ])
     pkgs.nodejs
   ];
   shellHook = ''
