@@ -4,6 +4,7 @@ import time
 from flask import current_app
 import shutil
 import os
+from eviction_tracker.admin.models import User, user_datastore
 from .email import export_notification
 from flask_mail import Attachment
 from .time_util import millis_timestamp, file_friendly_timestamp
@@ -26,14 +27,16 @@ def export_zip(app, task):
         if not os.path.exists(export_path):
             os.makedirs(export_path)
 
+        current_user = user_datastore.find_user(email=task.requester['email'])
+        omit_defendant_info = not current_user.can_access_defendant_data()
         csv_filename = 'detainer-warrants.csv'
         detainer_warrants.exports.warrants_to_csv(export_path + '/' + csv_filename,
-                                                  omit_defendant_info=True)
+                                                  omit_defendant_info=omit_defendant_info)
 
         judgment_csv_filename = 'judgments.csv'
         detainer_warrants.exports.judgments_to_csv(
             export_path + '/' + judgment_csv_filename,
-            omit_defendant_info=True
+            omit_defendant_info=omit_defendant_info
         )
 
         shutil.make_archive(export_path, 'zip', export_path)

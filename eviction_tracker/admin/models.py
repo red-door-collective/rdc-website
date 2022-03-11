@@ -74,6 +74,9 @@ class User(db.Model, UserMixin):
     def preferred_navigation(self, option='REMAIN'):
         self.preferred_navigation_id = User.navigation_options[option]
 
+    def can_access_defendant_data(self):
+        return len([role for role in self.roles if role.name in ['Organizer', 'Admin', 'Superuser']]) > 0
+
     def __repr__(self):
         return f"<User(name='{self.name}', email='{self.email}')>"
 
