@@ -1,4 +1,4 @@
-port module Rest exposing (Collection, Cred(..), Error, HttpError(..), Item, PageMeta, Window, collectionDecoder, detainerWarrantApiDecoder, errorToString, get, httpErrorToSpec, httpErrorToStrings, itemDecoder, login, logout, patch, post, storeCred, throwaway, viewerChanges)
+port module Rest exposing (Collection, Cred(..), Error, HttpError(..), Item, PageMeta, Window, collectionDecoder, detainerWarrantApiDecoder, errorToString, get, httpErrorToSpec, httpErrorToStrings, itemDecoder, login, logout, patch, post, storeCredAndProfile, throwaway, viewerChanges)
 
 {-| This module is responsible for communicating to the API.
 
@@ -13,6 +13,7 @@ import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import RemoteData exposing (RemoteData)
 import Rest.Endpoint as Endpoint exposing (Endpoint)
+import User exposing (User)
 
 
 
@@ -62,12 +63,12 @@ credDecoder =
 port onStoreChange : (Value -> msg) -> Sub msg
 
 
-viewerChanges : (Maybe viewer -> msg) -> Decoder (Cred -> viewer) -> Sub msg
+viewerChanges : (Maybe viewer -> msg) -> Decoder (Cred -> User -> viewer) -> Sub msg
 viewerChanges toMsg decoder =
     onStoreChange (\value -> toMsg (decodeFromChange decoder value))
 
 
-decodeFromChange : Decoder (Cred -> viewer) -> Value -> Maybe viewer
+decodeFromChange : Decoder (Cred -> User -> viewer) -> Value -> Maybe viewer
 decodeFromChange viewerDecoder val =
     -- It's stored in localStorage as a JSON String;
     -- first decode the Value as a String, then
@@ -76,13 +77,13 @@ decodeFromChange viewerDecoder val =
         |> Result.toMaybe
 
 
-storageDecoder : Decoder (Cred -> viewer) -> Decoder viewer
+storageDecoder : Decoder (Cred -> User -> viewer) -> Decoder viewer
 storageDecoder viewerDecoder =
-    Decode.field "user" (decoderFromCred viewerDecoder)
+    decoderFromCred viewerDecoder
 
 
-storeCred : Cred -> Cmd msg
-storeCred (Cred token) =
+storeCredAndProfile : Cred -> User -> Cmd msg
+storeCredAndProfile (Cred token) user =
     let
         json =
             Encode.object
@@ -91,6 +92,7 @@ storeCred (Cred token) =
                         [ ( "authentication_token", Encode.string token )
                         ]
                   )
+                , ( "profile", User.encode user )
                 ]
     in
     storeCache (Just json)
@@ -306,16 +308,19 @@ post url maybeCred body toMsg decoder =
         }
 
 
-login : String -> Http.Body -> (Result HttpError a -> msg) -> Decoder (Cred -> a) -> Cmd msg
+login : String -> Http.Body -> (Result HttpError a -> msg) -> Decoder (Cred -> User -> a) -> Cmd msg
 login domain body toMsg decoder =
-    post (Endpoint.login domain) Nothing body toMsg (Decode.field "response" (Decode.field "user" (decoderFromCred decoder)))
+    post (Endpoint.login domain) Nothing body toMsg (Decode.field "response" (decoderFromCred decoder))
 
 
-decoderFromCred : Decoder (Cred -> a) -> Decoder a
+decoderFromCred : Decoder (Cred -> User -> a) -> Decoder a
 decoderFromCred decoder =
-    Decode.map2 (\fromCred cred -> fromCred cred)
+    Decode.map2 (\fromCred ( cred, user ) -> fromCred cred user)
         decoder
-        credDecoder
+        (Decode.map2 Tuple.pair
+            (Decode.field "user" credDecoder)
+            (Decode.field "profile" User.decoder)
+        )
 
 
 

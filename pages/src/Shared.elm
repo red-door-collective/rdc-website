@@ -63,9 +63,7 @@ type alias Model =
     , queryParams : Maybe String
     , window : Window
     , renderConfig : RenderConfig
-    , profile : Maybe (RemoteData Rest.HttpError User)
     , hostName : Maybe String
-    , loginRedirection : Bool
     }
 
 
@@ -133,15 +131,8 @@ init navigationKey flags maybePagePath =
                 , height = window.height
                 }
                 RenderConfig.localeEnglish
-      , profile =
-            if Session.isLoggedIn session then
-                Just Loading
-
-            else
-                Nothing
       , hostName =
             maybeHostName
-      , loginRedirection = False
       }
     , case ( maybeHostName, Session.isLoggedIn session ) of
         ( Just hostName, True ) ->
@@ -167,52 +158,49 @@ update msg model =
             ( { model | showMobileMenu = not model.showMobileMenu }, Cmd.none )
 
         GotSession session ->
-            ( { model | session = session, loginRedirection = Session.isLoggedIn session }
-            , Cmd.batch
-                [ Maybe.withDefault Cmd.none <|
+            ( { model | session = session }
+            , if Session.isLoggedIn session then
+                Maybe.withDefault Cmd.none <|
                     Maybe.map
-                        (\hostName ->
-                            Rest.get (Endpoint.currentUser (domainFromHostName hostName)) (Session.cred session) GotProfile User.decoder
+                        (\key ->
+                            Nav.replaceUrl key
+                                (Maybe.withDefault "/" <|
+                                    Maybe.map User.databaseHomeUrl (Session.profile session)
+                                )
                         )
-                        model.hostName
-                , if Session.isLoggedIn session then
-                    Cmd.none
+                        (Session.navKey session)
 
-                  else
-                    Maybe.withDefault Cmd.none <|
-                        Maybe.map
-                            (\key ->
-                                Nav.replaceUrl key "/"
-                            )
-                            (Session.navKey model.session)
-                ]
+              else
+                Maybe.withDefault Cmd.none <|
+                    Maybe.map
+                        (\key ->
+                            Nav.replaceUrl key "/"
+                        )
+                        (Session.navKey model.session)
             )
 
         GotProfile (Ok user) ->
-            if model.loginRedirection then
-                ( { model | loginRedirection = False }
-                , Maybe.withDefault Cmd.none <|
-                    Maybe.map
-                        (\key ->
-                            Nav.replaceUrl key (User.databaseHomeUrl user)
-                        )
-                        (Session.navKey model.session)
-                )
-
-            else
-                ( { model
-                    | profile = Just <| Success user
-                  }
-                , Maybe.withDefault Cmd.none <|
+            let
+                updatedModel =
+                    { model
+                        | session = Session.updateProfile user model.session
+                    }
+            in
+            ( updatedModel
+            , Cmd.batch
+                [ Maybe.withDefault Cmd.none <|
                     Maybe.map
                         (\key ->
                             Nav.replaceUrl key ""
                         )
-                        (Session.navKey model.session)
-                )
+                        (Session.navKey updatedModel.session)
+                , Maybe.withDefault Cmd.none <|
+                    Maybe.map Viewer.store (Session.currentViewer updatedModel.session)
+                ]
+            )
 
         GotProfile (Err error) ->
-            ( { model | profile = Just <| Failure error }, Cmd.none )
+            ( model, Cmd.none )
 
         SetWindow width height ->
             ( { model | window = { width = width, height = height } }, Cmd.none )
@@ -259,7 +247,7 @@ view :
 view tableOfContents page model toMsg pageView =
     { body =
         (View.Header.view
-            { profile = model.profile
+            { profile = Session.profile model.session
             , showMobileMenu = model.showMobileMenu
             , session = model.session
             , toggleMobileMenu = ToggleMobileMenu

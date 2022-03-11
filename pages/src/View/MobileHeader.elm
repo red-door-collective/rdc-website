@@ -40,7 +40,7 @@ noPreloadLink attrs =
         )
 
 
-view : Maybe (RemoteData Rest.HttpError User) -> Session -> { path : Path, route : Maybe Route } -> Element msg
+view : Maybe User -> Session -> { path : Path, route : Maybe Route } -> Element msg
 view profile session page =
     let
         canViewCourtData =
@@ -53,7 +53,7 @@ view profile session page =
             List.member "admin" <| Path.toSegments page.path
     in
     case ( profile, isAdmin ) of
-        ( Just Loading, True ) ->
+        ( Nothing, True ) ->
             Element.none
 
         _ ->

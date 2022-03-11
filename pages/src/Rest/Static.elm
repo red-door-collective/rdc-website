@@ -18,6 +18,7 @@ import OptimizedDecoder.Pipeline exposing (required)
 import Rest exposing (Cred(..))
 import Time
 import Url.Builder
+import User exposing (User)
 
 
 type alias RollupMetadata =
@@ -72,16 +73,19 @@ credDecoder =
         |> required "authentication_token" Decode.string
 
 
-decoderFromCred : Decoder (Cred -> a) -> Decoder a
+decoderFromCred : Decoder (Cred -> User -> a) -> Decoder a
 decoderFromCred decoder =
-    Decode.map2 (\fromCred cred -> fromCred cred)
+    Decode.map2 (\fromCred ( cred, user ) -> fromCred cred user)
         decoder
-        credDecoder
+        (Decode.map2 Tuple.pair
+            (Decode.field "user" credDecoder)
+            (Decode.field "profile" User.staticDecoder)
+        )
 
 
-storageDecoder : Decoder (Cred -> viewer) -> Decoder viewer
+storageDecoder : Decoder (Cred -> User -> viewer) -> Decoder viewer
 storageDecoder viewerDecoder =
-    Decode.field "user" (decoderFromCred viewerDecoder)
+    decoderFromCred viewerDecoder
 
 
 posix : Decoder Time.Posix

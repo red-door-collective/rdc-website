@@ -1,7 +1,8 @@
-module Session exposing (Session, changes, cred, fromViewer, isLoggedIn, navKey)
+module Session exposing (Session, changes, cred, currentViewer, fromViewer, isLoggedIn, navKey, profile, updateProfile)
 
 import Browser.Navigation as Nav
 import Rest exposing (Cred)
+import User exposing (User)
 import Viewer exposing (Viewer)
 
 
@@ -48,8 +49,38 @@ isLoggedIn session =
             False
 
 
+profile : Session -> Maybe User
+profile session =
+    case session of
+        LoggedIn _ viewer ->
+            Just <| Viewer.profile viewer
+
+        Guest _ ->
+            Nothing
+
+
+currentViewer : Session -> Maybe Viewer
+currentViewer session =
+    case session of
+        LoggedIn _ viewer ->
+            Just viewer
+
+        Guest _ ->
+            Nothing
+
+
 
 -- CHANGES
+
+
+updateProfile : User -> Session -> Session
+updateProfile user session =
+    case session of
+        LoggedIn nav viewer ->
+            LoggedIn nav (Viewer.updateProfile user viewer)
+
+        Guest nav ->
+            Guest nav
 
 
 changes : (Session -> msg) -> Maybe Nav.Key -> Sub msg

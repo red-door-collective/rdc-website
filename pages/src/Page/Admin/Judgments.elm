@@ -440,14 +440,8 @@ view maybeUrl sharedModel model static =
     in
     { title = title
     , body =
-        case sharedModel.profile of
-            Just NotAsked ->
-                []
-
-            Just Loading ->
-                []
-
-            Just (Success profile) ->
+        case Session.profile sharedModel.session of
+            Just profile ->
                 [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
                 , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
                     (if RenderConfig.isPortrait cfg then
@@ -459,9 +453,6 @@ view maybeUrl sharedModel model static =
                 , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-desktop") ]
                     (viewDesktop cfg profile model)
                 ]
-
-            Just (Failure _) ->
-                []
 
             Nothing ->
                 []

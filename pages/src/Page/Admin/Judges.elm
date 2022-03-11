@@ -423,14 +423,8 @@ view maybeUrl sharedModel model static =
             cfg =
                 sharedModel.renderConfig
         in
-        case sharedModel.profile of
-            Just NotAsked ->
-                [ text "Refresh the page." ]
-
-            Just Loading ->
-                [ text "Loading" ]
-
-            Just (Success profile) ->
+        case Session.profile sharedModel.session of
+            Just profile ->
                 [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
                 , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
                     (if RenderConfig.isPortrait cfg then
@@ -443,11 +437,8 @@ view maybeUrl sharedModel model static =
                     (viewDesktop cfg profile model)
                 ]
 
-            Just (Failure _) ->
-                [ text "Something went wrong." ]
-
             Nothing ->
-                [ text "Page Not Found" ]
+                [ text "Loading" ]
     }
 
 

@@ -21,7 +21,7 @@ import View.MobileHeader
 
 
 type alias Config msg =
-    { profile : Maybe (RemoteData Rest.HttpError User)
+    { profile : Maybe User
     , showMobileMenu : Bool
     , session : Session
     , toggleMobileMenu : msg
@@ -97,7 +97,7 @@ view { profile, session, showMobileMenu, toggleMobileMenu } page =
             List.member "admin" <| Path.toSegments page.path
     in
     case ( profile, isAdmin ) of
-        ( Just Loading, True ) ->
+        ( Nothing, True ) ->
             Element.none
 
         _ ->

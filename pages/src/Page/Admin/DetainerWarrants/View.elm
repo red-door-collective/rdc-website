@@ -432,8 +432,8 @@ view maybeUrl sharedModel model static =
                         ]
                     ]
                 , row [ width fill ]
-                    [ case ( sharedModel.profile, model.warrant ) of
-                        ( Just (Success profile), Just warrant ) ->
+                    [ case ( Session.profile sharedModel.session, model.warrant ) of
+                        ( Just profile, Just warrant ) ->
                             viewForm cfg profile model warrant
 
                         _ ->

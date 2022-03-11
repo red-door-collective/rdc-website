@@ -79,22 +79,13 @@ init pageUrl sharedModel static =
                 |> Stateful.stateWithSorters sortersInit
       , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
       }
-    , case sharedModel.profile of
-        Just NotAsked ->
-            Cmd.none
-
-        Just Loading ->
-            Cmd.none
-
-        Just (Success profile) ->
+    , case Session.profile sharedModel.session of
+        Just profile ->
             if User.canViewDefendantInformation profile then
                 searchDefendants domain maybeCred search
 
             else
                 Cmd.none
-
-        Just (Failure _) ->
-            Cmd.none
 
         Nothing ->
             Cmd.none
@@ -413,14 +404,8 @@ view :
     -> StaticPayload Data RouteParams
     -> View Msg
 view maybeUrl sharedModel model static =
-    case sharedModel.profile of
-        Just NotAsked ->
-            notFound
-
-        Just Loading ->
-            loading
-
-        Just (Success profile) ->
+    case Session.profile sharedModel.session of
+        Just profile ->
             if User.canViewDefendantInformation profile then
                 { title = title
                 , body =
@@ -433,9 +418,6 @@ view maybeUrl sharedModel model static =
                 { title = "Not Found"
                 , body = [ el [ centerX, padding 20 ] (text "Page not found") ]
                 }
-
-        Just (Failure _) ->
-            errorScreen
 
         Nothing ->
             notFound

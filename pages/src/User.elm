@@ -1,7 +1,10 @@
-module User exposing (NavigationOnSuccess(..), Permissions(..), Role, User, canViewCourtData, canViewDefendantInformation, databaseHomeUrl, decoder, navigationToText)
+module User exposing (NavigationOnSuccess(..), Permissions(..), Role, User, canViewCourtData, canViewDefendantInformation, databaseHomeUrl, decoder, encode, navigationToText, staticDecoder)
 
 import Json.Decode as Decode exposing (Decoder, int, list, nullable, string)
 import Json.Decode.Pipeline exposing (required)
+import Json.Encode as Encode
+import OptimizedDecoder as OD
+import OptimizedDecoder.Pipeline as OP
 
 
 type Permissions
@@ -100,11 +103,55 @@ navigationSuccessDecoder =
             )
 
 
+staticNavigationSuccessDecoder =
+    OD.string
+        |> OD.andThen
+            (\str ->
+                OD.succeed <| navigationFromText str
+            )
+
+
 roleDecoder =
     Decode.succeed Role
         |> required "id" int
         |> required "name" string
         |> required "description" (nullable string)
+
+
+staticRoleDecoder =
+    OD.succeed Role
+        |> OP.required "id" OD.int
+        |> OP.required "name" OD.string
+        |> OP.required "description" (OD.nullable OD.string)
+
+
+encodeRole : Role -> Encode.Value
+encodeRole role =
+    Encode.object
+        [ ( "id", Encode.int role.id )
+        , ( "name", Encode.string role.name )
+        , ( "description"
+          , case role.description of
+                Just description ->
+                    Encode.string description
+
+                Nothing ->
+                    Encode.null
+          )
+        ]
+
+
+encode : User -> Encode.Value
+encode user =
+    Encode.object
+        [ ( "id", Encode.int user.id )
+        , ( "email", Encode.string user.email )
+        , ( "first_name", Encode.string user.firstName )
+        , ( "last_name", Encode.string user.lastName )
+        , ( "name", Encode.string user.name )
+        , ( "roles", Encode.list encodeRole user.roles )
+        , ( "preferred_navigation", Encode.string (navigationToText user.preferredNavigation) )
+        ]
 
 
 decoder : Decoder User
@@ -117,3 +164,15 @@ decoder =
         |> required "name" string
         |> required "roles" (list roleDecoder)
         |> required "preferred_navigation" navigationSuccessDecoder
+
+
+staticDecoder : OD.Decoder User
+staticDecoder =
+    OD.succeed User
+        |> OP.required "id" OD.int
+        |> OP.required "email" OD.string
+        |> OP.required "first_name" OD.string
+        |> OP.required "last_name" OD.string
+        |> OP.required "name" OD.string
+        |> OP.required "roles" (OD.list staticRoleDecoder)
+        |> OP.required "preferred_navigation" staticNavigationSuccessDecoder

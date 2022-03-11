@@ -247,8 +247,8 @@ init pageUrl sharedModel static =
       , courtrooms = []
       , saveState = Done
       , navigationOnSuccess =
-            sharedModel.profile
-                |> Maybe.andThen RemoteData.toMaybe
+            sharedModel.session
+                |> Session.profile
                 |> Maybe.map .preferredNavigation
                 |> Maybe.withDefault Remain
       , showDocument = Nothing
@@ -946,8 +946,8 @@ nextStepSave today domain sharedModel session model =
                     in
                     ( model
                     , Cmd.batch
-                        ((case ( sharedModel.profile, model.navigationOnSuccess ) of
-                            ( Just (Success user), nav ) ->
+                        ((case ( Session.profile sharedModel.session, model.navigationOnSuccess ) of
+                            ( Just user, nav ) ->
                                 let
                                     body =
                                         toBody

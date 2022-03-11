@@ -252,8 +252,8 @@ update :
     -> Model
     -> ( Model, Cmd Msg )
 update pageUrl navKey sharedModel static msg model =
-    case sharedModel.profile of
-        Just (Success profile) ->
+    case Session.profile sharedModel.session of
+        Just profile ->
             updatePage profile sharedModel static msg model
 
         _ ->
@@ -616,14 +616,11 @@ view maybeUrl sharedModel model static =
     in
     { title = title
     , body =
-        case sharedModel.profile of
-            Just NotAsked ->
-                [ text "Refresh the page." ]
+        case Session.profile sharedModel.session of
+            Nothing ->
+                []
 
-            Just Loading ->
-                [ text "Loading" ]
-
-            Just (Success profile) ->
+            Just profile ->
                 [ Element.el [ width (px 0), height (px 0) ] (Element.html Sprite.all)
                 , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-mobile") ]
                     (if RenderConfig.isPortrait cfg then
@@ -635,12 +632,6 @@ view maybeUrl sharedModel model static =
                 , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-desktop") ]
                     (viewDesktop cfg profile model)
                 ]
-
-            Just (Failure _) ->
-                [ text "Something went wrong." ]
-
-            Nothing ->
-                [ text "Page Not Found" ]
     }
 
 
