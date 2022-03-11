@@ -26,6 +26,8 @@ import eviction_tracker.config as config
 from flask_log_request_id import RequestID, current_request_id
 import eviction_tracker.tasks as tasks
 from .time_util import millis, millis_timestamp
+from flask.sessions import SecureCookieSessionInterface
+from flask_login import user_loaded_from_header
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -77,6 +79,21 @@ security_config = dict(
 )
 
 
+class CustomSessionInterface(SecureCookieSessionInterface):
+    """Prevent creating session from API requests."""
+
+    def save_session(self, *args, **kwargs):
+        if g.get('login_via_header'):
+            return
+        return super(CustomSessionInterface, self).save_session(*args,
+                                                                **kwargs)
+
+
+@user_loaded_from_header.connect
+def user_loaded_from_header(self, user=None):
+    g.login_via_header = True
+
+
 def env_var_bool(key, default=None):
     return os.getenv(key, default if default else 'False').lower() in ('true', '1', 't')
 
@@ -113,6 +130,7 @@ def create_app(testing=False):
     app.config.update(**security_config)
     if app.config['ENV'] == 'production':
         initialize(**options)
+    app.session_interface = CustomSessionInterface()
 
     register_extensions(app)
     RequestID(app)
