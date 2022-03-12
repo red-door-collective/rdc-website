@@ -1,4 +1,4 @@
-module StructuredData exposing (StructuredData(..), aboutPage, article, elmLang, person, softwareSourceCode)
+module StructuredData exposing (StructuredData(..), aboutPage, article, elmLang, person, softwareSourceCode, webPage)
 
 import Json.Encode as Encode
 import Pages.Url
@@ -60,6 +60,34 @@ aboutPage :
     }
     -> Encode.Value
 aboutPage info =
+    Encode.object
+        [ ( "@context", Encode.string "http://schema.org/" )
+        , ( "@type", Encode.string "AboutPage" )
+        , ( "headline", Encode.string info.title )
+        , ( "description", Encode.string info.description )
+        , ( "image", Encode.string (Pages.Url.toString info.imageUrl) )
+        , ( "author", encode info.author )
+        , ( "publisher", encode info.publisher )
+        , ( "url", Encode.string info.url )
+        , ( "lastReviewed", Encode.string info.lastReviewed )
+        , ( "mainEntityOfPage", info.mainEntityOfPage )
+        ]
+
+
+{-| <https://schema.org/WebPage>
+-}
+webPage :
+    { title : String
+    , description : String
+    , author : StructuredData { authorMemberOf | personOrOrganization : () } authorPossibleFields
+    , publisher : StructuredData { publisherMemberOf | personOrOrganization : () } publisherPossibleFields
+    , url : String
+    , imageUrl : Pages.Url.Url
+    , lastReviewed : String
+    , mainEntityOfPage : Encode.Value
+    }
+    -> Encode.Value
+webPage info =
     Encode.object
         [ ( "@context", Encode.string "http://schema.org/" )
         , ( "@type", Encode.string "AboutPage" )

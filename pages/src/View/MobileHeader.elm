@@ -117,6 +117,11 @@ view profile session page =
                         , label = Element.text "Trends"
                         }
                     , headerLink []
+                        (page.route == Just Resources)
+                        { url = "/resources"
+                        , label = Element.text "Resources"
+                        }
+                    , headerLink []
                         (page.route == Just Blog)
                         { url = "/blog"
                         , label = Element.text "Blog"

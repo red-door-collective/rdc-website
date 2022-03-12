@@ -187,6 +187,11 @@ view { profile, session, showMobileMenu, toggleMobileMenu } page =
                             , label = Element.text "Trends"
                             }
                         , headerLink [ alignRight ]
+                            (page.route == Just Resources)
+                            { url = "/resources"
+                            , label = Element.text "Resources"
+                            }
+                        , headerLink [ alignRight ]
                             (page.route == Just Blog)
                             { url = "/blog"
                             , label = Element.text "Blog"
