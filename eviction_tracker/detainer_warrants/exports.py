@@ -139,23 +139,24 @@ def get_or_create_sheet(wb, name, rows=100, cols=25):
 CHUNK_SIZE = 2500
 
 
-def warrants_scope(omit_defendant_info=False):
+def warrants_scope(start_date=None, end_date=None, omit_defendant_info=False):
     warrants = DetainerWarrant.query.order_by(
         DetainerWarrant.order_number.desc()
-    ).filter(
-        or_(
-            DetainerWarrant.hearings.any(
-                Hearing._court_date >= date(2017, 1, 1)),
-            DetainerWarrant._file_date >= date(2017, 1, 1)
-        ))
+    )
+
+    if start_date:
+        warrants = warrants.filter(DetainerWarrant._file_date >= start_date)
+
+    if end_date:
+        warrants = warrants.filter(DetainerWarrant._file_date <= end_date)
 
     logger.info(f'Exporting {warrants.count()} warrants')
 
     return warrants
 
 
-def warrants_to_csv(filename, omit_defendant_info=False):
-    warrants = warrants_scope(omit_defendant_info)
+def warrants_to_csv(filename, start_date=None, end_date=None, omit_defendant_info=False):
+    warrants = warrants_scope(start_date, end_date, omit_defendant_info)
 
     headers = header(omit_defendant_info)
 
@@ -170,7 +171,7 @@ def warrants_to_csv(filename, omit_defendant_info=False):
 def to_spreadsheet(workbook_name, omit_defendant_info=False, service_account_key=None):
     wb = open_workbook(workbook_name, service_account_key)
 
-    warrants = warrants_scope(omit_defendant_info)
+    warrants = warrants_scope(omit_defendant_info=omit_defendant_info)
 
     total = warrants.count()
 
@@ -240,17 +241,25 @@ def _to_judgment_row(omit_defendant_info, judgment):
             ])]
 
 
-def judgments_scope():
-    return Judgment.query\
+def judgments_scope(start_date=None, end_date=None):
+    scope = Judgment.query\
         .join(Hearing)\
         .order_by(Hearing._court_date.desc())\
         .filter(Judgment.in_favor_of_id != None)
 
+    if start_date:
+        scope = scope.filter(Judgment._file_date >= start_date)
 
-def judgments_to_csv(filename, omit_defendant_info=False):
+    if end_date:
+        scope = scope.filter(Judgment._file_date <= end_date)
+
+    return scope
+
+
+def judgments_to_csv(filename, start_date=None, end_date=None, omit_defendant_info=False):
     headers = judgment_headers(omit_defendant_info)
 
-    judgments = judgments_scope()
+    judgments = judgments_scope(start_date, end_date)
 
     with open(filename, 'w') as csvfile:
         writer = csv.writer(csvfile)

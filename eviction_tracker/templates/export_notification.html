@@ -1,7 +1,8 @@
 <p>Hi {{ task.requester.first_name }},</p>
 
 <p>Your request for eviction data in Davidson County, Tennessee has been fulfilled.
-    Attached is a zip archive of spreadsheets for all attempted evictions as of <b>{{ task.started_at }}</b>.</p>
+    Attached is a zip archive of spreadsheets for all attempted evictions between {{ start_date }} and {{ end_date }} as
+    of <b>{{ task.started_at }}</b>.</p>
 
 <p>Any detainer warrant with the status <b>"PENDING"</b> may be updated by the court system in the coming weeks or
     months.</p>

@@ -2,10 +2,16 @@ module Page.Admin.DetainerWarrants exposing (Data, Model, Msg, page)
 
 import Alert exposing (Alert)
 import Browser.Navigation as Nav
+import Calendar
+import Clock
 import Color
 import DataSource exposing (DataSource)
+import Date exposing (Date)
+import DateTime
 import DetainerWarrant exposing (DetainerWarrant)
-import Element exposing (Element, centerX, column, fill, height, padding, paddingXY, paragraph, px, row, spacing, text, textColumn, width)
+import Element exposing (Element, alignTop, centerX, column, fill, height, maximum, padding, paddingXY, paragraph, px, row, spacing, text, textColumn, width)
+import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import FormatNumber
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
@@ -35,16 +41,21 @@ import Session exposing (Session)
 import Shared
 import Sprite
 import Svg.Attributes exposing (type_)
-import Time exposing (Posix)
+import Time exposing (Month(..), Posix)
 import Time.Utils exposing (posixDecoder)
 import UI.Alert as Alert
 import UI.Button as Button exposing (Button)
+import UI.DatePicker as DatePicker
+import UI.Dialog as Dialog
+import UI.Document as Document
 import UI.Effects
 import UI.Icon as Icon
 import UI.Link as Link
+import UI.Palette
 import UI.RenderConfig as RenderConfig exposing (RenderConfig)
 import UI.Size
 import UI.Tables.Stateful as Stateful exposing (Filters, Sorters, filtersEmpty, localSingleTextFilter, remoteRangeDateFilter, remoteSelectFilter, remoteSingleDateFilter, remoteSingleTextFilter, sortBy, sortersEmpty, unsortable)
+import UI.Text
 import UI.TextField as TextField
 import UI.Utils.DateInput exposing (DateInput, RangeDate)
 import UI.Utils.Element exposing (renderIf)
@@ -63,6 +74,12 @@ type alias Model =
     , infiniteScroll : InfiniteScroll.Model Msg
     , exportStatus : Maybe BackendTask
     , alert : Maybe Alert
+    , showExportModal : Bool
+    , exportStartDate : Maybe Calendar.Date
+    , exportEndDate : Maybe Calendar.Date
+    , exportStartDatePicker : DatePicker.Model
+    , exportEndDatePicker : DatePicker.Model
+    , documentModel : Document.Model
     }
 
 
@@ -96,6 +113,12 @@ init pageUrl sharedModel static =
       , infiniteScroll = InfiniteScroll.init (loadMore domain maybeCred search) |> InfiniteScroll.direction InfiniteScroll.Bottom
       , exportStatus = Nothing
       , alert = Nothing
+      , showExportModal = False
+      , exportStartDate = Nothing
+      , exportEndDate = Nothing
+      , exportStartDatePicker = DatePicker.init <| earliestDateThisYear <| Calendar.fromPosix static.sharedData.runtime.todayPosix
+      , exportEndDatePicker = DatePicker.init <| Calendar.fromPosix static.sharedData.runtime.todayPosix
+      , documentModel = Document.modelInit sharedModel.renderConfig
       }
     , searchWarrants domain maybeCred search
     )
@@ -143,11 +166,6 @@ queryArgsWithPagination search =
         queryArgs
 
 
-exportToSpreadsheet : String -> Session -> Cmd Msg
-exportToSpreadsheet domain session =
-    Rest.throwaway (Endpoint.detainerWarrantsExport domain) (Session.cred session) ExportToSheetsStarted
-
-
 type alias BackendTask =
     { id : String
     , startedAt : Posix
@@ -161,9 +179,33 @@ decodeBackendTask =
         (Json.Decode.field "started_at" posixDecoder)
 
 
-export : String -> Session -> Cmd Msg
-export domain session =
-    Rest.get (Endpoint.export domain) (Session.cred session) ExportStarted decodeBackendTask
+dateToPosix d =
+    DateTime.fromDateAndTime d Clock.midnight
+        |> DateTime.toPosix
+        |> Time.posixToMillis
+        |> String.fromInt
+
+
+export : String -> Session -> Model -> Cmd Msg
+export domain session model =
+    let
+        params =
+            (case model.exportStartDate of
+                Just startDate ->
+                    [ ( "start", dateToPosix startDate ) ]
+
+                Nothing ->
+                    []
+            )
+                ++ (case model.exportEndDate of
+                        Just endDate ->
+                            [ ( "end", dateToPosix endDate ) ]
+
+                        Nothing ->
+                            []
+                   )
+    in
+    Rest.get (Endpoint.export domain params) (Session.cred session) ExportStarted decodeBackendTask
 
 
 type Msg
@@ -179,10 +221,15 @@ type Msg
     | InfiniteScrollMsg InfiniteScroll.Msg
     | InputFreeTextSearch String
     | OnFreeTextSearch
+    | DocumentMsg Document.Msg
+      -- Export
+    | ToggleExportModal
+    | SelectExportStartDate Calendar.Date
+    | SelectExportEndDate Calendar.Date
+    | ToStartDatePicker DatePicker.Msg
+    | ToEndDatePicker DatePicker.Msg
     | Export
     | ExportStarted (Result Rest.HttpError BackendTask)
-    | ExportToSheets
-    | ExportToSheetsStarted (Result Rest.HttpError ())
     | RemoveAlert Posix
     | NoOp
 
@@ -403,8 +450,34 @@ updatePage profile sharedModel static msg model =
         OnFreeTextSearch ->
             updateFiltersAndReload domain session identity model
 
+        DocumentMsg subMsg ->
+            ( model, Cmd.none )
+
+        ToggleExportModal ->
+            ( { model | showExportModal = not model.showExportModal }, Cmd.none )
+
+        SelectExportStartDate date ->
+            ( { model | exportStartDate = Just date }, Cmd.none )
+
+        SelectExportEndDate date ->
+            ( { model | exportEndDate = Just date }, Cmd.none )
+
+        ToStartDatePicker subMsg ->
+            let
+                ( picker, effects ) =
+                    DatePicker.update subMsg model.exportStartDatePicker
+            in
+            ( { model | exportStartDatePicker = picker }, UI.Effects.perform effects )
+
+        ToEndDatePicker subMsg ->
+            let
+                ( picker, effects ) =
+                    DatePicker.update subMsg model.exportEndDatePicker
+            in
+            ( { model | exportEndDatePicker = picker }, UI.Effects.perform effects )
+
         Export ->
-            ( model, export domain session )
+            ( { model | showExportModal = False }, export domain session model )
 
         ExportStarted (Ok backendTask) ->
             ( { model
@@ -422,12 +495,6 @@ updatePage profile sharedModel static msg model =
         ExportStarted (Err err) ->
             ( model, Cmd.none )
 
-        ExportToSheets ->
-            ( model, exportToSpreadsheet domain session )
-
-        ExportToSheetsStarted _ ->
-            ( model, Cmd.none )
-
         RemoveAlert _ ->
             ( { model | alert = Nothing }, Cmd.none )
 
@@ -441,15 +508,15 @@ error rollbar report =
 
 
 createNewWarrantButton cfg =
-    Button.fromLabel "Enter New Detainer Warrant"
+    Button.fromLabel "Create detainer warrant"
         |> Button.redirect (Link.link <| "/admin/detainer-warrants/edit") Button.primary
         |> Button.renderElement cfg
 
 
 exportButton : RenderConfig -> Element Msg
 exportButton cfg =
-    Button.fromLabeledOnRightIcon (Icon.download "Download All Warrants")
-        |> Button.cmd Export Button.primary
+    Button.fromLabeledOnRightIcon (Icon.download "Download warrants")
+        |> Button.cmd ToggleExportModal Button.primary
         |> Button.renderElement cfg
 
 
@@ -506,6 +573,73 @@ viewActions cfg profile =
 
 insufficentPermissions =
     [ paragraph [ Font.center ] [ text "You do not have permissions to view detainer warrant data." ] ]
+
+
+earliestDate =
+    Calendar.fromRawParts { day = 1, month = Jan, year = 2003 }
+
+
+earliestDateThisYear d =
+    d
+        |> Calendar.setDay 1
+        |> Maybe.andThen (Calendar.setMonth Jan)
+        |> Maybe.withDefault d
+
+
+viewExportForm cfg today model =
+    column [ width fill, padding 20, spacing 20 ]
+        [ row [ width (fill |> maximum 600) ]
+            [ paragraph [] [ text "You may use the datepickers below to filter the dataset you'd like to download." ]
+            ]
+        , row [ width fill, spacing 20 ]
+            [ column [ alignTop, width (fill |> maximum 280), spacing 10, Font.center ]
+                [ UI.Text.renderElement cfg <| UI.Text.heading5 "Start date"
+                , DatePicker.singleDatePicker
+                    { toExternalMsg = ToStartDatePicker
+                    , onSelectMsg = SelectExportStartDate
+                    }
+                    model.exportStartDatePicker
+                    model.exportStartDate
+                    |> DatePicker.withTodaysMark today
+                    |> DatePicker.withRangeLimits earliestDate (Just today)
+                    |> DatePicker.renderElement cfg
+                , UI.Text.renderElement cfg <| UI.Text.caption "If you do not provide a start date, you will receive all detainer warrants we have going back up to 20 years or more."
+                ]
+            , Element.el
+                [ width (px 5)
+                , height fill
+                , Border.rounded 5
+                , UI.Palette.gray500
+                    |> UI.Palette.toBackgroundColor
+                ]
+                Element.none
+            , column [ alignTop, width (fill |> maximum 280), spacing 10, Font.center ]
+                [ UI.Text.renderElement cfg <| UI.Text.heading5 "End date"
+                , DatePicker.singleDatePicker
+                    { toExternalMsg = ToEndDatePicker
+                    , onSelectMsg = SelectExportEndDate
+                    }
+                    model.exportEndDatePicker
+                    model.exportEndDate
+                    |> DatePicker.withTodaysMark today
+                    |> DatePicker.withRangeLimits earliestDate (Just today)
+                    |> DatePicker.renderElement cfg
+                , UI.Text.renderElement cfg <| UI.Text.caption "If you do not set an end date, you'll receive detainer warrants up until today."
+                ]
+            ]
+        ]
+
+
+viewExportDialog cfg today model =
+    if model.showExportModal then
+        Dialog.dialog "Download detainer warrants" (Icon.filter "Filter")
+            |> Dialog.withBody (viewExportForm cfg today model)
+            |> Dialog.withButtons
+                [ Button.fromLabel "Download" |> Button.cmd Export Button.primary ]
+            |> Just
+
+    else
+        Nothing
 
 
 viewDesktop : RenderConfig -> User -> Model -> Element Msg
@@ -603,6 +737,10 @@ viewMobile cfg profile model =
         )
 
 
+type PageMsg
+    = NoChanges
+
+
 view :
     Maybe PageUrl
     -> Shared.Model
@@ -613,9 +751,24 @@ view maybeUrl sharedModel model static =
     let
         cfg =
             sharedModel.renderConfig
+
+        doc =
+            Document.document DocumentMsg
+                model.documentModel
+                (\_ ->
+                    Document.page title
+                        (Document.bodySingle (viewBody cfg sharedModel model))
+                        |> Document.pageWithDialog (viewExportDialog cfg (Calendar.fromPosix static.sharedData.runtime.todayPosix) model)
+                )
+                |> Document.toBrowserDocument cfg NoChanges
     in
-    { title = title
-    , body =
+    { title = doc.title
+    , body = List.map Element.html doc.body
+    }
+
+
+viewBody cfg sharedModel model =
+    Element.column [ width fill ] <|
         case Session.profile sharedModel.session of
             Nothing ->
                 []
@@ -632,7 +785,6 @@ view maybeUrl sharedModel model static =
                 , Element.el [ width fill, Element.htmlAttribute (Attrs.class "responsive-desktop") ]
                     (viewDesktop cfg profile model)
                 ]
-    }
 
 
 loader : Model -> Element Msg

@@ -5,7 +5,9 @@ import Browser.Navigation as Nav
 import DataSource
 import DataSource.Port
 import Element exposing (fill, width)
+import Element.Font
 import Html exposing (Html)
+import Iso8601
 import Json.Encode as Encode
 import OptimizedDecoder as Decode exposing (Decoder, int, string)
 import OptimizedDecoder.Pipeline exposing (required)
@@ -217,7 +219,7 @@ subscriptions _ model =
 data : DataSource.DataSource Data
 data =
     DataSource.map Data
-        (DataSource.map4 Runtime
+        (DataSource.map5 Runtime
             (DataSource.Port.get "environmentVariable"
                 (Encode.string "ENV")
                 Runtime.decodeEnvironment
@@ -231,6 +233,7 @@ data =
                 Runtime.decodeCodeVersion
             )
             (DataSource.Port.get "today" (Encode.string "meh") Runtime.decodeDate)
+            (DataSource.Port.get "today" (Encode.string "meh") Runtime.decodeIso8601)
         )
 
 
@@ -258,8 +261,7 @@ view tableOfContents page model toMsg pageView =
             :: pageView.body
             |> Element.column
                 [ width fill
-
-                -- , Font.family [ Font.typeface "system" ]
+                , Element.Font.family [ Element.Font.typeface "system" ]
                 ]
             |> Element.layout [ width fill ]
     , title = pageView.title

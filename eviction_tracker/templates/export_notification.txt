@@ -1,7 +1,7 @@
 Hi {{ task.requester.first_name }},
 
 Your request for eviction data in Davidson County, Tennessee has been fulfilled.
-Attached is a zip archive of spreadsheets for all attempted evictions as of {{ task.started_at }}.
+Attached is a zip archive of spreadsheets for all attempted evictions between {{ start_date }} and {{ end_date }} as of {{ task.started_at }}.
 
 Any detainer warrant with the status "PENDING" may be updated by the court system in the coming weeks or months.
 

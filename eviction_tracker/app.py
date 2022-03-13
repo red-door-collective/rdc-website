@@ -14,7 +14,7 @@ from sqlalchemy import and_, or_, func, desc
 from sqlalchemy.sql import text
 from eviction_tracker import commands, detainer_warrants, admin, direct_action
 import json
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
 from collections import OrderedDict
@@ -129,6 +129,10 @@ def between_dates(start, end, query):
             func.date(DetainerWarrant.file_date) <= end
         )
     )
+
+
+def from_millis(posix):
+    return datetime.fromtimestamp(posix / 1000, tz=timezone.utc).date()
 
 
 def months_since(start):
@@ -547,9 +551,15 @@ def register_extensions(app):
     @app.route('/api/v1/export')
     @auth_token_required
     def download_csv():
+        args = request.args
+
+        date_range = {
+            'start': from_millis(int(args['start'])) if args.get('start') else None,
+            'end': from_millis(int(args['end'])) if args.get('end') else None
+        }
         task = tasks.Task(current_request_id(),
                           admin.serializers.user_schema.dump(current_user))
-        thread = Thread(target=tasks.export_zip, args=(app, task))
+        thread = Thread(target=tasks.export_zip, args=(app, task, date_range))
         thread.daemon = True
         thread.start()
         return jsonify(task.to_json())

@@ -17,11 +17,13 @@ def send(subject, sender, recipients, text_body, html_body, attachments=None):
     mail.send(msg)
 
 
-def export_notification(task, attachments):
+def export_notification(task, attachments, start_date, end_date):
     send(f"{task.requester['first_name']}'s requested data on evictions from Red Door Collective",
          current_app.config['MAIL_ADMIN'],
          [task.requester['email']],
-         render_template('export_notification.txt', task=task),
-         render_template('export_notification.html', task=task),
+         render_template('export_notification.txt', task=task,
+                         start_date=start_date, end_date=end_date),
+         render_template('export_notification.html', task=task,
+                         start_date=start_date, end_date=end_date),
          attachments=attachments
          )

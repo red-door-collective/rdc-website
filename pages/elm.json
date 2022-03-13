@@ -14,6 +14,7 @@
             "NoRedInk/elm-json-decode-pipeline": "1.0.1",
             "NoRedInk/elm-rollbar": "2.0.1",
             "PaackEng/paack-ui": "7.19.1",
+            "PanagiotisGeorgiadis/elm-datetime": "1.3.0",
             "SiriusStarr/elm-password-strength": "1.0.2",
             "avh4/elm-color": "1.0.0",
             "cuducos/elm-format-number": "9.0.1",
@@ -48,7 +49,6 @@
         },
         "indirect": {
             "PaackEng/elm-ui-dropdown": "3.3.0",
-            "PanagiotisGeorgiadis/elm-datetime": "1.3.0",
             "bburdette/toop": "1.2.0",
             "danfishgold/base64-bytes": "1.1.0",
             "danhandrea/elm-time-extra": "1.1.0",

@@ -4,6 +4,7 @@ import time
 from flask import current_app
 import shutil
 import os
+from eviction_tracker.detainer_warrants.models import DetainerWarrant
 from eviction_tracker.admin.models import User, user_datastore
 from .email import export_notification
 from flask_mail import Attachment
@@ -20,7 +21,7 @@ class Task:
         return {'id': self.id, 'started_at': millis_timestamp(self.started_at)}
 
 
-def export_zip(app, task):
+def export_zip(app, task, date_range):
     with app.app_context():
         export_dir = task.id
         export_path = f"{current_app.config['DATA_DIR']}/davidson-co/eviction-data/export/{export_dir}"
@@ -31,11 +32,15 @@ def export_zip(app, task):
         omit_defendant_info = not current_user.can_access_defendant_data()
         csv_filename = 'detainer-warrants.csv'
         detainer_warrants.exports.warrants_to_csv(export_path + '/' + csv_filename,
+                                                  start_date=date_range['start'],
+                                                  end_date=date_range['end'],
                                                   omit_defendant_info=omit_defendant_info)
 
         judgment_csv_filename = 'judgments.csv'
         detainer_warrants.exports.judgments_to_csv(
             export_path + '/' + judgment_csv_filename,
+            start_date=date_range['start'],
+            end_date=date_range['end'],
             omit_defendant_info=omit_defendant_info
         )
 
@@ -49,4 +54,14 @@ def export_zip(app, task):
                 data=fp.read()
             ))
 
-        export_notification(task, attachments)
+        first_file_date = DetainerWarrant.query\
+            .order_by(DetainerWarrant._file_date.asc())\
+            .first()\
+            .file_date
+
+        export_notification(task,
+                            attachments,
+                            start_date=date_range.get(
+                                'start', first_file_date),
+                            end_date=date_range.get('end', task.started_at)
+                            )

@@ -99,12 +99,12 @@ detainerWarrantsExport domain =
         |> Endpoint
 
 
-export : String -> Endpoint
-export domain =
+export : String -> List Param -> Endpoint
+export domain params =
     Url.Builder.crossOrigin
         domain
         [ "api", "v1", "export" ]
-        []
+        (toQueryArgs params)
         |> Endpoint
 
 
