@@ -37,7 +37,7 @@ def import_caselink_warrants(start_date=None, end_date=None):
     end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else date.today()
 
     with scheduler.app.app_context():
-        detainer_warrants.caselink.warrants.import_from_caselink(start, end)
+        detainer_warrants.caselink.warrants.bulk_import_csvs(start, end)
 
 
 @scheduler.task(CronTrigger(day_of_week=weekdays, hour=23, minute=5, second=0, jitter=200), id='import-caselink-pleading-documents')

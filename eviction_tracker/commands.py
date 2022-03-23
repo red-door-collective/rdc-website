@@ -19,7 +19,6 @@ import uuid
 import logging.config
 import eviction_tracker.config as config
 from datetime import date, datetime, timedelta
-from dateutil.rrule import rrule, WEEKLY
 from io import StringIO
 
 logging.config.dictConfig(config.LOGGING)
@@ -28,10 +27,6 @@ logger = logging.getLogger(__name__)
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
 TEST_PATH = os.path.join(PROJECT_ROOT, 'tests')
-
-
-def next_week(dt):
-    return dt + timedelta(weeks=1)
 
 
 @click.command()
@@ -380,17 +375,6 @@ def gather_warrants_csv(start_date, end_date):
     detainer_warrants.caselink.warrants.import_from_caselink(start, end)
 
 
-def gather_csv_week(start, end, retries=0):
-    try:
-        detainer_warrants.caselink.warrants.import_from_caselink(
-            start, end)
-    except:
-        if retries < 3:
-            gather_csv_week(start, end, retries=retries+1)
-        else:
-            logger.error(f'Failed to gather warrants between {start}-{end}')
-
-
 @click.command()
 @click.argument('start_date')
 @click.argument('end_date')
@@ -400,12 +384,7 @@ def gather_warrants_csv_monthly(start_date, end_date):
     start = datetime.strptime(start_date, '%Y-%m-%d')
     end = datetime.strptime(end_date, '%Y-%m-%d')
 
-    dates = [(dt, next_week(dt))
-             for dt in rrule(WEEKLY, dtstart=start, until=end)]
-
-    for start_week, end_week in dates:
-        logger.info(f'Gathering warrants between {start_week}-{end_week}')
-        gather_csv_week(start_week, end_week)
+    detainer_warrants.caselink.warrants.bulk_import_csvs(start, end)
 
 
 @click.command()

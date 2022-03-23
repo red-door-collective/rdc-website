@@ -15,14 +15,19 @@ from ..util import get_or_create
 from ..models import db, PleadingDocument
 from .common import login, run_with_chrome, search
 from .. import csv_imports
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import requests
 import eviction_tracker.config as config
 import logging
 import logging.config
+from dateutil.rrule import rrule, WEEKLY
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
+
+
+def next_week(dt):
+    return dt + timedelta(weeks=1)
 
 
 def to_date_str(d):
@@ -81,3 +86,23 @@ def import_from_caselink(start_date, end_date):
         csv_imports.from_url(csv_url)
     else:
         logger.warn(f'Could not find CSV between {start_date} and {end_date}')
+
+
+def gather_csv_week(start, end, retries=0):
+    try:
+        import_from_caselink(
+            start, end)
+    except:
+        if retries < 3:
+            gather_csv_week(start, end, retries=retries+1)
+        else:
+            logger.error(f'Failed to gather warrants between {start}-{end}')
+
+
+def bulk_import_csvs(start, end):
+    dates = [(dt, next_week(dt))
+             for dt in rrule(WEEKLY, dtstart=start, until=end)]
+
+    for start_week, end_week in dates:
+        logger.info(f'Gathering warrants between {start_week}-{end_week}')
+        gather_csv_week(start_week, end_week)
