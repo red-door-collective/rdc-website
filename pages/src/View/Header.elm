@@ -184,7 +184,7 @@ view { profile, session, showMobileMenu, toggleMobileMenu } page =
                         , headerLink [ alignRight ]
                             (page.route == Just Index)
                             { url = "/"
-                            , label = Element.text "Trends"
+                            , label = Element.text "About"
                             }
                         , headerLink [ alignRight ]
                             (page.route == Just Resources)
@@ -202,9 +202,9 @@ view { profile, session, showMobileMenu, toggleMobileMenu } page =
                             , label = Element.text "Events"
                             }
                         , headerLink []
-                            (page.route == Just About)
-                            { url = "/about"
-                            , label = Element.text "About"
+                            (page.route == Just Trends)
+                            { url = "/trends"
+                            , label = Element.text "Trends"
                             }
                         , headerLink []
                             (page.route == Just Glossary)
