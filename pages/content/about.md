@@ -7,11 +7,13 @@
 }
 ---
 
-<sized-image
-    alt="Drawing of a handshake with a rose in the background."
-    width="375"
-    src="../images/about/dsa-handdrawn-logo.png"
-    />
+# Who is Red Door Collective?
+
+[![Who is Red Door Collective?](/images/who-is-rdc.jpg)](https://youtu.be/eL0OZLr2cBw "Who is Red Door Collective?")
+
+
+[![Who is Red Door Collective? Part 2](/images/who-is-rdc-pt-2.jpg)](https://www.youtube.com/watch?v=ZyK4Sk_FRf0 "Who is Red Door Collective? Part 2")
+
 
 Hello neighbor!
 
@@ -51,3 +53,9 @@ Most importantly, to safeguard ourselves and our family’s well-being, we will 
 
 > We as workers cannot rely on external assistance like governments, non-profits and charities. We must build power for ourselves, by ourselves by uniting to become more than ourselves. We are all we got, but **we** are all we need, because together we can weather any storm.
 > As Dr. King said, "We may have all come on different ships, but we are in the same boat now."
+
+<sized-image
+    alt="Drawing of a handshake with a rose in the background."
+    width="375"
+    src="../images/about/dsa-handdrawn-logo.png"
+    />
