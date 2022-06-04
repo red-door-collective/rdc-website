@@ -122,6 +122,11 @@ view profile session page =
                         , label = Element.text "Resources"
                         }
                     , headerLink []
+                        (page.route == Just Education)
+                        { url = "/education"
+                        , label = Element.text "Education"
+                        }
+                    , headerLink []
                         (page.route == Just Blog)
                         { url = "/blog"
                         , label = Element.text "Blog"

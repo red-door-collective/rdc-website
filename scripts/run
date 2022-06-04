@@ -1,0 +1,2 @@
+gnome-terminal --tab --title='frontend' -e "bash -c 'cd $REPO_PATH/pages && npm start'";
+gnome-terminal --tab --title='backend' -e "bash -c 'cd $REPO_PATH && flask run --no-reload'"
