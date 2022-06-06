@@ -1,12 +1,12 @@
 import os
-from flask_log_request_id import RequestIDLogFilter
+from .util import RequestIdFilter
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
     'filters': {
         'request_id_filter': {
-            '()': RequestIDLogFilter
+            '()': RequestIdFilter
         }
     },
     'formatters': {

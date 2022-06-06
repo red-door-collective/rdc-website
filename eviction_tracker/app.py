@@ -23,9 +23,9 @@ from flask_apscheduler import APScheduler
 from datadog import initialize, statsd
 import logging.config
 import eviction_tracker.config as config
-from flask_log_request_id import RequestID, current_request_id
 import eviction_tracker.tasks as tasks
 from .time_util import millis, millis_timestamp
+from .util import request_id
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -115,7 +115,6 @@ def create_app(testing=False):
         initialize(**options)
 
     register_extensions(app)
-    RequestID(app)
     register_shellcontext(app)
     register_commands(app)
 
@@ -557,7 +556,7 @@ def register_extensions(app):
             'start': from_millis(int(args['start'])) if args.get('start') else None,
             'end': from_millis(int(args['end'])) if args.get('end') else None
         }
-        task = tasks.Task(current_request_id(),
+        task = tasks.Task(request_id(),
                           admin.serializers.user_schema.dump(current_user))
         thread = Thread(target=tasks.export_zip, args=(app, task, date_range))
         thread.daemon = True

@@ -4,9 +4,10 @@ with builtins;
 let
   sources_ = if (sources == null) then import ./sources.nix else sources;
   pkgs = import sources_.nixpkgs { overlays = [ (import ./cypress_overlay.nix) ]; };
+  inherit (pkgs) stdenv lib;
   niv = (import sources_.niv { }).niv;
   poetry2nix = pkgs.callPackage sources_.poetry2nix {};
-  python = pkgs.python38;
+  python = pkgs.python310;
 
   poetryWrapper = with python.pkgs; pkgs.writeScriptBin "poetry" ''
     export PYTHONPATH=
@@ -15,20 +16,28 @@ let
   '';
 
   overrides = poetry2nix.overrides.withDefaults (
-    self: super: {
+    self: super:
+    let
+      pythonBuildDepNameValuePair = deps: pname: {
+        name = pname;
+        value = super.${pname}.overridePythonAttrs (old: {
+          buildInputs = old.buildInputs ++ deps;
+        });
+      };
 
-      munch = super.munch.overridePythonAttrs (
-        old: {
-          propagatedBuildInputs = old.propagatedBuildInputs ++ [ self.pbr ];
-        }
-      );
-
+      addPythonBuildDeps = deps: pnames:
+        lib.listToAttrs
+          (map
+            (pythonBuildDepNameValuePair deps)
+            pnames);
+    in
+    {
       cryptography = super.cryptography.overridePythonAttrs(old:{
         cargoDeps = pkgs.rustPlatform.fetchCargoTarball {
           inherit (old) src;
           name = "${old.pname}-${old.version}";
           sourceRoot = "${old.pname}-${old.version}/src/rust/";
-          sha256 = "sha256-kozYXkqt1Wpqyo9GYCwN08J+zV92ZWFJY/f+rulxmeQ=";
+          sha256 = "sha256-qvrxvneoBXjP96AnUPyrtfmCnZo+IriHR5HbtWQ5Gk8=";
         };
         cargoRoot = "src/rust";
         nativeBuildInputs = old.nativeBuildInputs ++ (with pkgs.rustPlatform; [
@@ -37,7 +46,8 @@ let
           cargoSetupHook
         ]);
       });
-  });
+  }
+  );
 
 in rec {
   inherit pkgs bootstrap javascriptDeps python;
