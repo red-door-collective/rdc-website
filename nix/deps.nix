@@ -71,7 +71,7 @@ in rec {
         (p: { name = p.pname; value = p; })
         poetryPackages);
 
-  inherit (poetryPackagesByName) flask deform babel;
+  inherit (poetryPackagesByName) flask deform;
 
   # Can be imported in Python code or run directly as debug tools
   debugLibsAndTools = with python.pkgs; [
