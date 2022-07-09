@@ -7,11 +7,11 @@ from eviction_tracker.extensions import scheduler
 workers = multiprocessing.cpu_count() * 2 + 1
 bind = "${listen}"
 
-proc_name = "eviction-tracker"
+proc_name = "eviction_tracker"
 pythonpath = "${pythonpath}"
 timeout = 120
 statsd_host = "localhost:8125"
-user = "eviction-tracker"
+user = "eviction_tracker"
 group = "within"
 preload = True
 

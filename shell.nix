@@ -6,7 +6,7 @@ let
   caBundle = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
 
 in pkgs.mkShell {
-  name = "eviction-tracker";
+  name = "eviction_tracker";
   buildInputs = deps.shellInputs ++ [
     pkgs.cypress
     # (with pkgs.dotnetCorePackages; combinePackages [ sdk_5_0 net_5_0 ])

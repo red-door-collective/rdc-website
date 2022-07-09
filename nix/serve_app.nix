@@ -4,8 +4,8 @@
   tmpdir ? null
 }:
 let
-  eviction-tracker = import ../. { inherit sources; };
-  inherit (eviction-tracker) dependencyEnv src;
+  eviction_tracker = import ../. { inherit sources; };
+  inherit (eviction_tracker) dependencyEnv src;
   deps = import ./deps.nix { inherit sources; };
   inherit (deps) pkgs gunicorn lib externalRuntimeDeps;
   pythonpath = "${dependencyEnv}/${dependencyEnv.sitePackages}";
