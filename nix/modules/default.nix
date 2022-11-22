@@ -5,14 +5,7 @@ with builtins;
 let
   cfg = config.services.eviction_tracker;
 
-  configFilename = "eviction_tracker-config.json";
-
-  configInput =
-    pkgs.writeText configFilename
-      (toJSON cfg.extraConfig);
-
   serveApp = import ../serve_app.nix {
-    appConfigFile = "/run/eviction_tracker/${configFilename}";
     listen = "${cfg.address}:${toString cfg.port}";
     tmpdir = "/tmp";
     inherit (config.nixpkgs.localSystem) system;
@@ -75,36 +68,10 @@ in {
       default = null;
     };
 
-    browserSessionSecretKeyFile = mkOption {
-      type = types.str;
-      description = "Path to file containing the secret key for browser session signing";
-      default = "/var/lib/eviction_tracker/browser-session-secret-key";
-    };
-
-    secretFiles = mkOption {
-      type = types.attrs;
-      default = {};
-      description = ''
-        Arbitrary secrets that should be read from a file and
-        inserted in the config on startup. Expects an attrset with
-        the variable name to replace and a file path to the secret.
-      '';
-      example = {
-        some_secret_api_key = "/var/lib/eviction_tracker/some-secret-api-key";
-      };
-    };
-
-    extraConfig = mkOption {
-      type = types.attrs;
-      default = {};
-      description = "Additional config options given as attribute set.";
-    };
-
   };
 
   config = lib.mkIf cfg.enable {
 
-    services.eviction_tracker.configFile = configInput;
     services.eviction_tracker.app = serveApp;
     services.eviction_tracker.staticFiles = staticFiles;
 
@@ -112,9 +79,9 @@ in {
 
     users.users.eviction_tracker = {
       isSystemUser = true;
-      group = "eviction_tracker";
+      group = cfg.group;
     };
-    users.groups.eviction_tracker = { };
+    users.groups.${cfg} = { };
 
     systemd.services.eviction_tracker = {
 
@@ -126,9 +93,9 @@ in {
       serviceConfig = {
         User = cfg.user;
         Group = cfg.group;
-        ExecStart = "${serveApp}/bin/run";
-        RuntimeDirectory = "eviction_tracker";
-        StateDirectory = "eviction_tracker";
+        ExecStart = "${serveApp}/bin/serve";
+        RuntimeDirectory = "/srv/within/eviction_tracker";
+        StateDirectory = "srv/within/eviction_tracker";
         RestartSec = "5s";
         Restart = "always";
         X-ConfigFile = configInput;
@@ -181,7 +148,7 @@ in {
 
       unitConfig = {
         Documentation = [
-          "https://github.com/red-door-collective/eviction_tracker"
+          "https://github.com/red-door-collective/eviction-tracker"
           "https://reddoorcollective.org"
         ];
       };

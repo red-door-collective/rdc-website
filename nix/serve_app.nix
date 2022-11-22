@@ -43,6 +43,14 @@ let
     ${dependencyEnv}/bin/flask "$@"
   '';
 
+  serve = pkgs.writeShellScriptBin "serve" ''
+      export $(cat /srv/within/eviction_tracker/.env | xargs)
+      export FLASK_APP="eviction_tracker.app"
+      ${runMigrations}
+      export FLASK_APP="eviction_tracker"
+      ${run}
+    '';
+
 in pkgs.buildEnv {
   name = "eviction-tracker-serve-app";
   paths = [
@@ -50,5 +58,6 @@ in pkgs.buildEnv {
     runMigrations
     runFlask
     console
+    serve
   ] ++ externalRuntimeDeps;
 }
