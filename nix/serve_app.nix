@@ -48,7 +48,7 @@ let
       export FLASK_APP="eviction_tracker.app"
       ${runMigrations}
       export FLASK_APP="eviction_tracker"
-      ${run}
+      ${runFlaskGunicorn}
     '';
 
 in pkgs.buildEnv {
