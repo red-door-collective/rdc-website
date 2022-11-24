@@ -37,7 +37,7 @@ let
           inherit (old) src;
           name = "${old.pname}-${old.version}";
           sourceRoot = "${old.pname}-${old.version}/src/rust/";
-          sha256 = "sha256-qvrxvneoBXjP96AnUPyrtfmCnZo+IriHR5HbtWQ5Gk8=";
+          sha256 = "sha256-lzHLW1N4hZj+nn08NZiPVM/X+SEcIsuZDjEOy0OOkSc=";
         };
         cargoRoot = "src/rust";
         nativeBuildInputs = old.nativeBuildInputs ++ (with pkgs.rustPlatform; [
@@ -46,7 +46,23 @@ let
           cargoSetupHook
         ]);
       });
-  }
+    } //
+          (addPythonBuildDeps
+      [ self.setuptools ]
+      [ "exceptiongroup" 
+        "python-language-server" 
+        "gspread-formatting"
+        "probableparsing"
+        "konch"
+        "usaddress"
+        "flask-resty"
+        "flask-apscheduler"
+        "pyrepl"
+        "wmctrl"
+        "fancycompleter"
+        "pdbpp"
+        ])
+
   );
 
 in rec {
