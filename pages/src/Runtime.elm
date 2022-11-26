@@ -88,7 +88,7 @@ domain env =
             "https://reddoorcollective.org"
 
         Staging ->
-            "https://reddoorcollective.org"
+            "https://reddoorcollective.online"
 
         Development ->
             "http://localhost:5000"
