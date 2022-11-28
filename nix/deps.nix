@@ -37,7 +37,7 @@ let
           inherit (old) src;
           name = "${old.pname}-${old.version}";
           sourceRoot = "${old.pname}-${old.version}/src/rust/";
-          sha256 = "sha256-lzHLW1N4hZj+nn08NZiPVM/X+SEcIsuZDjEOy0OOkSc=";
+          sha256 = "sha256-BN0kOblUwgHj5QBf52RY2Jx0nBn03lwoN1O5PEohbwY=";
         };
         cargoRoot = "src/rust";
         nativeBuildInputs = old.nativeBuildInputs ++ (with pkgs.rustPlatform; [
