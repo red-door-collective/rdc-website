@@ -601,7 +601,7 @@ def register_user(user_model_kwargs):
 
     confirmation_link, token = generate_confirmation_link(user)
     if (current_app.config['ENV'] != 'development'):
-        confirmation_link = re.sub(r'^.+?/', r'\1' + current_app.config['SECURITY_REDIRECT_HOST'] + '/', confirmation_link)
+        confirmation_link = re.sub(r'^(.+?)/', current_app.config['SECURITY_REDIRECT_HOST'] + '/', confirmation_link)
 
     from flask_security.signals import user_registered
 
