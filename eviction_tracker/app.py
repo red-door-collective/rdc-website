@@ -5,6 +5,7 @@ from flask_security.confirmable import generate_confirmation_link
 from flask_security.utils import config_value
 from eviction_tracker.extensions import cors, db, mail, marshmallow, csrf, migrate, api, login_manager, security
 from eviction_tracker.admin.models import User, user_datastore
+import re
 import os
 import time
 import calendar
@@ -599,6 +600,8 @@ def register_user(user_model_kwargs):
     db.session.commit()
 
     confirmation_link, token = generate_confirmation_link(user)
+    if (current_app.config['ENV'] != 'development'):
+        confirmation_link = re.sub(r'(^https?://).+?/', r'\1' + current_app.config['SECURITY_REDIRECT_HOST'] + '/', confirmation_link)
 
     from flask_security.signals import user_registered
 
