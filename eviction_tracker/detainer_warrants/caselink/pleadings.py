@@ -393,11 +393,22 @@ def extract_text_from_document(document):
         db.session.commit()
 
 
-def bulk_extract_pleading_document_details():
-    queue = PleadingDocument.query.filter(
-        PleadingDocument.text == None,
-        PleadingDocument.status == None
-    )
+def bulk_extract_pleading_document_details(older_than_one_year=False):
+    current_time = datetime.utcnow()
+    one_year_ago = current_time - timedelta(weeks=52)
+
+    is_old = func.date(DetainerWarrant.file_date) >= one_year_ago 
+    if older_than_one_year:
+        is_old = func.date(DetainerWarrant.file_date) <= one_year_ago
+
+    queue = PleadingDocument.query\
+        .join(PleadingDocument.detainer_warrant)\
+        .filter(
+            PleadingDocument.text == None,
+            PleadingDocument.status == None,
+            is_old
+        )
+        
     for document in queue:
         extract_text_from_document(document)
 

@@ -295,9 +295,10 @@ def extract_no_kind_pleading_document_text():
 
 
 @click.command()
+@click.option('--older-than-one-year', is_flag=True, default=False)
 @with_appcontext
-def bulk_extract_pleading_document_details():
-    detainer_warrants.caselink.pleadings.bulk_extract_pleading_document_details()
+def bulk_extract_pleading_document_details(older_than_one_year):
+    detainer_warrants.caselink.pleadings.bulk_extract_pleading_document_details(older_than_one_year=older_than_one_year)
 
 
 @click.command()
