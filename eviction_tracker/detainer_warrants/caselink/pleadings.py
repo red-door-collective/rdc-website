@@ -247,15 +247,20 @@ def parse_mismatched_html():
             populate_pleadings(dw.docket_id, import_from_postback_html(html))
 
 
-def pending_warrants_queue():
+def pending_warrants_queue(older_than_one_year=False):
     current_time = datetime.utcnow()
 
     two_days_ago = current_time - timedelta(days=2)
+    one_year_ago = current_time - timedelta(weeks=52)
+    is_old = func.date(DetainerWarrant.file_date) >= one_year_ago 
+    if older_than_one_year:
+        is_old = func.date(DetainerWarrant.file_date) <= one_year_ago
 
     return db.session.query(DetainerWarrant.docket_id)\
         .order_by(DetainerWarrant._file_date.desc())\
         .filter(and_(
             DetainerWarrant.status == 'PENDING',
+            is_old,
             or_(
                 DetainerWarrant._last_pleading_documents_check == None,
                 DetainerWarrant._last_pleading_documents_check < two_days_ago
@@ -264,8 +269,8 @@ def pending_warrants_queue():
                  )))
 
 
-def update_pending_warrants():
-    queue = pending_warrants_queue()
+def update_pending_warrants(older_than_one_year=False):
+    queue = pending_warrants_queue(older_than_one_year=older_than_one_year)
 
     bulk_import_documents([id[0] for id in queue],
                           cancel_during_working_hours=True)
