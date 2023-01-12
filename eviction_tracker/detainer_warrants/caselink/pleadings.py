@@ -557,6 +557,9 @@ def update_detainer_warrant_from_document(document):
         if len(addresses) > 0:
             potential_addresses = set([])
             for address_text in addresses:
+                if len(address_text) > 95:
+                    logger.warning(f'strange address encountered: `{address_text}` for {document.url} on #{document.docket_id}')
+                    continue # probably not valid
                 address = Address.query.get(address_text)
                 if not address:
                     address = Address.create(text=address_text)
