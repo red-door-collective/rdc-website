@@ -95,8 +95,6 @@ In recent years the cost of living in Nashville has skyrocketed with few options
 
 Immediately prior to the COVID-19 pandemic, Davidson Co. was hit by a deadly tornado on the night of March 2 and into the morning of March 3, 2020 [\[5\]](https://www.arkansasonline.com/news/2020/mar/03/tornado-hits-downtown-nashville-least-7-die-tennes/). Following natural disasters such as the catastrophic flooding in May 2010, many homeowners are suddenly bombarded with offers to buy their now damaged homes. Increased gentrification has been significant in historically neglected and oppressed areas of Nashville impacted by severe weather events such as East and North Nashville; this gentrification has resulted in further displacement of longstanding communities.
 
-![Scenes of destruction in Nashville after the 2020 tornado.](/images/eviction-report-h1-2021/destruction.jpg)
-
 ### AFFECTS OF COVID-19
 
 Throughout the COVID-19 pandemic, there have been temporary changes to Davidson Co. court rules and procedures. In mid 2020 witnesses were not allowed inside the courtroom. In late 2020 the number of cases heard was limited. General Sessions court was shut down between December 2020 and March 2021.
