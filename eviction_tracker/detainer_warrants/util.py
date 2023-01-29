@@ -15,7 +15,7 @@ def dw_rows(limit, workbook):
 def get_gc(service_account_key):
     connect_kwargs = dict()
     if service_account_key:
-        connect_kwargs['filename'] = service_account_key
+        connect_kwargs["filename"] = service_account_key
 
     return gspread.service_account(**connect_kwargs)
 
@@ -29,8 +29,7 @@ def get_or_create(session, model, defaults=None, **kwargs):
     if instance:
         return instance, False
     else:
-        params = {k: v for k, v in kwargs.items(
-        ) if not isinstance(v, ClauseElement)}
+        params = {k: v for k, v in kwargs.items() if not isinstance(v, ClauseElement)}
         params.update(defaults or {})
         instance = model(**params)
         try:
@@ -49,6 +48,6 @@ def normalize(value):
         return value
     elif type(value) is str:
         no_trailing = value.strip()
-        return no_trailing if no_trailing not in ['', 'NA'] else None
+        return no_trailing if no_trailing not in ["", "NA"] else None
     else:
         return None

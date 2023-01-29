@@ -1,6 +1,10 @@
 from flask import current_app
 from selenium import webdriver
-from selenium.common.exceptions import ElementNotInteractableException, StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import (
+    ElementNotInteractableException,
+    StaleElementReferenceException,
+    TimeoutException,
+)
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.wait import WebDriverWait
 import selenium.webdriver.support.expected_conditions as EC
@@ -28,6 +32,7 @@ import io
 from ..judgments import regexes
 import usaddress
 import pdf2image
+
 try:
     from PIL import Image
 except ImportError:
@@ -38,12 +43,12 @@ import sys
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
-CONTINUANCE_REGEX = re.compile(r'COURT\s+DATE\s+CONTINUANCE\s+(\d+\.\d+\.\d+)')
-HEARING_REGEX = re.compile(r'COURT\s+DATE\s+(\d+\.\d+\.\d+)')
+CONTINUANCE_REGEX = re.compile(r"COURT\s+DATE\s+CONTINUANCE\s+(\d+\.\d+\.\d+)")
+HEARING_REGEX = re.compile(r"COURT\s+DATE\s+(\d+\.\d+\.\d+)")
 DOCUMENTS_REGEX = re.compile(
-    r'\,\s*"ý*(https://caselinkimages\.nashville\.gov.+?\.pdf)ý*"')
-STALE_HTML_REGEX = re.compile(
-    r'<title>\s*CaseLink\s*Public\s*Inquiry\s*</title>')
+    r'\,\s*"ý*(https://caselinkimages\.nashville\.gov.+?\.pdf)ý*"'
+)
+STALE_HTML_REGEX = re.compile(r"<title>\s*CaseLink\s*Public\s*Inquiry\s*</title>")
 
 
 def pdf_to_img(pdf):
@@ -63,7 +68,7 @@ def all_pages_text(pdf_file):
     for pg, img in enumerate(images[:6]):
         text_per_page.append(ocr_core(img))
 
-    return ' | '.join(text_per_page)
+    return " | ".join(text_per_page)
 
 
 def is_between(begin_date, end_date, check_date=None):
@@ -81,7 +86,7 @@ def import_from_postback_html(html):
 
 def populate_pleadings(docket_id, documents_match):
     urls_mess = documents_match.group(1)
-    urls = [url for url in urls_mess.split('ý') if url != '']
+    urls = [url for url in urls_mess.split("ý") if url != ""]
 
     created_count, seen_count = 0, 0
     for url in urls:
@@ -93,12 +98,13 @@ def populate_pleadings(docket_id, documents_match):
             PleadingDocument.create(url=url, docket_id=docket_id)
 
     logger.info(
-        f'{docket_id}: created {created_count}, seen {seen_count} pleading documents')
+        f"{docket_id}: created {created_count}, seen {seen_count} pleading documents"
+    )
 
     DetainerWarrant.query.get(docket_id).update(
         _last_pleading_documents_check=datetime.utcnow(),
         pleading_document_check_mismatched_html=None,
-        pleading_document_check_was_successful=True
+        pleading_document_check_was_successful=True,
     )
     db.session.commit()
 
@@ -112,12 +118,12 @@ def import_from_dw_page(browser, docket_id):
         documents_match = None
         for attempt_number in range(4):
             script_tag = browser.find_element(By.XPATH, "/html")
-            postback_HTML = script_tag.get_attribute('outerHTML')
+            postback_HTML = script_tag.get_attribute("outerHTML")
             documents_match = import_from_postback_html(postback_HTML)
             if documents_match:
                 break
             else:
-                time.sleep(.5)
+                time.sleep(0.5)
 
         populate_pleadings(docket_id, documents_match)
 
@@ -126,44 +132,47 @@ def import_from_dw_page(browser, docket_id):
 
         pleading_dates = WebDriverWait(browser, 2).until(
             EC.visibility_of_all_elements_located(
-                (By.XPATH, '//*[@id="GRIDTBL_1A"]/tbody/tr[*]/td[2]/input'))
+                (By.XPATH, '//*[@id="GRIDTBL_1A"]/tbody/tr[*]/td[2]/input')
+            )
         )
         pleading_descriptions = WebDriverWait(browser, 2).until(
             EC.visibility_of_all_elements_located(
-                (By.XPATH, '//*[@id="GRIDTBL_1A"]/tbody/tr[*]/td[3]/input'))
+                (By.XPATH, '//*[@id="GRIDTBL_1A"]/tbody/tr[*]/td[3]/input')
+            )
         )
 
-        for pleading_date_el, pleading_description_el in zip(pleading_dates, pleading_descriptions):
-            pleading_date_str = pleading_date_el.get_attribute('value')
-            pleading_description = pleading_description_el.get_attribute(
-                'value')
+        for pleading_date_el, pleading_description_el in zip(
+            pleading_dates, pleading_descriptions
+        ):
+            pleading_date_str = pleading_date_el.get_attribute("value")
+            pleading_description = pleading_description_el.get_attribute("value")
             continuance_match = CONTINUANCE_REGEX.search(pleading_description)
             hearing_match = HEARING_REGEX.search(pleading_description)
             if continuance_match:
-                hearing_date = date_from_str(pleading_date_str, '%m/%d/%Y')
-                continuance_date = date_from_str(
-                    continuance_match.group(1), '%m.%d.%y')
+                hearing_date = date_from_str(pleading_date_str, "%m/%d/%Y")
+                continuance_date = date_from_str(continuance_match.group(1), "%m.%d.%y")
                 existing_hearing = Hearing.query.filter(
                     Hearing.docket_id == docket_id,
-                    cast(Hearing._court_date, Date) == pleading_date
+                    cast(Hearing._court_date, Date) == pleading_date,
                 ).first()
                 if existing_hearing:
                     existing_hearing.update(_continuance_on=continuance_date)
                 else:
                     Hearing.create(
-                        _court_date=pleading_date, docket_id=docket_id, _continuance_on=continuance_date)
+                        _court_date=pleading_date,
+                        docket_id=docket_id,
+                        _continuance_on=continuance_date,
+                    )
                 db.session.commit()
 
             elif hearing_match:
-                hearing_date = date_from_str(
-                    hearing_match.group(1), '%m.%d.%y')
+                hearing_date = date_from_str(hearing_match.group(1), "%m.%d.%y")
                 existing_hearing = Hearing.query.filter(
                     Hearing.docket_id == docket_id,
-                    cast(Hearing._court_date, Date) == hearing_date
+                    cast(Hearing._court_date, Date) == hearing_date,
                 ).first()
                 if not existing_hearing:
-                    Hearing.create(docket_id=docket_id,
-                                   _court_date=hearing_date)
+                    Hearing.create(docket_id=docket_id, _court_date=hearing_date)
                 db.session.commit()
 
     finally:
@@ -180,15 +189,15 @@ def import_documents(browser, docket_id):
 def search_for_warrant(browser, docket_id):
     for attempt in range(4):
         try:
-            docket_search = browser.find_element(
-                By.NAME, names.DOCKET_NUMBER_INPUT)
+            docket_search = browser.find_element(By.NAME, names.DOCKET_NUMBER_INPUT)
             docket_search.send_keys(docket_id)
             break
         except ElementNotInteractableException:
             WebDriverWait(browser, 1).until(EC.staleness_of(docket_search))
-            WebDriverWait(browser, 1)\
-                .until(EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT)))
-            time.sleep(.5)
+            WebDriverWait(browser, 1).until(
+                EC.element_to_be_clickable((By.NAME, names.DOCKET_NUMBER_INPUT))
+            )
+            time.sleep(0.5)
 
     search(browser)
 
@@ -204,12 +213,14 @@ def in_between(now, start, end):
 
 @run_with_chrome
 def bulk_import_documents(browser, docket_ids, cancel_during_working_hours=False):
-    logger.info(f'checking {len(docket_ids)} dockets')
+    logger.info(f"checking {len(docket_ids)} dockets")
 
     postback_HTML = None
 
     for index, docket_id in enumerate(docket_ids):
-        if cancel_during_working_hours and in_between(datetime.now().time(), time(8), time(22)):
+        if cancel_during_working_hours and in_between(
+            datetime.now().time(), time(8), time(22)
+        ):
             return
 
         login(browser)
@@ -219,11 +230,12 @@ def bulk_import_documents(browser, docket_ids, cancel_during_working_hours=False
 
         except:
             logger.warning(
-                f'failed to gather documents for {docket_id}. Exception: {traceback.format_exc()}')
+                f"failed to gather documents for {docket_id}. Exception: {traceback.format_exc()}"
+            )
             DetainerWarrant.query.get(docket_id).update(
                 _last_pleading_documents_check=datetime.utcnow(),
                 pleading_document_check_mismatched_html=postback_HTML,
-                pleading_document_check_was_successful=False
+                pleading_document_check_was_successful=False,
             )
             db.session.commit()
 
@@ -233,15 +245,21 @@ def parse_mismatched_html():
         DetainerWarrant.pleading_document_check_mismatched_html != None
     )
 
-    logger.info(f're-parsing {queue.count} detainer warrants')
+    logger.info(f"re-parsing {queue.count} detainer warrants")
 
     for dw in queue:
-        logger.info(f're-parsing docket #: {dw.docket_id}')
-        html = dw.pleading_document_check_mismatched_html.replace(
-            '\n', ' ').replace('\r', ' ')
+        logger.info(f"re-parsing docket #: {dw.docket_id}")
+        html = dw.pleading_document_check_mismatched_html.replace("\n", " ").replace(
+            "\r", " "
+        )
         staleness_match = STALE_HTML_REGEX.search(html)
 
-        if staleness_match or 'Search for Case(s)' in html or 'LVP.MAIN_POSTREAD' in html or 'TktAlert' in html:
+        if (
+            staleness_match
+            or "Search for Case(s)" in html
+            or "LVP.MAIN_POSTREAD" in html
+            or "TktAlert" in html
+        ):
             dw.update(pleading_document_check_mismatched_html=None)
         else:
             populate_pleadings(dw.docket_id, import_from_postback_html(html))
@@ -252,34 +270,38 @@ def pending_warrants_queue(older_than_one_year=False):
 
     two_days_ago = current_time - timedelta(days=2)
     one_year_ago = current_time - timedelta(weeks=52)
-    is_old = func.date(DetainerWarrant.file_date) >= one_year_ago 
+    is_old = func.date(DetainerWarrant.file_date) >= one_year_ago
     if older_than_one_year:
         is_old = func.date(DetainerWarrant.file_date) <= one_year_ago
 
-    return db.session.query(DetainerWarrant.docket_id)\
-        .order_by(DetainerWarrant._file_date.desc())\
-        .filter(and_(
-            DetainerWarrant.status == 'PENDING',
-            is_old,
-            or_(
-                DetainerWarrant._last_pleading_documents_check == None,
-                DetainerWarrant._last_pleading_documents_check < two_days_ago
-            ),
-            not_(DetainerWarrant.judgments.any(Judgment.with_prejudice == True),
-                 )))
+    return (
+        db.session.query(DetainerWarrant.docket_id)
+        .order_by(DetainerWarrant._file_date.desc())
+        .filter(
+            and_(
+                DetainerWarrant.status == "PENDING",
+                is_old,
+                or_(
+                    DetainerWarrant._last_pleading_documents_check == None,
+                    DetainerWarrant._last_pleading_documents_check < two_days_ago,
+                ),
+                not_(
+                    DetainerWarrant.judgments.any(Judgment.with_prejudice == True),
+                ),
+            )
+        )
+    )
 
 
 def update_pending_warrants(older_than_one_year=False):
     queue = pending_warrants_queue(older_than_one_year=older_than_one_year)
 
-    bulk_import_documents([id[0] for id in queue],
-                          cancel_during_working_hours=True)
+    bulk_import_documents([id[0] for id in queue], cancel_during_working_hours=True)
 
 
 def gather_documents_for_missing_addresses(start_date=None, end_date=None):
     queue = db.session.query(DetainerWarrant.docket_id).filter(
-        DetainerWarrant.address == None,
-        DetainerWarrant.document_url == None
+        DetainerWarrant.address == None, DetainerWarrant.document_url == None
     )
 
     if start_date:
@@ -297,15 +319,16 @@ PARSE_PARAMS = LAParams(
     line_margin=0.5,
     word_margin=0.1,
     char_margin=2.0,
-    detect_vertical=False
+    detect_vertical=False,
 )
 
 
 def extract_text_from_pdf(pdf):
     output_string = io.StringIO()
 
-    extract_text_to_fp(pdf, output_string, laparams=PARSE_PARAMS,
-                       output_type='text', codec=None)
+    extract_text_to_fp(
+        pdf, output_string, laparams=PARSE_PARAMS, output_type="text", codec=None
+    )
 
     return output_string.getvalue().strip()
 
@@ -316,19 +339,19 @@ DETAINER_WARRANT_REGEXES = [
     regexes.DETAINER_WARRANT_SCANNED_PRINTED,
     regexes.DETAINER_WARRANT_SCANNED_DARK,
     regexes.DETAINER_WARRANT_SUMMONS,
-    regexes.DETAINER_WARRANT_CLAIMS
+    regexes.DETAINER_WARRANT_CLAIMS,
 ]
 
 
 def determine_kind(text):
     kind = None
-    if 'Other terms of this Order, if any, are as follows' in text:
-        kind = 'JUDGMENT'
+    if "Other terms of this Order, if any, are as follows" in text:
+        kind = "JUDGMENT"
         return kind
 
     for regexp in DETAINER_WARRANT_REGEXES:
         if regexp.search(text):
-            kind = 'DETAINER_WARRANT'
+            kind = "DETAINER_WARRANT"
             return kind
 
     return kind
@@ -347,24 +370,24 @@ def fetch_pdf(document):
 
 
 def update_document_parent(document):
-    if document.kind == 'DETAINER_WARRANT':
+    if document.kind == "DETAINER_WARRANT":
         update_detainer_warrant_from_document(document)
-    elif document.kind == 'JUDGMENT':
+    elif document.kind == "JUDGMENT":
         update_judgment_from_document(document)
 
 
 def extract_text_from_pdf_ocr(pdf, document):
     try:
-        logger.info(
-            f'extracting text via OCR: {document.docket_id}, {document.url}')
+        logger.info(f"extracting text via OCR: {document.docket_id}, {document.url}")
         text = extract_text_via_ocr(pdf)
         kind = determine_kind(text)
-        logger.info(f'extracted text via OCR. Kind: `{kind}` determined')
+        logger.info(f"extracted text via OCR. Kind: `{kind}` determined")
         document.update(text=text, kind=kind)
         db.session.commit()
     except:
         logger.warning(
-            f'Could not extract text via OCR for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}')
+            f"Could not extract text via OCR for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}"
+        )
         document.update(status="FAILED_TO_EXTRACT_TEXT")
         db.session.commit()
 
@@ -388,7 +411,8 @@ def extract_text_from_document(document):
 
     except:
         logger.warning(
-            f'Could not extract text for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}')
+            f"Could not extract text for docket # {document.docket_id}, {document.url}. Exception: {traceback.format_exc()}"
+        )
         document.update(status="FAILED_TO_EXTRACT_TEXT")
         db.session.commit()
 
@@ -397,26 +421,20 @@ def bulk_extract_pleading_document_details(older_than_one_year=False):
     current_time = datetime.utcnow()
     one_year_ago = current_time - timedelta(weeks=52)
 
-    is_old = func.date(DetainerWarrant.file_date) >= one_year_ago 
+    is_old = func.date(DetainerWarrant.file_date) >= one_year_ago
     if older_than_one_year:
         is_old = func.date(DetainerWarrant.file_date) <= one_year_ago
 
-    queue = PleadingDocument.query\
-        .join(PleadingDocument.detainer_warrant)\
-        .filter(
-            PleadingDocument.text == None,
-            PleadingDocument.status == None,
-            is_old
-        )
-        
+    queue = PleadingDocument.query.join(PleadingDocument.detainer_warrant).filter(
+        PleadingDocument.text == None, PleadingDocument.status == None, is_old
+    )
+
     for document in queue:
         extract_text_from_document(document)
 
 
 def extract_no_kind_document_details():
-    queue = PleadingDocument.query.filter(
-        PleadingDocument.kind_id == None
-    )
+    queue = PleadingDocument.query.filter(PleadingDocument.kind_id == None)
     for document in queue:
         extract_text_from_document(document)
 
@@ -427,20 +445,23 @@ def extract_all_pleading_document_details():
 
 
 def retry_detainer_warrant_extraction():
-    for document in PleadingDocument.query.filter(PleadingDocument.text.ilike('%detaining%')):
+    for document in PleadingDocument.query.filter(
+        PleadingDocument.text.ilike("%detaining%")
+    ):
         extract_text_from_document(document)
 
 
 def ocr_queue(start_date=None, end_date=None):
     rownb = func.row_number().over(
-        order_by=PleadingDocument.created_at,
-        partition_by=PleadingDocument.docket_id
+        order_by=PleadingDocument.created_at, partition_by=PleadingDocument.docket_id
     )
-    rownb = rownb.label('rownb')
+    rownb = rownb.label("rownb")
 
-    subq = db.session.query(PleadingDocument, rownb)\
-        .join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)\
+    subq = (
+        db.session.query(PleadingDocument, rownb)
+        .join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)
         .filter(PleadingDocument.kind_id == None, DetainerWarrant.document_url == None)
+    )
 
     if start_date:
         subq = subq.filter(DetainerWarrant._file_date >= start_date)
@@ -450,8 +471,9 @@ def ocr_queue(start_date=None, end_date=None):
 
     subq = subq.subquery(name="subq", with_labels=True)
 
-    return db.session.query(orm.aliased(
-        PleadingDocument, alias=subq)).filter(subq.c.rownb == 1)
+    return db.session.query(orm.aliased(PleadingDocument, alias=subq)).filter(
+        subq.c.rownb == 1
+    )
 
 
 def try_ocr_detainer_warrants(start_date=None, end_date=None):
@@ -459,56 +481,57 @@ def try_ocr_detainer_warrants(start_date=None, end_date=None):
 
     total = queue.count()
 
-    logger.info(f'extracting text for {total} documents')
+    logger.info(f"extracting text for {total} documents")
 
     log_freq = total // 100
     log_freq = 1 if log_freq == 0 else log_freq
 
     for i, document in enumerate(queue):
         if i % log_freq == 0:
-            logger.info(f'{round(i / total * 100)}% done with OCR scan')
+            logger.info(f"{round(i / total * 100)}% done with OCR scan")
 
         extract_text_from_document_ocr(document)
 
 
 def date_or_inf(d):
-    return d.strftime('%m/%d/%Y') if d else '∞'
+    return d.strftime("%m/%d/%Y") if d else "∞"
 
 
 def try_ocr_extraction(start_date=None, end_date=None):
     docket_ids = db.session.query(DetainerWarrant.docket_id).filter(
-        DetainerWarrant.document_url == None)
+        DetainerWarrant.document_url == None
+    )
 
     if start_date:
-        docket_ids = docket_ids.filter(
-            DetainerWarrant._file_date >= start_date)
+        docket_ids = docket_ids.filter(DetainerWarrant._file_date >= start_date)
 
     if end_date:
         docket_ids = docket_ids.filter(DetainerWarrant._file_date <= end_date)
 
     logger.info(
-        f'Extracting text via OCR on all documents between {date_or_inf(start_date)} and {date_or_inf(end_date)}')
+        f"Extracting text via OCR on all documents between {date_or_inf(start_date)} and {date_or_inf(end_date)}"
+    )
 
     docket_ids_sq = docket_ids.subquery()
     queue = PleadingDocument.query.filter(
-        PleadingDocument.docket_id.in_(docket_ids_sq.select()))
+        PleadingDocument.docket_id.in_(docket_ids_sq.select())
+    )
 
     total = queue.count()
 
-    logger.info(f'extracting text for {total} documents')
+    logger.info(f"extracting text for {total} documents")
 
     log_freq = total // 100
     log_freq = 1 if log_freq == 0 else log_freq
 
     for i, document in enumerate(queue):
         if i % log_freq == 0:
-            logger.info(f'{round(i / total * 100)}% done with OCR scan')
+            logger.info(f"{round(i / total * 100)}% done with OCR scan")
 
         extract_text_from_document_ocr(document)
 
 
-IMPORTANT_PIECES = ['AddressNumber', 'StreetName',
-                    'PlaceName', 'StateName', 'ZipCode']
+IMPORTANT_PIECES = ["AddressNumber", "StreetName", "PlaceName", "StateName", "ZipCode"]
 
 
 def tag_address(text):
@@ -522,12 +545,11 @@ def try_address(reg, text):
         return reg_match.group(1).strip()
 
 
-ADDRESS_REGEXES = [regexes.DETAINER_WARRANT_ADDRESS,
-                   regexes.DETAINER_WARRANT_ADDRESS_2]
+ADDRESS_REGEXES = [regexes.DETAINER_WARRANT_ADDRESS, regexes.DETAINER_WARRANT_ADDRESS_2]
 
 
 def get_addresses(text):
-    no_newlines = text.replace('\n', ' ').strip()
+    no_newlines = text.replace("\n", " ").strip()
 
     addresses = []
 
@@ -536,7 +558,7 @@ def get_addresses(text):
         if addr and tag_address(addr):
             addresses.append(addr)
 
-    for line in text.split('\n'):
+    for line in text.split("\n"):
         potential = line.strip()
         try:
             valid = tag_address(potential)
@@ -558,25 +580,28 @@ def update_detainer_warrant_from_document(document):
             potential_addresses = set([])
             for address_text in addresses:
                 if len(address_text) > 95:
-                    logger.warning(f'strange address encountered: `{address_text}` for {document.url} on #{document.docket_id}')
-                    continue # probably not valid
+                    logger.warning(
+                        f"strange address encountered: `{address_text}` for {document.url} on #{document.docket_id}"
+                    )
+                    continue  # probably not valid
                 address = Address.query.get(address_text)
                 if not address:
                     address = Address.create(text=address_text)
                     db.session.commit()
                 potential_addresses.add(address)
 
-            detainer_warrant.update(
-                potential_addresses=list(potential_addresses))
+            detainer_warrant.update(potential_addresses=list(potential_addresses))
             db.session.commit()
         else:
             logger.warning(
-                f'could not find address in detainer warrant: {document.url}')
+                f"could not find address in detainer warrant: {document.url}"
+            )
 
     except:
         logger.warning(
-            f'failed update detainer warrant {document.docket_id} for {document.url}. Exception: {traceback.format_exc()}')
-        document.update(status='FAILED_TO_UPDATE_DETAINER_WARRANT')
+            f"failed update detainer warrant {document.docket_id} for {document.url}. Exception: {traceback.format_exc()}"
+        )
+        document.update(status="FAILED_TO_UPDATE_DETAINER_WARRANT")
         db.session.commit()
     finally:
         # always provide newest detainer warrant doc
@@ -589,47 +614,50 @@ def update_judgment_from_document(document):
         text = document.text
         file_date = file_date_guess(text)
         if not file_date:
-            logger.warning(f'could not guess file date for {document.url}')
+            logger.warning(f"could not guess file date for {document.url}")
             return
 
         existing_hearing = Hearing.query.filter(
             and_(
-                Hearing._court_date >= file_date -
-                timedelta(days=3),
+                Hearing._court_date >= file_date - timedelta(days=3),
                 Hearing.docket_id == document.docket_id,
-            )).first()
+            )
+        ).first()
 
         if existing_hearing:
             existing_hearing.update_judgment_from_document(document)
         else:
             hearing = Hearing.create(
-                _court_date=file_date, docket_id=document.docket_id)
+                _court_date=file_date, docket_id=document.docket_id
+            )
             hearing.update_judgment_from_document(document)
         db.session.commit()
 
     except:
         logger.warning(
-            f'failed update judgment {document.docket_id} for {document.url}. Exception: {traceback.format_exc()}')
-        document.update(status='FAILED_TO_UPDATE_JUDGMENT')
+            f"failed update judgment {document.docket_id} for {document.url}. Exception: {traceback.format_exc()}"
+        )
+        document.update(status="FAILED_TO_UPDATE_JUDGMENT")
         db.session.commit()
 
 
 def update_judgments_from_documents():
-    queue = PleadingDocument.query.filter(and_(
-        PleadingDocument.kind == 'JUDGMENT',
-        PleadingDocument.text != None
-    ))
+    queue = PleadingDocument.query.filter(
+        and_(PleadingDocument.kind == "JUDGMENT", PleadingDocument.text != None)
+    )
     for document in queue:
         update_judgment_from_document(document)
 
 
 def update_warrants_from_documents():
-    queue = PleadingDocument.query.filter(
-        PleadingDocument.kind == 'DETAINER_WARRANT',
-        PleadingDocument.text != None
-    ).order_by(PleadingDocument.created_at)\
-        .join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)\
+    queue = (
+        PleadingDocument.query.filter(
+            PleadingDocument.kind == "DETAINER_WARRANT", PleadingDocument.text != None
+        )
+        .order_by(PleadingDocument.created_at)
+        .join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)
         .filter(DetainerWarrant.document_url == None)
+    )
 
     for document in queue:
         update_detainer_warrant_from_document(document)
@@ -643,12 +671,9 @@ def classify_document(document):
 
 
 def classify_documents():
-    queue = PleadingDocument.query.filter(
-        PleadingDocument.text != None
-    )
+    queue = PleadingDocument.query.filter(PleadingDocument.text != None)
 
-    logger.info(
-        f'classifying {queue.count()} documents')
+    logger.info(f"classifying {queue.count()} documents")
 
     for document in queue:
         classify_document(document)
@@ -656,12 +681,10 @@ def classify_documents():
 
 def parse_detainer_warrant_addresses():
     queue = PleadingDocument.query.filter(
-        PleadingDocument.kind == 'DETAINER_WARRANT',
-        PleadingDocument.text != None
+        PleadingDocument.kind == "DETAINER_WARRANT", PleadingDocument.text != None
     )
 
-    logger.info(
-        f'parsing {queue.count()} detainer warrants for tenant address')
+    logger.info(f"parsing {queue.count()} detainer warrants for tenant address")
 
     for document in queue:
         update_detainer_warrant_from_document(document)
@@ -685,8 +708,7 @@ def update_address_from_potential_addresses(warrant):
 
 
 def pick_best_addresses():
-    queue = DetainerWarrant.query.filter(
-        DetainerWarrant.potential_addresses.any())
+    queue = DetainerWarrant.query.filter(DetainerWarrant.potential_addresses.any())
 
     for warrant in queue:
         update_address_from_potential_addresses(warrant)

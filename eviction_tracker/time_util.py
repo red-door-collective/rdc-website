@@ -10,4 +10,4 @@ def millis(d):
 
 
 def file_friendly_timestamp(d):
-    return datetime.strftime(d, '%Y-%m-%d-%H:%M:%S')
+    return datetime.strftime(d, "%Y-%m-%d-%H:%M:%S")

@@ -1,5 +1,8 @@
 from marshmallow import Schema, fields
-from eviction_tracker.detainer_warrants.serializers import DefendantSchema, DetainerWarrantSchema
+from eviction_tracker.detainer_warrants.serializers import (
+    DefendantSchema,
+    DetainerWarrantSchema,
+)
 
 
 class PhoneBankEventSchema(Schema):

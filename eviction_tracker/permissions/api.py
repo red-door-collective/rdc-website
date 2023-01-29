@@ -13,7 +13,7 @@ from flask_resty import (
     Filtering,
     Sorting,
     meta,
-    model_filter
+    model_filter,
 )
 from eviction_tracker.detainer_warrants.models import DetainerWarrant, Defendant
 from sqlalchemy import or_
@@ -25,14 +25,20 @@ class AllowDefendant(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
         return self.get_request_credentials()["user_id"]
 
     def filter_query(self, query, view):
-        if current_user.has_role('Superuser') or current_user.has_role('Admin') or current_user.has_role('Organizer'):
+        if (
+            current_user.has_role("Superuser")
+            or current_user.has_role("Admin")
+            or current_user.has_role("Organizer")
+        ):
             return query
 
         try:
-            return query.join(DetainerWarrant._defendants).filter(or_(
-                Defendant.first_name.ilike(f'%{current_user.first_name}%'),
-                Defendant.last_name.ilike(f'%{current_user.last_name}%')
-            ))
+            return query.join(DetainerWarrant._defendants).filter(
+                or_(
+                    Defendant.first_name.ilike(f"%{current_user.first_name}%"),
+                    Defendant.last_name.ilike(f"%{current_user.last_name}%"),
+                )
+            )
         except AttributeError:
             raise ApiError(403, {"code": "not a defendant"})
 
@@ -47,7 +53,11 @@ class OnlyOrganizers(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
         return self.get_request_credentials()["user_id"]
 
     def filter_query(self, query, view):
-        if current_user.has_role('Superuser') or current_user.has_role('Admin') or current_user.has_role('Organizer'):
+        if (
+            current_user.has_role("Superuser")
+            or current_user.has_role("Admin")
+            or current_user.has_role("Organizer")
+        ):
             return query
 
         else:
@@ -79,7 +89,12 @@ class PartnerProtected(AuthorizeModifyMixin, HasCredentialsAuthorizationBase):
         return self.get_request_credentials()["user_id"]
 
     def filter_query(self, query, view):
-        if current_user.has_role('Superuser') or current_user.has_role('Admin') or current_user.has_role('Organizer') or current_user.has_role('Partner'):
+        if (
+            current_user.has_role("Superuser")
+            or current_user.has_role("Admin")
+            or current_user.has_role("Organizer")
+            or current_user.has_role("Partner")
+        ):
             return query
 
         else:
@@ -120,7 +135,8 @@ class CursorPagination(RelayCursorPagination, LimitPagination):
         after_cursor = None
         if len(items) == self.get_limit():
             after_cursor = super().make_cursor(
-                items[-1], view, super().get_field_orderings(view))
+                items[-1], view, super().get_field_orderings(view)
+            )
 
         meta.update_response_meta({"after_cursor": after_cursor})
         meta.update_response_meta({"total_matches": query.count()})

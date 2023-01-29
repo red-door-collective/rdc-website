@@ -48,7 +48,7 @@ let
       });
     } //
           (addPythonBuildDeps
-      [ self.setuptools ]
+      [ self.setuptools self.flit-core ]
       [ "exceptiongroup" 
         "python-language-server" 
         "gspread-formatting"
@@ -61,6 +61,8 @@ let
         "wmctrl"
         "fancycompleter"
         "pdbpp"
+        "pathspec"
+        "gunicorn"
         ])
 
   );
@@ -144,7 +146,7 @@ in rec {
     pkgs.postgresql_11
     poetryPackagesByName.pdbpp
     poetryWrapper
-    python.pkgs.gunicorn
+    gunicorn
     pkgs.chromedriver
     pkgs.chromium
   ];

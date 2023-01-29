@@ -14,14 +14,18 @@ from flask_resty import (
     Filtering,
     Sorting,
     meta,
-    model_filter
+    model_filter,
 )
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import raiseload
 
 from eviction_tracker.database import db
-from eviction_tracker.permissions.api import HeaderUserAuthentication, Protected, CursorPagination
+from eviction_tracker.permissions.api import (
+    HeaderUserAuthentication,
+    Protected,
+    CursorPagination,
+)
 from .models import User, Role
 from .serializers import *
 
@@ -34,7 +38,7 @@ class UserResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination()
-    sorting = Sorting('id', default='-id')
+    sorting = Sorting("id", default="-id")
 
 
 class UserListResource(UserResourceBase):
@@ -58,7 +62,7 @@ class RoleResourceBase(GenericModelView):
     authorization = Protected()
 
     pagination = CursorPagination()
-    sorting = Sorting('id', default='-id')
+    sorting = Sorting("id", default="-id")
 
 
 class RoleListResource(RoleResourceBase):

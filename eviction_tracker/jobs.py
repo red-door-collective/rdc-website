@@ -12,54 +12,67 @@ import logging.config
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
-weekdays = '1-5'
+weekdays = "1-5"
 
 
-@scheduler.task(CronTrigger(hour="*", minute=0, second=0, jitter=200), id='export')
+@scheduler.task(CronTrigger(hour="*", minute=0, second=0, jitter=200), id="export")
 def export():
     with scheduler.app.app_context():
-        workbook_name = 'Website Export'
-        key = scheduler.app.config['GOOGLE_ACCOUNT_PATH']
-        logger.info(
-            f'Exporting upcoming court dates to workbook: {workbook_name}')
+        workbook_name = "Website Export"
+        key = scheduler.app.config["GOOGLE_ACCOUNT_PATH"]
+        logger.info(f"Exporting upcoming court dates to workbook: {workbook_name}")
         detainer_warrants.exports.to_court_watch_sheet(workbook_name, key)
         courtroom_entry_wb = f'{datetime.strftime(date.today(), "%B %Y")} Court Watch'
-        logger.info(
-            f'Exporting the week\'s to workbook: {courtroom_entry_wb}')
-        detainer_warrants.exports.weekly_courtroom_entry_workbook(
-            date.today(), key)
+        logger.info(f"Exporting the week's to workbook: {courtroom_entry_wb}")
+        detainer_warrants.exports.weekly_courtroom_entry_workbook(date.today(), key)
 
 
-@scheduler.task(CronTrigger(day_of_week=weekdays, hour=12, minute=0, second=0, jitter=200), id='import-caselink-warrants')
+@scheduler.task(
+    CronTrigger(day_of_week=weekdays, hour=12, minute=0, second=0, jitter=200),
+    id="import-caselink-warrants",
+)
 def import_caselink_warrants(start_date=None, end_date=None):
-    start = datetime.strptime(
-        start_date, '%Y-%m-%d') if start_date else date.today()
-    end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else date.today()
+    start = datetime.strptime(start_date, "%Y-%m-%d") if start_date else date.today()
+    end = datetime.strptime(end_date, "%Y-%m-%d") if end_date else date.today()
 
     with scheduler.app.app_context():
         detainer_warrants.caselink.warrants.bulk_import_csvs(start, end)
 
 
-@scheduler.task(CronTrigger(day_of_week=weekdays, hour=23, minute=5, second=0, jitter=200), id='import-caselink-pleading-documents')
+@scheduler.task(
+    CronTrigger(day_of_week=weekdays, hour=23, minute=5, second=0, jitter=200),
+    id="import-caselink-pleading-documents",
+)
 def import_caselink_pleading_documents():
     with scheduler.app.app_context():
         detainer_warrants.caselink.pleadings.update_pending_warrants()
 
 
-@scheduler.task(CronTrigger(day_of_week=weekdays, hour=9, minute=0, second=0, jitter=200), id='classify-pleading-documents')
+@scheduler.task(
+    CronTrigger(day_of_week=weekdays, hour=9, minute=0, second=0, jitter=200),
+    id="classify-pleading-documents",
+)
 def classify_caselink_pleading_documents():
     with scheduler.app.app_context():
         detainer_warrants.caselink.pleadings.classify_documents()
 
 
-@scheduler.task(CronTrigger(day_of_week=weekdays, hour=11, minute=0, second=0, jitter=200), id='extract-pleading-document-details')
+@scheduler.task(
+    CronTrigger(day_of_week=weekdays, hour=11, minute=0, second=0, jitter=200),
+    id="extract-pleading-document-details",
+)
 def extract_pleading_document_details():
     with scheduler.app.app_context():
+        logger.info(f"Extracting pleading document details with OCR")
+
         detainer_warrants.caselink.pleadings.bulk_extract_pleading_document_details()
 
 
-@scheduler.task(CronTrigger(day_of_week=weekdays, hour=10, minute=0, second=0), id='sync-with-sessions-site')
+@scheduler.task(
+    CronTrigger(day_of_week=weekdays, hour=10, minute=0, second=0),
+    id="sync-with-sessions-site",
+)
 def import_sessions_site_hearings():
     with scheduler.app.app_context():
-        logger.info(f'Scraping General Sessions website')
+        logger.info(f"Scraping General Sessions website for live court data")
         detainer_warrants.circuitclerk.hearings.scrape()
