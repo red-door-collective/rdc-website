@@ -425,8 +425,10 @@ def bulk_extract_pleading_document_details(older_than_one_year=False):
     if older_than_one_year:
         is_old = func.date(DetainerWarrant.file_date) <= one_year_ago
 
-    queue = PleadingDocument.query.join(PleadingDocument.detainer_warrant).filter(
-        PleadingDocument.text == None, PleadingDocument.status == None, is_old
+    queue = (
+        PleadingDocument.query.join(PleadingDocument.detainer_warrant)
+        .filter(PleadingDocument.text == None, PleadingDocument.status == None, is_old)
+        .order_by(PleadingDocument.created_at.desc())
     )
 
     for document in queue:
@@ -654,7 +656,7 @@ def update_warrants_from_documents():
         PleadingDocument.query.filter(
             PleadingDocument.kind == "DETAINER_WARRANT", PleadingDocument.text != None
         )
-        .order_by(PleadingDocument.created_at)
+        .order_by(PleadingDocument.created_at.desc())
         .join(DetainerWarrant, PleadingDocument.docket_id == DetainerWarrant.docket_id)
         .filter(DetainerWarrant.document_url == None)
     )
