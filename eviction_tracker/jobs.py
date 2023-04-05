@@ -36,7 +36,11 @@ def import_sessions_site_hearings():
     id="import-caselink-warrants",
 )
 def import_caselink_warrants(start_date=None, end_date=None):
-    start = datetime.strptime(start_date, "%Y-%m-%d") if start_date else date.today()
+    start = (
+        datetime.strptime(start_date, "%Y-%m-%d")
+        if start_date
+        else date.today() - timedelta(days=30)
+    )
     end = datetime.strptime(end_date, "%Y-%m-%d") if end_date else date.today()
 
     with scheduler.app.app_context():
