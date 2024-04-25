@@ -1,11 +1,11 @@
-from eviction_tracker import detainer_warrants
+from rdc_website import detainer_warrants
 from datetime import datetime
 import time
 from flask import current_app
 import shutil
 import os
-from eviction_tracker.detainer_warrants.models import DetainerWarrant
-from eviction_tracker.admin.models import User, user_datastore
+from rdc_website.detainer_warrants.models import DetainerWarrant
+from rdc_website.admin.models import User, user_datastore
 from .email import export_notification
 from flask_mail import Attachment
 from .time_util import millis_timestamp, file_friendly_timestamp

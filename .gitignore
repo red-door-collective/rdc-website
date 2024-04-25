@@ -11,9 +11,9 @@ serve_static
 static_files
 
 *.db
-eviction_tracker/static/*
-eviction_tracker/static_pages/*
-!eviction_tracker/static/images/
+rdc_website/static/*
+rdc_website/static_pages/*
+!rdc_website/static/images/
 result
 
 ui/index.html # accidental default gen

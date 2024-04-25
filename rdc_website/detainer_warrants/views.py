@@ -21,7 +21,7 @@ from sqlalchemy import and_, or_, func
 from sqlalchemy.orm import raiseload
 from sqlalchemy.exc import IntegrityError
 
-from eviction_tracker.database import db
+from rdc_website.database import db
 from .models import (
     DetainerWarrant,
     Attorney,
@@ -35,7 +35,7 @@ from .models import (
     PhoneNumberVerification,
 )
 from .serializers import *
-from eviction_tracker.permissions.api import (
+from rdc_website.permissions.api import (
     HeaderUserAuthentication,
     Protected,
     PartnerProtected,

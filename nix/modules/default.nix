@@ -3,7 +3,7 @@
 with builtins;
 
 let
-  cfg = config.services.eviction_tracker;
+  cfg = config.services.rdc-website;
 
   serveApp = import ../serve_app.nix {
     listen = "${cfg.address}:${toString cfg.port}";
@@ -13,29 +13,30 @@ let
 
   staticFiles = import ../static_files.nix { };
 
-  evictionTrackerConfig = pkgs.writeScriptBin "eviction_tracker-config" ''
-    systemctl cat eviction_tracker.service | grep X-ConfigFile | cut -d"=" -f2
+  evictionTrackerConfig = pkgs.writeScriptBin "rdc-website-config" ''
+    systemctl cat rdc-website.service | grep X-ConfigFile | cut -d"=" -f2
   '';
 
-  evictionTrackerShowConfig = pkgs.writeScriptBin "eviction_tracker-show-config" ''
-    cat `${evictionTrackerConfig}/bin/eviction_tracker-config`
+  evictionTrackerShowConfig = pkgs.writeScriptBin "rdc-website-show-config" ''
+    cat `${evictionTrackerConfig}/bin/rdc-website-config`
   '';
 
-in {
-  options.services.eviction_tracker = with lib; {
+in
+{
+  options.services.rdc-website = with lib; {
 
     enable = mkEnableOption "Enable the eviction tracking website";
 
     user = mkOption {
       type = types.str;
-      default = "eviction_tracker";
-      description = "User to run eviction_tracker.";
+      default = "rdc-website";
+      description = "User to run rdc-website.";
     };
 
     group = mkOption {
       type = types.str;
-      default = "eviction_tracker";
-      description = "Group to run eviction_tracker.";
+      default = "rdc-website";
+      description = "Group to run rdc-website.";
     };
 
     port = mkOption {
@@ -72,18 +73,18 @@ in {
 
   config = lib.mkIf cfg.enable {
 
-    services.eviction_tracker.app = serveApp;
-    services.eviction_tracker.staticFiles = staticFiles;
+    services.red-door-collective.rdc-website.app = serveApp;
+    services.red-door-collective.rdc-website.staticFiles = staticFiles;
 
     environment.systemPackages = [ evictionTrackerConfig evictionTrackerShowConfig ];
 
-    users.users.eviction_tracker = {
+    users.users.red-door-collective = {
       isSystemUser = true;
       group = cfg.group;
     };
     users.groups.${cfg} = { };
 
-    systemd.services.eviction_tracker = {
+    systemd.services.red-door-collective.rdc-website = {
 
       description = "Eviction tracking in Davidson Co.";
       after = [ "network.target" "postgresql.service" ];
@@ -94,8 +95,8 @@ in {
         User = cfg.user;
         Group = cfg.group;
         ExecStart = "${serveApp}/bin/serve";
-        RuntimeDirectory = "/srv/within/eviction_tracker";
-        StateDirectory = "srv/within/eviction_tracker";
+        RuntimeDirectory = "/srv/red-door-collective/rdc-website";
+        StateDirectory = "/srv/red-door-collective/rdc-website";
         RestartSec = "5s";
         Restart = "always";
         X-ConfigFile = configInput;
@@ -148,7 +149,7 @@ in {
 
       unitConfig = {
         Documentation = [
-          "https://github.com/red-door-collective/eviction-tracker"
+          "https://github.com/red-door-collective/rdc-website"
           "https://reddoorcollective.org"
         ];
       };

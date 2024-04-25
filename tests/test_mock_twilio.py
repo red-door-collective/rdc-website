@@ -5,10 +5,10 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_testing import TestCase
-from eviction_tracker.detainer_warrants.models import PhoneNumberVerification
-from eviction_tracker.database import db
-from eviction_tracker.app import create_app
-from eviction_tracker.commands import validate_phone_number, twilio_client
+from rdc_website.detainer_warrants.models import PhoneNumberVerification
+from rdc_website.database import db
+from rdc_website.app import create_app
+from rdc_website.commands import validate_phone_number, twilio_client
 
 
 class MockTwilioLookup:
@@ -27,7 +27,7 @@ class TestTwilioResponse(TestCase):
     def create_app(self):
         app = create_app(self)
         app.config['TESTING'] = True
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://eviction_tracker_test:junkdata@localhost:5432/eviction_tracker_test'
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://rdc_website_test:junkdata@localhost:5432/rdc_website_test'
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         return app
 

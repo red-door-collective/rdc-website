@@ -8,7 +8,7 @@ Create Date: 2021-11-17 21:48:20.617361
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from eviction_tracker.detainer_warrants.models import Case
+from rdc_website.detainer_warrants.models import Case
 from sqlalchemy.orm.session import Session
 
 # revision identifiers, used by Alembic.

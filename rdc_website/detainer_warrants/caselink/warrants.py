@@ -20,7 +20,7 @@ from .common import login, run_with_chrome, search
 from .. import csv_imports
 from datetime import date, datetime, timedelta
 import requests
-import eviction_tracker.config as config
+import rdc_website.config as config
 import logging
 import logging.config
 from dateutil.rrule import rrule, WEEKLY

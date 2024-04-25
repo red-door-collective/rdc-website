@@ -7,7 +7,7 @@ Create Date: 2021-10-17 10:32:16.619529
 """
 from alembic import op
 import sqlalchemy as sa
-from eviction_tracker.detainer_warrants.models import DetainerWarrant
+from rdc_website.detainer_warrants.models import DetainerWarrant
 from sqlalchemy.orm.session import Session
 
 # revision identifiers, used by Alembic.

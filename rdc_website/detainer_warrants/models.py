@@ -1,4 +1,4 @@
-from eviction_tracker.database import (
+from rdc_website.database import (
     db,
     PosixComparator,
     in_millis,
@@ -11,7 +11,7 @@ from eviction_tracker.database import (
 from datetime import datetime, date, timezone
 from sqlalchemy import func, text, case
 from flask_security import UserMixin, RoleMixin
-from eviction_tracker.direct_action.models import phone_bank_tenants, canvass_warrants
+from rdc_website.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
 from nameparser import HumanName
 from ..util import get_or_create, file_date_guess

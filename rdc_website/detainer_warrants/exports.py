@@ -29,7 +29,7 @@ import io
 import logging
 import logging.config
 import traceback
-import eviction_tracker.config as config
+import rdc_website.config as config
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)

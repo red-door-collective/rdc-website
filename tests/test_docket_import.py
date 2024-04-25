@@ -3,10 +3,10 @@ import unittest
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_testing import TestCase
-from eviction_tracker.app import create_app, db, DetainerWarrant
-from eviction_tracker.admin.models import User, user_datastore
+from rdc_website.app import create_app, db, DetainerWarrant
+from rdc_website.admin.models import User, user_datastore
 from flask_security import hash_password, auth_token_required
-import eviction_tracker.detainer_warrants as detainer_warrants
+import rdc_website.detainer_warrants as detainer_warrants
 from datetime import datetime
 from decimal import Decimal
 import uuid
@@ -22,7 +22,7 @@ class TestDocketImport(TestCase):
     def create_app(self):
         app = create_app(self)
         app.config['TESTING'] = True
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://eviction_tracker_test:junkdata@localhost:5432/eviction_tracker_test'
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://rdc_website_test:junkdata@localhost:5432/rdc_website_test'
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         return app
 

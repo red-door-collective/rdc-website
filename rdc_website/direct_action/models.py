@@ -1,4 +1,4 @@
-from eviction_tracker.database import db, Timestamped, Column, Model, relationship
+from rdc_website.database import db, Timestamped, Column, Model, relationship
 from datetime import datetime
 from sqlalchemy import func
 

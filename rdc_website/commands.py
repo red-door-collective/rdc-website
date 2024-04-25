@@ -9,10 +9,10 @@ from flask.cli import with_appcontext
 from flask_security import hash_password
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 import gspread
-import eviction_tracker.detainer_warrants as detainer_warrants
-from eviction_tracker.admin.models import User, user_datastore
-from eviction_tracker.database import db
-from eviction_tracker.detainer_warrants.models import (
+import rdc_website.detainer_warrants as detainer_warrants
+from rdc_website.admin.models import User, user_datastore
+from rdc_website.database import db
+from rdc_website.detainer_warrants.models import (
     Attorney,
     PhoneNumberVerification,
     PleadingDocument,
@@ -23,7 +23,7 @@ from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import uuid
 import logging.config
-import eviction_tracker.config as config
+import rdc_website.config as config
 from datetime import date, datetime, timedelta
 from io import StringIO
 

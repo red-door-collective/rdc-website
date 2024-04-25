@@ -20,7 +20,7 @@ from ...util import get_or_create, file_date_guess
 from ..models import db, Address, PleadingDocument, Hearing, DetainerWarrant, Judgment
 from .constants import ids, names
 from .common import login, search, run_with_chrome
-import eviction_tracker.config as config
+import rdc_website.config as config
 import logging
 import logging.config
 import traceback

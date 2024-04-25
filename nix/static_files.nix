@@ -7,9 +7,10 @@ let
   version = import ./git_version.nix { inherit pkgs; default = pyProject.tool.poetry.version; };
 
 in
-pkgs.runCommand "eviction-tracker-static-${version}" {
-  buildInputs = [];
-  src = ../eviction_tracker;
+pkgs.runCommand "eviction-tracker-static-${version}"
+{
+  buildInputs = [ ];
+  src = ../rdc_website;
 } ''
   mkdir -p $out
   cp -r $src/static_pages/ $out

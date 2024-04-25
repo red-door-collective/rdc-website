@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields
-from eviction_tracker.detainer_warrants.serializers import (
+from rdc_website.detainer_warrants.serializers import (
     DefendantSchema,
     DetainerWarrantSchema,
 )

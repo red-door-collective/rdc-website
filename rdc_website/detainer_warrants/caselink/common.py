@@ -14,7 +14,7 @@ from .constants import ids, names
 from ..util import get_or_create
 from ..models import db, PleadingDocument
 import traceback
-import eviction_tracker.config as config
+import rdc_website.config as config
 import logging
 import logging.config
 import traceback

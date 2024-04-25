@@ -5,8 +5,9 @@ let
   inherit (pkgs) lib stdenv;
   caBundle = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
 
-in pkgs.mkShell {
-  name = "eviction_tracker";
+in
+pkgs.mkShell {
+  name = "rdc-website";
   buildInputs = deps.shellInputs ++ [
     pkgs.cypress
     # (with pkgs.dotnetCorePackages; combinePackages [ sdk_5_0 net_5_0 ])

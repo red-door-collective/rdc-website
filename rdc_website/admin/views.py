@@ -20,8 +20,8 @@ from flask_resty import (
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import raiseload
 
-from eviction_tracker.database import db
-from eviction_tracker.permissions.api import (
+from rdc_website.database import db
+from rdc_website.permissions.api import (
     HeaderUserAuthentication,
     Protected,
     CursorPagination,

@@ -7,7 +7,7 @@ Create Date: 2021-10-17 18:48:48.540145
 """
 from alembic import op
 import sqlalchemy as sa
-from eviction_tracker.admin.models import User
+from rdc_website.admin.models import User
 from sqlalchemy.orm.session import Session
 
 

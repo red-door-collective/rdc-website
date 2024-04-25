@@ -32,32 +32,32 @@ LOGGING = {
             "handlers": ["file"],
             "propagate": True,
         },
-        "eviction_tracker.app": {
+        "rdc_website.app": {
             "handlers": ["file"],
             "level": "INFO",
             "propagate": False,
         },
-        "eviction_tracker.commands": {
+        "rdc_website.commands": {
             "handlers": ["file"],
             "level": "INFO",
             "propagate": False,
         },
-        "eviction_tracker.jobs": {
+        "rdc_website.jobs": {
             "handlers": ["file"],
             "level": "INFO",
             "propagate": False,
         },
-        "eviction_tracker.detainer_warrants.caselink.common": {
+        "rdc_website.detainer_warrants.caselink.common": {
             "handlers": ["file"],
             "level": "INFO",
             "propagate": False,
         },
-        "eviction_tracker.detainer_warrants.caselink.warrants": {
+        "rdc_website.detainer_warrants.caselink.warrants": {
             "handlers": ["file"],
             "level": "INFO",
             "propagate": False,
         },
-        "eviction_tracker.detainer_warrants.caselink.pleadings": {
+        "rdc_website.detainer_warrants.caselink.pleadings": {
             "handlers": ["file"],
             "level": "INFO",
             "propagate": False,

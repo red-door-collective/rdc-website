@@ -1,7 +1,7 @@
-from eviction_tracker.database import db, Column, Model, relationship
+from rdc_website.database import db, Column, Model, relationship
 from datetime import datetime
 from sqlalchemy import func
-from eviction_tracker.direct_action.models import events_users
+from rdc_website.direct_action.models import events_users
 from flask_security import Security, SQLAlchemyUserDatastore, UserMixin, RoleMixin
 
 roles_users = db.Table(

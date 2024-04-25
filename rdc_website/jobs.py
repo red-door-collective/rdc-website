@@ -3,10 +3,10 @@ from datetime import datetime, date, timedelta
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-import eviction_tracker.detainer_warrants as detainer_warrants
-from eviction_tracker.extensions import scheduler
+import rdc_website.detainer_warrants as detainer_warrants
+from rdc_website.extensions import scheduler
 
-import eviction_tracker.config as config
+import rdc_website.config as config
 import logging.config
 
 logging.config.dictConfig(config.LOGGING)

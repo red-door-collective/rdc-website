@@ -3,7 +3,7 @@ from flask import g, send_file, jsonify, Flask, request, redirect, current_app
 from flask_security import hash_password, auth_token_required, send_mail
 from flask_security.confirmable import generate_confirmation_link
 from flask_security.utils import config_value
-from eviction_tracker.extensions import (
+from rdc_website.extensions import (
     cors,
     db,
     mail,
@@ -14,7 +14,7 @@ from eviction_tracker.extensions import (
     login_manager,
     security,
 )
-from eviction_tracker.admin.models import User, user_datastore
+from rdc_website.admin.models import User, user_datastore
 import re
 import os
 import time
@@ -23,7 +23,7 @@ from threading import Thread
 
 from sqlalchemy import and_, or_, func, desc
 from sqlalchemy.sql import text
-from eviction_tracker import commands, detainer_warrants, admin, direct_action
+from rdc_website import commands, detainer_warrants, admin, direct_action
 import json
 from datetime import datetime, date, timedelta, timezone
 from dateutil.rrule import rrule, MONTHLY
@@ -33,8 +33,8 @@ from flask_security import current_user
 from flask_apscheduler import APScheduler
 from datadog import initialize, statsd
 import logging.config
-import eviction_tracker.config as config
-import eviction_tracker.tasks as tasks
+import rdc_website.config as config
+import rdc_website.tasks as tasks
 from .time_util import millis, millis_timestamp
 from .util import request_id
 
