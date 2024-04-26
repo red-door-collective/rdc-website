@@ -56,4 +56,12 @@ rdc_website/static/css/*.css
 .direnv
 venv
 log.json
-.envrc
+.envrc# Devenv
+.devenv*
+devenv.local.nix
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
