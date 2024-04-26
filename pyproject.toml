@@ -9,6 +9,9 @@ packages = [{ include = "rdc_website" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
+psycopg2 = "^2.9.9"
+flask = "^3.0.3"
+# click = "^8.1.7"
 
 [build-system]
 requires = ["poetry-core"]
