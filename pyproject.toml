@@ -11,7 +11,10 @@ packages = [{ include = "rdc_website" }]
 python = "^3.10"
 psycopg2 = "^2.9.9"
 flask = "^3.0.3"
+pdbpp = "^0.10.2"
 # click = "^8.1.7"
+gunicorn = "^22.0.0"
+ipython = "^8.23.0"
 
 [build-system]
 requires = ["poetry-core"]

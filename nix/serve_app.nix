@@ -1,14 +1,21 @@
 #!/usr/bin/env -S nix-build -o serve_app
-{ sources ? null
-, listen ? "127.0.0.1:8080"
+{ pkgs
+, lib
+, app
+, gunicorn
+, appConfigFile ? null
+, listen ? "127.0.0.1:10080"
 , tmpdir ? null
+, system ? builtins.currentSystem
 }:
 let
-  rdc-website = import ../. { inherit sources; };
-  inherit (rdc-website) dependencyEnv src;
-  deps = import ./deps.nix { inherit sources; };
-  inherit (deps) pkgs gunicorn lib externalRuntimeDeps;
+  inherit (app) dependencyEnv src;
   pythonpath = "${dependencyEnv}/${dependencyEnv.sitePackages}";
+
+  exportConfigEnvVar =
+    lib.optionalString
+      (appConfigFile != null)
+      "export RDC_WEBSITE_CONFIG=\${RDC_WEBSITE_CONFIG:-${appConfigFile}}";
 
   gunicornConf = pkgs.writeText
     "gunicorn_config.py"
@@ -16,49 +23,34 @@ let
       inherit listen pythonpath;
     });
 
-  runGunicorn = pkgs.writeShellScriptBin "run" ''
-    ${pkgs.lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
-    export PYTHONPATH=${pythonpath}
-    PATH="${pkgs.chromedriver}/bin:${pkgs.chromium}/bin"
+  runGunicorn = pkgs.writeShellScriptBin "rdc-website-serve-app" ''
+    ${exportConfigEnvVar}
+    ${lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
 
     ${gunicorn}/bin/gunicorn -c ${gunicornConf} \
-      "rdc_website.app:create_app()"
+      "ekklesia_portal.app:make_wsgi_app()"
   '';
 
   runMigrations = pkgs.writeShellScriptBin "migrate" ''
-    export PYTHONPATH=${pythonpath}
-    cd ${src}
-    ${dependencyEnv}/bin/flask db upgrade
+    ${runAlembic}/bin/alembic upgrade head
   '';
 
-  console = pkgs.writeShellScriptBin "console" ''
-    export PYTHONPATH=${pythonpath}
+  runAlembic = pkgs.writeShellScriptBin "alembic" ''
+    ${exportConfigEnvVar}
     cd ${src}
-    ${dependencyEnv}/bin/flask shell
+    ${dependencyEnv}/bin/alembic "$@"
   '';
 
-  runFlask = pkgs.writeShellScriptBin "flask" ''
-    export PYTHONPATH=${pythonpath}
+  runPython = pkgs.writeShellScriptBin "python" ''
+    ${exportConfigEnvVar}
+    ${lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
     cd ${src}
-    ${dependencyEnv}/bin/flask "$@"
-  '';
-
-  serve = pkgs.writeShellScriptBin "serve" ''
-    export $(cat /srv/red-door-collective/rdc-website/.env | xargs)
-    export FLASK_APP="rdc_website.app"
-    ${runMigrations}
-    export FLASK_APP="rdc_website"
-    ${runGunicorn}
+    ${dependencyEnv}/bin/python "$@"
   '';
 
 in
 pkgs.buildEnv {
-  name = "eviction-tracker-serve-app";
-  paths = [
-    runGunicorn
-    runMigrations
-    runFlask
-    console
-    serve
-  ] ++ externalRuntimeDeps;
+  ignoreCollisions = true;
+  name = "rdc-website-serve-app";
+  paths = [ runGunicorn runMigrations runAlembic runPython ];
 }

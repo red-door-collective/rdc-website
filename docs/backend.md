@@ -36,19 +36,19 @@ system).
 ##### Using Nix
 
 To work with the same python version as everyone else working on this project,
-you'll need to make sure you're in the `nix-shell` first.
+you'll need to make sure you're in the nix shell first.
 
-1. Check that you're in the same directory as `shell.nix`
-2. Type `nix-shell` and hit enter
+1. Check that you're in the same directory as `flake.nix`
+2. Type `nix develop` and hit enter
 3. Wait for necessary dependencies to install from the internet to your machine
 
 You'll get a new prompt that looks like:
 
 ```
-[nix-shell:~/some/path/eviction-tracker]$
+[nix-shell:~/some/path/rdc-website]$
 ```
 
-Now you're ready to run `python` and `ipython`! You can escape the `nix-shell`
+Now you're ready to run `python` and `ipython`! You can escape the `nix develop`
 at any time by holding ctrl pressing the D key or typing `exit` and pressing
 enter.
 
