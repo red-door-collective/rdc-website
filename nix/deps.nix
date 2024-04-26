@@ -31,6 +31,16 @@ let
             substituteInPlace pyproject.toml --replace poetry.masonry poetry.core.masonry
           '';
         });
+
+        cryptography = super.cryptography.overridePythonAttrs (old: rec {
+          cargoDeps = pkgs.rustPlatform.fetchCargoTarball {
+            inherit (old) src;
+            name = "${old.pname}-${old.version}";
+            sourceRoot = "${old.pname}-${old.version}/${cargoRoot}";
+            sha256 = "sha256-qaXQiF1xZvv4sNIiR2cb5TfD7oNiYdvUwcm37nh2P2M=";
+          };
+          cargoRoot = "src/rust";
+        });
       } //
       (addPythonBuildDeps [ self.setuptools-scm self.setuptools self.greenlet ] [
         "pdbpp"
@@ -44,13 +54,25 @@ let
       ]) //
       (addPythonBuildDeps
         [ self.setuptools ]
-        [ "base32-crockford" ]
+        [
+          "base32-crockford"
+          "konch"
+          "flask-resty"
+          "flask-apscheduler"
+          "probableparsing"
+          "usaddress"
+          "gspread-formatting"
+        ]
       ) //
       (addPythonBuildDeps
         [ self.flit-core ] [
         "cloudpickle"
         "colored"
         "itsdangerous"
+        "marshmallow"
+        "flask-sqlalchemy"
+        "marshmallow-sqlalchemy"
+        "flask-marshmallow"
       ]
       ) //
       (addPythonBuildDeps
@@ -70,6 +92,8 @@ let
         [ self.hatchling ] [
         "beautifulsoup4"
         "soupsieve"
+        "dnspython"
+        "wtforms"
       ])
   );
 
@@ -149,7 +173,6 @@ rec {
     [
       console
       pkgs.postgresql_16
-      pkgs.sassc
       poetryPackagesByName.pdbpp
       poetry
       poetryPackagesByName.gunicorn

@@ -1,6 +1,5 @@
 # Build the actual Python application using poetry2nix.
-{ babel
-, mkPoetryApplication
+{ mkPoetryApplication
 , pyProject
 , python
 , ...
