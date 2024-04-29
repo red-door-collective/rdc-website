@@ -72,7 +72,11 @@ let
         "zope-sqlalchemy"
       ]) //
       (addPythonBuildDeps
-        [ self.hatchling self.Babel ] [
+        [ self.hatchling ] [
+        "dnspython"
+      ]) //
+      (addPythonBuildDeps
+        [ self.hatchling self.babel ] [
         "wtforms"
       ])
   );
