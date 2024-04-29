@@ -4,9 +4,9 @@ with builtins;
 
 let
 
-  inherit (pkgs) stdenv lib;
+  inherit (pkgs) stdenv lib poetry;
   python = pkgs.python311;
-  poetry = (pkgs.poetry.override { python3 = python; });
+  # poetry = (pkgs.poetry.override { python3 = python; });
 
   overrides = poetry2nix.defaultPoetryOverrides.extend (
     self: super:
@@ -25,13 +25,6 @@ let
               pnames);
       in
       {
-        mimesis-factory = super.mimesis-factory.overridePythonAttrs (old: {
-          buildInputs = old.buildInputs ++ [ self.poetry-core ];
-          patchPhase = ''
-            substituteInPlace pyproject.toml --replace poetry.masonry poetry.core.masonry
-          '';
-        });
-
         cryptography = super.cryptography.overridePythonAttrs (old: rec {
           cargoDeps = pkgs.rustPlatform.fetchCargoTarball {
             inherit (old) src;
@@ -45,18 +38,10 @@ let
       } //
       (addPythonBuildDeps [ self.setuptools-scm self.setuptools self.greenlet ] [
         "pdbpp"
-        "better-exceptions"
-        "case-conversion"
-        "fancycompleter"
-        "mimesis"
-        "py-gfm"
-        "pytest-pspec"
-        "sqlalchemy-searchable"
       ]) //
       (addPythonBuildDeps
         [ self.setuptools ]
         [
-          "base32-crockford"
           "konch"
           "flask-resty"
           "flask-apscheduler"
@@ -67,8 +52,6 @@ let
       ) //
       (addPythonBuildDeps
         [ self.flit-core ] [
-        "cloudpickle"
-        "colored"
         "itsdangerous"
         "marshmallow"
         "flask-sqlalchemy"
@@ -83,7 +66,6 @@ let
       (addPythonBuildDeps
         [ self.poetry-core self.greenlet ] [
         "alembic"
-        "eliot-tree"
         "pytest-factoryboy"
         "sqlalchemy"
         "sqlalchemy-utils"
@@ -91,9 +73,10 @@ let
       ]) //
       (addPythonBuildDeps
         [ self.hatchling ] [
-        "beautifulsoup4"
-        "soupsieve"
-        "dnspython"
+        "wtforms"
+      ]) //
+      (addPythonBuildDeps
+        [ self.Babel ] [
         "wtforms"
       ])
   );
