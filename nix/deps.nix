@@ -4,9 +4,9 @@ with builtins;
 
 let
 
-  inherit (pkgs) stdenv lib poetry;
+  inherit (pkgs) stdenv lib;
   python = pkgs.python311;
-  # poetry = (pkgs.poetry.override { python3 = python; });
+  poetry = (pkgs.poetry.override { python3 = python; });
 
   overrides = poetry2nix.defaultPoetryOverrides.extend (
     self: super:
@@ -72,11 +72,7 @@ let
         "zope-sqlalchemy"
       ]) //
       (addPythonBuildDeps
-        [ self.hatchling ] [
-        "wtforms"
-      ]) //
-      (addPythonBuildDeps
-        [ self.Babel ] [
+        [ self.hatchling self.Babel ] [
         "wtforms"
       ])
   );
