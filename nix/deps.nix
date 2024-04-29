@@ -8,7 +8,7 @@ let
   python = pkgs.python311;
   poetry = (pkgs.poetry.override { python3 = python; });
 
-  overrides = poetry2nix.overrides.withDefaults (
+  overrides = poetry2nix.defaultPoetryOverrides.extend (
     self: super:
       let
         pythonBuildDepNameValuePair = deps: pname: {
@@ -37,10 +37,11 @@ let
             inherit (old) src;
             name = "${old.pname}-${old.version}";
             sourceRoot = "${old.pname}-${old.version}/${cargoRoot}";
-            sha256 = "sha256-qaXQiF1xZvv4sNIiR2cb5TfD7oNiYdvUwcm37nh2P2M=";
+            sha256 = "sha256-Pw3ftpcDMfZr/w6US5fnnyPVsFSB9+BuIKazDocYjTU=";
           };
           cargoRoot = "src/rust";
         });
+
       } //
       (addPythonBuildDeps [ self.setuptools-scm self.setuptools self.greenlet ] [
         "pdbpp"

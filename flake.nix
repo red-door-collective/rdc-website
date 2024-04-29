@@ -7,7 +7,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     devenv.url = "github:cachix/devenv";
     poetry2nix = {
-      url = "github:dpausp/poetry2nix";
+      url = "github:nix-community/poetry2nix?rev=9245811b58905453033f1ef551f516cbee71c42c";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
