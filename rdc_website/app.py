@@ -3,12 +3,13 @@ from flask import g, send_file, jsonify, Flask, request, redirect, current_app
 from flask_security import hash_password, auth_token_required, send_mail
 from flask_security.confirmable import generate_confirmation_link
 from flask_security.utils import config_value
+from flask_wtf import CSRFProtect
 from rdc_website.extensions import (
     cors,
     db,
     mail,
     marshmallow,
-    csrf,
+    # csrf,
     migrate,
     api,
     login_manager,
@@ -87,6 +88,7 @@ def env_var_bool(key, default=None):
 
 def create_app(testing=False):
     app = Flask(__name__.split(".")[0])
+    app.config["ENV"] = os.environ["ENV"]
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["SQLALCHEMY_DATABASE_URI"]
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = os.environ[
         "SQLALCHEMY_TRACK_MODIFICATIONS"
@@ -120,6 +122,7 @@ def create_app(testing=False):
     if app.config["ENV"] == "production":
         initialize(**options)
 
+    CSRFProtect(app)
     register_extensions(app)
     register_shellcontext(app)
     register_commands(app)
@@ -359,7 +362,7 @@ def register_extensions(app):
     security.init_app(app, user_datastore)
     app.extensions["security"].render_json(security_response_with_profile)
     cors.init_app(app)
-    csrf.init_app(app)
+    # csrf.init_app(app)
     mail.init_app(app)
 
     api.add_resource(

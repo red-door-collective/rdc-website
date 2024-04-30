@@ -10,6 +10,8 @@
   # https://devenv.sh/scripts/
   scripts.hello.exec = "echo hello from $GREET";
 
+  dotenv.enable = true;
+
   enterShell = ''
     hello
     git --version

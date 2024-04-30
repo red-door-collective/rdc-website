@@ -6,7 +6,7 @@ import shutil
 import os
 from rdc_website.detainer_warrants.models import DetainerWarrant
 from rdc_website.admin.models import User, user_datastore
-from .email import export_notification
+from .mailer import export_notification
 from flask_mail import Attachment
 from .time_util import millis_timestamp, file_friendly_timestamp
 

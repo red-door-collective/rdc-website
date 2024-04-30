@@ -16,7 +16,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from nameparser import HumanName
 from ..util import get_or_create, file_date_guess
 import re
-from flask_sqlalchemy import BaseQuery
 from .judgments import regexes
 
 

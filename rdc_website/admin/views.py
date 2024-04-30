@@ -1,6 +1,6 @@
 import operator
 from flask import Blueprint
-from flask_security import current_user, AnonymousUser
+from flask_security import current_user
 from flask_resty import (
     ApiError,
     AuthorizeModifyMixin,
