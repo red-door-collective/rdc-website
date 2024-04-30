@@ -21,7 +21,6 @@ from gspread_formatting import *
 from datetime import datetime, date, timedelta
 from ..database import from_millis
 import usaddress
-import jellyfish
 import itertools
 import csv
 import io
@@ -293,13 +292,7 @@ def defendant_names_column(warrant):
 
 def defendant_names_column_newline(warrant):
     names = [defendant.name for defendant in warrant.defendants]
-    dupes = [
-        a
-        for a, b in itertools.combinations(list(names), 2)
-        if jellyfish.damerau_levenshtein_distance(a, b) <= 1
-    ]
-    deduped = list(set(list(names)) - set(dupes))
-    return "\n".join(deduped)
+    return "\n".join(names)
 
 
 def _to_judgment_row(omit_defendant_info, judgment):
