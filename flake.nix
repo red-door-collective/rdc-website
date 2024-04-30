@@ -132,9 +132,9 @@
         # those are more easily expressed in perSystem.
 
         # Using this NixOS module requires the default overlay from here.
-        # Example, when `ekklesiaPortal` is the Flake:
-        # nixpkgs.overlays = [ ekklesiaPortal.overlays.default ];
-        # imports = [ ekklesiaPortal.nixosModules.default ];
+        # Example, when `rdcWebsite` is the Flake:
+        # nixpkgs.overlays = [ rdcWebsite.overlays.default ];
+        # imports = [ rdcWebsite.nixosModules.default ];
         nixosModules.default = import nix/modules/default.nix;
       };
     };

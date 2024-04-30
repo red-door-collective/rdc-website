@@ -18,19 +18,19 @@ let
     inherit (config.nixpkgs.localSystem) system;
   };
 
-  ekklesiaPortalConfig = pkgs.writeScriptBin "rdc-website-config" ''
+  rdcWebsiteConfig = pkgs.writeScriptBin "rdc-website-config" ''
     systemctl cat rdc-website.service | grep X-ConfigFile | cut -d"=" -f2
   '';
 
-  ekklesiaPortalShowConfig = pkgs.writeScriptBin "rdc-website-show-config" ''
-    cat `${ekklesiaPortalConfig}/bin/rdc-website-config`
+  rdcWebsiteShowConfig = pkgs.writeScriptBin "rdc-website-show-config" ''
+    cat `${rdcWebsiteConfig}/bin/rdc-website-config`
   '';
 
 in
 {
   options.services.red-door-collective.rdc-website = with lib; {
 
-    enable = mkEnableOption "Enable the portal component of the Ekklesia e-democracy platform";
+    enable = mkEnableOption "Enable the website of Red Door Collective";
 
     debug = mkOption {
       type = types.bool;
@@ -116,7 +116,10 @@ in
     services.red-door-collective.rdc-website.app = serveApp;
     services.red-door-collective.rdc-website.staticFiles = pkgs.rdc-website-static;
 
-    environment.systemPackages = [ ekklesiaPortalConfig ekklesiaPortalShowConfig ];
+    environment.systemPackages = [
+      rdcWebsiteConfig
+      rdcWebsiteShowConfig
+    ];
 
     users.users.rdc-website = {
       isSystemUser = true;

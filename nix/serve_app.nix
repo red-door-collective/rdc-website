@@ -28,7 +28,7 @@ let
     ${lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
 
     ${gunicorn}/bin/gunicorn -c ${gunicornConf} \
-      "ekklesia_portal.app:make_wsgi_app()"
+      "rdc_website.app:make_wsgi_app()"
   '';
 
   runMigrations = pkgs.writeShellScriptBin "migrate" ''
