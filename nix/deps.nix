@@ -144,7 +144,18 @@ rec {
     #isortWrapper
     pkgs.nixpkgs-fmt
     #pylintWrapper
+    # pkgs.cypress
+    pkgs.nodejs
   ];
+
+  frontendTools =
+    [
+      pkgs.elmPackages.elm
+      pkgs.elmPackages.elm-test
+      pkgs.elmPackages.elm-format
+      pkgs.elmPackages.elm-optimize-level-2
+      pkgs.elmPackages.elm-review
+    ];
 
   # Various tools for log files, deps management, running scripts and so on
   shellTools =
@@ -165,7 +176,8 @@ rec {
   # Needed for a development nix shell
   shellInputs =
     linters ++
-    shellTools ++ [
+    shellTools ++
+    frontendTools ++ [
       pythonTest
     ];
 
