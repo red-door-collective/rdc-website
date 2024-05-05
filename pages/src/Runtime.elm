@@ -91,7 +91,7 @@ domain env =
             "https://reddoorcollective.online"
 
         Development ->
-            "http://localhost:5000"
+            "http://localhost:5001"
 
 
 decodeEnvironment : Decoder Environment

@@ -162,5 +162,5 @@ demo users with varying roles.
 
 To run the API locally, use `flask run --no-reload` within the `nix-shell`.
 
-You'll be able to browse endpoints on port `5000` like time series eviction
-counts at http://127.0.0.1:5000/api/v1/rollup/plaintiffs
+You'll be able to browse endpoints on port `5001` like time series eviction
+counts at http://127.0.0.1:5001/api/v1/rollup/plaintiffs

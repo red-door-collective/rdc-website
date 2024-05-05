@@ -9,7 +9,7 @@ from rdc_website.extensions import (
     db,
     mail,
     marshmallow,
-    # csrf,
+    csrf,
     migrate,
     api,
     login_manager,
@@ -93,6 +93,8 @@ def create_app(testing=False):
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = os.environ[
         "SQLALCHEMY_TRACK_MODIFICATIONS"
     ]
+    app.config["SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS"] = True
+    app.config['WTF_CSRF_ENABLED'] = False
     app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
     app.config["TWILIO_ACCOUNT_SID"] = os.environ["TWILIO_ACCOUNT_SID"]
     app.config["TWILIO_AUTH_TOKEN"] = os.environ["TWILIO_AUTH_TOKEN"]
@@ -345,6 +347,7 @@ def round_dec(dec):
 
 
 def security_response_with_profile(payload, code, headers, user):
+    print(payload)
     if payload["user"]:
         payload["profile"] = admin.serializers.user_schema.dump(user)
 
@@ -362,7 +365,7 @@ def register_extensions(app):
     security.init_app(app, user_datastore)
     app.extensions["security"].render_json(security_response_with_profile)
     cors.init_app(app)
-    # csrf.init_app(app)
+    csrf.init_app(app)
     mail.init_app(app)
 
     api.add_resource(
