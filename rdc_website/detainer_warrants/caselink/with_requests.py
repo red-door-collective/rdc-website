@@ -1,36 +1,6 @@
 import requests
 import re
 
-CASELINK_BASE = 'https://caselink.nashville.gov'
-FORM_ENCODED = 'application/x-www-form-urlencoded'
-
-def navigate(path):
-    return '{}{}'.format(CASELINK_BASE, path)
-
-def headers(more_headers):
-    return {**common_headers, **more_headers}
-
-WEBSHELL = navigate('/cgi-bin/webshell.asp')
-
-cookies = {
-    'tktupdate': '',
-}
-
-common_headers = {
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Connection': 'keep-alive',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'same-origin',
-    'Sec-Fetch-User': '?1',
-    'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"macOS"',
-}
-
-
 
 example_path = '/gsapdfs/1714929163736.STDHUB.20580.61922142.html'
 example_parts = example_path.removeprefix('/gsapdfs/').split('.')[:-1]
@@ -122,46 +92,3 @@ data = 'APPID=davlvp&CODEITEMNM=WTKCB_8&CURRPROCESS=CASELINK.MAIN&CURRVAL=Export
 
 response = requests.post(WEBSHELL, cookies=cookies, headers=headers, data=data)
 
-
-def login(username, password):
-    headers = {
-        'Cache-Control': 'max-age=0',
-        'Content-Type': FORM_ENCODED,
-        'Origin': CASELINK_BASE,
-        'Referer': navigate('///davlvplogin.html?123'),
-        'Sec-Fetch-Dest': 'frame'
-    }
-
-    data = 'GATEWAY=GATEWAY&CGISCRIPT=webshell.asp&FINDDEFKEY=&XEVENT=VERIFY&WEBIOHANDLE=1714928640773&BROWSER=C*Chrome*124.0*Mac*NOBLOCKTEST&MYPARENT=px&APPID=davlvp&WEBWORDSKEY=SAMPLE&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&OPERCODE={username}&PASSWD={password}'.format(
-        username=username,
-        password=password
-    )
-
-    response = requests.post(WEBSHELL, cookies=cookies, headers=headers, data=data)
-
-    return re.search(r'(?:self\.location=\")(.+?\.html)\"', response.text)[1]
-
-    postback_path = re.search(r'(?:self\.location=\")(.+?\.html)\"', response.text)[1]
-    postback_parts = postback_path.removeprefix('/gsapdfs/').split('.')[:-1]
-    web_io_handle = postback_parts[0]
-    parent = postback_parts[1]
-    postback_url = navigate(postback_path)
-
-    response = requests.get(
-        postback_url,
-        cookies=cookies,
-        headers=headers({
-        'Referer': WEBSHELL,
-        'Sec-Fetch-Dest': 'frame',
-        }),
-    )
-    
-
-def search():
-    pass
-
-def download_search_results_csv():
-    pass
-
-def scrape_warrant_page():
-    pass

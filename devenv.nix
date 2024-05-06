@@ -15,10 +15,14 @@
   enterShell = ''
     hello
     git --version
+    set -o allexport; source .env; set +o allexport
+    set -o allexport; source .env.dev; set +o allexport
   '';
 
   # https://devenv.sh/tests/
   enterTest = ''
+    set -o allexport; source .env; set +o allexport
+    set -o allexport; source .env.dev; set +o allexport
     echo "Running tests"
     git --version | grep "2.42.0"
   '';
