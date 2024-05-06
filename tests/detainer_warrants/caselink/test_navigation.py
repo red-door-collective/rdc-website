@@ -56,7 +56,7 @@ class TestNavigation(TestCase):
 
         self.assertEqual(navigation.path, '/gsapdfs/1714944347676.VERIFY.20580.77105150.html')
         self.assertEqual(navigation.web_io_handle, '1714944347676')
-        self.assertEqual(navigation.path, 'VERIFY')
+        self.assertEqual(navigation.parent, 'VERIFY')
 
         self.assertEqual(len(mock_post.call_args_list), 1)
 

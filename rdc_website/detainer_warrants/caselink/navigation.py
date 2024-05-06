@@ -22,6 +22,7 @@ class Navigation:
     COOKIES = {
         'tktupdate': '',
     }
+    POSTBACK_PATH_REGEX = re.compile(r'(?:self\.location\s*=\s*\")(.+?\.html)\"', re.MULTILINE)
 
     def __init__(self, path):
         postback_parts = path.removeprefix('/gsapdfs/').split('.')[:-1]
@@ -61,4 +62,4 @@ class Navigation:
 
         response = requests.post(cls.webshell(), cookies=cls.COOKIES, headers=headers, data=data)
 
-        return cls(re.search(r'(?:self\.location=\")(.+?\.html)\"', response.text)[1])
+        return cls(re.search(cls.POSTBACK_PATH_REGEX, response.text)[1])
