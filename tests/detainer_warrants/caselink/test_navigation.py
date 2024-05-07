@@ -1,18 +1,11 @@
 import unittest
 from unittest import mock
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask_testing import TestCase
-from rdc_website.app import create_app, db, DetainerWarrant
-from rdc_website.admin.models import User, user_datastore
-from rdc_website.detainer_warrants.models import Hearing, PleadingDocument, Judgment
-from flask_security import hash_password, auth_token_required
-import rdc_website.detainer_warrants as detainer_warrants
+from rdc_website.app import create_app
+import rdc_website.detainer_warrants.caselink as caselink
 from rdc_website.detainer_warrants.caselink.navigation import Navigation
-from decimal import Decimal
-import uuid
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date
 
 
 def mocked_post(*args, **kwargs):
@@ -37,6 +30,9 @@ def mocked_post(*args, **kwargs):
             return MockResponse(f.read(), 200)
     elif "WTKCB_20" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-success.html") as f:
+            return MockResponse(f.read(), 200)
+    elif "Export+List&" in kwargs["data"]:
+        with open("tests/fixtures/caselink/export-list-success.html") as f:
             return MockResponse(f.read(), 200)
 
     return MockResponse(None, 404)
@@ -140,6 +136,19 @@ class TestNavigation(TestCase):
         self.assertEqual(results_page.web_io_handle, WEB_IO_HANDLE)
         self.assertEqual(results_page.parent, "POSTBACK")
 
+        self.assertEqual(len(mock_post.call_args_list), 3)
+
+    @mock.patch("requests.post", side_effect=mocked_post)
+    def test_export_csv(self, mock_post):
+        search_page = Navigation.login("some-username", "some-password")
+        results_page = search_page.search()
+        export_response = results_page.export_csv()
+
+        csv_url = caselink.warrants.extract_csv_url(export_response)
+
+        self.assertEqual(
+            csv_url, "https://caselink.nashville.gov/tmp/CaseLink_05072024153351.csv"
+        )
         self.assertEqual(len(mock_post.call_args_list), 3)
 
 

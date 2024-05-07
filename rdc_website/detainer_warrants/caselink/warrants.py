@@ -13,6 +13,8 @@ from .. import csv_imports
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
+CSV_URL_REGEX = re.compile(r'parent.UserWinOpen\("", "(https:\/\/.+?)",')
+
 
 def import_from_caselink(start_date, end_date):
     csv_imports.from_url(fetch_csv_url(start_date, end_date))
@@ -27,19 +29,20 @@ def fetch_csv_url(start_date, end_date):
     search_page = Navigation.login(username, password)
     search_page.add_start_date(start_date)
     search_page.add_detainer_warrant_type()
-    search_response = search_page.search()
+    results_page = search_page.search()
 
     # navigate to search results
     # headers = {"Referer": WEBSHELL, "Sec-Fetch-Dest": "iframe"}
 
-    results_page = Navigation.from_response(search_response).follow_url()
-    csv_html_response = results_page.export_csv()
-    csv_page = Navigation.from_response(csv_html_response)
+    csv_response = results_page.export_csv()
+    return extract_csv_url(csv_response)
 
-    url = csv_page.url()
 
-    if "caselink.org" in url:
-        return url.replace("caselink.org", "caselink.gov")
+def extract_csv_url(csv_response):
+    url = re.search(CSV_URL_REGEX, csv_response.text).groups()[0]
+
+    if "caselink.nashville.org" in url:
+        return url.replace("caselink.nashville.org", "caselink.nashville.gov")
 
     logger.warning("CSV URL has changed; potentially valid. Remove old code.")
     return url
