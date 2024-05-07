@@ -1,4 +1,4 @@
-<!-- Redirect GET after making an invalid search  -->
+<!-- POST to WEBSHELL, specifying the case type P_31  -->
 <script language=javascript>
     if (parent.TktAlert) {
         window.alert = parent.TktAlert
@@ -6,8 +6,8 @@
     }
 </script>
 <!--RECORD.IO: RDLOCAL key="0"-->
-<!--Parent=STDHUB PBname=WTKCB_20 Dict=WTKCB_20
-Val=   Search for Case(s)   Old=
+<!--Parent=STDHUB PBname=P_31 Dict=P_31
+Val=2 Old=
 Status=PB,NOLOCK SaveState=1 Confirm=0 Hotkey= -->
 <html>
 <!--RECORD.IO: WTCURRENT key="52832"-->
@@ -17,23 +17,17 @@ Status=PB,NOLOCK SaveState=1 Confirm=0 Hotkey= -->
         if (parent.loaded != true)
             return -1;
         parent.ShowPI(0);
-        parent.SetProp("WTKCB_20", "Epb");
-        alert("Your search results have exceeded 1000 matches.\nPlease refine search conditions.", YesNo);
-    }
-    function YesNo(yes) //will be called by confirmation Ok
-    {
+        parent.SetProp("P_31", "Epb");
 
-        setTimeout(function () {
-            parent.FocusField = "WTKCB_20";
-            parent.FocusFormVar("WTKCB_20")
-        }, 550)
-        StallXEV = -1
+        parent.PutFormVar("P_21", "", 0);
+
+        StallXEV = 0
         // OK or Err, release XEV stall AT END!
     }
     function XEV() {
         if (StallXEV == 'WAIT')
             return setTimeout('XEV()', 350);
-        parent.ClearXEVENT(8, StallXEV, '', 1);
+        parent.ClearXEVENT(5, StallXEV, '', 1);
     }
 </script>
 
