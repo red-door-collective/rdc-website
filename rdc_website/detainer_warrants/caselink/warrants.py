@@ -27,14 +27,21 @@ def fetch_csv_url(start_date, end_date):
     password = current_app.config["CASELINK_PASSWORD"]
 
     search_page = Navigation.login(username, password)
-    search_page.add_start_date(start_date)
-    search_page.add_detainer_warrant_type()
+    resp = search_page.follow_url()
+    heart = search_page.heartbeat()
+    menu_resp = search_page.menu()
+    menu_postback_resp = Navigation.from_response(menu_resp).follow_url()
+    read_rec_resp = search_page.read_rec()
+    open_advanced_search_resp = search_page.open_advanced_search()
+    start_date_resp = search_page.add_start_date(start_date)
+    warrant_type_resp = search_page.add_detainer_warrant_type()
     results_page = search_page.search()
 
     # navigate to search results
     # headers = {"Referer": WEBSHELL, "Sec-Fetch-Dest": "iframe"}
 
     csv_response = results_page.export_csv()
+    breakpoint()
     return extract_csv_url(csv_response)
 
 

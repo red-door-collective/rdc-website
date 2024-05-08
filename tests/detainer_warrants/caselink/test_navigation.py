@@ -18,7 +18,11 @@ def mocked_post(*args, **kwargs):
             return self.text
 
     if "EVENT=VERIFY" in kwargs["data"]:
-        with open("tests/fixtures/caselink/login-successful.html") as f:
+        if "PASSWD=badpass" in kwargs["data"]:
+            with open("tests/fixtures/caselink/login-failed.html") as f:
+                return MockResponse(f.read(), 200)
+
+        with open("tests/fixtures/caselink/login-succeeded.html") as f:
             return MockResponse(f.read(), 200)
     elif "P_26" in kwargs["data"] and "05%2F01%2F2024" in kwargs["data"]:
         with open("tests/fixtures/caselink/add-start-date-success.html") as f:
