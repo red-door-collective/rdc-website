@@ -21,32 +21,27 @@ def mocked_post(*args, **kwargs):
         with open("tests/fixtures/caselink/login-page/login-redirect.html") as f:
             return MockResponse(f.read(), 200)
     elif "P_26" in kwargs["data"] and "05%2F01%2F2024" in kwargs["data"]:
-        with open("tests/fixtures/caselink/search-page/added-start-date.html") as f:
+        with open("tests/fixtures/caselink/search-page/add-start-date.html") as f:
             return MockResponse(f.read(), 200)
     elif "P_31" in kwargs["data"]:
         with open(
-            "tests/fixtures/caselink/search-page/added-detainer-warrant-type.html"
+            "tests/fixtures/caselink/search-page/add-detainer-warrant-type.html"
         ) as f:
             return MockResponse(f.read(), 200)
     elif "WTKCB_20" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-page/search-redirect.html") as f:
             return MockResponse(f.read(), 200)
-    elif "Export+List&" in kwargs["data"]:
-        with open(
-            "tests/fixtures/caselink/search-results-page/exported-list.html"
-        ) as f:
-            return MockResponse(f.read(), 200)
     elif "FCCLICK" in kwargs["data"]:
-        with open("tests/fixtures/caselink/search-results-page/opened-case.html") as f:
+        with open("tests/fixtures/caselink/search-results-page/open-case.html") as f:
             return MockResponse(f.read(), 200)
     elif "CP*CASELINK.MAIN" in kwargs["data"]:
         with open(
-            "tests/fixtures/caselink/search-results-page/opened-case-redirect.html"
+            "tests/fixtures/caselink/search-results-page/open-case-redirect.html"
         ) as f:
             return MockResponse(f.read(), 200)
     elif "CURRPROCESS=LVP.SES.INQUIRY" in kwargs["data"]:
         with open(
-            "tests/fixtures/caselink/case-page/opened-pleading-document-redirect.html"
+            "tests/fixtures/caselink/case-page/open-pleading-document-redirect.html"
         ) as f:
             return MockResponse(f.read(), 200)
 
@@ -175,18 +170,16 @@ class TestNavigation(TestCase):
 
         self.assertEqual(len(mock_post.call_args_list), 3)
 
-    # @mock.patch("requests.post", side_effect=mocked_post)
-    # def test_export_csv(self, mock_post):
-    #     search_page = Navigation.login("some-username", "some-password")
-    #     results_page = search_page.search()
-    #     export_response = results_page.export_csv()
+    @mock.patch("requests.post", side_effect=mocked_post)
+    def test_open_case(self, mock_post):
+        search_page = Navigation.login("some-username", "some-password")
 
-    #     csv_url = caselink.warrants.extract_csv_url(export_response)
+        results_page = search_page.search()
+        open_case_response = results_page.open_case()
 
-    #     self.assertEqual(
-    #         csv_url, "https://caselink.nashville.gov/tmp/CaseLink_05072024153351.csv"
-    #     )
-    #     self.assertEqual(len(mock_post.call_args_list), 3)
+        self.assertIn(
+            '"LVP.SES.INQUIRY", "24GT4890", "STDHUB"', open_case_response.text
+        )
 
 
 if __name__ == "__main__":

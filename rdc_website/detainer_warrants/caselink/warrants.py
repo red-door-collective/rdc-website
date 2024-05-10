@@ -31,7 +31,27 @@ COLUMNS = [
 
 
 def import_from_caselink(start_date, end_date):
-    csv_imports.from_rows(search_between_dates(start_date, end_date))
+    search_results_page = search_between_dates(start_date, end_date)
+    results_response = search_results_page.follow_url()
+    matches = extract_search_response_data(results_response.text)
+
+    rows = list(divide_into_dicts(COLUMNS, [val for _var, val in matches], 9))
+
+    breakpoint()
+
+    # csv_imports.from_rows(rows)
+
+    pleading_document_urls = import_pleading_documents(search_results_page)
+
+    return rows
+
+
+def import_pleading_documents(search_results_page):
+    search_results_page.open_case()
+    case_page = search_results_page.open_case_redirect()
+    case_page.follow_link()
+
+    case_page.open_pleading_document()
 
 
 def extract_search_response_data(search_results):
@@ -55,12 +75,4 @@ def search_between_dates(start_date, end_date):
     menu_page.add_start_date(start_date)
     menu_page.add_detainer_warrant_type(end_date)
 
-    results_page = menu_page.search()
-    results_response = results_page.follow_url()
-    matches = extract_search_response_data(results_response.text)
-
-    rows = list(divide_into_dicts(COLUMNS, [val for _var, val in matches], 9))
-
-    breakpoint()
-
-    return rows
+    return menu_page.search()

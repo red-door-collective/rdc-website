@@ -170,7 +170,7 @@ class Navigation:
         # 'Referer': 'https://caselink.nashville.gov/gsapdfs/1715359093408.STDHUB.20585.59851650.html',
         # }
 
-        return self._submit_form(data)
+        return Navigation.from_response(self._submit_form(data))
 
     def open_pleading_document(self):
         data = "APPID=pubgs&CODEITEMNM=&CURRPROCESS=LVP.SES.INQUIRY&CURRVAL=1&DEVAPPID=&DEVPATH=%252FINNOVISION%252FDAVIDSON%252FPUB.SESSIONS&FINDDEFKEY=LVP.SES.INQUIRY&GATEWAY=FL&LINENBR=0&NEEDRECORDS=-1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=0&STDID=24GT4890&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=READREC&CHANGED=0&CURRPANEL=1&HUBFILE=TRANS&NPKEYS=0&SUBMITCOUNT=2&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=&WCVALS=".format(
