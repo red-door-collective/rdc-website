@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 
 CSV_URL_REGEX = re.compile(r'parent.UserWinOpen\("",\s*"(https:\/\/.+?)",')
 WC_VARS_VALS_REGEX = re.compile(
-    r'parent\.PutFormVar\(\s*"(?P<vars>P_\d+_\d+)"\s*,\s*"(?P<values>\s*.*?)",'
+    r'parent\.PutFormVar\(\s*"P_\d+_\d+"\s*,\s*"(?P<values>\s*.*?)",'
+)
+PLEADING_DOCUMENTS_REGEX = re.compile(
+    r'parent\.PutMvals\(\s*"P_3"\s*,\s*"([ý\\]*\w+\\+\w+\\+\w+\\+\w+\\+\d+\.pdf.+)"'
 )
 COLUMNS = [
     "Office",
@@ -24,8 +27,8 @@ COLUMNS = [
     "File Date",
     "Description",
     "Plaintiff",
-    "Pltf. Attorney",
     "Defendant",
+    "Pltf. Attorney",
     "Def. Attorney",
 ]
 
@@ -33,17 +36,31 @@ COLUMNS = [
 def import_from_caselink(start_date, end_date):
     search_results_page = search_between_dates(start_date, end_date)
     results_response = search_results_page.follow_url()
-    matches = extract_search_response_data(results_response.text)
-
-    rows = list(divide_into_dicts(COLUMNS, [val for _var, val in matches], 9))
+    cases = build_cases_from_parsed_matches(
+        extract_search_response_data(results_response.text)
+    )
 
     breakpoint()
 
-    # csv_imports.from_rows(rows)
+    # csv_imports.from_rows(cases)
 
+    # TODO: do this for each case in the search
     pleading_document_urls = import_pleading_documents(search_results_page)
 
-    return rows
+    return pleading_document_urls
+
+
+def extract_pleading_document_paths(html):
+    escaped_paths = re.search(PLEADING_DOCUMENTS_REGEX, html).group(1)
+    trimmed_paths = escaped_paths.strip("ý").split(".pdf")
+
+    paths = [
+        path.strip("ý").replace("\\\\\\\\", "\\") + ".pdf"
+        for path in trimmed_paths
+        if path
+    ]
+
+    return paths
 
 
 def import_pleading_documents(search_results_page):
@@ -51,7 +68,20 @@ def import_pleading_documents(search_results_page):
     case_page = search_results_page.open_case_redirect()
     case_page.follow_link()
 
-    case_page.open_pleading_document()
+    pleading_doc_page = case_page.open_pleading_document_redirect()
+
+    pleading_documents = pleading_doc_page.follow_url()
+
+    paths = extract_pleading_document_paths(pleading_documents.text)
+
+    # for path in paths:
+    # PleadingDocument.create
+
+    return paths
+
+
+def build_cases_from_parsed_matches(matches):
+    return list(divide_into_dicts(COLUMNS, matches, 9))
 
 
 def extract_search_response_data(search_results):

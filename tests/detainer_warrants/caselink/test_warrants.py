@@ -61,24 +61,105 @@ class TestWarrants(TestCase):
 
     def test_extract_search_response_data(self):
         search_results = None
-        with open("tests/fixtures/caselink/search-results.html") as f:
+        with open("tests/fixtures/caselink/search-results-page/index.html") as f:
             search_results = f.read()
 
-        wc_vars, wc_values = warrants.extract_search_response_data(search_results)
+        wc_values = warrants.extract_search_response_data(search_results)
 
-        breakpoint()
-        self.assertEqual(
-            wc_vars,
-            "P_101_1%7FP_102_1%7FP_103_1%7FP_104_1%7FP_105_1%7FP_106_1%7FP_107_1%7FP_108_1%7FP_109_1%7FP_101_2%7FP_102_2%7FP_103_2%7FP_104_2%7FP_105_2%7FP_106_2%7FP_107_2%7FP_108_2%7FP_109_2%7FP_101_3%7FP_102_3%7FP_103_3%7FP_104_3%7FP_105_3%7FP_106_3%7FP_107_3%7FP_108_3%7FP_109_3",
-        )
         self.assertEqual(
             wc_values,
-            "Sessions%7F24GT4773%7FPENDING%7F05/02/2024%7FDETAINER WARRANT FORM%7FMYKA GODWIN%7FWILLIAM RIDLEY%7F, PRS%7F%7FSessions%7F24GT4770%7FPENDING%7F05/01/2024%7FDETAINER WARRANT%7FPROGRESS RESIDENTIAL BORROWER 6, LLC 1408 CHUTNEY COURT%7FDEFENDANT 1 OR ALL OTHER OCCUPANTS%7FMCCOY, JENNIFER JO%7F%7FSessions%7F24GT4772%7FPENDING%7F05/01/2024%7FDETAINER WARRANT%7FWESTBORO APARTMENTS%7FDEFENDANT 2%7FRUSNAK, JOSEPH P.%7F",
+            [
+                "Sessions",
+                "24GT4773",
+                "PENDING",
+                "05/02/2024",
+                "DETAINER WARRANT FORM",
+                "MYKA GODWIN",
+                "DEFENDANT A",
+                ", PRS",
+                "",
+                "Sessions",
+                "24GT4770",
+                "PENDING",
+                "05/01/2024",
+                "DETAINER WARRANT",
+                "PROGRESS RESIDENTIAL BORROWER 6, LLC 1408 CHUTNEY COURT",
+                "DEFENDANT 1 OR ALL OTHER OCCUPANTS",
+                "MCCOY, JENNIFER JO",
+                "",
+                "Sessions",
+                "24GT4772",
+                "PENDING",
+                "05/01/2024",
+                "DETAINER WARRANT",
+                "WESTBORO APARTMENTS",
+                "DEFENDANT 2",
+                "RUSNAK, JOSEPH P.",
+                "",
+            ],
         )
 
-    # @mock.patch("requests.post", side_effect=mocked_login)
-    # def test_fetch_csv_url(self):
-    #     csv = detainer_warrants.caselink.warrants.fetch_csv_url()
+    def test_build_cases_from_parsed_matches(self):
+        search_results = None
+        with open("tests/fixtures/caselink/search-results-page/index.html") as f:
+            search_results = f.read()
+
+        matches = warrants.extract_search_response_data(search_results)
+        cases = warrants.build_cases_from_parsed_matches(matches)
+
+        self.assertEqual(
+            cases,
+            [
+                {
+                    "Office": "Sessions",
+                    "Docket #": "24GT4773",
+                    "Status": "PENDING",
+                    "File Date": "05/02/2024",
+                    "Description": "DETAINER WARRANT FORM",
+                    "Plaintiff": "MYKA GODWIN",
+                    "Pltf. Attorney": ", PRS",
+                    "Defendant": "DEFENDANT A",
+                    "Def. Attorney": "",
+                },
+                {
+                    "Office": "Sessions",
+                    "Docket #": "24GT4770",
+                    "Status": "PENDING",
+                    "File Date": "05/01/2024",
+                    "Description": "DETAINER WARRANT",
+                    "Plaintiff": "PROGRESS RESIDENTIAL BORROWER 6, LLC 1408 CHUTNEY COURT",
+                    "Pltf. Attorney": "MCCOY, JENNIFER JO",
+                    "Defendant": "DEFENDANT 1 OR ALL OTHER OCCUPANTS",
+                    "Def. Attorney": "",
+                },
+                {
+                    "Office": "Sessions",
+                    "Docket #": "24GT4772",
+                    "Status": "PENDING",
+                    "File Date": "05/01/2024",
+                    "Description": "DETAINER WARRANT",
+                    "Plaintiff": "WESTBORO APARTMENTS",
+                    "Pltf. Attorney": "RUSNAK, JOSEPH P.",
+                    "Defendant": "DEFENDANT 2",
+                    "Def. Attorney": "",
+                },
+            ],
+        )
+
+    def test_extract_pleading_document_paths(self):
+        pleading_documents = None
+        with open("tests/fixtures/caselink/case-page/pleading-documents.html") as f:
+            pleading_documents = f.read()
+
+        paths = warrants.extract_pleading_document_paths(pleading_documents)
+
+        self.assertEqual(
+            paths,
+            [
+                "\\Public\\Sessions\\24\\24GT4890\\3370253.pdf",
+                "\\Public\\Sessions\\24/24GT4890\\03370254.pdf",
+            ],
+        )
 
 
 if __name__ == "__main__":
