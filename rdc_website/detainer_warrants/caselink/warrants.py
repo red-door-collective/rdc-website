@@ -59,7 +59,6 @@ def search_between_dates(start_date, end_date):
     password = current_app.config["CASELINK_PASSWORD"]
 
     search_page = Navigation.login(username, password)
-    resp = search_page.follow_url()
     menu_resp = search_page.menu()
     menu_page = Navigation.from_response(menu_resp)
     start_date_resp = menu_page.add_start_date(start_date)
