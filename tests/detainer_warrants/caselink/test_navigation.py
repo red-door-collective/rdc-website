@@ -97,6 +97,20 @@ class TestNavigation(TestCase):
 
     @mock.patch("requests.post", side_effect=mocked_post)
     @mock.patch("requests.get", side_effect=mocked_get)
+    def test_login_fail(self, mock_get, mock_post):
+        navigation = Navigation.login("some-username", "badpass")
+
+        self.assertEqual(
+            navigation.path,
+            "/gsapdfs/{}.VERIFY.20580.77105150.html".format(WEB_IO_HANDLE),
+        )
+        self.assertEqual(navigation.web_io_handle, WEB_IO_HANDLE)
+        self.assertEqual(navigation.parent, "VERIFY")
+
+        self.assertEqual(len(mock_post.call_args_list), 1)
+
+    @mock.patch("requests.post", side_effect=mocked_post)
+    @mock.patch("requests.get", side_effect=mocked_get)
     def test_search(self, mock_get, mock_post):
         navigation = Navigation.login("some-username", "some-password").search()
 

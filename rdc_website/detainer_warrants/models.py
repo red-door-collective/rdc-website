@@ -562,9 +562,9 @@ class Judgment(db.Model, Timestamped):
             interest=interest,
             interest_rate=interest_rate,
             interest_follows_site=interest_follows_site if awards_fees else None,
-            dismissal_basis_id=Judgment.dismissal_bases[dismissal_basis]
-            if dismissal_basis
-            else None,
+            dismissal_basis_id=(
+                Judgment.dismissal_bases[dismissal_basis] if dismissal_basis else None
+            ),
             with_prejudice=with_prejudice,
             notes=notes,
             in_favor_of_id=Judgment.parties[in_favor_of] if in_favor_of else None,

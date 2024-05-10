@@ -65,6 +65,7 @@ def from_csv_row(row):
     defendants = create_defendant(case.docket_id, warrant["Defendant"])
 
     case.update(
+        type="detainer_warrant",
         status=warrant["Status"],
         _file_date=warrant["File Date"],
         _plaintiff=plaintiff,
@@ -76,11 +77,8 @@ def from_csv_row(row):
     db.session.commit()
 
 
-def from_url(url):
-    response = requests.get(url)
-    reader = csv.DictReader(io.StringIO(response.text))
-
-    for row in reader:
+def from_rows(rows):
+    for row in rows:
         from_csv_row(row)
 
 
