@@ -159,6 +159,22 @@ class TestNavigation(TestCase):
 
         self.assertEqual(len(mock_post.call_args_list), 3)
 
+    @mock.patch("requests.post", side_effect=mocked_post)
+    def test_add_detainer_warrant_type(self, mock_post):
+        search_page = Navigation.login("some-username", "some-password")
+
+        search_page.add_detainer_warrant_type(date(2024, 5, 1))
+        results_page = search_page.search()
+
+        self.assertEqual(
+            results_page.path,
+            "/gsapdfs/{}.POSTBACK.20581.72727882.html".format(WEB_IO_HANDLE),
+        )
+        self.assertEqual(results_page.web_io_handle, WEB_IO_HANDLE)
+        self.assertEqual(results_page.parent, "POSTBACK")
+
+        self.assertEqual(len(mock_post.call_args_list), 3)
+
     # @mock.patch("requests.post", side_effect=mocked_post)
     # def test_export_csv(self, mock_post):
     #     search_page = Navigation.login("some-username", "some-password")
