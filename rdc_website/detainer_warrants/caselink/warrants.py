@@ -62,7 +62,6 @@ def search_between_dates(start_date, end_date):
     resp = search_page.follow_url()
     menu_resp = search_page.menu()
     menu_page = Navigation.from_response(menu_resp)
-    menu_page.follow_url()
     start_date_resp = menu_page.add_start_date(start_date)
     warrant_type_resp = menu_page.add_detainer_warrant_type(end_date)
 
