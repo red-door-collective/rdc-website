@@ -20,6 +20,7 @@ WC_VARS_VALS_REGEX = re.compile(
 PLEADING_DOCUMENTS_REGEX = re.compile(
     r'parent\.PutMvals\(\s*"P_3"\s*,\s*"([ý\\]*\w+\\+\w+\\+\w+\\+\w+\\+\d+\.pdf.+)"'
 )
+PLAINTIFF_ATTORNEY = "Pltf. Attorney"
 COLUMNS = [
     "Office",
     "Docket #",
@@ -28,7 +29,7 @@ COLUMNS = [
     "Description",
     "Plaintiff",
     "Defendant",
-    "Pltf. Attorney",
+    PLAINTIFF_ATTORNEY,
     "Def. Attorney",
 ]
 
@@ -81,7 +82,12 @@ def import_pleading_documents(search_results_page):
 
 
 def build_cases_from_parsed_matches(matches):
-    return list(divide_into_dicts(COLUMNS, matches, 9))
+    cases = list(divide_into_dicts(COLUMNS, matches, 9))
+    for case in cases:
+        if case[PLAINTIFF_ATTORNEY] == ", PRS":
+            case[PLAINTIFF_ATTORNEY] = "REPRESENTING SELF"
+
+    return cases
 
 
 def extract_search_response_data(search_results):

@@ -117,7 +117,7 @@ class TestWarrants(TestCase):
                     "File Date": "05/02/2024",
                     "Description": "DETAINER WARRANT FORM",
                     "Plaintiff": "MYKA GODWIN",
-                    "Pltf. Attorney": ", PRS",
+                    "Pltf. Attorney": "REPRESENTING SELF",
                     "Defendant": "DEFENDANT A",
                     "Def. Attorney": "",
                 },
