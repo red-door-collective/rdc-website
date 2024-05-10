@@ -60,7 +60,6 @@ def search_between_dates(start_date, end_date):
 
     search_page = Navigation.login(username, password)
     resp = search_page.follow_url()
-    heart = search_page.heartbeat()
     menu_resp = search_page.menu()
     menu_page = Navigation.from_response(menu_resp)
     menu_page.follow_url()
