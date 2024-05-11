@@ -13,6 +13,11 @@ eviction process.
 
 The project uses a Python backend and an Elm frontend.
 
+### Data Collection
+
+Data is collected via web scraping. See
+[the strategy documentation](data-collection/strategy.md) for how.
+
 #### Backend
 
 The stack:
