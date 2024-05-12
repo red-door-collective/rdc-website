@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d7adb53b80a7
+Revision ID: ca30b954917c
 Revises: 
-Create Date: 2024-04-30 10:27:43.231798
+Create Date: 2024-05-12 00:09:48.273655
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd7adb53b80a7'
+revision = 'ca30b954917c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -125,13 +125,13 @@ def upgrade():
     sa.Column('is_legacy', sa.Boolean(), nullable=True),
     sa.Column('nonpayment', sa.Boolean(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('document_url', sa.String(), nullable=True),
+    sa.Column('document_image_path', sa.String(), nullable=True),
     sa.Column('last_pleading_documents_check', sa.DateTime(), nullable=True),
     sa.Column('pleading_document_check_was_successful', sa.Boolean(), nullable=True),
     sa.Column('pleading_document_check_mismatched_html', sa.Text(), nullable=True),
     sa.Column('last_edited_by_id', sa.Integer(), nullable=True),
     sa.Column('audit_status_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['document_url'], ['pleading_documents.url'], name='cases_document_url_fkey', use_alter=True),
+    sa.ForeignKeyConstraint(['document_image_path'], ['pleading_documents.image_path'], name='cases_document_image_path_fkey', use_alter=True),
     sa.ForeignKeyConstraint(['last_edited_by_id'], ['user.id'], ),
     sa.ForeignKeyConstraint(['plaintiff_attorney_id'], ['attorneys.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['plaintiff_id'], ['plaintiffs.id'], ondelete='CASCADE'),
@@ -222,7 +222,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('pleading_documents',
-    sa.Column('url', sa.String(length=255), nullable=False),
+    sa.Column('image_path', sa.String(length=255), nullable=False),
     sa.Column('text', sa.Text(), nullable=True),
     sa.Column('kind_id', sa.Integer(), nullable=True),
     sa.Column('docket_id', sa.String(length=255), nullable=False),
@@ -230,7 +230,7 @@ def upgrade():
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['docket_id'], ['cases.docket_id'], ),
-    sa.PrimaryKeyConstraint('url')
+    sa.PrimaryKeyConstraint('image_path')
     )
     op.create_table('canvass_warrants',
     sa.Column('canvass_event.id', sa.Integer(), nullable=False),
@@ -266,13 +266,13 @@ def upgrade():
     sa.Column('plaintiff_id', sa.Integer(), nullable=True),
     sa.Column('plaintiff_attorney_id', sa.Integer(), nullable=True),
     sa.Column('defendant_attorney_id', sa.Integer(), nullable=True),
-    sa.Column('document_url', sa.String(), nullable=True),
+    sa.Column('document_image_path', sa.String(), nullable=True),
     sa.Column('last_edited_by_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['defendant_attorney_id'], ['attorneys.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['detainer_warrant_id'], ['cases.docket_id'], ),
-    sa.ForeignKeyConstraint(['document_url'], ['pleading_documents.url'], ),
+    sa.ForeignKeyConstraint(['document_image_path'], ['pleading_documents.image_path'], ),
     sa.ForeignKeyConstraint(['hearing_id'], ['hearings.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['judge_id'], ['judges.id'], ),
     sa.ForeignKeyConstraint(['last_edited_by_id'], ['user.id'], ),

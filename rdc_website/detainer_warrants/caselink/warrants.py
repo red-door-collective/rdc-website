@@ -9,6 +9,7 @@ import logging
 import logging.config
 from datetime import datetime
 from .. import csv_imports
+from ..models import db, DetainerWarrant, PleadingDocument
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -64,6 +65,25 @@ def extract_pleading_document_paths(html):
     return paths
 
 
+def populate_pleadings(docket_id, image_paths):
+    created_count, seen_count = 0, 0
+    for image_path in image_paths:
+        document = PleadingDocument.query.get(image_path)
+        if document:
+            seen_count += 1
+        else:
+            created_count += 1
+            PleadingDocument.create(image_path=image_path, docket_id=docket_id)
+
+    DetainerWarrant.query.get(docket_id).update(
+        _last_pleading_documents_check=datetime.utcnow(),
+        pleading_document_check_mismatched_html=None,
+        pleading_document_check_was_successful=True,
+    )
+
+    db.session.commit()
+
+
 def import_pleading_documents(search_results_page):
     search_results_page.open_case()
     case_page = search_results_page.open_case_redirect()
@@ -75,8 +95,8 @@ def import_pleading_documents(search_results_page):
 
     paths = extract_pleading_document_paths(pleading_documents.text)
 
-    # for path in paths:
-    # PleadingDocument.create
+    for path in paths:
+        PleadingDocument.create()
 
     return paths
 

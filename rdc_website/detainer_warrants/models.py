@@ -255,7 +255,7 @@ class Hearing(db.Model, Timestamped):
         attrs = Judgment.attributes_from_pdf(document.text)
         if not attrs:
             return self
-        attrs["document_url"] = document.url
+        attrs["document_image_path"] = document.image_path
         if self.judgment:
             self.judgment.update(**attrs)
         else:
@@ -319,7 +319,9 @@ class Judgment(db.Model, Timestamped):
     defendant_attorney_id = Column(
         db.Integer, db.ForeignKey("attorneys.id", ondelete=("CASCADE"))
     )
-    document_url = Column(db.String, db.ForeignKey("pleading_documents.url"))
+    document_image_path = Column(
+        db.String, db.ForeignKey("pleading_documents.image_path")
+    )
     last_edited_by_id = Column(db.Integer, db.ForeignKey("user.id"))
 
     _plaintiff = relationship("Plaintiff", back_populates="_judgments")
@@ -586,7 +588,7 @@ class PleadingDocument(db.Model, Timestamped):
     }
 
     __tablename__ = "pleading_documents"
-    url = Column(db.String(255), primary_key=True)
+    image_path = Column(db.String(255), primary_key=True)
     text = Column(db.Text)
     kind_id = Column(db.Integer)
     docket_id = Column(db.String(255), db.ForeignKey("cases.docket_id"), nullable=False)
@@ -635,7 +637,7 @@ class PleadingDocument(db.Model, Timestamped):
         ).label("status")
 
     def __repr__(self):
-        return f"<PleadingDocument(docket_id='{self.docket_id}', kind='{self.kind}', url='{self.url}')>"
+        return f"<PleadingDocument(docket_id='{self.docket_id}', kind='{self.kind}', image_path='{self.image_path}')>"
 
 
 detainer_warrant_addresses = db.Table(
@@ -832,10 +834,12 @@ class DetainerWarrant(Case):
     is_legacy = Column(db.Boolean)
     nonpayment = Column(db.Boolean)
     notes = Column(db.Text)
-    document_url = Column(
+    document_image_path = Column(
         db.String,
         db.ForeignKey(
-            "pleading_documents.url", use_alter=True, name="cases_document_url_fkey"
+            "pleading_documents.image_path",
+            use_alter=True,
+            name="cases_document_image_path_fkey",
         ),
     )
     _last_pleading_documents_check = Column(
@@ -846,7 +850,7 @@ class DetainerWarrant(Case):
     last_edited_by_id = Column(db.Integer, db.ForeignKey("user.id"))
     audit_status_id = Column(db.Integer)
 
-    document = relationship("PleadingDocument", foreign_keys=document_url)
+    document = relationship("PleadingDocument", foreign_keys=document_image_path)
     pleadings = relationship(
         "PleadingDocument",
         foreign_keys=PleadingDocument.docket_id,
