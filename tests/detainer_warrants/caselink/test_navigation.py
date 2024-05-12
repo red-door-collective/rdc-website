@@ -31,10 +31,10 @@ def mocked_post(*args, **kwargs):
     elif "WTKCB_20" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-page/search-redirect.html") as f:
             return MockResponse(f.read(), 200)
-    elif "FCCLICK" in kwargs["data"]:
+    elif "FCCLICK" in kwargs["data"] and "APPID=davlvp" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-results-page/open-case.html") as f:
             return MockResponse(f.read(), 200)
-    elif "CP*CASELINK.MAIN" in kwargs["data"]:
+    elif "%252FINNOVISION%252FDAVIDSON%252FPUB.SESSIONS" in kwargs["data"]:
         with open(
             "tests/fixtures/caselink/search-results-page/open-case-redirect.html"
         ) as f:
@@ -180,6 +180,25 @@ class TestNavigation(TestCase):
         self.assertIn(
             '"LVP.SES.INQUIRY", "24GT4890", "STDHUB"', open_case_response.text
         )
+
+    @mock.patch("requests.post", side_effect=mocked_post)
+    @mock.patch("requests.get", side_effect=mocked_get)
+    def test_open_case_redirect(self, mock_get, mock_post):
+        search_page = Navigation.login("some-username", "some-password")
+
+        results_page = search_page.search()
+        response = results_page.open_case_redirect(
+            {
+                "process": "LVP.SES.INQUIRY",
+                "docket_id": "24GT4890",
+                "dev_path": "/INNOVISION/DAVIDSON/PUB.SESSIONS",
+            }
+        )
+
+        self.assertEqual(
+            response.path, "/gsapdfs/1715359093408.STDHUB.20585.59888194.html"
+        )
+        self.assertEqual(response.web_io_handle, "1715359093408")
 
 
 if __name__ == "__main__":

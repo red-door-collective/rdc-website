@@ -21,6 +21,9 @@ WC_VARS_VALS_REGEX = re.compile(
 PLEADING_DOCUMENTS_REGEX = re.compile(
     r'parent\.PutMvals\(\s*"P_3"\s*,\s*"([ý\\]*\w+\\+\w+\\+\w+\\+\w+\\+\d+\.pdf.+)"'
 )
+OPEN_CASE_REGEX = re.compile(
+    r'parent\.UserCallProcess\("(?P<process>.+?)",\s*"(?P<docket_id>\d+\w+\d+)",\s*.+?[\'"]+(?P<dev_path>\/.+)[\'"]+,\s*[\'"]self[\'"]'
+)
 PLAINTIFF_ATTORNEY = "Pltf. Attorney"
 COLUMNS = [
     "Office",
@@ -50,6 +53,10 @@ def import_from_caselink(start_date, end_date):
     pleading_document_urls = import_pleading_documents(search_results_page)
 
     return pleading_document_urls
+
+
+def extract_docket_details(open_case_html):
+    return re.search(OPEN_CASE_REGEX, open_case_html)
 
 
 def extract_pleading_document_paths(html):
@@ -85,20 +92,20 @@ def populate_pleadings(docket_id, image_paths):
 
 
 def import_pleading_documents(search_results_page):
-    search_results_page.open_case()
-    case_page = search_results_page.open_case_redirect()
+    open_case_response = search_results_page.open_case()
+    case_page = search_results_page.open_case_redirect(
+        extract_docket_details(open_case_response)
+    )
     case_page.follow_link()
 
     pleading_doc_page = case_page.open_pleading_document_redirect()
 
     pleading_documents = pleading_doc_page.follow_url()
 
-    paths = extract_pleading_document_paths(pleading_documents.text)
+    image_paths = extract_pleading_document_paths(pleading_documents.text)
 
-    for path in paths:
-        PleadingDocument.create()
-
-    return paths
+    for image_path in image_paths:
+        populate_pleadings(docket_id, image_path)
 
 
 def build_cases_from_parsed_matches(matches):

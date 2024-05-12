@@ -160,10 +160,19 @@ class Navigation:
 
         return self._submit_form(data)
 
-    def open_case_redirect(self):
-        data = "APPID=pubgs&CODEITEMNM=P_104_21&CURRPROCESS=CASELINK.MAIN&CURRVAL=05%252F08%252F2024&DEVAPPID=&DEVPATH=%252FINNOVISION%252FDAVIDSON%252FPUB.SESSIONS&FINDDEFKEY=LVP.SES.INQUIRY&GATEWAY=CP*CASELINK.MAIN&LINENBR=21&NEEDRECORDS=0&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=%25FCCLICK&STDID=24GT4890&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=_self&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=STDHUB&CHANGED=948&CURRPANEL=2&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=9&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=&WCVALS=".format(
-            web_io_handle=self.web_io_handle
+    @classmethod
+    def _double_encode(cls, string):
+        return urllib.parse.quote(urllib.parse.quote(string, safe=""), safe="")
+
+    def open_case_redirect(self, case_details):
+        dev_path = Navigation._double_encode(case_details["dev_path"])
+        data = "APPID=pubgs&CODEITEMNM=P_104_21&CURRPROCESS=CASELINK.MAIN&CURRVAL=05%252F08%252F2024&DEVAPPID=&DEVPATH={dev_path}&FINDDEFKEY={process}&GATEWAY=CP*CASELINK.MAIN&LINENBR=21&NEEDRECORDS=0&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=%25FCCLICK&STDID={docket_id}&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=_self&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=STDHUB&CHANGED=948&CURRPANEL=2&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=9&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=&WCVALS=".format(
+            web_io_handle=self.web_io_handle,
+            dev_path=dev_path,
+            docket_id=case_details["docket_id"],
+            process=case_details["process"],
         )
+
         # headers = {
         # 'Host': 'caselink.nashville.gov',
         # 'Origin': 'https://caselink.nashville.gov',
