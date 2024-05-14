@@ -179,11 +179,6 @@ class Navigation:
         data = "APPID=davlvp&CODEITEMNM={code_item}&CURRPROCESS=CASELINK.MAIN&CURRVAL={docket_id}&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C0&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=%FCCLICK&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=564&CURRPANEL=2&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=8&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=%7F&WCVALS=%7F".format(
             web_io_handle=self.web_io_handle, code_item=code_item, docket_id=docket_id
         )
-        # headers = {
-        # 'Host': 'caselink.nashville.gov',
-        # 'Origin': 'https://caselink.nashville.gov',
-        # 'Referer': 'https://caselink.nashville.gov/gsapdfs/1715359093408.STDHUB.20585.59851650.html',
-        # }
 
         return self._submit_form(
             data,
@@ -206,12 +201,6 @@ class Navigation:
             process=case_details["process"],
         )
 
-        # headers = {
-        # 'Host': 'caselink.nashville.gov',
-        # 'Origin': 'https://caselink.nashville.gov',
-        # 'Referer': 'https://caselink.nashville.gov/gsapdfs/1715359093408.STDHUB.20585.59851650.html',
-        # }
-
         return Navigation.from_response(self._submit_form(data))
 
     def open_pleading_document_redirect(self, case_details):
@@ -219,16 +208,11 @@ class Navigation:
         data = "APPID=pubgs&CODEITEMNM=&CURRPROCESS=LVP.SES.INQUIRY&CURRVAL=1&DEVAPPID=&DEVPATH={dev_path}&FINDDEFKEY=LVP.SES.INQUIRY&GATEWAY=FL&LINENBR=0&NEEDRECORDS=-1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=0&STDID=24GT4890&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=READREC&CHANGED=0&CURRPANEL=1&HUBFILE=TRANS&NPKEYS=0&SUBMITCOUNT=2&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=&WCVALS=".format(
             web_io_handle=self.web_io_handle, dev_path=dev_path
         )
-        # headers = {
-        # 'Host': 'caselink.nashville.gov',
-        # 'Origin': 'https://caselink.nashville.gov',
-        # 'Referer': 'https://caselink.nashville.gov/gsapdfs/1715359093408.STDHUB.20585.59888194.html',
-        # }
 
         return self._submit_form(data)
 
     def view_pdf(self, image_path):
-        data = "image={image_path}".format(self._encode(image_path))
+        data = "image={image_path}".format(image_path=self._encode(image_path))
 
         return session.post(
             self._url(Navigation.PDF_VIEWER_PATH),

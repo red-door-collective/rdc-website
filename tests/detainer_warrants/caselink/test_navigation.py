@@ -34,7 +34,7 @@ def mocked_post(*args, **kwargs):
     elif "FCCLICK" in kwargs["data"] and "APPID=davlvp" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-results-page/open-case.html") as f:
             return MockResponse(f.read(), 200)
-    elif "%252FINNOVISION%252FDAVIDSON%252FPUB.SESSIONS" in kwargs["data"]:
+    elif "%2FINNOVISION%2FDAVIDSON%2FPUB.SESSIONS" in kwargs["data"]:
         with open(
             "tests/fixtures/caselink/search-results-page/open-case-redirect.html"
         ) as f:
@@ -43,6 +43,9 @@ def mocked_post(*args, **kwargs):
         with open(
             "tests/fixtures/caselink/case-page/open-pleading-document-redirect.html"
         ) as f:
+            return MockResponse(f.read(), 200)
+    elif "imageviewer.php" in args[0]:
+        with open("tests/fixtures/caselink/pdf-viewer.html") as f:
             return MockResponse(f.read(), 200)
 
     return MockResponse(None, 404)
@@ -93,8 +96,8 @@ class TestNavigation(TestCase):
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         return app
 
-    @mock.patch("requests.post", side_effect=mocked_post)
-    @mock.patch("requests.get", side_effect=mocked_get)
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
+    @mock.patch("requests.Session.get", side_effect=mocked_get)
     def test_login(self, mock_get, mock_post):
         navigation = Navigation.login("some-username", "some-password")
 
@@ -107,8 +110,8 @@ class TestNavigation(TestCase):
 
         self.assertEqual(len(mock_post.call_args_list), 1)
 
-    @mock.patch("requests.post", side_effect=mocked_post)
-    @mock.patch("requests.get", side_effect=mocked_get)
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
+    @mock.patch("requests.Session.get", side_effect=mocked_get)
     def test_search(self, mock_get, mock_post):
         navigation = Navigation.login("some-username", "some-password").search()
 
@@ -121,7 +124,7 @@ class TestNavigation(TestCase):
 
         self.assertEqual(len(mock_post.call_args_list), 2)
 
-    @mock.patch("requests.post", side_effect=mocked_post)
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_add_start_date(self, mock_post):
         search_page = Navigation.login("some-username", "some-password")
 
@@ -138,7 +141,7 @@ class TestNavigation(TestCase):
 
         self.assertEqual(len(mock_post.call_args_list), 3)
 
-    @mock.patch("requests.post", side_effect=mocked_post)
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_add_detainer_warrant_type(self, mock_post):
         search_page = Navigation.login("some-username", "some-password")
 
@@ -154,7 +157,7 @@ class TestNavigation(TestCase):
 
         self.assertEqual(len(mock_post.call_args_list), 3)
 
-    @mock.patch("requests.post", side_effect=mocked_post)
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_add_detainer_warrant_type(self, mock_post):
         search_page = Navigation.login("some-username", "some-password")
 
@@ -170,19 +173,19 @@ class TestNavigation(TestCase):
 
         self.assertEqual(len(mock_post.call_args_list), 3)
 
-    @mock.patch("requests.post", side_effect=mocked_post)
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_open_case(self, mock_post):
         search_page = Navigation.login("some-username", "some-password")
 
         results_page = search_page.search()
-        open_case_response = results_page.open_case()
+        open_case_response = results_page.open_case("P_102_2", "24GT4890")
 
         self.assertIn(
             '"LVP.SES.INQUIRY", "24GT4890", "STDHUB"', open_case_response.text
         )
 
-    @mock.patch("requests.post", side_effect=mocked_post)
-    @mock.patch("requests.get", side_effect=mocked_get)
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
+    @mock.patch("requests.Session.get", side_effect=mocked_get)
     def test_open_case_redirect(self, mock_get, mock_post):
         search_page = Navigation.login("some-username", "some-password")
 
@@ -199,6 +202,16 @@ class TestNavigation(TestCase):
             response.path, "/gsapdfs/1715359093408.STDHUB.20585.59888194.html"
         )
         self.assertEqual(response.web_io_handle, "1715359093408")
+
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
+    def test_view_pdf(self, mock_post):
+        search_page = Navigation.login("some-username", "some-password")
+
+        view_pdf_response = search_page.view_pdf(
+            "\\Public\\Sessions\\24\\24GT4890\\3370253.pdf"
+        )
+
+        self.assertIn('form.action = "/imageviewer.php";', view_pdf_response.text)
 
 
 if __name__ == "__main__":
