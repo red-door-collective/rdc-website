@@ -64,38 +64,38 @@ class TestWarrants(TestCase):
         with open("tests/fixtures/caselink/search-results-page/index.html") as f:
             search_results = f.read()
 
-        wc_values = warrants.extract_search_response_data(search_results)
+        matches = warrants.extract_search_response_data(search_results)
 
         self.assertEqual(
-            wc_values,
+            matches,
             [
-                "Sessions",
-                "24GT4773",
-                "PENDING",
-                "05/02/2024",
-                "DETAINER WARRANT FORM",
-                "MYKA GODWIN",
-                "DEFENDANT A",
-                ", PRS",
-                "",
-                "Sessions",
-                "24GT4770",
-                "PENDING",
-                "05/01/2024",
-                "DETAINER WARRANT",
-                "PROGRESS RESIDENTIAL BORROWER 6, LLC 1408 CHUTNEY COURT",
-                "DEFENDANT 1 OR ALL OTHER OCCUPANTS",
-                "MCCOY, JENNIFER JO",
-                "",
-                "Sessions",
-                "24GT4772",
-                "PENDING",
-                "05/01/2024",
-                "DETAINER WARRANT",
-                "WESTBORO APARTMENTS",
-                "DEFENDANT 2",
-                "RUSNAK, JOSEPH P.",
-                "",
+                ("P_101_1", "Sessions"),
+                ("P_102_1", "24GT4773"),
+                ("P_103_1", "PENDING"),
+                ("P_104_1", "05/02/2024"),
+                ("P_105_1", "DETAINER WARRANT FORM"),
+                ("P_106_1", "MYKA GODWIN"),
+                ("P_107_1", "DEFENDANT A"),
+                ("P_108_1", ", PRS"),
+                ("P_109_1", ""),
+                ("P_101_2", "Sessions"),
+                ("P_102_2", "24GT4770"),
+                ("P_103_2", "PENDING"),
+                ("P_104_2", "05/01/2024"),
+                ("P_105_2", "DETAINER WARRANT"),
+                ("P_106_2", "PROGRESS RESIDENTIAL BORROWER 6, LLC 1408 CHUTNEY COURT"),
+                ("P_107_2", "DEFENDANT 1 OR ALL OTHER OCCUPANTS"),
+                ("P_108_2", "MCCOY, JENNIFER JO"),
+                ("P_109_2", ""),
+                ("P_101_3", "Sessions"),
+                ("P_102_3", "24GT4772"),
+                ("P_103_3", "PENDING"),
+                ("P_104_3", "05/01/2024"),
+                ("P_105_3", "DETAINER WARRANT"),
+                ("P_106_3", "WESTBORO APARTMENTS"),
+                ("P_107_3", "DEFENDANT 2"),
+                ("P_108_3", "RUSNAK, JOSEPH P."),
+                ("P_109_3", ""),
             ],
         )
 
@@ -105,7 +105,8 @@ class TestWarrants(TestCase):
             search_results = f.read()
 
         matches = warrants.extract_search_response_data(search_results)
-        cases = warrants.build_cases_from_parsed_matches(matches)
+        cell_names, cell_values = warrants.split_cell_names_and_values(matches)
+        cases = warrants.build_cases_from_parsed_matches(cell_values)
 
         self.assertEqual(
             cases,

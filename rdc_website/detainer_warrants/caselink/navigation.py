@@ -1,6 +1,14 @@
 import re
 import requests
+from requests.adapters import HTTPAdapter
 import urllib
+from urllib3.util.retry import Retry
+
+session = requests.Session()
+retry = Retry(connect=3, backoff_factor=0.5)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount("http://", adapter)
+session.mount("https://", adapter)
 
 
 class Navigation:
@@ -77,7 +85,7 @@ class Navigation:
             password=urllib.parse.quote(password, safe=""),
         )
 
-        response = requests.post(
+        response = session.post(
             cls.webshell(), cookies=cls.COOKIES, headers=headers, data=data
         )
 
@@ -93,7 +101,7 @@ class Navigation:
                 "Sec-Fetch-Dest": "iframe",
             }
         )
-        return requests.post(
+        return session.post(
             self.webshell(),
             cookies=Navigation.COOKIES,
             headers={**merged_headers, **headers} if headers else merged_headers,
@@ -109,7 +117,13 @@ class Navigation:
             web_io_handle=self.web_io_handle,
             start_date=Navigation._format_date(start),
         )
-        return self._submit_form(data)
+        return self._submit_form(
+            data,
+            headers={
+                "Host": "caselink.nashville.gov",
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+            },
+        )
 
     def add_detainer_warrant_type(self, end):
         data = "APPID=davlvp&CODEITEMNM=P_31&CURRPROCESS=CASELINK.MAIN&CURRVAL={warrant_filter}&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=4&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=5&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=P_27%7FP_31%7F&WCVALS={end_date}%7F{warrant_filter}%7F".format(
@@ -125,8 +139,14 @@ class Navigation:
         )
         return Navigation.from_response(self._submit_form(data))
 
+    def search_update(self, wc_vars, wc_values):
+        data = "APPID=davlvp&CODEITEMNM=WTKCB_20&CURRPROCESS=CASELINK.MAIN&CURRVAL=%A0%A0+Search+for+Case%28s%29%A0+&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=4&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=6&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS={wc_vars}%7F&WCVALS={wc_values}".format(
+            web_io_handle=self.web_io_handle, wc_vars=wc_vars, wc_values=wc_values
+        )
+        return self._submit_form(data)
+
     def follow_url(self):
-        return requests.get(
+        return session.get(
             self.url(),
             cookies=Navigation.COOKIES,
             headers=self.merge_headers(
@@ -141,6 +161,13 @@ class Navigation:
 
         return self._submit_form(data)
 
+    def read_rec(self):
+        data = "APPID=davlvp&CODEITEMNM=&CURRPROCESS=CASELINK.MAIN&CURRVAL=1&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=FL&LINENBR=0&NEEDRECORDS=-1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=0&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=READREC&CHANGED=0&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=2&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=&WCVALS=".format(
+            web_io_handle=self.web_io_handle
+        )
+
+        return self._submit_form(data)
+
     def open_advanced_search(self):
         data = "APPID=davlvp&CODEITEMNM=WTKCB_S1&CURRPROCESS=CASELINK.MAIN&CURRVAL=INVISIBLE&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C0&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=0&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=3&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=%7F&WCVALS=%7F".format(
             web_io_handle=self.web_io_handle
@@ -148,9 +175,9 @@ class Navigation:
 
         return self._submit_form(data)
 
-    def open_case(self):
-        data = "APPID=davlvp&CODEITEMNM=P_104_21&CURRPROCESS=CASELINK.MAIN&CURRVAL=05%252F08%252F2024&DEVAPPID=&DEVPATH=%252FINNOVISION%252FDEVELOPMENT%252FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%252CNOLOCK%252C1%252C0&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=%25FCCLICK&STDID=52832&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=948&CURRPANEL=2&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=8&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=%257F&WCVALS=%257F".format(
-            web_io_handle=self.web_io_handle
+    def open_case(self, code_item, docket_id):
+        data = "APPID=davlvp&CODEITEMNM={code_item}&CURRPROCESS=CASELINK.MAIN&CURRVAL={docket_id}&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C0&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=%FCCLICK&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=564&CURRPANEL=2&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=8&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=%7F&WCVALS=%7F".format(
+            web_io_handle=self.web_io_handle, code_item=code_item, docket_id=docket_id
         )
         # headers = {
         # 'Host': 'caselink.nashville.gov',
@@ -158,14 +185,20 @@ class Navigation:
         # 'Referer': 'https://caselink.nashville.gov/gsapdfs/1715359093408.STDHUB.20585.59851650.html',
         # }
 
-        return self._submit_form(data)
+        return self._submit_form(
+            data,
+            headers={
+                "Host": "caselink.nashville.gov",
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+            },
+        )
 
     @classmethod
-    def _double_encode(cls, string):
-        return urllib.parse.quote(urllib.parse.quote(string, safe=""), safe="")
+    def _encode(cls, string):
+        return urllib.parse.quote(string, safe="")
 
     def open_case_redirect(self, case_details):
-        dev_path = Navigation._double_encode(case_details["dev_path"])
+        dev_path = Navigation._encode(case_details["dev_path"])
         data = "APPID=pubgs&CODEITEMNM=P_104_21&CURRPROCESS=CASELINK.MAIN&CURRVAL=05%252F08%252F2024&DEVAPPID=&DEVPATH={dev_path}&FINDDEFKEY={process}&GATEWAY=CP*CASELINK.MAIN&LINENBR=21&NEEDRECORDS=0&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=%25FCCLICK&STDID={docket_id}&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=_self&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=STDHUB&CHANGED=948&CURRPANEL=2&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=9&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=&WCVALS=".format(
             web_io_handle=self.web_io_handle,
             dev_path=dev_path,
@@ -181,9 +214,10 @@ class Navigation:
 
         return Navigation.from_response(self._submit_form(data))
 
-    def open_pleading_document_redirect(self):
-        data = "APPID=pubgs&CODEITEMNM=&CURRPROCESS=LVP.SES.INQUIRY&CURRVAL=1&DEVAPPID=&DEVPATH=%252FINNOVISION%252FDAVIDSON%252FPUB.SESSIONS&FINDDEFKEY=LVP.SES.INQUIRY&GATEWAY=FL&LINENBR=0&NEEDRECORDS=-1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=0&STDID=24GT4890&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=READREC&CHANGED=0&CURRPANEL=1&HUBFILE=TRANS&NPKEYS=0&SUBMITCOUNT=2&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=&WCVALS=".format(
-            web_io_handle=self.web_io_handle
+    def open_pleading_document_redirect(self, case_details):
+        dev_path = Navigation._encode(case_details["dev_path"])
+        data = "APPID=pubgs&CODEITEMNM=&CURRPROCESS=LVP.SES.INQUIRY&CURRVAL=1&DEVAPPID=&DEVPATH={dev_path}&FINDDEFKEY=LVP.SES.INQUIRY&GATEWAY=FL&LINENBR=0&NEEDRECORDS=-1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=0&STDID=24GT4890&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=READREC&CHANGED=0&CURRPANEL=1&HUBFILE=TRANS&NPKEYS=0&SUBMITCOUNT=2&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=&WCVALS=".format(
+            web_io_handle=self.web_io_handle, dev_path=dev_path
         )
         # headers = {
         # 'Host': 'caselink.nashville.gov',
@@ -192,3 +226,22 @@ class Navigation:
         # }
 
         return self._submit_form(data)
+
+    def view_pdf(self, image_path):
+        data = "image={image_path}".format(self._encode(image_path))
+
+        return session.post(
+            self._url(Navigation.PDF_VIEWER_PATH),
+            cookies=Navigation.COOKIES,
+            headers=self.merge_headers(
+                {
+                    "Cache-Control": "max-age=0",
+                    "Content-Type": Navigation.FORM_ENCODED,
+                    "Origin": Navigation.BASE,
+                    "Referer": self.url(),
+                    "Sec-Fetch-Dest": "iframe",
+                    "Sec-Fetch-Dest": "document",
+                }
+            ),
+            data=data,
+        )

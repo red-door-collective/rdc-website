@@ -1,9 +1,6 @@
 from flask import current_app
 from .navigation import Navigation
-import requests
 import re
-import re
-import requests
 import rdc_website.config as config
 import logging
 import logging.config
@@ -16,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 CSV_URL_REGEX = re.compile(r'parent.UserWinOpen\("",\s*"(https:\/\/.+?)",')
 WC_VARS_VALS_REGEX = re.compile(
-    r'parent\.PutFormVar\(\s*"P_\d+_\d+"\s*,\s*"(?P<values>\s*.*?)",'
+    r'parent\.PutFormVar\(\s*"(?P<vars>P_\d+_\d+)"\s*,\s*"(?P<values>\s*.*?)",'
 )
 PLEADING_DOCUMENTS_REGEX = re.compile(
     r'parent\.PutMvals\(\s*"P_3"\s*,\s*"([ý\\]*\w+\\+\w+\\+\w+\\+\w+\\+\d+\.pdf.+)"'
@@ -38,24 +35,39 @@ COLUMNS = [
 ]
 
 
+def split_cell_names_and_values(matches):
+    """
+    Splits the UI table cell names and the table cell values from the combined regex matches.
+    """
+    return [list(m) for m in zip(*matches)]
+
+
+def search_response_data_to_formdata(cell_names, cell_values):
+    return "%7F".join(cell_names), "%7F".join(cell_values)
+
+
+def docket_id_code_item(index):
+    return "P_102_{}".format(index)
+
+
 def import_from_caselink(start_date, end_date):
-    search_results_page = search_between_dates(start_date, end_date)
-    results_response = search_results_page.follow_url()
-    cases = build_cases_from_parsed_matches(
-        extract_search_response_data(results_response.text)
-    )
+    pages = search_between_dates(start_date, end_date)
+    results_response = pages["search_page"].follow_url()
+    matches = extract_search_response_data(results_response.text)
+    cell_names, cell_values = split_cell_names_and_values(matches)
+    cases = build_cases_from_parsed_matches(cell_values)
 
-    breakpoint()
+    wc_vars, wc_values = search_response_data_to_formdata(cell_names, cell_values)
+    search_update_resp = pages["menu_page"].search_update(wc_vars, wc_values)
 
-    # csv_imports.from_rows(cases)
+    csv_imports.from_rows(cases)
 
+    docket_id = cases[0]["Docket #"]
     # TODO: do this for each case in the search
-    pleading_document_urls = import_pleading_documents(search_results_page)
-
-    return pleading_document_urls
+    import_pleading_documents(docket_id_code_item(1), docket_id, pages)
 
 
-def extract_docket_details(open_case_html):
+def extract_case_details(open_case_html):
     return re.search(OPEN_CASE_REGEX, open_case_html)
 
 
@@ -74,6 +86,7 @@ def extract_pleading_document_paths(html):
 
 def populate_pleadings(docket_id, image_paths):
     created_count, seen_count = 0, 0
+    breakpoint()
     for image_path in image_paths:
         document = PleadingDocument.query.get(image_path)
         if document:
@@ -91,21 +104,21 @@ def populate_pleadings(docket_id, image_paths):
     db.session.commit()
 
 
-def import_pleading_documents(search_results_page):
-    open_case_response = search_results_page.open_case()
-    case_page = search_results_page.open_case_redirect(
-        extract_docket_details(open_case_response)
-    )
-    case_page.follow_link()
+def import_pleading_documents(code_item, docket_id, pages):
+    search_results_page = pages["search_page"]
+    open_case_response = pages["menu_page"].open_case(code_item, docket_id)
+    case_details = extract_case_details(open_case_response.text)
+    case_page = search_results_page.open_case_redirect(case_details)
+    case_page_response = case_page.follow_url()
 
-    pleading_doc_page = case_page.open_pleading_document_redirect()
+    pleading_doc_response = case_page.open_pleading_document_redirect(case_details)
+    pleading_doc_page = Navigation.from_response(pleading_doc_response)
 
     pleading_documents = pleading_doc_page.follow_url()
 
     image_paths = extract_pleading_document_paths(pleading_documents.text)
 
-    for image_path in image_paths:
-        populate_pleadings(docket_id, image_path)
+    populate_pleadings(case_details["docket_id"], image_paths)
 
 
 def build_cases_from_parsed_matches(matches):
@@ -135,7 +148,9 @@ def search_between_dates(start_date, end_date):
     search_page = Navigation.login(username, password)
     menu_resp = search_page.menu()
     menu_page = Navigation.from_response(menu_resp)
+    # menu_page_resp = menu_page.follow_url()
+    read_rec_resp = menu_page.read_rec()
     menu_page.add_start_date(start_date)
     menu_page.add_detainer_warrant_type(end_date)
 
-    return menu_page.search()
+    return {"menu_page": menu_page, "search_page": menu_page.search()}

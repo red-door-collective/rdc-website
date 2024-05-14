@@ -44,13 +44,15 @@ def from_csv_row(row):
     warrant = {k: normalize(v) for k, v in row.items()}
     docket_id = warrant["Docket #"]
 
-    case = Case.query.get(docket_id)
-
-    if not case:
-        case = Case.create(docket_id=docket_id)
-
     if "DETAINER WARRANT" not in warrant["Description"]:
         return
+
+    dw = db.session.get(DetainerWarrant, docket_id)
+
+    if not dw:
+        dw = DetainerWarrant.create(docket_id=docket_id)
+        db.session.add(dw)
+        db.session.commit()
 
     plaintiff = None
     if warrant["Plaintiff"]:
@@ -62,10 +64,9 @@ def from_csv_row(row):
             db.session, Attorney, name=warrant["Pltf. Attorney"]
         )
 
-    defendants = create_defendant(case.docket_id, warrant["Defendant"])
+    defendants = create_defendant(dw.docket_id, warrant["Defendant"])
 
-    case.update(
-        type="detainer_warrant",
+    dw.update(
         status=warrant["Status"],
         _file_date=warrant["File Date"],
         _plaintiff=plaintiff,
@@ -73,7 +74,7 @@ def from_csv_row(row):
         defendants=[{"id": d.id} for d in defendants if d],
     )
 
-    db.session.add(case)
+    db.session.add(dw)
     db.session.commit()
 
 
