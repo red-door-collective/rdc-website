@@ -7,7 +7,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     devenv.url = "github:cachix/devenv";
     poetry2nix = {
-      url = "github:nix-community/poetry2nix?rev=9245811b58905453033f1ef551f516cbee71c42c";
+      url = "github:nix-community/poetry2nix?rev=291a863e866972f356967d0a270b259f46bf987f";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -98,10 +98,10 @@
                   echo "Tested with VSCode, Pycharm."
                 '';
                 run_dev.exec = ''
-                  python src/rdc-website/runserver.py -b localhost --reload -p 8080 -c config.yml | tee run_dev.log.json | eliot-tree -l0
+                  flask run --no-debug
                 '';
                 debug_dev.exec = ''
-                  python src/rdc-website/runserver.py -b localhost -p 8080 -c config.yml --debug
+                  flask run --debug
                 '';
                 create_dev_db.exec = ''
                   python tests/create_test_db.py --config-file config.yml

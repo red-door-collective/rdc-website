@@ -1,4 +1,5 @@
 """Database module, including the SQLAlchemy database object and DB-related utilities."""
+
 from sqlalchemy import text, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import Comparator, hybrid_property
@@ -10,6 +11,7 @@ import numbers
 Column = db.Column
 relationship = relationship
 Model = db.Model
+session = db.session
 
 
 def reference_col(tablename, nullable=False, pk_name="id", **kwargs):

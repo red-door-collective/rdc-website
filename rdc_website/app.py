@@ -42,7 +42,7 @@ from .util import request_id
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
-options = {"statsd_host": "127.0.0.1", "statsd_port": 8125}
+DATADOG_OPTIONS = {"statsd_host": "127.0.0.1", "statsd_port": 8125}
 
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
@@ -86,25 +86,13 @@ def env_var_bool(key, default=None):
     return os.getenv(key, default if default else "False").lower() in ("true", "1", "t")
 
 
-def create_app(testing=False):
+def create_app(settings, testing=False):
     app = Flask(__name__.split(".")[0])
-    app.config["ENV"] = os.environ["ENV"]
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["SQLALCHEMY_DATABASE_URI"]
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = os.environ[
-        "SQLALCHEMY_TRACK_MODIFICATIONS"
-    ]
+    app.config.from_file(os.environ["RDC_WEBSITE_SETTINGS"], load=json.load)
     app.config["SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS"] = True
-    app.config['WTF_CSRF_ENABLED'] = False
-    app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
-    app.config["TWILIO_ACCOUNT_SID"] = os.environ["TWILIO_ACCOUNT_SID"]
-    app.config["TWILIO_AUTH_TOKEN"] = os.environ["TWILIO_AUTH_TOKEN"]
-    app.config["GOOGLE_ACCOUNT_PATH"] = os.environ["GOOGLE_ACCOUNT_PATH"]
-    app.config["ROLLBAR_CLIENT_TOKEN"] = os.environ["ROLLBAR_CLIENT_TOKEN"]
-    app.config["VERSION"] = os.environ["VERSION"]
+    app.config["WTF_CSRF_ENABLED"] = False
     app.config["SCHEDULER_API_ENABLED"] = env_var_bool("SCHEDULER_API_ENABLED")
     app.config["SCHEDULER_TIMEZONE"] = os.environ.get("SCHEDULER_TIMEZONE", "UTC")
-    app.config["CASELINK_USERNAME"] = os.environ["CASELINK_USERNAME"]
-    app.config["CASELINK_PASSWORD"] = os.environ["CASELINK_PASSWORD"]
     app.config["TESTING"] = testing
     app.config["LOGIN_WAIT"] = float(os.environ["LOGIN_WAIT"])
     app.config["SEARCH_WAIT"] = float(os.environ["SEARCH_WAIT"])
@@ -112,17 +100,11 @@ def create_app(testing=False):
     app.config["CHROMEDRIVER_HEADLESS"] = env_var_bool(
         "CHROMEDRIVER_HEADLESS", default="True"
     )
-    app.config["DATA_DIR"] = os.environ["DATA_DIR"]
-    app.config["MAIL_SERVER"] = os.environ["MAIL_SERVER"]
-    app.config["MAIL_PORT"] = os.environ["MAIL_PORT"]
     app.config["MAIL_USE_TLS"] = False
     app.config["MAIL_USE_SSL"] = True
-    app.config["MAIL_USERNAME"] = os.environ["MAIL_USERNAME"]
-    app.config["MAIL_PASSWORD"] = os.environ["MAIL_PASSWORD"]
-    app.config["MAIL_ADMIN"] = os.environ["MAIL_ADMIN"]
     app.config.update(**security_config)
     if app.config["ENV"] == "production":
-        initialize(**options)
+        initialize(**DATADOG_OPTIONS)
 
     CSRFProtect(app)
     register_extensions(app)
@@ -647,9 +629,9 @@ def register_extensions(app):
         )
         return jsonify(
             {
-                "last_detainer_warrant_update": last_warrant.updated_at
-                if last_warrant
-                else None
+                "last_detainer_warrant_update": (
+                    last_warrant.updated_at if last_warrant else None
+                )
             }
         )
 

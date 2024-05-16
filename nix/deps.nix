@@ -25,14 +25,37 @@ let
               pnames);
       in
       {
+        bcrypt = super.bcrypt.overridePythonAttrs (old: rec {
+          pname = "bcrypt";
+          version = "4.1.3";
+          src = pkgs.fetchPypi {
+            inherit pname version;
+            hash = "sha256-LuFd10n1lS/j8EMND/a3QILhWcUDMqFBPVG1aJzwZiM=";
+          };
+
+          cargoDeps = pkgs.rustPlatform.fetchCargoTarball {
+            inherit src;
+            sourceRoot = "${old.pname}-${old.version}/${old.cargoRoot}";
+            name = "${old.pname}-${old.version}";
+            hash = "sha256-Uag1pUuis5lpnus2p5UrMLa4HP7VQLhKxR5TEMfpK0s=";
+          };
+        });
+
         cryptography = super.cryptography.overridePythonAttrs (old: rec {
           cargoDeps = pkgs.rustPlatform.fetchCargoTarball {
             inherit (old) src;
             name = "${old.pname}-${old.version}";
             sourceRoot = "${old.pname}-${old.version}/${cargoRoot}";
-            sha256 = "sha256-Pw3ftpcDMfZr/w6US5fnnyPVsFSB9+BuIKazDocYjTU=";
+            sha256 = "sha256-wAup/0sI8gYVsxr/vtcA+tNkBT8wxmp68FPbOuro1E4=";
           };
           cargoRoot = "src/rust";
+        });
+
+        mimesis-factory = super.mimesis-factory.overridePythonAttrs (old: {
+          buildInputs = old.buildInputs ++ [ self.poetry-core ];
+          patchPhase = ''
+            substituteInPlace pyproject.toml --replace poetry.masonry poetry.core.masonry
+          '';
         });
 
       } //
@@ -48,6 +71,8 @@ let
           "probableparsing"
           "usaddress"
           "gspread-formatting"
+          "webtest"
+          "mimesis"
         ]
       ) //
       (addPythonBuildDeps
@@ -57,6 +82,7 @@ let
         "flask-sqlalchemy"
         "marshmallow-sqlalchemy"
         "flask-marshmallow"
+        "jinja2"
       ]
       ) //
       (addPythonBuildDeps
@@ -78,6 +104,10 @@ let
       (addPythonBuildDeps
         [ self.hatchling self.babel ] [
         "wtforms"
+      ]) //
+      (addPythonBuildDeps
+        [ self.pdm-pep517 self.pdm-backend ] [
+        "typer"
       ])
   );
 
