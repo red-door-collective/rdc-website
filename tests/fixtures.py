@@ -5,6 +5,7 @@ from rdc_website.database import session
 from flask import Request
 from pytest import fixture
 from webtest import TestApp as Client
+import json
 
 from rdc_website.app import create_app
 from rdc_website.request import RdcWebsiteRequest
@@ -27,38 +28,9 @@ def get_db_uri():
 
 
 def get_test_settings(db_uri):
-    return {
-        "database": {"uri": db_uri, "track_modifications": False},
-        "app": {"default_language": "en", "languages": ["en", "es"]},
-        "test_section": {"test_setting": "test"},
-        "common": {"instance_name": "test", "fail_on_form_validation_error": False},
-        "browser_session": {"secret_key": "test", "cookie_secure": False},
-        "rdc_website_auth": {
-            "client_id": "client_id_test",
-            "client_secret": "test_secret",
-        },
-        "google": {"account_path": "~/.config/gspread/service_account.json"},
-        "cloudinary": {"api_key": "secret", "secret": "secret"},
-        "rollbar": {"client_token": "secret"},
-        "caselink": {"username": "secret", "password": "secret"},
-        "storage": {"root": "./data"},
-        "flask": {
-            "scheduler": {"run_jobs": False, "enabled": False},
-            "ENV": "test",
-            "FLASK_DEBUG": True,
-            "FLASK_RUN_PORT": 5001,
-            "FLASK_APP": "rdc_website.app",
-            "SECRET_KEY": "fake",
-            "SECURITY_PASSWORD_SALT": "fake2",
-            "DEBUG": True,
-            "LOG_FILE_PATH": "./capture.log",
-            "VERSION": "dev",
-            "SECURITY_REDIRECT_HOST": "localhost:1234",
-            "REPO_PATH": "~/code/red-door-collective/rdc-website",
-            "MAIL_SERVER": "smtp.gmail.com",
-            "MAIL_PORT": 465,
-        },
-    }
+    settings = json.load("./config.json")
+    settings["SQLALCHEMY_DATABASE_URI"] = db_uri
+    return settings
 
 
 @fixture(scope="session")

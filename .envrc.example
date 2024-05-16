@@ -3,7 +3,7 @@
 # Run `direnv allow` to activate the change to the `.envrc` file.
 
 # Set main config file for rdc-website
-# export RDC_WEBSITE_CONFIG="$(pwd)/config.yml"
+# export RDC_WEBSITE_CONFIG="$(pwd)/config.json"
 
 # If you don't set the RDC_WEBSITE_TEST_DB_URL env var, the default is:
 # "postgresql+psycopg2:///test_rdc_website?host=/tmp"

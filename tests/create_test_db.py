@@ -4,7 +4,6 @@ from typing import Optional
 
 import mimesis
 import sqlalchemy.orm
-import transaction
 import typer
 from alembic import command
 from alembic.config import Config
@@ -73,7 +72,7 @@ def main(
 
     s = session
 
-    transaction.commit()
+    s.commit()
 
     print("Committed database changes.")
 

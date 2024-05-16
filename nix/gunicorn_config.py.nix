@@ -17,13 +17,9 @@
 
   def on_starting(server):
       flask_app = server.app.wsgi()
-      run_jobs = os.environ.get('RUN_JOBS', 'true')
-      print('will run jobs:', run_jobs)
-      if run_jobs == 'true':
-          print('Starting scheduler')
-          scheduler.api_enabled = os.environ.get('SCHEDULER_API_ENABLED', 'False').lower() in ('true', '1', 't')
-          scheduler.init_app(flask_app)
-          scheduler.start()
+      scheduler.api_enabled = True
+      scheduler.init_app(flask_app)
+      scheduler.start()
 
-          from rdc_website import jobs 
+      from rdc_website import jobs 
 ''

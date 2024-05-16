@@ -88,20 +88,8 @@ def env_var_bool(key, default=None):
 
 def create_app(settings, testing=False):
     app = Flask(__name__.split(".")[0])
-    app.config.from_file(os.environ["RDC_WEBSITE_SETTINGS"], load=json.load)
-    app.config["SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS"] = True
-    app.config["WTF_CSRF_ENABLED"] = False
-    app.config["SCHEDULER_API_ENABLED"] = env_var_bool("SCHEDULER_API_ENABLED")
-    app.config["SCHEDULER_TIMEZONE"] = os.environ.get("SCHEDULER_TIMEZONE", "UTC")
-    app.config["TESTING"] = testing
-    app.config["LOGIN_WAIT"] = float(os.environ["LOGIN_WAIT"])
-    app.config["SEARCH_WAIT"] = float(os.environ["SEARCH_WAIT"])
-    app.config["SQLALCHEMY_ECHO"] = env_var_bool("SQLALCHEMY_ECHO")
-    app.config["CHROMEDRIVER_HEADLESS"] = env_var_bool(
-        "CHROMEDRIVER_HEADLESS", default="True"
-    )
-    app.config["MAIL_USE_TLS"] = False
-    app.config["MAIL_USE_SSL"] = True
+    app.config.from_file(os.environ["RDC_WEBSITE_CONFIG"], load=json.load)
+
     app.config.update(**security_config)
     if app.config["ENV"] == "production":
         initialize(**DATADOG_OPTIONS)

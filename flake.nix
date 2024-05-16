@@ -84,11 +84,6 @@
 
               packages = deps.shellInputs;
 
-              enterShell = ''
-                set -o allexport; source .env; set +o allexport
-                set -o allexport; source .env.dev; set +o allexport
-              '';
-
               scripts = {
                 build_python_venv.exec = ''
                   nix build .#venv -o venv
