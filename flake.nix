@@ -79,7 +79,7 @@
             {
               name = "rdc-website";
               env = {
-                PYTHONPATH = "./rdc_website";
+                PYTHONPATH = ".";
                 LOG_FILE_PATH="./capture.log";
               };
 

@@ -4,7 +4,6 @@ from pathlib import Path
 from rdc_website.database import session
 from flask import Request
 from pytest import fixture
-from webtest import TestApp as Client
 import json
 
 from rdc_website.app import create_app
@@ -28,7 +27,9 @@ def get_db_uri():
 
 
 def get_test_settings(db_uri):
-    settings = json.load("./config.json")
+    settings = {}
+    with open('./tests/config.json') as f:
+        settings = json.load(f)
     settings["SQLALCHEMY_DATABASE_URI"] = db_uri
     return settings
 
@@ -42,11 +43,6 @@ def settings():
 def app(settings):
     app = create_app(testing=True)
     return app
-
-
-@fixture
-def client(app):
-    return Client(app)
 
 
 @fixture

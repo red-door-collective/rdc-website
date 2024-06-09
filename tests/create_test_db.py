@@ -32,13 +32,8 @@ def main(
     """
 
     from rdc_website.app import create_app, db, DetainerWarrant
-    from fixtures import get_test_settings, get_db_uri
 
-    if config_file:
-        app = create_app(config_file)
-    else:
-        settings = get_test_settings(get_db_uri())
-        app = create_app(testing=True)
+    app = create_app()
 
     from rdc_website.database import session
 
@@ -46,44 +41,13 @@ def main(
     from rdc_website.detainer_warrants.models import DetainerWarrant, PleadingDocument
 
     print(f"using config file {config_file}")
-    print(f"using db url {app.settings.database.uri}")
+    print(f"using db url {app.config['SQLALCHEMY_DATABASE_URI']}")
 
     engine = sqlalchemy.create_engine(
-        app.settings.database.uri, poolclass=pool.NullPool
+        app.config['SQLALCHEMY_DATABASE_URI'], poolclass=pool.NullPool
     )
     connection = engine.connect()
-    connection.execute("select")
-
     sqlalchemy.orm.configure_mappers()
-
-    if doit:
-        confirmed = True
-    else:
-        print(80 * "=")
-        confirmed = confirm("Drop and recreate the database now?", default=False)
-
-    if not confirmed:
-        print("Not confirmed, doing nothing.")
-        raise Exit(3)
-
-    db.drop_all()
-    connection.execute("DROP TABLE IF EXISTS alembic_version")
-    db.create_all()
-
-    s = session
-
-    s.commit()
-
-    print("Committed database changes.")
-
-    alembic_cfg = Config("./alembic.ini")
-    alembic_cfg.attributes["connection"] = connection
-
-    command.stamp(alembic_cfg, "head")
-
-    # Fixes a strange error message when the connection isn't closed.
-    # Didn't happen before.
-    connection.close()
 
     print("Finished successfully.")
 
