@@ -34,8 +34,7 @@ data/**/*
 rdc_website.egg-info/
 .cache/
 .eggs/
-rdc_website/config.py
-rdc_website/config.json
+config.json
 nix/*_frozen.txt
 config*.yml
 testconfig*.yml

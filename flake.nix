@@ -79,7 +79,8 @@
             {
               name = "rdc-website";
               env = {
-                PYTHONPATH = "./rdc_website:../rdc-website/rdc_website";
+                PYTHONPATH = "./rdc_website";
+                LOG_FILE_PATH="./capture.log";
               };
 
               packages = deps.shellInputs;
@@ -99,7 +100,7 @@
                   flask run --debug
                 '';
                 create_dev_db.exec = ''
-                  python tests/create_test_db.py --config-file config.yml
+                  python tests/create_test_db.py --config-file config.json
                 '';
                 create_test_db.exec = ''
                   python tests/create_test_db.py
@@ -110,7 +111,7 @@
                   (standard tools + commands defined in flake.nix)
 
                   ## Basic
-                  create_test_db           Set up PostgreSQL database for testing, using config.yml.
+                  create_test_db           Set up PostgreSQL database for testing, using config.json.
                   pytest                   Run Python test suite.
                   run_dev                  Run application in dev mode with formatted log output.
 

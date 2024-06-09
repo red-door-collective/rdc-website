@@ -37,7 +37,7 @@ def date_as_str(d, format):
 class TestWarrants(TestCase):
 
     def create_app(self):
-        app = create_app(self)
+        app = create_app()
         app.config["TESTING"] = True
         app.config["SQLALCHEMY_DATABASE_URI"] = (
             "postgresql+psycopg2://rdc_website_test:junkdata@localhost:5432/rdc_website_test"
