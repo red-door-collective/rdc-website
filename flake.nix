@@ -80,7 +80,10 @@
               name = "rdc-website";
               env = {
                 PYTHONPATH = ".";
-                LOG_FILE_PATH="./capture.log";
+                LOG_FILE_PATH = "./capture.log";
+                ENV = "development";
+                VERSION = "dev";
+                ROLLBAR_CLIENT_TOKEN = "test";
               };
 
               packages = deps.shellInputs;
