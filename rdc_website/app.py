@@ -51,46 +51,11 @@ Hearing = detainer_warrants.models.Hearing
 Plaintiff = detainer_warrants.models.Plaintiff
 Judgment = detainer_warrants.models.Judgment
 
-security_config = dict(
-    SECURITY_PASSWORD_SALT=os.environ["SECURITY_PASSWORD_SALT"],
-    SECURITY_FLASH_MESSAGES=False,
-    # Need to be able to route backend flask API calls. Use 'accounts'
-    # to be the Flask-Security endpoints.
-    SECURITY_URL_PREFIX="/api/v1/accounts",
-    # These need to be defined to handle redirects
-    # As defined in the API documentation - they will receive the relevant context
-    SECURITY_POST_CONFIRM_VIEW="/confirmed",
-    SECURITY_CONFIRM_ERROR_VIEW="/confirm-error",
-    SECURITY_RESET_VIEW="/reset-password",
-    SECURITY_RESET_ERROR_VIEW="/reset-password",
-    SECURITY_REDIRECT_BEHAVIOR="spa",
-    # Features
-    SECURITY_RECOVERABLE=True,
-    SECURITY_TRACKABLE=True,
-    SECURITY_CHANGEABLE=True,
-    SECURITY_CONFIRMABLE=True,
-    SECURITY_AUTO_LOGIN_AFTER_CONFIRM=False,
-    # CSRF protection is critical for all session-based browser UIs
-    # enforce CSRF protection for session / browser - but allow token-based
-    # API calls to go through
-    SECURITY_CSRF_PROTECT_MECHANISMS=["session", "basic"],
-    SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS=True,
-    SECURITY_CSRF_COOKIE={"key": "XSRF-TOKEN"},
-    WTF_CSRF_CHECK_DEFAULT=False,
-    WTF_CSRF_TIME_LIMIT=None,
-    SECURITY_REDIRECT_HOST=os.environ["SECURITY_REDIRECT_HOST"],
-)
 
-
-def env_var_bool(key, default=None):
-    return os.getenv(key, default if default else "False").lower() in ("true", "1", "t")
-
-
-def create_app(settings, testing=False):
+def create_app():
     app = Flask(__name__.split(".")[0])
     app.config.from_file(os.environ["RDC_WEBSITE_CONFIG"], load=json.load)
 
-    app.config.update(**security_config)
     if app.config["ENV"] == "production":
         initialize(**DATADOG_OPTIONS)
 

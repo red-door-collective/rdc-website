@@ -25,5 +25,27 @@
     "MAIL_PASSWORD": "secret",
     "ROLLBAR_CLIENT_TOKEN": "secret",
     "CASELINK_USERNAME": "secret",
-    "CASELINK_PASSWORD": "secret"
+    "CASELINK_PASSWORD": "secret",
+    "SECURITY_FLASH_MESSAGES": false,
+    "SECURITY_URL_PREFIX": "/api/v1/accounts",
+    "SECURITY_POST_CONFIRM_VIEW": "/confirmed",
+    "SECURITY_CONFIRM_ERROR_VIEW": "/confirm-error",
+    "SECURITY_RESET_VIEW": "/reset-password",
+    "SECURITY_RESET_ERROR_VIEW": "/reset-password",
+    "SECURITY_REDIRECT_BEHAVIOR": "spa",
+    "SECURITY_RECOVERABLE": true,
+    "SECURITY_TRACKABLE": true,
+    "SECURITY_CHANGEABLE": true,
+    "SECURITY_CONFIRMABLE": true,
+    "SECURITY_AUTO_LOGIN_AFTER_CONFIRM": false,
+    "SECURITY_CSRF_PROTECT_MECHANISMS": [
+        "session",
+        "basic"
+    ],
+    "SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS": true,
+    "SECURITY_CSRF_COOKIE": {
+        "key": "XSRF-TOKEN"
+    },
+    "WTF_CSRF_CHECK_DEFAULT": false,
+    "WTF_CSRF_TIME_LIMIT": null
 }
