@@ -84,6 +84,7 @@
                 ENV = "development";
                 VERSION = "dev";
                 ROLLBAR_CLIENT_TOKEN = "test";
+                RDC_WEBSITE_CONFIG = "config.json";
               };
 
               packages = deps.shellInputs;
