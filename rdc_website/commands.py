@@ -26,6 +26,7 @@ import logging.config
 import rdc_website.config as config
 from datetime import date, datetime, timedelta
 from io import StringIO
+from .util import get_or_create
 
 logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
@@ -451,7 +452,7 @@ def bootstrap():
         user_datastore.find_or_create_role(role)
         db.session.commit()
 
-    user_datastore.create_user(
+    find_or_create_user(
         id=-1,
         email="system-user@reddoorcollective.org",
         first_name="System",
@@ -460,39 +461,39 @@ def bootstrap():
         roles=["Superuser"],
     )
 
-    Attorney.create(id=-1, name="Plaintiff Representing Self")
-    db.session.commit()
+    get_or_create(db.session, Attorney, name="Plaintiff Representing Self")
 
     if env == "development":
-        user_datastore.create_user(
+        find_or_create_user(
             email="superuser@example.com",
             first_name="Super",
             last_name="User",
             password=hash_password(simple),
             roles=["Superuser"],
         )
-        db.session.commit()
-        user_datastore.create_user(
+        find_or_create_user(
             email="admin@example.com",
             first_name="Admin",
             last_name="Person",
             password=hash_password(simple),
             roles=["Admin"],
         )
-        db.session.commit()
-        user_datastore.create_user(
+        find_or_create_user(
             email="organizer@example.com",
             first_name="Organizer",
             last_name="Gal",
             password=hash_password(simple),
             roles=["Organizer"],
         )
-        db.session.commit()
-        user_datastore.create_user(
+        find_or_create_user(
             email="defendant@example.com",
             first_name="Defendant",
             last_name="Guy",
             password=hash_password(simple),
             roles=["Defendant"],
         )
-        db.session.commit()
+
+    db.session.commit()
+
+def find_or_create_user(**kwargs):
+    return user_datastore.find_user(email=kwargs['email']) or user_datastore.create_user(**kwargs)

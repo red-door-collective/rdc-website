@@ -5,7 +5,7 @@ with builtins;
 let
   cfg = config.services.red-door-collective.rdc-website;
 
-  configFilename = "rdc-website-config.json";
+  configFilename = "config.json";
 
   configInput =
     pkgs.writeText configFilename

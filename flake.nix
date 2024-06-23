@@ -84,7 +84,8 @@
                 ENV = "development";
                 VERSION = "dev";
                 ROLLBAR_CLIENT_TOKEN = "test";
-                RDC_WEBSITE_CONFIG = "config.json";
+                RDC_WEBSITE_CONFIG = "../config.json";
+                FLASK_RUN_PORT = "5001";
               };
 
               packages = deps.shellInputs;
@@ -102,6 +103,9 @@
                 '';
                 debug_dev.exec = ''
                   flask run --debug
+                '';
+                debug_ui.exec = ''
+                  cd pages && npm start
                 '';
                 create_dev_db.exec = ''
                   python tests/create_test_db.py --config-file config.json
@@ -121,6 +125,7 @@
 
                   ## Development
                   debug_dev                Debug application in dev mode (use this with breakpoints).
+                  debug_ui                 Debug UI in dev mode
                   build_python_venv        Build 'virtualenv' for IDE integration.
                   console                  Run IPython REPL for interaction with application objects.
 
