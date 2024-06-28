@@ -40,6 +40,7 @@ class Navigation:
     POSTBACK_PATH_REGEX = re.compile(
         r"(?:self\.location\s*=\s*\")(.+?\.html)\"", re.MULTILINE
     )
+    START_DATE_ITEM = "P_26"
 
     def __init__(self, path):
         postback_parts = path.removeprefix("/gsapdfs/").split(".")[:-1]
@@ -103,8 +104,7 @@ class Navigation:
             "WEBWORDSKEY": "SAMPLE",
             "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
             "OPERCODE": username if username else cls._username(),
-            "PASSWD": password if password else cls._password()
-            
+            "PASSWD": password if password else cls._password(),
         }
 
         response = session.post(
@@ -135,17 +135,42 @@ class Navigation:
         return urllib.parse.quote(date.strftime("%m/%d/%Y"), safe="")
 
     def add_start_date(self, start):
-        data = "APPID=davlvp&CODEITEMNM=P_26&CURRPROCESS=CASELINK.MAIN&CURRVAL={start_date}&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=2&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=4&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=P_26%7F&WCVALS={start_date}%7F".format(
-            web_io_handle=self.web_io_handle,
-            start_date=Navigation._format_date(start),
-        )
-        return self._submit_form(
+        start_date = Navigation._format_date(start)
+        data = {
+            "APPID": self.APP_ID,
+            "CODEITEMNM": self.START_DATE_ITEM,
+            "CURRPROCESS": "CASELINK.MAIN",
+            "CURRVAL": start_date,
+            "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+            "FINDDEFKEY": "CASELINK.MAIN",
+            "GATEWAY": "PB,NOLOCK,1,1",
+            "LINENBR": "0",
+            "NEEDRECORDS": "1",
+            "OPERCODE": self._username(),
+            "PARENT": "STDHUB*update",
+            "STDID": "52832",
+            "STDURL": "/caselink_4_4.davlvp_blank.html",
+            "TARGET": "postback",
+            "WEBIOHANDLE": self.web_io_handle,
+            "WINDOWNAME": "update",
+            "XEVENT": "POSTBACK",
+            "CHANGED": "2",
+            "CURRPANEL": "1",
+            "HUBFILE": "USER_SETTING",
+            "NPKEYS": "0",
+            "SUBMITCOUNT": "4",
+            "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+            "WCVARS": "self.START_DATE_ITEM" + "%7F",
+            "WCVALS": start_date + "%7F",
+        }
+        r = self._submit_form(
             data,
             headers={
                 "Host": "caselink.nashville.gov",
                 "Accept-Encoding": "gzip, deflate, br, zstd",
             },
         )
+        return r
 
     def add_detainer_warrant_type(self, end):
         data = "APPID=davlvp&CODEITEMNM=P_31&CURRPROCESS=CASELINK.MAIN&CURRVAL={warrant_filter}&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=4&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=5&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=P_27%7FP_31%7F&WCVALS={end_date}%7F{warrant_filter}%7F".format(

@@ -17,7 +17,9 @@ def mocked_post(*args, **kwargs):
         def text(self):
             return self.text
 
-    if "EVENT=VERIFY" in kwargs["data"]:
+    data = kwargs["data"] if isinstance(kwargs["data"], dict) else {}
+
+    if data.get("XEVENT") == "VERIFY":
         with open("tests/fixtures/caselink/login-page/login-redirect.html") as f:
             return MockResponse(f.read(), 200)
     elif "P_26" in kwargs["data"] and "05%2F01%2F2024" in kwargs["data"]:
@@ -99,7 +101,7 @@ class TestNavigation(TestCase):
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     @mock.patch("requests.Session.get", side_effect=mocked_get)
     def test_login(self, mock_get, mock_post):
-        navigation = Navigation.login("some-username", "some-password")
+        navigation = Navigation.login()
 
         self.assertEqual(
             navigation.path,
@@ -113,7 +115,7 @@ class TestNavigation(TestCase):
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     @mock.patch("requests.Session.get", side_effect=mocked_get)
     def test_search(self, mock_get, mock_post):
-        navigation = Navigation.login("some-username", "some-password").search()
+        navigation = Navigation.from_response(Navigation.login().search())
 
         self.assertEqual(
             navigation.path,
@@ -126,11 +128,11 @@ class TestNavigation(TestCase):
 
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_add_start_date(self, mock_post):
-        search_page = Navigation.login("some-username", "some-password")
+        search_page = Navigation.login()
 
         search_page.add_start_date(date(2024, 5, 1))
 
-        results_page = search_page.search()
+        results_page = Navigation.from_response(search_page.search())
 
         self.assertEqual(
             results_page.path,
@@ -143,7 +145,7 @@ class TestNavigation(TestCase):
 
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_add_detainer_warrant_type(self, mock_post):
-        search_page = Navigation.login("some-username", "some-password")
+        search_page = Navigation.login()
 
         search_page.add_detainer_warrant_type(date(2024, 5, 1))
         results_page = search_page.search()
@@ -159,10 +161,10 @@ class TestNavigation(TestCase):
 
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_add_detainer_warrant_type(self, mock_post):
-        search_page = Navigation.login("some-username", "some-password")
+        search_page = Navigation.login()
 
         search_page.add_detainer_warrant_type(date(2024, 5, 1))
-        results_page = search_page.search()
+        results_page = Navigation.from_response(search_page.search())
 
         self.assertEqual(
             results_page.path,
@@ -175,9 +177,9 @@ class TestNavigation(TestCase):
 
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_open_case(self, mock_post):
-        search_page = Navigation.login("some-username", "some-password")
+        search_page = Navigation.login()
 
-        results_page = search_page.search()
+        results_page = Navigation.from_response(search_page.search())
         open_case_response = results_page.open_case("P_102_2", "24GT4890")
 
         self.assertIn(
@@ -187,9 +189,9 @@ class TestNavigation(TestCase):
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     @mock.patch("requests.Session.get", side_effect=mocked_get)
     def test_open_case_redirect(self, mock_get, mock_post):
-        search_page = Navigation.login("some-username", "some-password")
+        search_page = Navigation.login()
 
-        results_page = search_page.search()
+        results_page = Navigation.from_response(search_page.search())
         response = results_page.open_case_redirect(
             {
                 "process": "LVP.SES.INQUIRY",
@@ -205,7 +207,7 @@ class TestNavigation(TestCase):
 
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_view_pdf(self, mock_post):
-        search_page = Navigation.login("some-username", "some-password")
+        search_page = Navigation.login()
 
         view_pdf_response = search_page.view_pdf(
             "\\Public\\Sessions\\24\\24GT4890\\3370253.pdf"
