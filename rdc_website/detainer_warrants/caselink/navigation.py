@@ -142,6 +142,10 @@ class Navigation:
     def _format_date(cls, date):
         return urllib.parse.quote(date.strftime("%m/%d/%Y"), safe="")
 
+    @classmethod
+    def _encode_data(self, data):
+        return urllib.parse.urlencode(data, safe="*")
+
     def add_start_date(self, start):
         start_date = Navigation._format_date(start)
         data = self.merge_data(
@@ -172,7 +176,7 @@ class Navigation:
             }
         )
         return self._submit_form(
-            data=urllib.parse.urlencode(data, safe="*"),
+            self._encode_data(data),
             headers={
                 "Host": "caselink.nashville.gov",
                 "Accept-Encoding": "gzip, deflate, br, zstd",
@@ -212,13 +216,39 @@ class Navigation:
             }
         )
 
-        return self._submit_form(data, headers={"Host": "caselink.nashville.gov"})
+        return self._submit_form(
+            self._encode_data(data), headers={"Host": "caselink.nashville.gov"}
+        )
 
     def search(self):
-        data = "APPID=davlvp&CODEITEMNM=WTKCB_20&CURRPROCESS=CASELINK.MAIN&CURRVAL=%A0%A0+Search+for+Case%28s%29%A0+&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=4&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=6&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=%7F&WCVALS=%7F".format(
-            web_io_handle=self.web_io_handle
+        data = self.merge_data(
+            {
+                "CODEITEMNM": "WTKCB_20",
+                "CURRVAL": "�� Search for Case(s)� ",
+                "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+                "FINDDEFKEY": self.CASELINK_PROCESS,
+                "GATEWAY": "PB,NOLOCK,1,1",
+                "LINENBR": "0",
+                "NEEDRECORDS": "1",
+                "OPERCODE": self._username(),
+                "PARENT": "STDHUB*update",
+                "STDID": "52832",
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "POSTBACK",
+                "CHANGED": "4",
+                "CURRPANEL": "1",
+                "HUBFILE": "USER_SETTING",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "6",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": "\x7f",
+                "WCVALS": "\x7f",
+            }
         )
-        return self._submit_form(data)
+        return self._submit_form(self._encode_data(data))
 
     def search_update(self, wc_vars, wc_values):
         data = "APPID=davlvp&CODEITEMNM=WTKCB_20&CURRPROCESS=CASELINK.MAIN&CURRVAL=%A0%A0+Search+for+Case%28s%29%A0+&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=4&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=6&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS={wc_vars}%7F&WCVALS={wc_values}".format(
