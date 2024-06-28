@@ -17,6 +17,7 @@ class Navigation:
     APP_ID = "davlvp"
     BASE = "https://caselink.nashville.gov"
     BROWSER = "C*Chrome*124.0*Mac*NOBLOCKTEST"
+    CASE_TYPE = "P_31"
     CGI_SCRIPT = "webshell.asp"
     FORM_ENCODED = "application/x-www-form-urlencoded"
     WEBSHELL_PATH = "/cgi-bin/webshell.asp"
@@ -34,6 +35,8 @@ class Navigation:
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": '"macOS"',
     }
+    CASELINK_PROCESS = "CASELINK.MAIN"
+    DATA = {"APPID": APP_ID, "CURRPROCESS": CASELINK_PROCESS}
     COOKIES = {
         "tktupdate": "",
     }
@@ -41,6 +44,7 @@ class Navigation:
         r"(?:self\.location\s*=\s*\")(.+?\.html)\"", re.MULTILINE
     )
     START_DATE_ITEM = "P_26"
+    SEP = "%7F"
 
     def __init__(self, path):
         postback_parts = path.removeprefix("/gsapdfs/").split(".")[:-1]
@@ -70,6 +74,10 @@ class Navigation:
         return {**cls.HEADERS, **more_headers}
 
     @classmethod
+    def merge_data(cls, data):
+        return {**cls.DATA, **data}
+
+    @classmethod
     def from_response(cls, response):
         return cls(Navigation._extract_postback_url(response))
 
@@ -82,7 +90,7 @@ class Navigation:
         return current_app.config["CASELINK_PASSWORD"]
 
     @classmethod
-    def login(cls, username=None, password=None):
+    def login(cls):
         headers = cls.merge_headers(
             {
                 "Cache-Control": "max-age=0",
@@ -103,8 +111,8 @@ class Navigation:
             "APPID": cls.APP_ID,
             "WEBWORDSKEY": "SAMPLE",
             "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
-            "OPERCODE": username if username else cls._username(),
-            "PASSWD": password if password else cls._password(),
+            "OPERCODE": cls._username(),
+            "PASSWD": cls._password(),
         }
 
         response = session.post(
@@ -136,48 +144,74 @@ class Navigation:
 
     def add_start_date(self, start):
         start_date = Navigation._format_date(start)
-        data = {
-            "APPID": self.APP_ID,
-            "CODEITEMNM": self.START_DATE_ITEM,
-            "CURRPROCESS": "CASELINK.MAIN",
-            "CURRVAL": start_date,
-            "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
-            "FINDDEFKEY": "CASELINK.MAIN",
-            "GATEWAY": "PB,NOLOCK,1,1",
-            "LINENBR": "0",
-            "NEEDRECORDS": "1",
-            "OPERCODE": self._username(),
-            "PARENT": "STDHUB*update",
-            "STDID": "52832",
-            "STDURL": "/caselink_4_4.davlvp_blank.html",
-            "TARGET": "postback",
-            "WEBIOHANDLE": self.web_io_handle,
-            "WINDOWNAME": "update",
-            "XEVENT": "POSTBACK",
-            "CHANGED": "2",
-            "CURRPANEL": "1",
-            "HUBFILE": "USER_SETTING",
-            "NPKEYS": "0",
-            "SUBMITCOUNT": "4",
-            "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
-            "WCVARS": "self.START_DATE_ITEM" + "%7F",
-            "WCVALS": start_date + "%7F",
-        }
-        r = self._submit_form(
-            data,
+        data = self.merge_data(
+            {
+                "CODEITEMNM": self.START_DATE_ITEM,
+                "CURRVAL": start_date,
+                "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+                "FINDDEFKEY": "CASELINK.MAIN",
+                "GATEWAY": "PB,NOLOCK,1,1",
+                "LINENBR": "0",
+                "NEEDRECORDS": "1",
+                "OPERCODE": self._username(),
+                "PARENT": "STDHUB*update",
+                "STDID": "52832",
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "POSTBACK",
+                "CHANGED": "2",
+                "CURRPANEL": "1",
+                "HUBFILE": "USER_SETTING",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "4",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": "self.START_DATE_ITEM" + self.SEP,
+                "WCVALS": start_date + self.SEP,
+            }
+        )
+        return self._submit_form(
+            data=urllib.parse.urlencode(data, safe="*"),
             headers={
                 "Host": "caselink.nashville.gov",
                 "Accept-Encoding": "gzip, deflate, br, zstd",
             },
         )
-        return r
 
     def add_detainer_warrant_type(self, end):
-        data = "APPID=davlvp&CODEITEMNM=P_31&CURRPROCESS=CASELINK.MAIN&CURRVAL={warrant_filter}&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=4&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=5&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=P_27%7FP_31%7F&WCVALS={end_date}%7F{warrant_filter}%7F".format(
-            web_io_handle=self.web_io_handle,
-            end_date=Navigation._format_date(end),
-            warrant_filter="2",
+        data = self.merge_data(
+            {
+                "CODEITEMNM": self.CASE_TYPE,
+                "CURRVAL": "2",
+                "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+                "FINDDEFKEY": self.CASELINK_PROCESS,
+                "GATEWAY": "PB,NOLOCK,1,1",
+                "LINENBR": "0",
+                "NEEDRECORDS": "1",
+                "OPERCODE": self._username(),
+                "PARENT": "STDHUB*update",
+                "STDID": "52832",
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "POSTBACK",
+                "CHANGED": "4",
+                "CURRPANEL": "1",
+                "HUBFILE": "USER_SETTING",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "5",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": "P_27{sep}P_31{sep}".format(sep="\x7f"),
+                "WCVALS": "{end_date}{sep}{warrant_filter}{sep}".format(
+                    end_date=Navigation._format_date(end),
+                    warrant_filter="2",
+                    sep="\x7f",
+                ),
+            }
         )
+
         return self._submit_form(data, headers={"Host": "caselink.nashville.gov"})
 
     def search(self):

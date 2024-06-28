@@ -66,6 +66,7 @@ def import_from_caselink(start_date, end_date):
         docket_id = case["Docket #"]
         import_pleading_documents(docket_id_code_item(i), docket_id, pages)
 
+
 def extract_case_details(open_case_html):
     return re.search(OPEN_CASE_REGEX, open_case_html)
 
@@ -140,10 +141,7 @@ def divide_into_dicts(h, l, n):
 def search_between_dates(start_date, end_date):
     logger.info(f"Importing caselink warrants between {start_date} and {end_date}")
 
-    username = current_app.config["CASELINK_USERNAME"]
-    password = current_app.config["CASELINK_PASSWORD"]
-
-    search_page = Navigation.login(username, password)
+    search_page = Navigation.login()
     menu_resp = search_page.menu()
     menu_page = Navigation.from_response(menu_resp)
     # menu_page_resp = menu_page.follow_url()
@@ -153,12 +151,14 @@ def search_between_dates(start_date, end_date):
 
     return {"menu_page": menu_page, "search_page": menu_page}
 
+
 def extract_case_number(image_path):
-    parts = image_path.split('\\')
+    parts = image_path.split("\\")
 
     second_last = parts[-2]
 
-    return re.sub(r'^\d+/+', '', second_last)
+    return re.sub(r"^\d+/+", "", second_last)
+
 
 def view_pleading_document(image_path):
     search_page = Navigation.login()
@@ -167,5 +167,5 @@ def view_pleading_document(image_path):
 
     view_pdf_response = search_page.view_pdf(image_path)
 
-    with open('/tmp/{}.pdf'.format(docket_id), 'wb') as f:
+    with open("/tmp/{}.pdf".format(docket_id), "wb") as f:
         f.write(view_pdf_response.content)
