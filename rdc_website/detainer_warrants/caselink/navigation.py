@@ -338,12 +338,37 @@ class Navigation:
         return self._submit_form(self._encode_data(data))
 
     def open_case(self, code_item, docket_id):
-        data = "APPID=davlvp&CODEITEMNM={code_item}&CURRPROCESS=CASELINK.MAIN&CURRVAL={docket_id}&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C0&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=%FCCLICK&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=564&CURRPANEL=2&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=8&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=%7F&WCVALS=%7F".format(
-            web_io_handle=self.web_io_handle, code_item=code_item, docket_id=docket_id
+        data = self.merge_data(
+            {
+                "CODEITEMNM": code_item,
+                "CURRVAL": docket_id,
+                "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+                "FINDDEFKEY": self.CASELINK_PROCESS,
+                "GATEWAY": "PB,NOLOCK,1,0",
+                "LINENBR": "0",
+                "NEEDRECORDS": "1",
+                "OPERCODE": "REDDOOR",
+                "PARENT": "STDHUB*update",
+                "PREVVAL": "�CLICK",
+                "STDID": "52832",
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "POSTBACK",
+                "CHANGED": "564",
+                "CURRPANEL": "2",
+                "HUBFILE": "USER_SETTING",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "8",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": "\x7f",
+                "WCVALS": "\x7f",
+            }
         )
 
         return self._submit_form(
-            data,
+            self._encode_data(data),
             headers={
                 "Host": "caselink.nashville.gov",
                 "Accept-Encoding": "gzip, deflate, br, zstd",
