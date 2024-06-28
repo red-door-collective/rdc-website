@@ -309,11 +309,33 @@ class Navigation:
         return self._submit_form(self._encode_data(data))
 
     def read_rec(self):
-        data = "APPID=davlvp&CODEITEMNM=&CURRPROCESS=CASELINK.MAIN&CURRVAL=1&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=FL&LINENBR=0&NEEDRECORDS=-1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=0&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=READREC&CHANGED=0&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=2&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=&WCVALS=".format(
-            web_io_handle=self.web_io_handle
+        data = self.merge_data(
+            {
+                "CURRVAL": "1",
+                "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+                "FINDDEFKEY": self.CASELINK_PROCESS,
+                "GATEWAY": "FL",
+                "LINENBR": "0",
+                "NEEDRECORDS": "-1",
+                "OPERCODE": "REDDOOR",
+                "PARENT": "STDHUB*update",
+                "PREVVAL": "0",
+                "STDID": "52832",
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "READREC",
+                "CHANGED": "0",
+                "CURRPANEL": "1",
+                "HUBFILE": "USER_SETTING",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "2",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+            }
         )
 
-        return self._submit_form(data)
+        return self._submit_form(self._encode_data(data))
 
     def open_advanced_search(self):
         data = "APPID=davlvp&CODEITEMNM=WTKCB_S1&CURRPROCESS=CASELINK.MAIN&CURRVAL=INVISIBLE&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C0&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=0&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=3&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=%7F&WCVALS=%7F".format(

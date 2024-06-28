@@ -22,6 +22,12 @@ def mocked_post(*args, **kwargs):
     if data.get("XEVENT") == "VERIFY":
         with open("tests/fixtures/caselink/login-page/login-redirect.html") as f:
             return MockResponse(f.read(), 200)
+    elif "PARENT=MENU" in kwargs["data"]:
+        with open("tests/fixtures/caselink/search-page/menu.html") as f:
+            return MockResponse(f.read(), 200)
+    elif "XEVENT=READREC" in kwargs["data"]:
+        with open("tests/fixtures/caselink/search-page/read-rec.html") as f:
+            return MockResponse(f.read(), 200)
     elif "P_26" in kwargs["data"] and "05%2F01%2F2024" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-page/add-start-date.html") as f:
             return MockResponse(f.read(), 200)
@@ -125,6 +131,26 @@ class TestNavigation(TestCase):
         self.assertEqual(navigation.parent, "POSTBACK")
 
         self.assertEqual(len(mock_post.call_args_list), 2)
+
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
+    def test_menu(self, mock_post):
+        search_page = Navigation.login()
+
+        postback_response = search_page.menu()
+
+        self.assertIn(
+            "/gsapdfs/1714928640773.STDHUB.20634.22312689.html", postback_response.text
+        )
+
+    @mock.patch("requests.Session.post", side_effect=mocked_post)
+    def test_read_rec(self, mock_post, side_effect=mocked_post):
+        search_page = Navigation.login()
+
+        menu_resp = search_page.menu()
+        menu_page = Navigation.from_response(menu_resp)
+        read_rec_resp = menu_page.read_rec()
+
+        self.assertIn("Appeal from Admin. Hearing", read_rec_resp.text)
 
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_add_start_date(self, mock_post):

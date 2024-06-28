@@ -1,0 +1,50 @@
+<script language=javascript>
+    if (parent.TktAlert) {
+        window.alert = parent.TktAlert
+        window.confirm = parent.TktConfirm
+    }
+</script>
+<html>
+<meta name="Generator" content="XWTK.READREC">
+
+<head>
+    <!--CASELINK.MAIN_PREREAD key="52832" status=NOLOCK -->
+    <!--RECORD.IO: RDFILE key="52832"-->
+    <!-- PASSIVE, 0 -->
+    <!--CASELINK.MAIN_POSTREAD key="52832" status=NOLOCK -->
+    <!--FILEREAD DONE, key="52832" status=NOLOCK len=3309 new=0 -->
+    <!--RECORD.IO: WTLOCAL key="52832"-->
+    <script language=javascript>
+        function PostRead() {
+            if (parent.loaded != true) return;
+            if (parent.testLayer("ALERT")) return setTimeout("PostRead()", 300)
+            var ok = parent.InitAfterRead(0, 0, 0);
+
+            objoptions = new Array("All", "Appeal from Admin. Hearing", "Civil Warrant", "Conservatorship", "Contract/Debt", "Damages/Torts", "Detainer Warrant", "Distress Warrant", "Divorce (All)", "Divorce with minor children", "Divorce without minor children", "Domestic Relation Petitions", "Estate", "Guardianship", "Healthcare Liability", "Immediate Possession", "Legitimation", "Miscellaneous", "Miscellaneous General Civil", "Paternity", "Real Estate Matter", "Recovery Warrant", "Residential Parenting/Child Support", "Residential Parenting/no Child Support", "Specific Performance", "Sue & Attach", "Trust", "Wage Assignment Hearing", "Workers Compensation")
+            objvalues = new Array("ALL", "513", "1", "571", "461", "471", "2", "6", "DIV", "371", "372", "401", "501", "572", "451", "3", "362", "5", "581", "361", "481", "4", "384", "383", "462", "7", "573", "387", "491")
+            parent.ChangeSelect(parent.MainForm.P_31, objoptions, objvalues, "");
+            if (ok) {
+                parent.MainForm.STDID.value = "52832";
+                parent.MainForm.P_1.value = "";
+                parent.MainForm.P_9.value = "";
+            }
+            parent.ClearChangedVals(1);
+            try {
+                parent.$("input[name=P_26],input[name=P_27]").datepicker(); parent.$(".DataLabelGr:has(> .hasDatepicker)").each(function (i, ele) { parent.$(ele).on("click", function () { this.children[0].focus(); }); });
+            } catch (e) {
+                alert("POSTBACK: " + e.message + ": Error in user generated javascript");
+            }
+
+
+            parent.SetStyle("Cancel_Btn", "inv");
+
+            parent.ServerDateStr = "06/28/2024";
+            parent.SetTime("12:56:30am");
+            if (ok) parent.InitAfterLoad();
+        }
+    </script>
+
+<body onLoad="PostRead(); parent.ClearXEVENT(2,0);">
+</body>
+
+</html>
