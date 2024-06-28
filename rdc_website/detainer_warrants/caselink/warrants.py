@@ -62,10 +62,9 @@ def import_from_caselink(start_date, end_date):
 
     csv_imports.from_rows(cases)
 
-    docket_id = cases[0]["Docket #"]
-    # TODO: do this for each case in the search
-    import_pleading_documents(docket_id_code_item(1), docket_id, pages)
-
+    for i, case in enumerate(cases):
+        docket_id = case["Docket #"]
+        import_pleading_documents(docket_id_code_item(i), docket_id, pages)
 
 def extract_case_details(open_case_html):
     return re.search(OPEN_CASE_REGEX, open_case_html)

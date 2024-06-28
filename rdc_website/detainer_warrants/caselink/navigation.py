@@ -11,9 +11,13 @@ adapter = HTTPAdapter(max_retries=retry)
 session.mount("http://", adapter)
 session.mount("https://", adapter)
 
+
 class Navigation:
 
+    APP_ID = "davlvp"
     BASE = "https://caselink.nashville.gov"
+    BROWSER = "C*Chrome*124.0*Mac*NOBLOCKTEST"
+    CGI_SCRIPT = "webshell.asp"
     FORM_ENCODED = "application/x-www-form-urlencoded"
     WEBSHELL_PATH = "/cgi-bin/webshell.asp"
     PDF_VIEWER_PATH = "/imageviewer.php"
@@ -67,7 +71,7 @@ class Navigation:
     @classmethod
     def from_response(cls, response):
         return cls(Navigation._extract_postback_url(response))
-    
+
     @classmethod
     def _username(cls):
         return current_app.config["CASELINK_USERNAME"]
@@ -88,11 +92,21 @@ class Navigation:
             }
         )
 
-        data = "GATEWAY=GATEWAY&CGISCRIPT=webshell.asp&FINDDEFKEY=&XEVENT=VERIFY&WEBIOHANDLE=1714928640773&BROWSER=C*Chrome*124.0*Mac*NOBLOCKTEST&MYPARENT=px&APPID=davlvp&WEBWORDSKEY=SAMPLE&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&OPERCODE={username}&PASSWD={password}".format(
-            username=username if username else cls._username(),
-            password=urllib.parse.quote(password if password else cls._password(), safe=""),
-        )
-        
+        data = {
+            "GATEWAY": "GATEWAY",
+            "CGISCRIPT": cls.CGI_SCRIPT,
+            "XEVENT": "VERIFY",
+            "WEBIOHANDLE": "1714928640773",
+            "BROWSER": cls.BROWSER,
+            "MYPARENT": "px",
+            "APPID": cls.APP_ID,
+            "WEBWORDSKEY": "SAMPLE",
+            "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+            "OPERCODE": username if username else cls._username(),
+            "PASSWD": password if password else cls._password()
+            
+        }
+
         response = session.post(
             cls.webshell(), cookies=cls.COOKIES, headers=headers, data=data
         )
