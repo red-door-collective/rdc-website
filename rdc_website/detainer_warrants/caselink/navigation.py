@@ -3,13 +3,13 @@ import requests
 from requests.adapters import HTTPAdapter
 import urllib
 from urllib3.util.retry import Retry
+from flask import current_app
 
 session = requests.Session()
 retry = Retry(connect=3, backoff_factor=0.5)
 adapter = HTTPAdapter(max_retries=retry)
 session.mount("http://", adapter)
 session.mount("https://", adapter)
-
 
 class Navigation:
 
@@ -67,9 +67,17 @@ class Navigation:
     @classmethod
     def from_response(cls, response):
         return cls(Navigation._extract_postback_url(response))
+    
+    @classmethod
+    def _username(cls):
+        return current_app.config["CASELINK_USERNAME"]
 
     @classmethod
-    def login(cls, username, password):
+    def _password(cls):
+        return current_app.config["CASELINK_PASSWORD"]
+
+    @classmethod
+    def login(cls, username=None, password=None):
         headers = cls.merge_headers(
             {
                 "Cache-Control": "max-age=0",
@@ -81,10 +89,10 @@ class Navigation:
         )
 
         data = "GATEWAY=GATEWAY&CGISCRIPT=webshell.asp&FINDDEFKEY=&XEVENT=VERIFY&WEBIOHANDLE=1714928640773&BROWSER=C*Chrome*124.0*Mac*NOBLOCKTEST&MYPARENT=px&APPID=davlvp&WEBWORDSKEY=SAMPLE&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&OPERCODE={username}&PASSWD={password}".format(
-            username=username,
-            password=urllib.parse.quote(password, safe=""),
+            username=username if username else cls._username(),
+            password=urllib.parse.quote(password if password else cls._password(), safe=""),
         )
-
+        
         response = session.post(
             cls.webshell(), cookies=cls.COOKIES, headers=headers, data=data
         )
@@ -137,7 +145,7 @@ class Navigation:
         data = "APPID=davlvp&CODEITEMNM=WTKCB_20&CURRPROCESS=CASELINK.MAIN&CURRVAL=%A0%A0+Search+for+Case%28s%29%A0+&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=4&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=6&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS=%7F&WCVALS=%7F".format(
             web_io_handle=self.web_io_handle
         )
-        return Navigation.from_response(self._submit_form(data))
+        return self._submit_form(data)
 
     def search_update(self, wc_vars, wc_values):
         data = "APPID=davlvp&CODEITEMNM=WTKCB_20&CURRPROCESS=CASELINK.MAIN&CURRVAL=%A0%A0+Search+for+Case%28s%29%A0+&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=4&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=6&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS={wc_vars}%7F&WCVALS={wc_values}".format(

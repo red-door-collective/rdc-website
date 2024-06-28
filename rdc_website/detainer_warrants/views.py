@@ -340,7 +340,7 @@ def filter_address(model, address):
 class PleadingDocumentResourceBase(GenericModelView):
     model = PleadingDocument
     schema = pleading_document_schema
-    id_fields = ("url",)
+    id_fields = ("image_path",)
 
     authentication = HeaderUserAuthentication()
     authorization = OnlyOrganizers()

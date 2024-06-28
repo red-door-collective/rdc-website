@@ -282,7 +282,6 @@ def round_dec(dec):
 
 
 def security_response_with_profile(payload, code, headers, user):
-    print(payload)
     if payload["user"]:
         payload["profile"] = admin.serializers.user_schema.dump(user)
 
@@ -753,6 +752,5 @@ def register_commands(app):
     app.cli.add_command(commands.gather_documents_for_missing_addresses)
     app.cli.add_command(commands.gather_pleading_documents)
     app.cli.add_command(commands.gather_pleading_documents_in_bulk)
-    app.cli.add_command(commands.gather_warrants_csv)
-    app.cli.add_command(commands.gather_warrants_csv_monthly)
     app.cli.add_command(commands.bootstrap)
+    app.cli.add_command(commands.view_pleading_document)

@@ -268,11 +268,20 @@ def verify_phones(limit):
 
 
 @click.command()
-@click.option("-f", "--file-path", help="Path to the csv file")
+@click.argument("start_date")
+@click.argument("end_date")
 @with_appcontext
-def import_from_caselink(file_path):
+def import_from_caselink(start_date, end_date):
     """Insert Detainer Warrants"""
-    detainer_warrants.csv_imports.from_caselink(file_path)
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+    detainer_warrants.caselink.warrants.import_from_caselink(start, end)
+
+@click.command()
+@click.argument("image_path")
+@with_appcontext
+def view_pleading_document(image_path):
+    detainer_warrants.caselink.warrants.view_pleading_document(image_path)
 
 
 @click.command()
@@ -416,29 +425,6 @@ def gather_documents_for_missing_addresses(start_date, end_date):
     detainer_warrants.caselink.pleadings.gather_documents_for_missing_addresses(
         start, end
     )
-
-
-@click.command()
-@click.argument("start_date")
-@click.argument("end_date")
-@with_appcontext
-def gather_warrants_csv(start_date, end_date):
-    """Gather detainer warrants as a CSV"""
-    start = datetime.strptime(start_date, "%Y-%m-%d")
-    end = datetime.strptime(end_date, "%Y-%m-%d")
-    detainer_warrants.caselink.warrants.import_from_caselink(start, end)
-
-
-@click.command()
-@click.argument("start_date")
-@click.argument("end_date")
-@with_appcontext
-def gather_warrants_csv_monthly(start_date, end_date):
-    """Gather detainer warrants as a CSV, weekly"""
-    start = datetime.strptime(start_date, "%Y-%m-%d")
-    end = datetime.strptime(end_date, "%Y-%m-%d")
-
-    detainer_warrants.caselink.warrants.bulk_import_csvs(start, end)
 
 
 @click.command()

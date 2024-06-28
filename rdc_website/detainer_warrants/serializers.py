@@ -159,7 +159,7 @@ hearings_schema = HearingSchema(many=True)
 
 class PleadingDocumentSchema(Schema):
     class Meta:
-        fields = ("url", "text", "kind", "docket_id", "created_at", "updated_at")
+        fields = ("image_path", "text", "kind", "docket_id", "created_at", "updated_at")
 
 
 pleading_document_schema = PleadingDocumentSchema()

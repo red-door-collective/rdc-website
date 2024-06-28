@@ -52,7 +52,7 @@ def docket_id_code_item(index):
 
 def import_from_caselink(start_date, end_date):
     pages = search_between_dates(start_date, end_date)
-    results_response = pages["search_page"].follow_url()
+    results_response = pages["search_page"].search()
     matches = extract_search_response_data(results_response.text)
     cell_names, cell_values = split_cell_names_and_values(matches)
     cases = build_cases_from_parsed_matches(cell_values)
@@ -86,7 +86,6 @@ def extract_pleading_document_paths(html):
 
 def populate_pleadings(docket_id, image_paths):
     created_count, seen_count = 0, 0
-    breakpoint()
     for image_path in image_paths:
         document = PleadingDocument.query.get(image_path)
         if document:
@@ -153,4 +152,21 @@ def search_between_dates(start_date, end_date):
     menu_page.add_start_date(start_date)
     menu_page.add_detainer_warrant_type(end_date)
 
-    return {"menu_page": menu_page, "search_page": menu_page.search()}
+    return {"menu_page": menu_page, "search_page": menu_page}
+
+def extract_case_number(image_path):
+    parts = image_path.split('\\')
+
+    second_last = parts[-2]
+
+    return re.sub(r'^\d+/+', '', second_last)
+
+def view_pleading_document(image_path):
+    search_page = Navigation.login()
+
+    docket_id = extract_case_number(image_path)
+
+    view_pdf_response = search_page.view_pdf(image_path)
+
+    with open('/tmp/{}.pdf'.format(docket_id), 'wb') as f:
+        f.write(view_pdf_response.content)

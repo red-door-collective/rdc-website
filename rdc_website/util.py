@@ -56,7 +56,6 @@ def get_or_create(session, model, defaults=None, **kwargs):
         return instance, False
     else:
         kwargs |= defaults or {}
-        print(kwargs)
         instance = model(**kwargs)
         try:
             session.add(instance)
