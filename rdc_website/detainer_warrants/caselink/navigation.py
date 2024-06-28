@@ -251,10 +251,35 @@ class Navigation:
         return self._submit_form(self._encode_data(data))
 
     def search_update(self, wc_vars, wc_values):
-        data = "APPID=davlvp&CODEITEMNM=WTKCB_20&CURRPROCESS=CASELINK.MAIN&CURRVAL=%A0%A0+Search+for+Case%28s%29%A0+&DEVAPPID=&DEVPATH=%2FINNOVISION%2FDEVELOPMENT%2FLVP.DEV&FINDDEFKEY=CASELINK.MAIN&GATEWAY=PB%2CNOLOCK%2C1%2C1&LINENBR=0&NEEDRECORDS=1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=&STDID=52832&STDURL=%2Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=POSTBACK&CHANGED=4&CURRPANEL=1&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=6&WEBEVENTPATH=%2FGSASYS%2FTKT%2FTKT.ADMIN%2FWEB_EVENT&WCVARS={wc_vars}%7F&WCVALS={wc_values}".format(
-            web_io_handle=self.web_io_handle, wc_vars=wc_vars, wc_values=wc_values
+        data = self.merge_data(
+            {
+                "CODEITEMNM": "WTKCB_20",
+                "CURRPROCESS": "CASELINK.MAIN",
+                "CURRVAL": "�� Search for Case(s)� ",
+                "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+                "FINDDEFKEY": "CASELINK.MAIN",
+                "GATEWAY": "PB,NOLOCK,1,1",
+                "LINENBR": "0",
+                "NEEDRECORDS": "1",
+                "OPERCODE": self._username(),
+                "PARENT": "STDHUB*update",
+                "STDID": "52832",
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "POSTBACK",
+                "CHANGED": "4",
+                "CURRPANEL": "1",
+                "HUBFILE": "USER_SETTING",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "6",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": wc_vars,
+                "WCVALS": wc_values,
+            }
         )
-        return self._submit_form(data)
+        return self._submit_form(self._encode_data(data))
 
     def follow_url(self):
         return session.get(

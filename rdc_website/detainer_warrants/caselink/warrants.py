@@ -43,7 +43,7 @@ def split_cell_names_and_values(matches):
 
 
 def search_response_data_to_formdata(cell_names, cell_values):
-    return "%7F".join(cell_names), "%7F".join(cell_values)
+    return "\x7f".join(cell_names), "%7F".join(cell_values)
 
 
 def docket_id_code_item(index):
