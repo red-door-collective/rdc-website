@@ -1,4 +1,8 @@
 {
-    "nixEnvSelector.nixShellConfig": "${workspaceRoot}/shell.nix",
-    "python.formatting.provider": "black"
+    "python.formatting.provider": "black",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

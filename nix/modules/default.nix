@@ -3,39 +3,54 @@
 with builtins;
 
 let
-  cfg = config.services.eviction_tracker;
+  cfg = config.services.red-door-collective.rdc-website;
 
-  serveApp = import ../serve_app.nix {
+  configFilename = "config.json";
+
+  configInput =
+    pkgs.writeText configFilename
+      (toJSON cfg.extraConfig);
+
+  serveApp = pkgs.rdc-website-serve-app.override {
+    appConfigFile = "/run/rdc-website/${configFilename}";
     listen = "${cfg.address}:${toString cfg.port}";
     tmpdir = "/tmp";
     inherit (config.nixpkgs.localSystem) system;
   };
 
-  staticFiles = import ../static_files.nix { };
-
-  evictionTrackerConfig = pkgs.writeScriptBin "eviction_tracker-config" ''
-    systemctl cat eviction_tracker.service | grep X-ConfigFile | cut -d"=" -f2
+  rdcWebsiteConfig = pkgs.writeScriptBin "rdc-website-config" ''
+    systemctl cat rdc-website.service | grep X-ConfigFile | cut -d"=" -f2
   '';
 
-  evictionTrackerShowConfig = pkgs.writeScriptBin "eviction_tracker-show-config" ''
-    cat `${evictionTrackerConfig}/bin/eviction_tracker-config`
+  rdcWebsiteShowConfig = pkgs.writeScriptBin "rdc-website-show-config" ''
+    cat `${rdcWebsiteConfig}/bin/rdc-website-config`
   '';
 
-in {
-  options.services.eviction_tracker = with lib; {
+in
+{
+  options.services.red-door-collective.rdc-website = with lib; {
 
-    enable = mkEnableOption "Enable the eviction tracking website";
+    enable = mkEnableOption "Enable the website of Red Door Collective";
+
+    debug = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        (UNSAFE) Activate debugging mode for this module.
+        Currently shows how secrets are replaced in the pre-start script.
+      '';
+    };
 
     user = mkOption {
       type = types.str;
-      default = "eviction_tracker";
-      description = "User to run eviction_tracker.";
+      default = "rdc-website";
+      description = "User to run rdc-website.";
     };
 
     group = mkOption {
       type = types.str;
-      default = "eviction_tracker";
-      description = "Group to run eviction_tracker.";
+      default = "red-door-collective";
+      description = "Group to run rdc-website.";
     };
 
     port = mkOption {
@@ -68,39 +83,92 @@ in {
       default = null;
     };
 
+    browserSessionSecretKeyFile = mkOption {
+      type = types.str;
+      description = "Path to file containing the secret key for browser session signing";
+      default = "/var/lib/rdc-website/browser-session-secret-key";
+    };
+
+    secretFiles = mkOption {
+      type = types.attrs;
+      default = { };
+      description = ''
+        Arbitrary secrets that should be read from a file and
+        inserted in the config on startup. Expects an attrset with
+        the variable name to replace and a file path to the secret.
+      '';
+      example = {
+        some_secret_api_key = "/var/lib/rdc-website/some-secret-api-key";
+      };
+    };
+
+    extraConfig = mkOption {
+      type = types.attrs;
+      default = { };
+      description = "Additional config options given as attribute set.";
+    };
+
   };
 
   config = lib.mkIf cfg.enable {
 
-    services.eviction_tracker.app = serveApp;
-    services.eviction_tracker.staticFiles = staticFiles;
+    services.red-door-collective.rdc-website.configFile = configInput;
+    services.red-door-collective.rdc-website.app = serveApp;
+    services.red-door-collective.rdc-website.staticFiles = pkgs.rdc-website-static;
 
-    environment.systemPackages = [ evictionTrackerConfig evictionTrackerShowConfig ];
+    environment.systemPackages = [
+      rdcWebsiteConfig
+      rdcWebsiteShowConfig
+    ];
 
-    users.users.eviction_tracker = {
+    users.users.rdc-website = {
       isSystemUser = true;
-      group = cfg.group;
+      group = "red-door-collective";
     };
-    users.groups.${cfg} = { };
+    users.groups.red-door-collective = { };
 
-    systemd.services.eviction_tracker = {
+    systemd.services.red-door-collective.rdc-website = {
 
-      description = "Eviction tracking in Davidson Co.";
+      description = "Eviction court data in Davidson county";
       after = [ "network.target" "postgresql.service" ];
       wantedBy = [ "multi-user.target" ];
       stopIfChanged = false;
 
+      preStart =
+        let
+          replaceDebug = lib.optionalString cfg.debug "-vv";
+          secrets = cfg.secretFiles // {
+            browser_session_secret_key = cfg.browserSessionSecretKeyFile;
+          };
+          replaceSecret = file: var: secretFile:
+            "${pkgs.replace}/bin/replace-literal -m 1 ${replaceDebug} -f -e @${var}@ $(< ${secretFile}) ${file}";
+          replaceCfgSecret = var: secretFile: replaceSecret "$cfgdir/${configFilename}" var secretFile;
+          secretReplacements = lib.mapAttrsToList (k: v: replaceCfgSecret k v) cfg.secretFiles;
+        in
+        ''
+          echo "Prepare config file..."
+          cfgdir=$RUNTIME_DIRECTORY
+          chmod u+w -R $cfgdir
+          cp ${configInput} $cfgdir/${configFilename}
+
+          ${lib.concatStringsSep "\n" secretReplacements}
+
+          echo "Run database migrations if needed..."
+          ${serveApp}/bin/migrate
+          echo "Pre-start finished."
+        '';
+
       serviceConfig = {
         User = cfg.user;
         Group = cfg.group;
-        ExecStart = "${serveApp}/bin/serve";
-        RuntimeDirectory = "/srv/within/eviction_tracker";
-        StateDirectory = "srv/within/eviction_tracker";
+        ExecStart = "${serveApp}/bin/rdc-website-serve-app";
+        RuntimeDirectory = "rdc-website";
+        StateDirectory = "rdc-website";
         RestartSec = "5s";
         Restart = "always";
         X-ConfigFile = configInput;
         X-App = serveApp;
-        X-StaticFiles = staticFiles;
+        X-StaticFiles = cfg.staticFiles;
 
         DeviceAllow = [
           "/dev/stderr"
@@ -148,8 +216,7 @@ in {
 
       unitConfig = {
         Documentation = [
-          "https://github.com/red-door-collective/eviction-tracker"
-          "https://reddoorcollective.org"
+          "https://github.com/red-door-collective/rdc-website"
         ];
       };
     };

@@ -1,0 +1,70 @@
+from rdc_website import detainer_warrants, admin
+
+
+def for_api(api, app):
+    api.add_resource(
+        "/attorneys/",
+        detainer_warrants.views.AttorneyListResource,
+        detainer_warrants.views.AttorneyResource,
+        app=app,
+    )
+    api.add_resource(
+        "/defendants/",
+        detainer_warrants.views.DefendantListResource,
+        detainer_warrants.views.DefendantResource,
+        app=app,
+    )
+    api.add_resource(
+        "/courtrooms/",
+        detainer_warrants.views.CourtroomListResource,
+        detainer_warrants.views.CourtroomResource,
+        app=app,
+    )
+    api.add_resource(
+        "/hearings/",
+        detainer_warrants.views.HearingListResource,
+        detainer_warrants.views.HearingResource,
+        app=app,
+    )
+    api.add_resource(
+        "/plaintiffs/",
+        detainer_warrants.views.PlaintiffListResource,
+        detainer_warrants.views.PlaintiffResource,
+        app=app,
+    )
+    api.add_resource(
+        "/judgments/",
+        detainer_warrants.views.JudgmentListResource,
+        detainer_warrants.views.JudgmentResource,
+        app=app,
+    )
+    api.add_resource(
+        "/judges/",
+        detainer_warrants.views.JudgeListResource,
+        detainer_warrants.views.JudgeResource,
+        app=app,
+    )
+    api.add_resource(
+        "/detainer-warrants/",
+        detainer_warrants.views.DetainerWarrantListResource,
+        detainer_warrants.views.DetainerWarrantResource,
+        app=app,
+    )
+    api.add_resource(
+        "/pleading-documents/",
+        detainer_warrants.views.PleadingDocumentListResource,
+        detainer_warrants.views.PleadingDocumentResource,
+        app=app,
+    )
+    api.add_resource(
+        "/phone-number-verifications/",
+        detainer_warrants.views.PhoneNumberVerificationListResource,
+        detainer_warrants.views.PhoneNumberVerificationResource,
+        app=app,
+    )
+    api.add_resource(
+        "/users/", admin.views.UserListResource, admin.views.UserResource, app=app
+    )
+    api.add_resource(
+        "/roles/", admin.views.RoleListResource, admin.views.RoleResource, app=app
+    )

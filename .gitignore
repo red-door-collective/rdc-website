@@ -11,14 +11,56 @@ serve_static
 static_files
 
 *.db
-eviction_tracker/static/*
-eviction_tracker/static_pages/*
-!eviction_tracker/static/images/
+rdc_website/static/*
+rdc_website/static_pages/*
+!rdc_website/static/images/
 result
 
 ui/index.html # accidental default gen
 *.log
 .elm-pages
-.env.dev
 pdfs/
 data/**/*
+
+*.pyc
+.doit.db
+.settings
+.project
+.pydevproject
+.idea
+*.log.json
+*.mo
+.babelcompiled
+rdc_website.egg-info/
+.cache/
+.eggs/
+config.json
+nix/*_frozen.txt
+config*.yml
+testconfig*.yml
+.pytest_cache
+result
+.mypy_cache/
+.coverage
+htmlcov/
+mypy_stubs
+pyenv
+dist
+serve_static
+serve_app
+docker-image-rdc-website.tar
+docker-image-rdc-website-static.tar
+rdc_website/static/css/*.css
+.devenv
+venv
+log.json
+.envrc# Devenv
+.devenv*
+devenv.local.nix
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+record

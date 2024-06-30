@@ -1,11 +1,11 @@
-{ stdenv, lib, nginxMainline, fetchurl, zlib }:
+{ stdenv, lib, nginxMainline, fetchurl, zlib, libxcrypt }:
 
 let
   tmp = "/dev/shm";
 in
 
-nginxMainline.overrideAttrs(oldAttrs: rec {
-  buildInputs = [ zlib ];
+nginxMainline.overrideAttrs (oldAttrs: rec {
+  buildInputs = [ libxcrypt zlib ];
 
   configureFlags = [
     "--error-log-path=/dev/stderr"
@@ -38,17 +38,7 @@ nginxMainline.overrideAttrs(oldAttrs: rec {
     "--without-http_uwsgi_module"
   ];
 
-  NIX_CFLAGS_COMPILE = [
-    "-Wno-error=implicit-fallthrough"
-  ] ++ lib.optional stdenv.isDarwin "-Wno-error=deprecated-declarations";
-
-  configurePlatforms = [];
-
-  hardeningEnable = lib.optional (!stdenv.isDarwin) "pie";
-
-  enableParallelBuilding = true;
-
-  postInstall = ''
+  postInstall = oldAttrs.postInstall + ''
     mv $out/sbin $out/bin
     rm -rf $out/html
     rm $out/conf/{fastcgi,scgi,uwsgi,win-utf,koi-win}*

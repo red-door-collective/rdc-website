@@ -1,0 +1,60 @@
+<!-- Redirect GET after making a valid search  -->
+<script language=javascript>if (parent.TktAlert) {
+        window.alert = parent.TktAlert
+        window.confirm = parent.TktConfirm
+    }
+</script>
+<!--RECORD.IO: RDLOCAL key="0"-->
+<!--Parent=STDHUB PBname=WTKCB_20 Dict=WTKCB_20
+Val=\xa0\xa0 Search for Case(s)\xa0  Old=
+Status=PB,NOLOCK SaveState=1 Confirm=0 Hotkey= -->
+<html>
+<!--RECORD.IO: WTCURRENT key="52832"-->
+<script language=javascript>
+    var StallXEV = 'WAIT';
+    function PostBack() {
+        if (parent.loaded != true) return -1;
+        parent.ShowPI(0);
+        parent.SetProp("WTKCB_20", "Epb");
+
+        parent.PutFormVar("P_101_1", "Sessions", 0);
+        parent.PutFormVar("P_102_1", "24GT4773", 0);
+        parent.PutFormVar("P_103_1", "PENDING", 0);
+        parent.PutFormVar("P_104_1", "05/02/2024", 0);
+        parent.PutFormVar("P_105_1", "DETAINER WARRANT FORM", 0);
+        parent.PutFormVar("P_106_1", "MYKA GODWIN", 0);
+        parent.PutFormVar("P_107_1", "DEFENDANT A", 0);
+        parent.PutFormVar("P_108_1", ", PRS", 0);
+        parent.PutFormVar("P_109_1", "", 0);
+        parent.PutFormVar("P_101_2", "Sessions", 0);
+        parent.PutFormVar("P_102_2", "24GT4770", 0);
+        parent.PutFormVar("P_103_2", "PENDING", 0);
+        parent.PutFormVar("P_104_2", "05/01/2024", 0);
+        parent.PutFormVar("P_105_2", "DETAINER WARRANT", 0);
+        parent.PutFormVar("P_106_2", "PROGRESS RESIDENTIAL BORROWER 6, LLC 1408 CHUTNEY COURT", 0);
+        parent.PutFormVar("P_107_2", "DEFENDANT 1 OR ALL OTHER OCCUPANTS", 0);
+        parent.PutFormVar("P_108_2", "MCCOY, JENNIFER JO", 0);
+        parent.PutFormVar("P_109_2", "", 0);
+        parent.PutFormVar("P_101_3", "Sessions", 0);
+        parent.PutFormVar("P_102_3", "24GT4772", 0);
+        parent.PutFormVar("P_103_3", "PENDING", 0);
+        parent.PutFormVar("P_104_3", "05/01/2024", 0);
+        parent.PutFormVar("P_105_3", "DETAINER WARRANT", 0);
+        parent.PutFormVar("P_106_3", "WESTBORO APARTMENTS", 0);
+        parent.PutFormVar("P_107_3", "DEFENDANT 2", 0);
+        parent.PutFormVar("P_108_3", "RUSNAK, JOSEPH P.", 0);
+        parent.PutFormVar("P_109_3", "", 0);
+        parent.SetShowPanel(2, 2, 0);
+
+        StallXEV = 0// OK or Err, release XEV stall AT END!
+    }
+    function XEV() {
+        if (StallXEV == 'WAIT') return setTimeout('XEV()', 350);
+        parent.ClearXEVENT(6, StallXEV, '', 1);
+    }
+</script>
+
+<body onLoad="PostBack();XEV();">
+</body>
+
+</html>

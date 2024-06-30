@@ -1,0 +1,438 @@
+<!-- Redirect GET after logging in  -->
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <style></style>
+    <link rel="stylesheet" type="text/css" href="/styles4.4/caselink.css">
+</head>
+
+<script language="javascript" src="/javascript4.4/jquery.js?rand=2652174f71a491b1ed4fd65e9d0acb85e9726b"></script>
+<script language="javascript"
+    src="/javascript4.4/jquery-ui.min.js?rand=240427284ace64cfabfec1bf5e2d060979d95b"></script>
+
+<body class="mbkgd" onLoad="LoadMenu();PostMenu();HeartBeat();" topmargin=0 leftmargin=0>
+    <form method="post" name="heartbeat" id="heartbeat" onsubmit="return false" action="/cgi-bin/webshell.asp">
+        <script language=javascript>
+            var d = document.getElementById("WAITLAYER")
+            if (d) d.style.visibility = "visible";
+            BackgroundColor = "";
+            BorderColor = "#bbbbbb";
+            PanelFade = "";
+        </script>
+        <input type=hidden name="APPID" value="davlvp">
+        <input type=hidden name="CODEITEMNM" value="">
+        <input type=hidden name="CURRPROCESS" value="CASELINK.ADMIN">
+        <input type=hidden name="CURRVAL">
+        <input type=hidden name="DEVAPPID" value="">
+        <input type=hidden name="DEVPATH" value="/INNOVISION/DEVELOPMENT/LVP.DEV">
+        <input type=hidden name="FINDDEFKEY" value="CASELINK.ADMIN">
+        <input type=hidden name="GATEWAY" value="GATEWAY">
+        <input type=hidden name="LINENBR" value="0">
+        <input type=hidden name="NEEDRECORDS">
+        <input type=hidden name="OPERCODE" value="REDDOOR">
+        <input type=hidden name="PARENT" value="MENU">
+        <input type=hidden name="PREVVAL">
+        <input type=hidden name="STDID">
+        <input type=hidden name="STDURL" value="/caselink_4_4.davlvp_blank.html">
+        <input type=hidden name="TARGET" value="">
+        <input type=hidden name="WEBIOHANDLE" value="1715047986389">
+        <input type=hidden name="WINDOWNAME">
+        <input type=hidden name="XEVENT">
+        <IFRAME NAME="heart" ID="heart" SRC='/heart.html' WIDTH=1 HEIGHT=1 SCROLLING=NO>
+        </IFRAME>
+    </form>
+    <form method="post" name="mmain" id="mmain" onsubmit="return false" action="/cgi-bin/webshell.asp">
+
+        <script language=javascript
+            src="/javascript4.4/newmenu.js?rand=20558811091487864159665ff1703db91da531455881a81"></script>
+        <script language=javascript
+            src="/javascript4.4/fadeslide.js?rand=205588110747998782bb3b709ef9130e5d4a32f5b68f9a"></script>
+        <script language='javascript'>
+            var MTarget = MenuPass = MProcess = '';
+            var mid = '';
+            function PasswordSubMenu(id, chkpass, xitem) {
+                parent.frames[displayFrame].document.getElementById('jqSettingsDiv').style.visibility = 'hidden';
+                var tmpStr = "parent.frames[displayFrame].document.getElementById('" + xitem.id + "')";
+                if (timerRunning === false && timeoutvar == null) {
+                    if (menuPassFunct[xitem.id + "_back"] === undefined) { menuPassFunct[xitem.id + "_back"] = menuPassFunct[xitem.id]; }
+                    debugLogIt('replacing string "' + tmpStr + '"');
+                    var xstr = menuPassFunct[xitem.id];
+                    menuPassFunct[xitem.id] = xstr.replace(tmpStr, "'menudiv'");
+                } else {
+                    if (menuPassFunct[xitem.id + "_back"] !== undefined) {
+                        menuPassFunct[xitem.id] = menuPassFunct[xitem.id + "_back"];
+                    }
+                }
+                if (menuPassFunct[xitem.id + "_id"] != "") {
+                    if (menuPassFunct[xitem.id + "_id"] == 'SELF') {
+                        var menuDiv = '';
+                    } else {
+                        var menuDiv = parent.frames[displayFrame].document.getElementById(menuPassFunct[xitem.id + "_id"]);
+                    }
+                    if (!menuDiv || menuDiv == "") {
+                        parent.frames[displayFrame].document.getElementById("Mpassword").style.visibility = 'visible';
+                        try {
+                            showMenuFrame.$("#Mpassword").hover(function () {
+                                MouseEnteredPassLayer = true;
+                            }, function () {
+                                MouseEnteredPassLayer = false;
+                            });
+                        } catch (Ex) {
+                            debugLogIt("Hover Function - " + Ex.message);
+                        }
+                        var myRtns, MytopPos, MyleftPos;
+                        myRtns = SetMyPos(currentOrientation, "Mpassword", xitem).split("|");
+                        MytopPos = myRtns[0];
+                        MyleftPos = myRtns[1];
+                        if (MytopPos) {
+                            if (MytopPos.toString().search(/%/i) == -1 && MytopPos.toString().search(/px/i) == -1) {
+                                MytopPos = MytopPos + "px";
+                            }
+                            parent.frames[displayFrame].document.getElementById("Mpassword").style.top = MytopPos;
+                        }
+                        if (MyleftPos) {
+                            if (MyleftPos.toString().search(/%/i) == -1 && MyleftPos.toString().search(/px/i) == -1) {
+                                MyleftPos = MyleftPos + "px";
+                            }
+                            parent.frames[displayFrame].document.getElementById("Mpassword").style.left = MyleftPos;
+                        }
+                        parent.frames[displayFrame].document.getElementById("Mpword").focus();
+                        parent.frames[displayFrame].document.getElementById("Mpword").value = "";
+                        MTarget = "menu";
+                        MenuPass = chkpass;
+                        MProcess = id;
+                        mid = xitem.id;
+                        return
+                    }
+                }
+            }
+            function PasswordMenuWin(chkpass, xitem, mtarget, mxevent, mprocess, mscrbars, mappid, mdevpath, maction) {
+                parent.frames[displayFrame].document.getElementById("Mpassword").style.visibility = "visible";
+                try {
+                    showMenuFrame.$("#Mpassword").hover(function () {
+                        MouseEnteredPassLayer = true;
+                    }, function () {
+                        MouseEnteredPassLayer = false;
+                    });
+                } catch (Ex) {
+                    debugLogIt("Hover Function - " + Ex.message);
+                }
+                var myRtns, MytopPos, MyleftPos;
+                myRtns = SetMyPos(currentOrientation, "Mpassword", xitem).split("|");
+                MytopPos = myRtns[0];
+                MyleftPos = myRtns[1];
+                if (MytopPos) {
+                    if (MytopPos.toString().search(/%/i) == -1 && MytopPos.toString().search(/px/i) == -1) {
+                        MytopPos = MytopPos + "px";
+                    }
+                    parent.frames[displayFrame].document.getElementById("Mpassword").style.top = MytopPos;
+                }
+                if (MyleftPos) {
+                    if (MyleftPos.toString().search(/%/i) == -1 && MyleftPos.toString().search(/px/i) == -1) {
+                        MyleftPos = MyleftPos + "px";
+                    }
+                    parent.frames[displayFrame].document.getElementById("Mpassword").style.left = MyleftPos;
+                }
+                parent.frames[displayFrame].document.getElementById("Mpword").focus();
+                parent.frames[displayFrame].document.getElementById("Mpword").value = "";
+                MTarget = mtarget;
+                MProcess = mprocess;
+                MXevent = mxevent;
+                MScrbars = mscrbars;
+                MAppid = mappid;
+                MDevPath = mdevpath;
+                MAction = maction;
+                MenuPass = chkpass;
+                return;
+            }
+            function MenuPasswordChk() {
+                var pwd = parent.frames[displayFrame].document.getElementById("Mpword").value;
+                parent.frames[displayFrame].document.getElementById("Mpword").value = "";
+                parent.frames[displayFrame].document.getElementById("Mpword").blur();
+                var isOk = parent.frames.menu.CheckMenuPassword(MenuPass, pwd);
+                if (isOk == true) {
+                    parent.frames[displayFrame].document.getElementById("Mpassword").style.visibility = "hidden";
+                    if (MTarget == "menu") {
+                        var myFunct = function () { eval(menuPassFunct[mid]); }
+                        myFunct();
+                    } else {
+                        //execute Winopn from left frame becuz splash screen has
+                        // no input tags for submit to work 
+                        MenuFrame.WinOpen(MTarget, MXevent, MProcess, '', MScrbars, 'mmain', 1000, 790, -1, MAppid, MDevPath, 0, 0, MAction);
+                    }
+                } else {
+                    parent.frames[displayFrame].alert("Invalid Password");
+                    parent.frames[displayFrame].document.getElementById("Mpword").focus();
+                }
+            } 
+        </script>
+
+        <script language=javascript
+            src="/javascript4.4/wtkjavas.js?rand=2055881110141610fc264495f103d07a6da20e9c173bbd7e"></script>
+        <script language=javascript
+            src="/javascript4.4/menu.js?rand=205588111112606f1cc0019291aae2558a5af1a4deac4b6"></script>
+        <script language=javascript
+            src="/javascript4.4/jqmenu.js?rand=20558811099795135a2d233604813c9f1cbc210b5f967ee"></script>
+        <script language=javascript>
+            var d = document.getElementById("WAITLAYER")
+            if (d) d.style.visibility = "visible";
+            BackgroundColor = "";
+            BorderColor = "#bbbbbb";
+            PanelFade = "";
+        </script>
+        <input type=hidden name="APPID" value="davlvp">
+        <input type=hidden name="CODEITEMNM" value="">
+        <input type=hidden name="CURRPROCESS" value="CASELINK.ADMIN">
+        <input type=hidden name="CURRVAL">
+        <input type=hidden name="DEVAPPID" value="">
+        <input type=hidden name="DEVPATH" value="/INNOVISION/DEVELOPMENT/LVP.DEV">
+        <input type=hidden name="FINDDEFKEY" value="CASELINK.ADMIN">
+        <input type=hidden name="GATEWAY" value="GATEWAY">
+        <input type=hidden name="LINENBR" value="0">
+        <input type=hidden name="NEEDRECORDS">
+        <input type=hidden name="OPERCODE" value="REDDOOR">
+        <input type=hidden name="PARENT" value="MENU">
+        <input type=hidden name="PREVVAL">
+        <input type=hidden name="STDID">
+        <input type=hidden name="STDURL" value="/caselink_4_4.davlvp_blank.html">
+        <input type=hidden name="TARGET" value="">
+        <input type=hidden name="WEBIOHANDLE" value="1715047986389">
+        <input type=hidden name="WINDOWNAME">
+        <input type=hidden name="XEVENT">
+        <iframe name="pbcan" src="/heart.html" width=1 height=1>
+        </iframe>
+    </form>
+    <script language="javascript">
+        var DoUCP = true;
+        var SplashPC = "CASELINK.MAIN";
+        var callback = 0;
+        BrowserStr = "C*Chrome*124.0*Mac*NOBLOCKTEST";
+        MenuFrmCols = "0";
+        var displayFrame;
+        var MouseEnteredPassLayer = false;
+        var IsLoading = false;
+        var DidSetUrl = false;
+        showSettingsDiv = true;
+        showUserChgPass = false;
+        ShowDebug = false;
+        ShowHomeBtn = false;
+        doFontAwesome = false;
+        var curStylePre = "jqm_caselink.css"
+        var curGateRev = "4.4"
+        var curTktPath = "/GSASYS/TKT/TKT.RELEASE.4.4";
+        turnOffScroll = false;
+        var RightMenuFrame = 1;
+        if (parent.document.getElementById("menuframe").tagName.toUpperCase() == "DIV") {
+            displayFrame = "update";
+        } else {
+            displayFrame = "update";
+        }
+        function SetupRightFrame() {
+            if (displayFrame == "parent") {
+                var xFrm = parent;
+            } else {
+                var xFrm = parent.frames[displayFrame] || parent.document.getElementById(displayFrame);
+            }
+            try {
+                var ScriptsFound = xFrm.document.getElementsByTagName("script");
+                var JQFound = JQUIFound = NotiFound = false;
+                for (var s = 0; s < ScriptsFound.length; s++) {
+                    if (ScriptsFound[s].src.indexOf("jquery.js") > -1) { JQFound = true; }
+                    if (ScriptsFound[s].src.indexOf("jquery-ui.min.js") > -1) { JQUIFound = true; }
+                    if (ScriptsFound[s].src.indexOf("notify.js") > -1) { NotiFound = true; }
+                }
+                var headID = xFrm.document.getElementsByTagName("head")[0];
+                cssNode = xFrm.document.createElement('link');
+                cssNode.type = 'text/css';
+                cssNode.rel = 'stylesheet';
+                cssNode.href = '/styles4.4/jqm_caselink.css';
+                cssNode.media = 'screen';
+                debugLogIt("Appending CSS file to Update Frame");
+                headID.appendChild(cssNode);
+                if (!JQFound) {
+                    var newScript = xFrm.document.createElement('script');
+                    newScript.type = 'text/javascript';
+                    newScript.src = "/javascript4.4/jquery.js?rand=2652174f71a491b1ed4fd65e9d0acb85e9726b"
+                    debugLogIt("Appending JS files to Update Frame");
+                    headID.appendChild(newScript);
+                }
+                if (!JQUIFound) {
+                    var myJSFunct = function () {
+                        if (displayFrame == "parent") {
+                            var xFrm = parent;
+                        } else {
+                            var xFrm = parent.frames[displayFrame] || parent.document.getElementById(displayFrame);
+                        }
+                        var headID = xFrm.document.getElementsByTagName("head")[0];
+                        var newScript2 = xFrm.document.createElement('script');
+                        newScript2.type = 'text/javascript';
+                        newScript2.src = "/javascript4.4/jquery-ui.min.js?rand=240427284ace64cfabfec1bf5e2d060979d95b"
+                        headID.appendChild(newScript2);
+                    }
+                    checkJquery(xFrm, myJSFunct);
+                }
+                if (!NotiFound) {
+                    var myJSFunct = function () {
+                        if (displayFrame == "parent") {
+                            var xFrm = parent;
+                        } else {
+                            var xFrm = parent.frames[displayFrame] || parent.document.getElementById(displayFrame);
+                        }
+                        var headID = xFrm.document.getElementsByTagName("head")[0];
+                        var newScript2 = xFrm.document.createElement('script');
+                        newScript2.type = 'text/javascript';
+                        newScript2.src = "/javascript4.4/notify.js?rand=27064ae2c363f980028639f2c229dc529db09"
+                        headID.appendChild(newScript2);
+                    }
+                    checkJquery(xFrm, myJSFunct);
+                }
+            } catch (Ex) { debugLogIt("SetupRightFrame: " + Ex.message) }
+        }
+        function LoadMenu(ForceReload) {
+            if (ForceReload == undefined) { ForceReload = false; }
+            if (IsLoading === true) {
+                debugLogIt("IsLoading is true in LoadMenu(). Returning");
+                return false;
+            } else {
+                IsLoading = true;
+                try {
+                    parent.document.getElementById('menuframe').cols = '0,*';
+                    if (!DidSetUrl) {
+                        var stdurl = parent.frames["menu"].document.getElementById("mmain").STDURL.value;
+                        parent.frames[RtFrmName].location.href = stdurl;
+                        DidSetUrl = true;
+                        // Need to SetTimeout for LoadMenu, to wait for right frame to load from call above.. 
+                        var myFunct = function () { IsLoading = false; parent.frames["menu"].LoadMenu(); };
+                        checkReadyState(parent.frames[RtFrmName], myFunct);
+                        return;
+                    }
+                    SetupRightFrame();
+                    if (callback >= 10 && RightMenuFrame === 1) {
+                        debugLogIt("Callback: " + callback + "  setting DisplayFrame to menu.. ");
+                        displayFrame = "menu";
+                        callback = 0;
+                        RightMenuFrame = 0;
+                    }
+                    if (RightMenuFrame == 1) {
+                        if (displayFrame == "parent") {
+                            var myFrame = parent;
+                        } else {
+                            var myFrame = parent.frames[displayFrame];
+                        }
+                        if (RightMenuFrame === 0) {
+                            RightMenuFrame = 1;
+                        }
+                    } else {
+                        debugLogIt("RightMenuFrame != 1 DisplayFrame => menu");
+                        displayFrame = "menu";
+                        var myFrame = parent.frames[displayFrame];
+                    }
+                    if (displayFrame == "parent") {
+                        var HasList = parent.document.getElementById("list");
+                    } else {
+                        var HasList = parent.frames[displayFrame].document.getElementById("list");
+                    }
+                    if (!HasList || ForceReload) {
+                        if (!isWorking) {
+                            var force = ForceReload ? 2 : 0
+                            var myFunct = function () { LoadTheMenu(force, "   `TITLE`~Home`STDHUB`MenuFrame.WinOpen('update','STDHUB','CASELINK.MAIN','','no','mmain',0,0,-1,'','',0,0,'');~Case Alerts`STDHUB`MenuFrame.WinOpen('update','STDHUB','CL.ALERTS','','no','mmain',0,0,-1,'','',0,0,'');~Payments`STDHUB`MenuFrame.WinOpen('update','STDHUB','CL.PAYMENTS.MNT','','no','mmain',0,0,-1,'','',0,0,'');~Account Info`STDHUB`MenuFrame.WinOpen('update','STDHUB','CL.ACCT.INFO','','no','mmain',0,0,-1,'','',0,0,'');~Logoff`@L`MenuFrame.Applogoff();", "CaseLink Public Inquiry", "selfhover", "horizontal", "fade", "fade", "", "", "", "", -200, 100, RightMenuFrame, "Y"); }
+                            checkJquery(myFrame, myFunct);
+                        }
+                    } else {
+                        // The Menu is Present. // 
+                        if (displayFrame == "parent") {
+                            parent.$("div[id^='menudiv']").show("slow");
+                        } else {
+                            parent.frames[displayFrame].$("div[id^='menudiv']").show("slow");
+                        }
+                    }
+                    IsLoading = false;
+                } catch (ex) {
+                    debugLogIt("MenuFrame LoadMenu: " + ex.message);
+                    IsLoading = false;
+                    setTimeout("LoadMenu()", 100);
+                    callback += 1;
+                }
+            }
+        }
+
+        var rsTimer;
+        function checkReadyState(curFrm, exeFunct) {
+            try {
+                clearTimeout(rsTimer);
+                if (curFrm.document.readyState === "complete") {
+                    setTimeout(exeFunct, 200);
+                    return;
+                } else {
+                    rsTimer = window.setTimeout(function () { checkReadyState(curFrm, exeFunct); }, 100);
+                }
+            } catch (rsEx) {
+                debugLogIt("(checkReadyState) Caught Error : " + rsEx.message);
+                rsTimer = window.setTimeout(function () { checkReadyState(curFrm, exeFunct); }, 100);
+            }
+        }
+
+        var cjTimer;
+        var isCheckingJquery = "";
+        function checkJquery(curFrm, exeFunct) {
+            try {
+                if (isCheckingJquery === "") { isCheckingJquery = exeFunct; }
+                if (isCheckingJquery !== exeFunct) {
+                    debugLogIt("(checkJquery) Isworking functions dont match.");
+                    window.setTimeout(function () { checkJquery(curFrm, exeFunct); }, 100);
+                    return;
+                }
+                isCheckingJquery = exeFunct;
+                clearTimeout(cjTimer);
+                if (curFrm.document.readyState === "complete") {
+                    // Check if CSS Is Loaded. 
+                    if (!Boolean(parent.frames.update.document.querySelector("link[href*=jqm_]").sheet)) {
+                        debugLogIt("(checkJquery) CSS Not Loaded. SetTimeout to Wait. ");
+                        cjTimer = window.setTimeout(function () { checkJquery(curFrm, exeFunct); }, 100);
+                        return;
+                    }
+                    if (curFrm.jQuery.isReady) {
+                        isCheckingJquery = "";
+                        debugLogIt("(checkJquery) Jquery.isReady true, Execute Passed function");
+                        setTimeout(exeFunct, 200);
+                        return;
+                    } else {
+                        debugLogIt("(checkJquery) jQuery.isReady FALSE, SetTimeout to wait. ");
+                        cjTimer = window.setTimeout(function () { checkJquery(curFrm, exeFunct); }, 100);
+                    }
+                } else {
+                    cjTimer = window.setTimeout(function () { checkJquery(curFrm, exeFunct); }, 100);
+                }
+            } catch (ex1) {
+                debugLogIt("(checkJquery) Caught Error: " + ex1.message);
+                debugLogIt("(checkJquery) Doing setTimeout to try again.");
+                cjTimer = window.setTimeout(function () { checkJquery(curFrm, exeFunct, true); }, 100);
+            }
+        }
+
+        var loginDone = false;
+        function PostMenu() {
+            if (isWorking || InitMenuLoaded !== 1) {
+                // Menu not loaded.. wait. 
+                setTimeout(function () { PostMenu(); }, 200);
+                return;
+            }
+            try {
+                setTimeout(function () {
+                    WinOpen("update", "STDHUB", "CASELINK.MAIN", 0, 1, "mmain", 1000, 790, -1, "", "", 0, 0, "");
+                    if (loginDone == false) {
+                        loginDone = true;
+
+                        WinOpen("rightframe", "STDHUB", "CASELINK.MAIN", 0, 1, "mmain", 1000, 790, -1, "", "", 0, 0, "");
+                    }
+
+
+                }, 200);
+            } catch (e) { alert(e.message); }
+        }
+        MZZZZ = 1; 
+    </script>
+</body>
+
+</html>

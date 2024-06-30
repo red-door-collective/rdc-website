@@ -1,0 +1,128 @@
+<script language=javascript>
+    if (parent.TktAlert) {
+        window.alert = parent.TktAlert
+        window.confirm = parent.TktConfirm
+    }
+</script>
+<html>
+<meta name="Generator" content="XWTK.READREC">
+
+<head>
+    <!--LVP.SES.INQUIRY_PREREAD key="24GT4890" status=NOLOCK -->
+    <!--RECORD.IO: RDFILE key="24GT4890"-->
+    <!-- PASSIVE, 0 -->
+    <!--LVP.SES.INQUIRY_POSTREAD key="24GT4890" status=NOLOCK -->
+    <!--FILEREAD DONE, key="24GT4890" status=NOLOCK len=332 new=0 -->
+    <!--RECORD.IO: WTLOCAL key="24GT4890"-->
+    <script language=javascript>
+        function PostRead() {
+            if (parent.loaded != true) return;
+            if (parent.testLayer("ALERT")) return setTimeout("PostRead()", 300)
+            var ok = parent.InitAfterRead(0, 0, 0);
+            if (ok) {
+                parent.MainForm.P_21.value = "24GT4890";
+                parent.MainForm.STDID.value = "24GT4890";
+                parent.MainForm.P_20.value = "24GT4890";
+                parent.MainForm.P_13.value = "";
+                parent.MainForm.P_300.value = "24GT4890 WINIFRED TINA TURNER vs ALL OCCUPANTS";
+                parent.MainForm.P_1.value = "DETAINER WARRANT FORM";
+                parent.MainForm.P_2.value = "05/08/2024";
+                parent.MainForm.P_6.value = "";
+                parent.MainForm.P_7.value = "";
+                parent.MainForm.P_8.value = "";
+                parent.MainForm.P_48.value = "";
+                parent.MainForm.P_49.value = "1A";
+                parent.MainForm.P_50.value = "";
+                parent.MainForm.P_23.value = "$ 0.00";
+                parent.PutMvals("P_16", "ý127.75", 1, 0);
+                parent.PutMvals("P_17", "ý0.00", 1, 0);
+                parent.PutMvals("P_18", "ý0.00", 1, 0);
+                parent.PutMvals("P_19", "ý127.75", 1, 0);
+                parent.PutMvals("TRN_1", "ý05/08/2024ý05/08/2024ýýýýýýýýýý", 2, 0);
+                parent.PutMvals("TRN_2", "ýDWDýSHýýýýýýýýýý", 2, 0);
+                parent.PutMvals("TRN_3", "ýDETAINER WARRANT FORMýSHERIFF DAVIDSON CO-D1ýýýýýýýýýý", 2, 0);
+                parent.PutMvals("TRN_8", "ý605308*1ýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_3", "ý\\\\Public\\\\Sessions\\\\24\\\\24GT4890\\\\3370253.pdfý\\\\Public\\\\Sessions\\\\24/24GT4890\\\\03370254.pdfýýýýýýýýýý", 2, 0);
+                parent.PutMvals("NFO_3", "ýWINIFRED TINA TURNERý", 1, 0);
+                parent.PutMvals("NFO_8", "ýALL OCCUPANTSý", 1, 0);
+                parent.PutMvals("P_4", "ýP1ý", 1, 0);
+                parent.PutMvals("P_5", "ýPRSý", 1, 0);
+                parent.PutMvals("P_9", "ý, PRSý", 1, 0);
+                parent.PutMvals("P_323", "ýP1ýP1ý", 2, 0);
+                parent.PutMvals("P_324", "ý05/08/2024ý05/08/2024ý", 2, 0);
+                parent.PutMvals("P_325", "ý3506439ý3506439ý", 2, 0);
+                parent.PutMvals("P_327", "ý44.00ý44.00ý", 2, 0);
+                parent.PutMvals("P_328", "ý17.75ý24.00ý", 2, 0);
+                parent.PutMvals("P_329", "ýý17.75ý", 2, 0);
+                parent.PutMvals("P_330", "ýý42.00ý", 2, 0);
+                parent.PutMvals("P_326", "ý127.75ý127.75ý", 2, 0);
+                parent.PutMvals("P_41", "ýP1 WINIFRED TINA TURNERýD1 ALL OCCUPANTSýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_42", "ýDETAINER WARRANT FORMýSHERIFF DAVIDSON COýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_43", "ýP1ýP1ýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_44", "ý05/08/2024ý05/08/2024ýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_45", "ýýýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_46", "ýýýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_47", "ýýýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_24", "ýýýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_25", "ý09:00ýýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_26", "ý1Aýýýýýýýýýýýýýý", 2, 0);
+                parent.PutMvals("P_22", "ýýýýýýýýýýýýýýý", 2, 0);
+            }
+            parent.ClearChangedVals(1);
+
+            parent.SetStyle("Cancel_Btn", "inv");
+            parent.SetProp("WTKCB_34_2", "D");
+            parent.SetProp("WTKCB_15_2", "D");
+            parent.SetProp("WTKCB_41_2", "D");
+            parent.SetProp("WTKCB_42_1", "D");
+            parent.SetProp("WTKCB_42_2", "D");
+            parent.SetProp("WTKCB_21_1", "D");
+            parent.SetProp("WTKCB_21_1", "E");
+            parent.SetProp("WTKCB_21_2", "D");
+            parent.SetProp("WTKCB_21_2", "E");
+            parent.SetProp("WTKCB_21_3", "D");
+            parent.SetProp("WTKCB_21_4", "D");
+            parent.SetProp("WTKCB_21_5", "D");
+            parent.SetProp("WTKCB_21_6", "D");
+            parent.SetProp("WTKCB_21_7", "D");
+            parent.SetProp("WTKCB_21_8", "D");
+            parent.SetProp("WTKCB_21_9", "D");
+            parent.SetProp("WTKCB_21_10", "D");
+            parent.SetProp("WTKCB_21_11", "D");
+            parent.SetProp("WTKCB_21_12", "D");
+            parent.SetProp("WTKCB_21_13", "D");
+            parent.SetProp("WTKCB_80_1", "D");
+            parent.SetProp("WTKCB_80_2", "D");
+            parent.SetProp("WTKCB_80_3", "D");
+            parent.SetProp("WTKCB_80_4", "D");
+            parent.SetProp("WTKCB_80_5", "D");
+            parent.SetProp("WTKCB_80_6", "D");
+            parent.SetProp("WTKCB_80_7", "D");
+            parent.SetProp("WTKCB_80_8", "D");
+            parent.SetProp("WTKCB_80_9", "D");
+            parent.SetProp("WTKCB_80_10", "D");
+            parent.SetProp("WTKCB_80_11", "D");
+            parent.SetProp("WTKCB_80_12", "D");
+            parent.SetProp("WTKCB_80_13", "D");
+            parent.SetProp("WTKCB_80_14", "D");
+            parent.SetProp("WTKCB_80_15", "D");
+            parent.SetProp("WTKCB_80_16", "D");
+            parent.SetLabel("P_327", "<center>Clk<\/center>", "");
+            parent.SetLabel("P_328", "<center>CtLit<\/center>", "");
+            parent.SetLabel("P_329", "<center>StLit<\/center>", "");
+            parent.SetLabel("P_330", "<center>Shrf<\/center>", "");
+
+            parent.ServerDateStr = "05/10/2024";
+            parent.SetTime("11:38:08am");
+            if (ok) parent.InitAfterLoad();
+            if (parent.window.name.substring(0, 6) != 'update') {
+                parent.clearTimeout(parent.titleTimeout);
+                parent.Tkttitle("   : Benjamin Wachter on PUB.SESSIONS @DATE  @TIME");
+            }
+        }
+    </script>
+
+<body onLoad="PostRead(); parent.ClearXEVENT(2,0);">
+</body>
+
+</html>

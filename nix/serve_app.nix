@@ -1,63 +1,56 @@
 #!/usr/bin/env -S nix-build -o serve_app
-{ sources ? null,
-  listen ? "127.0.0.1:8080",
-  tmpdir ? null
+{ pkgs
+, lib
+, app
+, gunicorn
+, appConfigFile ? null
+, listen ? "127.0.0.1:10080"
+, tmpdir ? null
+, system ? builtins.currentSystem
 }:
 let
-  eviction_tracker = import ../. { inherit sources; };
-  inherit (eviction_tracker) dependencyEnv src;
-  deps = import ./deps.nix { inherit sources; };
-  inherit (deps) pkgs gunicorn lib externalRuntimeDeps;
+  inherit (app) dependencyEnv src;
   pythonpath = "${dependencyEnv}/${dependencyEnv.sitePackages}";
 
-  gunicornConf = pkgs.writeText
-                "gunicorn_config.py"
-                (import ./gunicorn_config.py.nix {
-                   inherit listen pythonpath;
-                });
+  exportConfigEnvVar =
+    lib.optionalString
+      (appConfigFile != null)
+      "export RDC_WEBSITE_CONFIG=\${RDC_WEBSITE_CONFIG:-${appConfigFile}}";
 
-  runGunicorn = pkgs.writeShellScriptBin "run" ''
-    ${pkgs.lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
-    export PYTHONPATH=${pythonpath}
-    PATH="${pkgs.chromedriver}/bin:${pkgs.chromium}/bin"
+  gunicornConf = pkgs.writeText
+    "gunicorn_config.py"
+    (import ./gunicorn_config.py.nix {
+      inherit listen pythonpath;
+    });
+
+  runGunicorn = pkgs.writeShellScriptBin "rdc-website-serve-app" ''
+    ${exportConfigEnvVar}
+    ${lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
 
     ${gunicorn}/bin/gunicorn -c ${gunicornConf} \
-      "eviction_tracker.app:create_app()"
+      "rdc_website.app:make_wsgi_app()"
   '';
 
   runMigrations = pkgs.writeShellScriptBin "migrate" ''
-    export PYTHONPATH=${pythonpath}
-    cd ${src}
-    ${dependencyEnv}/bin/flask db upgrade
+    ${runAlembic}/bin/alembic upgrade head
   '';
 
-  console = pkgs.writeShellScriptBin "console" ''
-    export PYTHONPATH=${pythonpath}
+  runAlembic = pkgs.writeShellScriptBin "alembic" ''
+    ${exportConfigEnvVar}
     cd ${src}
-    ${dependencyEnv}/bin/flask shell
+    ${dependencyEnv}/bin/alembic "$@"
   '';
 
-  runFlask = pkgs.writeShellScriptBin "flask" ''
-    export PYTHONPATH=${pythonpath}
+  runPython = pkgs.writeShellScriptBin "python" ''
+    ${exportConfigEnvVar}
+    ${lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
     cd ${src}
-    ${dependencyEnv}/bin/flask "$@"
+    ${dependencyEnv}/bin/python "$@"
   '';
 
-  serve = pkgs.writeShellScriptBin "serve" ''
-      export $(cat /srv/within/eviction_tracker/.env | xargs)
-      export FLASK_APP="eviction_tracker.app"
-      ${runMigrations}
-      export FLASK_APP="eviction_tracker"
-      ${runGunicorn}
-    '';
-
-in pkgs.buildEnv {
-  name = "eviction-tracker-serve-app";
-  paths = [
-    runGunicorn
-    runMigrations
-    runFlask
-    console
-    serve
-  ] ++ externalRuntimeDeps;
+in
+pkgs.buildEnv {
+  ignoreCollisions = true;
+  name = "rdc-website-serve-app";
+  paths = [ runGunicorn runMigrations runAlembic runPython ];
 }

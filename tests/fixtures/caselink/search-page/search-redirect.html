@@ -1,0 +1,24 @@
+<!-- POST to WEBSHELL, calling the search functionality with WTKCB_20  -->
+<html>
+
+<head>
+    <input type="hidden" name="mycalled" id="mycalled" value="0">
+    <script language="javascript">
+        function DoReDirectPipeOutput() {
+            var viframecalled = document.getElementById("mycalled");
+            if (viframecalled.value == "1") {
+                parent.history.back();
+            } else {
+                viframecalled.value = "1";
+                self.location = "/gsapdfs/1715026207198.POSTBACK.20581.72727882.html";
+            }
+        }
+    </script>
+</head>
+
+<body onLoad="DoReDirectPipeOutput();"></body>
+
+</html>
+</body>
+
+</html>

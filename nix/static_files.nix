@@ -1,16 +1,21 @@
+{ pkgs
+, deform
+, pyProject
+, python
+, ...
+}:
+
 with builtins;
 
-{ sources ? null }:
 let
-  deps = import ./deps.nix { inherit sources; };
-  inherit (deps) lib pkgs python pyProject;
-  version = import ./git_version.nix { inherit pkgs; default = pyProject.tool.poetry.version; };
-
+  inherit (pyProject.tool.poetry) version;
 in
-pkgs.runCommand "eviction-tracker-static-${version}" {
-  buildInputs = [];
-  src = ../eviction_tracker;
+pkgs.runCommand "rdc-website-static-${version}"
+{
+  buildInputs = [ ];
+  src = ../rdc_website;
 } ''
-  mkdir -p $out
-  cp -r $src/static_pages/ $out
+  #cp -r $src/static/img $out
+  cp $src/static/favicon.ico $out
+  mkdir $out/debug
 ''
