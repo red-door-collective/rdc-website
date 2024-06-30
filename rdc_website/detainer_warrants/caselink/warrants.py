@@ -92,9 +92,11 @@ def import_from_caselink(start_date, end_date, record=False):
         for i, case in enumerate(cases):
             docket_id = case["Docket #"]
             import_pleading_documents(
-                docket_id_code_item(i), docket_id, pages, log=caselink_log
+                docket_id_code_item(i),
+                docket_id,
+                pages,
+                log=caselink_log if i == 0 else None,
             )
-        raise Exception("testing")
     except Exception as e:
         if current_app.config["ENV"] == "development":
             save_all_responses(caselink_log)
@@ -149,14 +151,14 @@ def import_pleading_documents(code_item, docket_id, pages, log=None):
     case_page_response = case_page.follow_url()
     # case_details = extract_case_details(case_page_response.text)
 
-    open_case_redirect_response = search_results_page.open_case_redirect(None)
+    open_case_redirect_response = search_results_page.open_case_redirect(docket_id)
     full_case_page = Navigation.from_response(open_case_redirect_response)
     full_case_page_response = full_case_page.follow_url()
 
     if log is not None:
-        log.append(log_response("open_case_redirect", full_case_page_response))
+        log.append(log_response("open_case_redirect", open_case_redirect_response))
 
-    pleading_doc_response = full_case_page.open_pleading_document_redirect(None)
+    pleading_doc_response = full_case_page.open_pleading_document_redirect(docket_id)
 
     if log is not None:
         log.append(log_response("pleading_doc", pleading_doc_response))

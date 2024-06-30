@@ -355,7 +355,7 @@ class Navigation:
         data = self.merge_data(
             {
                 "APPID": "pubgs",
-                "CODEITEMNM": "P_102_1",
+                "CODEITEMNM": code_item,
                 "CURRVAL": docket_id,
                 "DEVPATH": "/INNOVISION/DAVIDSON/PUB.SESSIONS",
                 "FINDDEFKEY": "LVP.SES.INQUIRY",
@@ -392,7 +392,7 @@ class Navigation:
     def _encode(cls, string):
         return urllib.parse.quote(string, safe="")
 
-    def open_case_redirect(self, case_details):
+    def open_case_redirect(self, docket_id):
         data = {
             "APPID": "pubgs",
             "CURRPROCESS": "LVP.SES.INQUIRY",
@@ -405,7 +405,7 @@ class Navigation:
             "OPERCODE": self._username(),
             "PARENT": "STDHUB*update",
             "PREVVAL": "0",
-            "STDID": "24GT4771",
+            "STDID": docket_id,
             "STDURL": "/caselink_4_4.davlvp_blank.html",
             "TARGET": "postback",
             "WEBIOHANDLE": self.web_io_handle,
@@ -421,7 +421,7 @@ class Navigation:
 
         return self._submit_form(data)
 
-    def open_pleading_document_redirect(self, case_details):
+    def open_pleading_document_redirect(self, docket_id):
         data = {
             "APPID": "pubgs",
             "CODEITEMNM": "WTKCB_21_1",
@@ -434,7 +434,7 @@ class Navigation:
             "NEEDRECORDS": "1",
             "OPERCODE": "REDDOOR",
             "PARENT": "STDHUB*update",
-            "STDID": "24GT4771",
+            "STDID": docket_id,
             "STDURL": "/caselink_4_4.davlvp_blank.html",
             "TARGET": "postback",
             "WEBIOHANDLE": self.web_io_handle,
