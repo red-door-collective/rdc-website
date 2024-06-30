@@ -1,7 +1,6 @@
 from rdc_website.database import db, Column, Model, relationship
 from datetime import datetime
 from sqlalchemy import func
-from rdc_website.direct_action.models import events_users
 from flask_security import Security, SQLAlchemyUserDatastore, UserMixin, RoleMixin
 
 roles_users = db.Table(
@@ -51,9 +50,6 @@ class User(db.Model, UserMixin):
     )
 
     roles = relationship("Role", secondary=roles_users, back_populates="users")
-    attended_events = relationship(
-        "Event", secondary=events_users, back_populates="attendees"
-    )
     edited_warrants = relationship("DetainerWarrant", back_populates="last_edited_by")
     edited_judgments = relationship("Judgment", back_populates="last_edited_by")
 

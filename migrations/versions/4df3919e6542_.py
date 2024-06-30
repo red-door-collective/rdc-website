@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ca30b954917c
+Revision ID: 4df3919e6542
 Revises: 
-Create Date: 2024-05-12 00:09:48.273655
+Create Date: 2024-06-30 13:15:21.637376
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'ca30b954917c'
+revision = '4df3919e6542'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -28,13 +28,6 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('aliases', sa.ARRAY(sa.String(length=255)), server_default='{}', nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('campaigns',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=50), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
@@ -152,27 +145,12 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('first_name', 'middle_name', 'last_name', 'suffix', 'potential_phones')
     )
-    op.create_table('events',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=50), nullable=True),
-    sa.Column('type', sa.String(length=50), nullable=True),
-    sa.Column('campaign_id', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['campaign_id'], ['campaigns.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('roles_users',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('role_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['role_id'], ['role.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('user_id', 'role_id')
-    )
-    op.create_table('canvass_events',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['id'], ['events.id'], ),
-    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('detainer_warrant_addresses',
     sa.Column('docket_id', sa.String(length=255), nullable=False),
@@ -187,13 +165,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['defendant_id'], ['defendants.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['detainer_warrant_docket_id'], ['cases.docket_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('detainer_warrant_docket_id', 'defendant_id')
-    )
-    op.create_table('events_users',
-    sa.Column('event_id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['event_id'], ['events.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('event_id', 'user_id')
     )
     op.create_table('hearings',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -216,11 +187,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('court_date', 'docket_id')
     )
-    op.create_table('phone_bank_events',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['id'], ['events.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('pleading_documents',
     sa.Column('image_path', sa.String(length=255), nullable=False),
     sa.Column('text', sa.Text(), nullable=True),
@@ -231,13 +197,6 @@ def upgrade():
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['docket_id'], ['cases.docket_id'], ),
     sa.PrimaryKeyConstraint('image_path')
-    )
-    op.create_table('canvass_warrants',
-    sa.Column('canvass_event.id', sa.Integer(), nullable=False),
-    sa.Column('detainer_warrant_docket_id', sa.String(length=255), nullable=False),
-    sa.ForeignKeyConstraint(['canvass_event.id'], ['canvass_events.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['detainer_warrant_docket_id'], ['cases.docket_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('canvass_event.id', 'detainer_warrant_docket_id')
     )
     op.create_table('hearing_defendants',
     sa.Column('hearing_id', sa.Integer(), nullable=False),
@@ -280,31 +239,18 @@ def upgrade():
     sa.ForeignKeyConstraint(['plaintiff_id'], ['plaintiffs.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('phone_bank_tenants',
-    sa.Column('phone_bank_event_id', sa.Integer(), nullable=False),
-    sa.Column('defendant_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['defendant_id'], ['defendants.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['phone_bank_event_id'], ['phone_bank_events.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('phone_bank_event_id', 'defendant_id')
-    )
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_table('phone_bank_tenants')
     op.drop_table('judgments')
     op.drop_table('hearing_defendants')
-    op.drop_table('canvass_warrants')
     op.drop_table('pleading_documents')
-    op.drop_table('phone_bank_events')
     op.drop_table('hearings')
-    op.drop_table('events_users')
     op.drop_table('detainer_warrant_defendants')
     op.drop_table('detainer_warrant_addresses')
-    op.drop_table('canvass_events')
     op.drop_table('roles_users')
-    op.drop_table('events')
     op.drop_table('defendants')
     op.drop_table('cases')
     op.drop_table('user')
@@ -313,7 +259,6 @@ def downgrade():
     op.drop_table('phone_number_verifications')
     op.drop_table('judges')
     op.drop_table('courtrooms')
-    op.drop_table('campaigns')
     op.drop_table('attorneys')
     op.drop_table('addresses')
     # ### end Alembic commands ###

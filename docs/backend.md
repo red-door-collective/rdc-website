@@ -92,9 +92,8 @@ psql -U postgres # or, the superuser you've set up. -U postgres is default for m
 The above command will place you in this postgres shell:
 
 ```
-postgres=# CREATE DATABASE rdc_website;
-postgres=# CREATE USER rdc_website;
-postgres=# GRANT ALL ON rdc_website to rdc_website;
+postgres=# CREATE USER "dev-rdc";
+postgres=# CREATE DATABASE "dev-rdc" WITH OWNER "dev-rdc";
 ```
 
 These commands create the database, user, and assign all privileges for the user

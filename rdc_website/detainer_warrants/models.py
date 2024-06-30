@@ -11,7 +11,6 @@ from rdc_website.database import (
 from datetime import datetime, date, timezone
 from sqlalchemy import func, text, case
 from flask_security import UserMixin, RoleMixin
-from rdc_website.direct_action.models import phone_bank_tenants, canvass_warrants
 from sqlalchemy.ext.hybrid import hybrid_property
 from nameparser import HumanName
 from ..util import get_or_create, file_date_guess
@@ -82,9 +81,6 @@ class Defendant(db.Model, Timestamped):
     )
     verified_phone = relationship(
         "PhoneNumberVerification", back_populates="defendants"
-    )
-    phone_bank_attempts = relationship(
-        "PhoneBankEvent", secondary=phone_bank_tenants, back_populates="tenants"
     )
 
     @hybrid_property
@@ -889,13 +885,6 @@ class DetainerWarrant(Case):
             ],
             else_=None,
         ).label("audit_status")
-
-    canvass_attempts = relationship(
-        "CanvassEvent",
-        secondary=canvass_warrants,
-        back_populates="warrants",
-        cascade="all, delete",
-    )
 
     def __repr__(self):
         return f"<DetainerWarrant(docket_id='{self.docket_id}', file_date='{self._file_date}')>"

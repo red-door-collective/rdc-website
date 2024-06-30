@@ -15,6 +15,7 @@ from rdc_website.extensions import (
     login_manager,
     security,
 )
+import rdc_website.routes as routes
 from rdc_website.admin.models import User, user_datastore
 import re
 import os
@@ -24,7 +25,7 @@ from threading import Thread
 
 from sqlalchemy import and_, or_, func, desc
 from sqlalchemy.sql import text
-from rdc_website import commands, detainer_warrants, admin, direct_action
+from rdc_website import commands, detainer_warrants, admin
 import json
 from datetime import datetime, date, timedelta, timezone
 from dateutil.rrule import rrule, MONTHLY
@@ -294,6 +295,7 @@ def register_extensions(app):
     migrate.init_app(app, db)
     marshmallow.init_app(app)
     api.init_app(app)
+    routes.for_api(api, app)
     login_manager.init_app(app)
     login_manager.login_view = None
     security.init_app(app, user_datastore)
@@ -301,91 +303,6 @@ def register_extensions(app):
     cors.init_app(app)
     csrf.init_app(app)
     mail.init_app(app)
-
-    api.add_resource(
-        "/attorneys/",
-        detainer_warrants.views.AttorneyListResource,
-        detainer_warrants.views.AttorneyResource,
-        app=app,
-    )
-    api.add_resource(
-        "/defendants/",
-        detainer_warrants.views.DefendantListResource,
-        detainer_warrants.views.DefendantResource,
-        app=app,
-    )
-    api.add_resource(
-        "/courtrooms/",
-        detainer_warrants.views.CourtroomListResource,
-        detainer_warrants.views.CourtroomResource,
-        app=app,
-    )
-    api.add_resource(
-        "/hearings/",
-        detainer_warrants.views.HearingListResource,
-        detainer_warrants.views.HearingResource,
-        app=app,
-    )
-    api.add_resource(
-        "/plaintiffs/",
-        detainer_warrants.views.PlaintiffListResource,
-        detainer_warrants.views.PlaintiffResource,
-        app=app,
-    )
-    api.add_resource(
-        "/judgments/",
-        detainer_warrants.views.JudgmentListResource,
-        detainer_warrants.views.JudgmentResource,
-        app=app,
-    )
-    api.add_resource(
-        "/judges/",
-        detainer_warrants.views.JudgeListResource,
-        detainer_warrants.views.JudgeResource,
-        app=app,
-    )
-    api.add_resource(
-        "/detainer-warrants/",
-        detainer_warrants.views.DetainerWarrantListResource,
-        detainer_warrants.views.DetainerWarrantResource,
-        app=app,
-    )
-    api.add_resource(
-        "/pleading-documents/",
-        detainer_warrants.views.PleadingDocumentListResource,
-        detainer_warrants.views.PleadingDocumentResource,
-        app=app,
-    )
-    api.add_resource(
-        "/phone-number-verifications/",
-        detainer_warrants.views.PhoneNumberVerificationListResource,
-        detainer_warrants.views.PhoneNumberVerificationResource,
-        app=app,
-    )
-    api.add_resource(
-        "/users/", admin.views.UserListResource, admin.views.UserResource, app=app
-    )
-    api.add_resource(
-        "/roles/", admin.views.RoleListResource, admin.views.RoleResource, app=app
-    )
-    api.add_resource(
-        "/campaigns/",
-        direct_action.views.CampaignListResource,
-        direct_action.views.CampaignResource,
-        app=app,
-    )
-    api.add_resource(
-        "/events/",
-        direct_action.views.EventListResource,
-        direct_action.views.EventResource,
-        app=app,
-    )
-    api.add_resource(
-        "/phone_bank_events/",
-        direct_action.views.PhoneBankEventListResource,
-        direct_action.views.PhoneBankEventResource,
-        app=app,
-    )
 
     @app.before_request
     def log_request_info():
