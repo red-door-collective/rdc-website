@@ -97,9 +97,16 @@ def import_from_caselink(start_date, end_date, record=False):
                 pages,
                 log=caselink_log if i == 0 else None,
             )
+
+        if record:
+            record_imports_in_dev(caselink_log)
     except Exception as e:
-        if current_app.config["ENV"] == "development":
-            save_all_responses(caselink_log)
+        record_imports_in_dev(caselink_log)
+
+
+def record_imports_in_dev(caselink_log):
+    if current_app.config["ENV"] == "development":
+        save_all_responses(caselink_log)
 
 
 def extract_case_details(open_case_html):
