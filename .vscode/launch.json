@@ -5,6 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "[Record] Import From Caselink",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "rdc_website/app.py",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "import-from-caselink",
+                "2024-05-01",
+                "2024-05-10",
+                "--record=true"
+            ],
+            "jinja": false,
+            "autoStartBrowser": false
+        },
+        {
             "name": "Import From Caselink",
             "type": "debugpy",
             "request": "launch",

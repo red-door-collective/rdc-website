@@ -44,7 +44,7 @@ class Navigation:
         r"(?:self\.location\s*=\s*\")(.+?\.html)\"", re.MULTILINE
     )
     START_DATE_ITEM = "P_26"
-    SEP = "%7F"
+    SEP = "\x7f"
 
     def __init__(self, path):
         postback_parts = path.removeprefix("/gsapdfs/").split(".")[:-1]
@@ -90,7 +90,7 @@ class Navigation:
         return current_app.config["CASELINK_PASSWORD"]
 
     @classmethod
-    def login(cls):
+    def login(cls, log=None):
         headers = cls.merge_headers(
             {
                 "Cache-Control": "max-age=0",
@@ -119,6 +119,9 @@ class Navigation:
             cls.webshell(), cookies=cls.COOKIES, headers=headers, data=data
         )
 
+        if log is not None:
+            log.append({"name": "login", "response": response})
+
         return cls.from_response(response)
 
     def _submit_form(self, data, headers=None):
@@ -139,15 +142,23 @@ class Navigation:
         )
 
     @classmethod
+    def _date(cls, date):
+        return date.strftime("%m/%d/%Y")
+
+    @classmethod
     def _format_date(cls, date):
-        return urllib.parse.quote(date.strftime("%m/%d/%Y"), safe="")
+        return cls.escape(cls._date(date))
+
+    @classmethod
+    def escape(cls, str):
+        return urllib.parse.quote(str, safe="")
 
     @classmethod
     def _encode_data(self, data):
         return urllib.parse.urlencode(data, safe="*")
 
     def add_start_date(self, start):
-        start_date = Navigation._format_date(start)
+        start_date = Navigation._date(start)
         data = self.merge_data(
             {
                 "CODEITEMNM": self.START_DATE_ITEM,
@@ -171,7 +182,7 @@ class Navigation:
                 "NPKEYS": "0",
                 "SUBMITCOUNT": "4",
                 "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
-                "WCVARS": "self.START_DATE_ITEM" + self.SEP,
+                "WCVARS": self.START_DATE_ITEM + self.SEP,
                 "WCVALS": start_date + self.SEP,
             }
         )
@@ -184,6 +195,7 @@ class Navigation:
         )
 
     def add_detainer_warrant_type(self, end):
+        end_date = Navigation._date(end)
         data = self.merge_data(
             {
                 "CODEITEMNM": self.CASE_TYPE,
@@ -209,7 +221,7 @@ class Navigation:
                 "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
                 "WCVARS": "P_27{sep}P_31{sep}".format(sep="\x7f"),
                 "WCVALS": "{end_date}{sep}{warrant_filter}{sep}".format(
-                    end_date=Navigation._format_date(end),
+                    end_date=end_date,
                     warrant_filter="2",
                     sep="\x7f",
                 ),
@@ -250,15 +262,16 @@ class Navigation:
         )
         return self._submit_form(self._encode_data(data))
 
-    def search_update(self, wc_vars, wc_values):
+    def search_update(self, cell_names, wc_vars, wc_values):
         data = self.merge_data(
             {
-                "CODEITEMNM": "WTKCB_20",
+                "CODEITEMNM": "P_102_1",
                 "CURRPROCESS": "CASELINK.MAIN",
-                "CURRVAL": "�� Search for Case(s)� ",
+                "CURRVAL": "24GT4771",
+                "PREVVAL": "�CLICK",
                 "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
                 "FINDDEFKEY": "CASELINK.MAIN",
-                "GATEWAY": "PB,NOLOCK,1,1",
+                "GATEWAY": "PB,NOLOCK,1,0",
                 "LINENBR": "0",
                 "NEEDRECORDS": "1",
                 "OPERCODE": self._username(),
@@ -269,11 +282,11 @@ class Navigation:
                 "WEBIOHANDLE": self.web_io_handle,
                 "WINDOWNAME": "update",
                 "XEVENT": "POSTBACK",
-                "CHANGED": "4",
-                "CURRPANEL": "1",
+                "CHANGED": str(len(cell_names) + 1),
+                "CURRPANEL": "2",
                 "HUBFILE": "USER_SETTING",
                 "NPKEYS": "0",
-                "SUBMITCOUNT": "6",
+                "SUBMITCOUNT": "7",
                 "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
                 "WCVARS": wc_vars,
                 "WCVALS": wc_values,
@@ -293,6 +306,7 @@ class Navigation:
     def menu(self):
         data = self.merge_data(
             {
+                "CURRPROCESS": "CASELINK.ADMIN",
                 "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
                 "FINDDEFKEY": self.CASELINK_PROCESS,
                 "GATEWAY": "WIN*CASELINK.ADMIN",
@@ -337,33 +351,32 @@ class Navigation:
 
         return self._submit_form(self._encode_data(data))
 
-    def open_case(self, code_item, docket_id):
+    def open_case(self, code_item, docket_id, cell_names, wc_vars, wc_vals):
         data = self.merge_data(
             {
-                "CODEITEMNM": code_item,
+                "APPID": "pubgs",
+                "CODEITEMNM": "P_102_1",
                 "CURRVAL": docket_id,
-                "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
-                "FINDDEFKEY": self.CASELINK_PROCESS,
-                "GATEWAY": "PB,NOLOCK,1,0",
-                "LINENBR": "0",
-                "NEEDRECORDS": "1",
+                "DEVPATH": "/INNOVISION/DAVIDSON/PUB.SESSIONS",
+                "FINDDEFKEY": "LVP.SES.INQUIRY",
+                "GATEWAY": "CP*CASELINK.MAIN",
+                "LINENBR": "1",
+                "NEEDRECORDS": "0",
                 "OPERCODE": "REDDOOR",
                 "PARENT": "STDHUB*update",
                 "PREVVAL": "�CLICK",
-                "STDID": "52832",
+                "STDID": "24GT4771",
                 "STDURL": "/caselink_4_4.davlvp_blank.html",
-                "TARGET": "postback",
+                "TARGET": "_self",
                 "WEBIOHANDLE": self.web_io_handle,
                 "WINDOWNAME": "update",
-                "XEVENT": "POSTBACK",
-                "CHANGED": "564",
+                "XEVENT": "STDHUB",
+                "CHANGED": str(len(cell_names) - 1),
                 "CURRPANEL": "2",
                 "HUBFILE": "USER_SETTING",
                 "NPKEYS": "0",
                 "SUBMITCOUNT": "8",
                 "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
-                "WCVARS": "\x7f",
-                "WCVALS": "\x7f",
             }
         )
 
@@ -380,21 +393,62 @@ class Navigation:
         return urllib.parse.quote(string, safe="")
 
     def open_case_redirect(self, case_details):
-        dev_path = Navigation._encode(case_details["dev_path"])
-        data = "APPID=pubgs&CODEITEMNM=P_104_21&CURRPROCESS=CASELINK.MAIN&CURRVAL=05%252F08%252F2024&DEVAPPID=&DEVPATH={dev_path}&FINDDEFKEY={process}&GATEWAY=CP*CASELINK.MAIN&LINENBR=21&NEEDRECORDS=0&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=%25FCCLICK&STDID={docket_id}&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=_self&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=STDHUB&CHANGED=948&CURRPANEL=2&HUBFILE=USER_SETTING&NPKEYS=0&SUBMITCOUNT=9&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=&WCVALS=".format(
-            web_io_handle=self.web_io_handle,
-            dev_path=dev_path,
-            docket_id=case_details["docket_id"],
-            process=case_details["process"],
-        )
+        data = {
+            "APPID": "pubgs",
+            "CURRPROCESS": "LVP.SES.INQUIRY",
+            "CURRVAL": "1",
+            "DEVPATH": "/INNOVISION/DAVIDSON/PUB.SESSIONS",
+            "FINDDEFKEY": "LVP.SES.INQUIRY",
+            "GATEWAY": "FL",
+            "LINENBR": "0",
+            "NEEDRECORDS": "-1",
+            "OPERCODE": self._username(),
+            "PARENT": "STDHUB*update",
+            "PREVVAL": "0",
+            "STDID": "24GT4771",
+            "STDURL": "/caselink_4_4.davlvp_blank.html",
+            "TARGET": "postback",
+            "WEBIOHANDLE": self.web_io_handle,
+            "WINDOWNAME": "update",
+            "XEVENT": "READREC",
+            "CHANGED": "0",
+            "CURRPANEL": "1",
+            "HUBFILE": "TRANS",
+            "NPKEYS": "0",
+            "SUBMITCOUNT": "2",
+            "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+        }
 
-        return Navigation.from_response(self._submit_form(data))
+        return self._submit_form(data)
 
     def open_pleading_document_redirect(self, case_details):
-        dev_path = Navigation._encode(case_details["dev_path"])
-        data = "APPID=pubgs&CODEITEMNM=&CURRPROCESS=LVP.SES.INQUIRY&CURRVAL=1&DEVAPPID=&DEVPATH={dev_path}&FINDDEFKEY=LVP.SES.INQUIRY&GATEWAY=FL&LINENBR=0&NEEDRECORDS=-1&OPERCODE=REDDOOR&PARENT=STDHUB*update&PREVVAL=0&STDID=24GT4890&STDURL=%252Fcaselink_4_4.davlvp_blank.html&TARGET=postback&WEBIOHANDLE={web_io_handle}&WINDOWNAME=update&XEVENT=READREC&CHANGED=0&CURRPANEL=1&HUBFILE=TRANS&NPKEYS=0&SUBMITCOUNT=2&WEBEVENTPATH=%252FGSASYS%252FTKT%252FTKT.ADMIN%252FWEB_EVENT&WCVARS=&WCVALS=".format(
-            web_io_handle=self.web_io_handle, dev_path=dev_path
-        )
+        data = {
+            "APPID": "pubgs",
+            "CODEITEMNM": "WTKCB_21_1",
+            "CURRPROCESS": "LVP.SES.INQUIRY",
+            "CURRVAL": "   View Image   ",
+            "DEVPATH": "/INNOVISION/DAVIDSON/PUB.SESSIONS",
+            "FINDDEFKEY": "LVP.SES.INQUIRY",
+            "GATEWAY": "PB,NOLOCK,1,1",
+            "LINENBR": "0",
+            "NEEDRECORDS": "1",
+            "OPERCODE": "REDDOOR",
+            "PARENT": "STDHUB*update",
+            "STDID": "24GT4771",
+            "STDURL": "/caselink_4_4.davlvp_blank.html",
+            "TARGET": "postback",
+            "WEBIOHANDLE": self.web_io_handle,
+            "WINDOWNAME": "update",
+            "XEVENT": "POSTBACK",
+            "CHANGED": "0",
+            "CURRPANEL": "1",
+            "HUBFILE": "TRANS",
+            "NPKEYS": "0",
+            "SUBMITCOUNT": "3",
+            "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+            "WCVARS": "P_326_1\x7fTOTAL_P_326\x7fTOTAL_P_327\x7fTOTAL_P_328\x7fTOTAL_P_329\x7fTOTAL_P_330\x7fTOTAL_P_331\x7fTOTAL_P_332\x7fTOTAL_P_333\x7fTOTAL_P_334\x7fTOTAL_P_335\x7fTOTAL_P_336\x7fTOTAL_P_337\x7fTOTAL_P_326\x7f",
+            "WCVALS": "61.75\x7f61.75\x7f44.00\x7f17.75\x7f0.00\x7f0.00\x7f0.00\x7f0.00\x7f0.00\x7f0.00\x7f0.00\x7f0.00\x7f0.00\x7f61.75\x7f",
+        }
 
         return self._submit_form(data)
 

@@ -1,4 +1,5 @@
 """Click commands."""
+
 import os
 from glob import glob
 from subprocess import call
@@ -270,12 +271,16 @@ def verify_phones(limit):
 @click.command()
 @click.argument("start_date")
 @click.argument("end_date")
+@click.option(
+    "-r", "--record", default=False, help="Record the requests made to caselink"
+)
 @with_appcontext
-def import_from_caselink(start_date, end_date):
+def import_from_caselink(start_date, end_date, record):
     """Insert Detainer Warrants"""
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%d")
-    detainer_warrants.caselink.warrants.import_from_caselink(start, end)
+    detainer_warrants.caselink.warrants.import_from_caselink(start, end, record=record)
+
 
 @click.command()
 @click.argument("image_path")
@@ -481,5 +486,8 @@ def bootstrap():
 
     db.session.commit()
 
+
 def find_or_create_user(**kwargs):
-    return user_datastore.find_user(email=kwargs['email']) or user_datastore.create_user(**kwargs)
+    return user_datastore.find_user(
+        email=kwargs["email"]
+    ) or user_datastore.create_user(**kwargs)
