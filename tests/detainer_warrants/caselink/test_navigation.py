@@ -25,7 +25,7 @@ def mocked_post(*args, **kwargs):
     elif "PARENT=MENU" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-page/menu.html") as f:
             return MockResponse(f.read(), 200)
-    elif "XEVENT=READREC" in kwargs["data"]:
+    elif "XEVENT=READREC" in kwargs["data"] and "APPID=davlvp" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-page/read-rec.html") as f:
             return MockResponse(f.read(), 200)
     elif "P_26" in kwargs["data"] and "05%2F01%2F2024" in kwargs["data"]:
@@ -39,10 +39,10 @@ def mocked_post(*args, **kwargs):
     elif "WTKCB_20" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-page/search-redirect.html") as f:
             return MockResponse(f.read(), 200)
-    elif "FCCLICK" in kwargs["data"] and "APPID=davlvp" in kwargs["data"]:
+    elif "CP*CASELINK.MAIN" in kwargs["data"] and "APPID=pubgs" in kwargs["data"]:
         with open("tests/fixtures/caselink/search-results-page/open-case.html") as f:
             return MockResponse(f.read(), 200)
-    elif "%2FINNOVISION%2FDAVIDSON%2FPUB.SESSIONS" in kwargs["data"]:
+    elif "XEVENT=READREC" in kwargs["data"] and "APPID=pubgs" in kwargs["data"]:
         with open(
             "tests/fixtures/caselink/search-results-page/open-case-redirect.html"
         ) as f:
@@ -206,7 +206,7 @@ class TestNavigation(TestCase):
         search_page = Navigation.login()
 
         results_page = Navigation.from_response(search_page.search())
-        open_case_response = results_page.open_case("P_102_2", "24GT4890")
+        open_case_response = results_page.open_case("P_102_2", "24GT4890", [])
 
         self.assertIn(
             '"LVP.SES.INQUIRY", "24GT4890", "STDHUB"', open_case_response.text
@@ -218,18 +218,13 @@ class TestNavigation(TestCase):
         search_page = Navigation.login()
 
         results_page = Navigation.from_response(search_page.search())
-        response = results_page.open_case_redirect(
-            {
-                "process": "LVP.SES.INQUIRY",
-                "docket_id": "24GT4890",
-                "dev_path": "/INNOVISION/DAVIDSON/PUB.SESSIONS",
-            }
-        )
+        response = results_page.open_case_redirect("24GT4890")
+        case_page = Navigation.from_response(response)
 
         self.assertEqual(
-            response.path, "/gsapdfs/1715359093408.STDHUB.20585.59888194.html"
+            case_page.path, "/gsapdfs/1715359093408.STDHUB.20585.59888194.html"
         )
-        self.assertEqual(response.web_io_handle, "1715359093408")
+        self.assertEqual(case_page.web_io_handle, "1715359093408")
 
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     def test_view_pdf(self, mock_post):

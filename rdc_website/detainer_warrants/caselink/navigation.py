@@ -351,7 +351,7 @@ class Navigation:
 
         return self._submit_form(self._encode_data(data))
 
-    def open_case(self, code_item, docket_id, cell_names, wc_vars, wc_vals):
+    def open_case(self, code_item, docket_id, cell_names):
         data = self.merge_data(
             {
                 "APPID": "pubgs",
@@ -419,7 +419,7 @@ class Navigation:
             "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
         }
 
-        return self._submit_form(data)
+        return self._submit_form(self._encode_data(data))
 
     def open_pleading_document_redirect(self, docket_id):
         data = {

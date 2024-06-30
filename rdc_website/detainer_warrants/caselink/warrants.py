@@ -142,7 +142,7 @@ def populate_pleadings(docket_id, image_paths):
 def import_pleading_documents(code_item, docket_id, pages, log=None):
     search_results_page = pages["search_page"]
     open_case_response = pages["menu_page"].open_case(
-        code_item, docket_id, pages["cell_names"], pages["wc_vars"], pages["wc_vals"]
+        code_item, docket_id, pages["cell_names"]
     )
     if log is not None:
         log.append(log_response("open_case", open_case_response))
