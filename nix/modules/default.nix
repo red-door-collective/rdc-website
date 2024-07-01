@@ -1,15 +1,17 @@
-{ config, pkgs, lib, ... }:
-
-with builtins;
-
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+with builtins; let
   cfg = config.services.red-door-collective.rdc-website;
 
   configFilename = "config.json";
 
   configInput =
     pkgs.writeText configFilename
-      (toJSON cfg.extraConfig);
+    (toJSON cfg.extraConfig);
 
   serveApp = pkgs.rdc-website-serve-app.override {
     appConfigFile = "/run/rdc-website/${configFilename}";
@@ -25,11 +27,8 @@ let
   rdcWebsiteShowConfig = pkgs.writeScriptBin "rdc-website-show-config" ''
     cat `${rdcWebsiteConfig}/bin/rdc-website-config`
   '';
-
-in
-{
+in {
   options.services.red-door-collective.rdc-website = with lib; {
-
     enable = mkEnableOption "Enable the website of Red Door Collective";
 
     debug = mkOption {
@@ -91,7 +90,7 @@ in
 
     secretFiles = mkOption {
       type = types.attrs;
-      default = { };
+      default = {};
       description = ''
         Arbitrary secrets that should be read from a file and
         inserted in the config on startup. Expects an attrset with
@@ -104,14 +103,12 @@ in
 
     extraConfig = mkOption {
       type = types.attrs;
-      default = { };
+      default = {};
       description = "Additional config options given as attribute set.";
     };
-
   };
 
   config = lib.mkIf cfg.enable {
-
     services.red-door-collective.rdc-website.configFile = configInput;
     services.red-door-collective.rdc-website.app = serveApp;
     services.red-door-collective.rdc-website.staticFiles = pkgs.rdc-website-static;
@@ -125,38 +122,36 @@ in
       isSystemUser = true;
       group = "red-door-collective";
     };
-    users.groups.red-door-collective = { };
+    users.groups.red-door-collective = {};
 
-    systemd.services.red-door-collective.rdc-website = {
-
+    systemd.services.rdc-website = {
       description = "Eviction court data in Davidson county";
-      after = [ "network.target" "postgresql.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target" "postgresql.service"];
+      wantedBy = ["multi-user.target"];
       stopIfChanged = false;
 
-      preStart =
-        let
-          replaceDebug = lib.optionalString cfg.debug "-vv";
-          secrets = cfg.secretFiles // {
+      preStart = let
+        replaceDebug = lib.optionalString cfg.debug "-vv";
+        secrets =
+          cfg.secretFiles
+          // {
             browser_session_secret_key = cfg.browserSessionSecretKeyFile;
           };
-          replaceSecret = file: var: secretFile:
-            "${pkgs.replace}/bin/replace-literal -m 1 ${replaceDebug} -f -e @${var}@ $(< ${secretFile}) ${file}";
-          replaceCfgSecret = var: secretFile: replaceSecret "$cfgdir/${configFilename}" var secretFile;
-          secretReplacements = lib.mapAttrsToList (k: v: replaceCfgSecret k v) cfg.secretFiles;
-        in
-        ''
-          echo "Prepare config file..."
-          cfgdir=$RUNTIME_DIRECTORY
-          chmod u+w -R $cfgdir
-          cp ${configInput} $cfgdir/${configFilename}
+        replaceSecret = file: var: secretFile: "${pkgs.replace}/bin/replace-literal -m 1 ${replaceDebug} -f -e @${var}@ $(< ${secretFile}) ${file}";
+        replaceCfgSecret = var: secretFile: replaceSecret "$cfgdir/${configFilename}" var secretFile;
+        secretReplacements = lib.mapAttrsToList (k: v: replaceCfgSecret k v) cfg.secretFiles;
+      in ''
+        echo "Prepare config file..."
+        cfgdir=$RUNTIME_DIRECTORY
+        chmod u+w -R $cfgdir
+        cp ${configInput} $cfgdir/${configFilename}
 
-          ${lib.concatStringsSep "\n" secretReplacements}
+        ${lib.concatStringsSep "\n" secretReplacements}
 
-          echo "Run database migrations if needed..."
-          ${serveApp}/bin/migrate
-          echo "Pre-start finished."
-        '';
+        echo "Run database migrations if needed..."
+        ${serveApp}/bin/migrate
+        echo "Pre-start finished."
+      '';
 
       serviceConfig = {
         User = cfg.user;
@@ -175,8 +170,8 @@ in
           "/dev/stdout"
         ];
 
-        AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
-        CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
+        AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+        CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
         DevicePolicy = "strict";
         LockPersonality = true;
         NoNewPrivileges = true;
@@ -192,7 +187,7 @@ in
         ProtectKernelTunables = true;
         ProtectSystem = "strict";
         RemoveIPC = true;
-        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+        RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
         RestrictNamespaces = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
@@ -211,7 +206,6 @@ in
           "~@raw-io"
         ];
         UMask = "077";
-
       };
 
       unitConfig = {
@@ -220,6 +214,5 @@ in
         ];
       };
     };
-
   };
 }
