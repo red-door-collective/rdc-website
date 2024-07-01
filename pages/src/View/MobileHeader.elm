@@ -137,11 +137,6 @@ view profile session page =
                         , label = Element.text "Events"
                         }
                     , headerLink []
-                        (page.route == Just Trends)
-                        { url = "/trends"
-                        , label = Element.text "Trends"
-                        }
-                    , headerLink []
                         (page.route == Just Glossary)
                         { url = "/glossary"
                         , label = Element.text "Glossary"
