@@ -15,7 +15,7 @@ jobs:
     name: Unit tests
     services:
       postgres:
-        image: postgres:11
+        image: postgres:16
         env:
           POSTGRES_USER: rdc_website_test
           POSTGRES_PASSWORD: junkdata
