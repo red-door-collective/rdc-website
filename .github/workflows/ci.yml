@@ -22,7 +22,6 @@ jobs:
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - run: nix develop --impure -c ./test-setup.sh /tmp
       - run: nix develop --impure -c pytest
-      - run: nix-shell --run "pytest"
 
   integration_tests:
     runs-on: ubuntu-latest
