@@ -145,7 +145,9 @@ in {
         cfgdir=$RUNTIME_DIRECTORY
         chmod u+w -R $cfgdir
         cp ${configInput} $cfgdir/${configFilename}
-        
+
+        echo "test log"
+
         echo "$cfgdir/${configFilename}"
         echo "${configInput}"
 
