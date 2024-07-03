@@ -142,10 +142,12 @@ in {
         secretReplacements = lib.mapAttrsToList (k: v: replaceCfgSecret k v) cfg.secretFiles;
       in ''
         echo "Prepare config file..."
-        echo $RUNTIME_DIRECTORY
         cfgdir=$RUNTIME_DIRECTORY
         chmod u+w -R $cfgdir
         cp ${configInput} $cfgdir/${configFilename}
+        
+        echo "$cfgdir/${configFilename}"
+        echo "${configInput}"
 
         ${lib.concatStringsSep "\n" secretReplacements}
 
