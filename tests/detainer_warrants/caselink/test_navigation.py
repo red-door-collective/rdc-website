@@ -6,6 +6,7 @@ from rdc_website.app import create_app
 import rdc_website.detainer_warrants.caselink as caselink
 from rdc_website.detainer_warrants.caselink.navigation import Navigation
 from datetime import datetime, date
+from tests.helpers.rdc_test_case import RDCTestCase
 
 
 def mocked_post(*args, **kwargs):
@@ -93,16 +94,7 @@ RESULT_PAGE_PARENT = "POSTBACK"
 WEB_IO_HANDLE = "1715026207198"
 
 
-class TestNavigation(TestCase):
-
-    def create_app(self):
-        app = create_app()
-        app.config["TESTING"] = True
-        app.config["SQLALCHEMY_DATABASE_URI"] = (
-            "postgresql+psycopg2://rdc_website_test:junkdata@localhost:5432/rdc_website_test"
-        )
-        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-        return app
+class TestNavigation(RDCTestCase):
 
     @mock.patch("requests.Session.post", side_effect=mocked_post)
     @mock.patch("requests.Session.get", side_effect=mocked_get)
