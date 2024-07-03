@@ -98,7 +98,7 @@ jobs:
           start: npm start
           wait-on: "http://localhost:1234"
           wait-on-timeout: 60
-          working-directory: pages
+          working-directory: ./pages
           install: false
           record: true
         env:
