@@ -52,6 +52,7 @@ pytest = "^8.1.1"
 pdbpp = "^0.10.3"
 python-language-server = "^0.36.2"
 mimesis-factory = "^1.2.0"
+doit = "^0.36.0"
 
 [tool.pytest.ini_options]
 pythonpath = [

@@ -2,17 +2,9 @@ import logging
 import os
 
 from rdc_website.app import create_app
+from tests.db_utils import clear_data
 
 logging.basicConfig(level=logging.INFO)
-
-
-def clear_data(session):
-    meta = db.metadata
-    for table in reversed(meta.sorted_tables):
-        logg.info("Clear table ${table}")
-        session.execute(table.delete())
-    session.commit()
-
 
 if __name__ == "__main__":
 
@@ -29,6 +21,6 @@ if __name__ == "__main__":
         print(80 * "=")
         input("press Enter to drop all tables...")
 
-        clear_data(db.session)
+        clear_data(db)
 
         logg.info("committed")
