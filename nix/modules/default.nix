@@ -82,12 +82,6 @@ in {
       default = null;
     };
 
-    browserSessionSecretKeyFile = mkOption {
-      type = types.str;
-      description = "Path to file containing the secret key for browser session signing";
-      default = "/var/lib/rdc-website/browser-session-secret-key";
-    };
-
     secretFiles = mkOption {
       type = types.attrs;
       default = {};
@@ -118,6 +112,10 @@ in {
       rdcWebsiteShowConfig
     ];
 
+    environment.variables = {
+      LOG_FILE_PATH = "./capture.log";
+    };
+
     users.users.rdc-website = {
       isSystemUser = true;
       group = "red-door-collective";
@@ -132,11 +130,7 @@ in {
 
       preStart = let
         replaceDebug = lib.optionalString cfg.debug "-vv";
-        secrets =
-          cfg.secretFiles
-          // {
-            browser_session_secret_key = cfg.browserSessionSecretKeyFile;
-          };
+        secrets = cfg.secretFiles;
         replaceSecret = file: var: secretFile: "${pkgs.replace}/bin/replace-literal -m 1 ${replaceDebug} -f -e @${var}@ $(< ${secretFile}) ${file}";
         replaceCfgSecret = var: secretFile: replaceSecret "$cfgdir/${configFilename}" var secretFile;
         secretReplacements = lib.mapAttrsToList (k: v: replaceCfgSecret k v) cfg.secretFiles;
