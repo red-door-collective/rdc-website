@@ -35,7 +35,7 @@
   runMigrate = pkgs.writeShellScriptBin "migrate" ''
     ${exportConfigEnvVar}
     cd ${src}
-    ${runMigrate}/bin/flask db upgrade
+    ${dependencyEnv}/bin/flask db upgrade
   '';
 
   runPython = pkgs.writeShellScriptBin "python" ''
