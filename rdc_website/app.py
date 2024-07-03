@@ -53,7 +53,7 @@ Plaintiff = detainer_warrants.models.Plaintiff
 Judgment = detainer_warrants.models.Judgment
 
 
-def create_app():
+def create_app(testing=False):
     app = Flask(__name__.split(".")[0])
     app.config.from_file(os.environ["RDC_WEBSITE_CONFIG"], load=json.load)
 

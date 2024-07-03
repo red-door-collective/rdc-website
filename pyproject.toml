@@ -35,7 +35,6 @@ python-json-logger = "^2.0.7"
 gspread-formatting = "^1.1.2"
 flask-cors = "^4.0.0"
 pdf2image = "^1.17.0"
-pdfminer-six = "^20231228"
 selenium = "^4.20.0"
 pytesseract = "^0.3.10"
 flask-mail = "^0.9.1"
@@ -53,6 +52,7 @@ pytest = "^8.1.1"
 pdbpp = "^0.10.3"
 python-language-server = "^0.36.2"
 mimesis-factory = "^1.2.0"
+doit = "^0.36.0"
 
 [tool.pytest.ini_options]
 pythonpath = [

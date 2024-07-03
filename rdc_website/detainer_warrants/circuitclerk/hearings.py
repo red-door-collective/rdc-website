@@ -6,8 +6,6 @@ from sqlalchemy.exc import IntegrityError, InternalError
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.dialects.postgresql import insert
 from datetime import date, datetime, timedelta
-from pdfminer.layout import LAParams
-from pdfminer.high_level import extract_text_to_fp
 import io
 
 from ..models import (
@@ -139,17 +137,17 @@ def parse_court_date(tr):
 
 def extract_html_from_pdf(pdf):
     output_string = io.StringIO()
-    params = LAParams(
-        all_texts=False,
-        boxes_flow=0.5,
-        line_margin=0.5,
-        word_margin=0.1,
-        char_margin=2.0,
-        detect_vertical=False,
-    )
-    extract_text_to_fp(
-        pdf, output_string, laparams=params, output_type="html", codec=None
-    )
+    # params = LAParams(
+    #     all_texts=False,
+    #     boxes_flow=0.5,
+    #     line_margin=0.5,
+    #     word_margin=0.1,
+    #     char_margin=2.0,
+    #     detect_vertical=False,
+    # )
+    # extract_text_to_fp(
+    #     pdf, output_string, laparams=params, output_type="html", codec=None
+    # )
 
     return output_string.getvalue().strip()
 
