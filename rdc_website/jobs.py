@@ -89,7 +89,7 @@ def export():
         logger.info(f"Exporting upcoming court data to Google Sheets")
 
         workbook_name = "Website Export"
-        key = scheduler.app.config["GOOGLE_ACCOUNT_PATH"]
+        key = scheduler.app.config["GOOGLE_SERVICE_ACCOUNT"]
         logger.info(f"Exporting upcoming court dates to workbook: {workbook_name}")
         detainer_warrants.exports.to_court_watch_sheet(workbook_name, key)
         courtroom_entry_wb = f'{datetime.strftime(date.today(), "%B %Y")} Court Watch'
