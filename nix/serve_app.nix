@@ -25,6 +25,7 @@
     });
 
   runGunicorn = pkgs.writeShellScriptBin "rdc-website-serve-app" ''
+    export PYTHONPATH=${pythonpath}
     ${exportConfigEnvVar}
     ${lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
 
