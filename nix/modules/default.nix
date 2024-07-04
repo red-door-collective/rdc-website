@@ -119,11 +119,11 @@ in {
       FLASK_RUN_PORT = "5001";
     };
 
-    users.users.rdc-website = {
+    users.users.rdc_website = {
       isSystemUser = true;
-      group = "red-door-collective";
+      group = "red_door_collective";
     };
-    users.groups.red-door-collective = {};
+    users.groups.red_door_collective = {};
 
     systemd.services.rdc-website = {
       description = "Eviction court data in Davidson county";

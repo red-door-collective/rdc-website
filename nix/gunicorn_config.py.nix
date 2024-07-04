@@ -1,5 +1,7 @@
-{ listen, pythonpath }:
-''
+{
+  listen,
+  pythonpath,
+}: ''
   import multiprocessing
   import os
   from rdc_website.extensions import scheduler
@@ -12,7 +14,7 @@
   timeout = 120
   statsd_host = "localhost:8125"
   user = "rdc_website"
-  group = "red-door-collective"
+  group = "red_door_collective"
   preload = True
 
   def on_starting(server):
@@ -21,5 +23,5 @@
       scheduler.init_app(flask_app)
       scheduler.start()
 
-      from rdc_website import jobs 
+      from rdc_website import jobs
 ''
