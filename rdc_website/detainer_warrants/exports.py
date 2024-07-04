@@ -26,11 +26,8 @@ import csv
 import io
 
 import logging
-import logging.config
 import traceback
-import rdc_website.config as config
 
-logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
 DOCKET_ID = "Docket #"
@@ -156,23 +153,35 @@ def _to_spreadsheet_row(omit_defendant_info, warrant):
                         date_str(warrant._file_date) if warrant._file_date else "",
                         warrant.status,
                         warrant.plaintiff.name if warrant.plaintiff else "",
-                        warrant.plaintiff_attorney.name
-                        if warrant.plaintiff_attorney
-                        else "",
-                        date_str(warrant.hearings[0]._court_date)
-                        if len(warrant.hearings) > 0 and warrant.hearings[0]._court_date
-                        else "",
-                        warrant.recurring_court_date
-                        if warrant.recurring_court_date
-                        else "",
-                        warrant.hearings[0].courtroom.name
-                        if len(warrant.hearings) > 0 and warrant.hearings[0].courtroom
-                        else "",
-                        warrant.hearings[0].judgment.judge.name
-                        if len(warrant.hearings) > 0
-                        and warrant.hearings[0].judgment
-                        and warrant.hearings[0].judgment.judge
-                        else "",
+                        (
+                            warrant.plaintiff_attorney.name
+                            if warrant.plaintiff_attorney
+                            else ""
+                        ),
+                        (
+                            date_str(warrant.hearings[0]._court_date)
+                            if len(warrant.hearings) > 0
+                            and warrant.hearings[0]._court_date
+                            else ""
+                        ),
+                        (
+                            warrant.recurring_court_date
+                            if warrant.recurring_court_date
+                            else ""
+                        ),
+                        (
+                            warrant.hearings[0].courtroom.name
+                            if len(warrant.hearings) > 0
+                            and warrant.hearings[0].courtroom
+                            else ""
+                        ),
+                        (
+                            warrant.hearings[0].judgment.judge.name
+                            if len(warrant.hearings) > 0
+                            and warrant.hearings[0].judgment
+                            and warrant.hearings[0].judgment.judge
+                            else ""
+                        ),
                         str(warrant.amount_claimed) if warrant.amount_claimed else "",
                         warrant.claims_possession,
                         warrant.is_cares,
@@ -183,9 +192,12 @@ def _to_spreadsheet_row(omit_defendant_info, warrant):
                     ],
                     [] if omit_defendant_info else defendant_info(warrant),
                     [
-                        warrant.hearings[0].judgment.summary
-                        if len(warrant.hearings) > 0 and warrant.hearings[0].judgment
-                        else "",
+                        (
+                            warrant.hearings[0].judgment.summary
+                            if len(warrant.hearings) > 0
+                            and warrant.hearings[0].judgment
+                            else ""
+                        ),
                         warrant.notes,
                         warrant.audit_status if warrant.audit_status else "",
                     ],
@@ -301,16 +313,20 @@ def _to_judgment_row(omit_defendant_info, judgment):
         for dw in filter(
             None,
             [
-                date_str(judgment.hearing._court_date)
-                if judgment.hearing._court_date
-                else "",
+                (
+                    date_str(judgment.hearing._court_date)
+                    if judgment.hearing._court_date
+                    else ""
+                ),
                 judgment.hearing.docket_id,
                 judgment.hearing.courtroom.name if judgment.hearing.courtroom else "",
                 judgment.plaintiff.name if judgment.plaintiff else "",
                 judgment.plaintiff_attorney.name if judgment.plaintiff_attorney else "",
-                None
-                if omit_defendant_info
-                else defendant_names_column(judgment.hearing.case),
+                (
+                    None
+                    if omit_defendant_info
+                    else defendant_names_column(judgment.hearing.case)
+                ),
                 judgment.defendant_attorney.name if judgment.defendant_attorney else "",
                 judgment.hearing.address if judgment.hearing.address else "",
                 judgment.entered_by if judgment.entered_by else "",
@@ -439,9 +455,11 @@ def _to_court_watch_row(warrant):
                     [
                         date_str(warrant._court_date) if warrant._court_date else "",
                         warrant.docket_id,
-                        warrant.defendants[0].name
-                        if len(warrant.defendants) > 0
-                        else "",
+                        (
+                            warrant.defendants[0].name
+                            if len(warrant.defendants) > 0
+                            else ""
+                        ),
                         address,
                         zip_code,
                     ],
@@ -451,12 +469,17 @@ def _to_court_watch_row(warrant):
                     ],
                     [
                         warrant.plaintiff.name if warrant.plaintiff else "",
-                        warrant.plaintiff_attorney.name
-                        if warrant.plaintiff_attorney
-                        else "",
-                        warrant.hearings[0].courtroom.name
-                        if len(warrant).hearings > 0 and warrant.hearings[0].courtroom
-                        else "",
+                        (
+                            warrant.plaintiff_attorney.name
+                            if warrant.plaintiff_attorney
+                            else ""
+                        ),
+                        (
+                            warrant.hearings[0].courtroom.name
+                            if len(warrant).hearings > 0
+                            and warrant.hearings[0].courtroom
+                            else ""
+                        ),
                         warrant.notes,
                     ],
                 ]

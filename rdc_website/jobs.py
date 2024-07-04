@@ -6,10 +6,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 import rdc_website.detainer_warrants as detainer_warrants
 from rdc_website.extensions import scheduler
 
-import rdc_website.config as config
-import logging.config
+import logging
 
-logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
 weekdays = "1-5"

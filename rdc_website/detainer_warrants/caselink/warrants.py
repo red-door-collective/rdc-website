@@ -1,15 +1,12 @@
 from flask import current_app
 from .navigation import Navigation
 import re
-import rdc_website.config as config
 import logging
-import logging.config
 from datetime import datetime
 from .. import csv_imports
 from ..models import db, DetainerWarrant, PleadingDocument
 from .utils import save_all_responses
 
-logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
 CSV_URL_REGEX = re.compile(r'parent.UserWinOpen\("",\s*"(https:\/\/.+?)",')
