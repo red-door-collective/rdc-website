@@ -148,6 +148,8 @@ in {
 
         ${lib.concatStringsSep "\n" secretReplacements}
 
+        echo "$(cat $cfgdir/${configFilename})"
+
         echo "Run database migrations if needed..."
         ${serveApp}/bin/migrate
         echo "Pre-start finished."
