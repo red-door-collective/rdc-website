@@ -42,13 +42,13 @@ in {
 
     user = mkOption {
       type = types.str;
-      default = "rdc-website";
+      default = "rdc_website";
       description = "User to run rdc-website.";
     };
 
     group = mkOption {
       type = types.str;
-      default = "red-door-collective";
+      default = "red_door_collective";
       description = "Group to run rdc-website.";
     };
 
