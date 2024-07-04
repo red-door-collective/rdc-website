@@ -134,7 +134,7 @@ in {
       preStart = let
         replaceDebug = lib.optionalString cfg.debug "-vv";
         secrets = cfg.secretFiles;
-        replaceSecret = file: var: secretFile: "${pkgs.replace}/bin/replace-literal -m 1 ${replaceDebug} -f -e @${var}@ $(< ${secretFile}) ${file}";
+        replaceSecret = file: var: secretFile: "${pkgs.replace}/bin/replace-literal -m 1 ${replaceDebug} -f -e @${var}@ \"$(< ${secretFile})\" ${file}";
         replaceCfgSecret = var: secretFile: replaceSecret "$cfgdir/${configFilename}" var secretFile;
         secretReplacements = lib.mapAttrsToList (k: v: replaceCfgSecret k v) cfg.secretFiles;
       in ''
