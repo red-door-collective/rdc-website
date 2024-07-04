@@ -21,7 +21,7 @@ LOGGING = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "json",
-            "filename": os.environ["LOG_FILE_PATH"],
+            "filename": "capture.log",
             "filters": ["request_id_filter"],
         }
     },

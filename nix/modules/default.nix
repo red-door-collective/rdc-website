@@ -114,7 +114,6 @@ in {
 
     environment.sessionVariables = {
       LOG_FILE_PATH = "./capture.log";
-      ENV = "development";
       VERSION = "dev-nix";
       ROLLBAR_CLIENT_TOKEN = "test-nix";
       FLASK_RUN_PORT = "5001";
