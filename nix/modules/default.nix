@@ -112,7 +112,7 @@ in {
       rdcWebsiteShowConfig
     ];
 
-    environment.variables = {
+    environment.sessionVariables = {
       LOG_FILE_PATH = "./capture.log";
     };
 
