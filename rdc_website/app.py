@@ -34,12 +34,15 @@ from collections import OrderedDict
 from flask_security import current_user
 from flask_apscheduler import APScheduler
 from datadog import initialize, statsd
-import logging
 import rdc_website.tasks as tasks
 from .time_util import millis, millis_timestamp
 from .util import request_id
+import rdc_website.logging
+import flask.cli
 
-logger = logging.getLogger(__name__)
+flask.cli.show_server_banner = lambda *args: None
+
+rdc_website.logging.init_logging()
 
 DATADOG_OPTIONS = {"statsd_host": "127.0.0.1", "statsd_port": 8125}
 
@@ -326,7 +329,7 @@ def register_extensions(app):
             log_params["request_headers"] = {k: v for k, v in request.headers.items()}
             log_params["response_headers"] = {k: v for k, v in response.headers.items()}
 
-        logger.info(request.path, extra=log_params)
+        # logger.info(request.path, extra=log_params)
 
         return response
 
