@@ -6,10 +6,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 import rdc_website.detainer_warrants as detainer_warrants
 from rdc_website.extensions import scheduler
 
-import rdc_website.config as config
-import logging.config
+import logging
 
-logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
 weekdays = "1-5"
@@ -91,7 +89,7 @@ def export():
         logger.info(f"Exporting upcoming court data to Google Sheets")
 
         workbook_name = "Website Export"
-        key = scheduler.app.config["GOOGLE_ACCOUNT_PATH"]
+        key = scheduler.app.config["GOOGLE_SERVICE_ACCOUNT"]
         logger.info(f"Exporting upcoming court dates to workbook: {workbook_name}")
         detainer_warrants.exports.to_court_watch_sheet(workbook_name, key)
         courtroom_entry_wb = f'{datetime.strftime(date.today(), "%B %Y")} Court Watch'

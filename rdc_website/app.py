@@ -34,13 +34,11 @@ from collections import OrderedDict
 from flask_security import current_user
 from flask_apscheduler import APScheduler
 from datadog import initialize, statsd
-import logging.config
-import rdc_website.config as config
+import logging
 import rdc_website.tasks as tasks
 from .time_util import millis, millis_timestamp
 from .util import request_id
 
-logging.config.dictConfig(config.LOGGING)
 logger = logging.getLogger(__name__)
 
 DATADOG_OPTIONS = {"statsd_host": "127.0.0.1", "statsd_port": 8125}

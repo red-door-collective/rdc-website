@@ -42,13 +42,13 @@ in {
 
     user = mkOption {
       type = types.str;
-      default = "rdc-website";
+      default = "rdc_website";
       description = "User to run rdc-website.";
     };
 
     group = mkOption {
       type = types.str;
-      default = "red-door-collective";
+      default = "red_door_collective";
       description = "Group to run rdc-website.";
     };
 
@@ -82,12 +82,6 @@ in {
       default = null;
     };
 
-    browserSessionSecretKeyFile = mkOption {
-      type = types.str;
-      description = "Path to file containing the secret key for browser session signing";
-      default = "/var/lib/rdc-website/browser-session-secret-key";
-    };
-
     secretFiles = mkOption {
       type = types.attrs;
       default = {};
@@ -118,11 +112,18 @@ in {
       rdcWebsiteShowConfig
     ];
 
-    users.users.rdc-website = {
-      isSystemUser = true;
-      group = "red-door-collective";
+    environment.sessionVariables = {
+      LOG_FILE_PATH = "./capture.log";
+      VERSION = "dev-nix";
+      ROLLBAR_CLIENT_TOKEN = "test-nix";
+      FLASK_RUN_PORT = "5001";
     };
-    users.groups.red-door-collective = {};
+
+    users.users.rdc_website = {
+      isSystemUser = true;
+      group = "red_door_collective";
+    };
+    users.groups.red_door_collective = {};
 
     systemd.services.rdc-website = {
       description = "Eviction court data in Davidson county";
@@ -132,12 +133,8 @@ in {
 
       preStart = let
         replaceDebug = lib.optionalString cfg.debug "-vv";
-        secrets =
-          cfg.secretFiles
-          // {
-            browser_session_secret_key = cfg.browserSessionSecretKeyFile;
-          };
-        replaceSecret = file: var: secretFile: "${pkgs.replace}/bin/replace-literal -m 1 ${replaceDebug} -f -e @${var}@ $(< ${secretFile}) ${file}";
+        secrets = cfg.secretFiles;
+        replaceSecret = file: var: secretFile: "${pkgs.replace}/bin/replace-literal -m 1 ${replaceDebug} -f -e @${var}@ \"$(< ${secretFile})\" ${file}";
         replaceCfgSecret = var: secretFile: replaceSecret "$cfgdir/${configFilename}" var secretFile;
         secretReplacements = lib.mapAttrsToList (k: v: replaceCfgSecret k v) cfg.secretFiles;
       in ''

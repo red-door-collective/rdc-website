@@ -35,6 +35,7 @@ rdc_website.egg-info/
 .cache/
 .eggs/
 config.json
+secrets.json
 nix/*_frozen.txt
 config*.yml
 testconfig*.yml
