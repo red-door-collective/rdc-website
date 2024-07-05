@@ -143,12 +143,7 @@ in {
         chmod u+w -R $cfgdir
         cp ${configInput} $cfgdir/${configFilename}
 
-        echo "$cfgdir/${configFilename}"
-        echo "${configInput}"
-
         ${lib.concatStringsSep "\n" secretReplacements}
-
-        echo "$(cat $cfgdir/${configFilename})"
 
         echo "Run database migrations if needed..."
         ${serveApp}/bin/migrate
