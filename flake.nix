@@ -5,9 +5,12 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
-    devenv.url = "github:cachix/devenv";
+    devenv = {
+      url = "github:cachix/devenv?rev=40b567388381137a3c49acdff5f4b6946d645a5f";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     poetry2nix = {
-      url = "github:nix-community/poetry2nix?rev=291a863e866972f356967d0a270b259f46bf987f";
+      url = "github:nix-community/poetry2nix?rev=42262f382c68afab1113ebd1911d0c93822d756e";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -100,10 +103,10 @@
               echo "Tested with VSCode, Pycharm."
             '';
             run_dev.exec = ''
-              flask run --no-debug
+              flask run --no-debug | tee run_dev.log.json | eliot-tree -l0
             '';
             debug_dev.exec = ''
-              flask run --debug
+              flask run --debug | tee run_dev.log.json | eliot-tree -l0
             '';
             debug_ui.exec = ''
               cd pages && npm start

@@ -1,29 +1,27 @@
-{ pkgs, poetry2nix }:
-
-with builtins;
-
-let
-
+{
+  pkgs,
+  poetry2nix,
+}:
+with builtins; let
   inherit (pkgs) stdenv lib;
   python = pkgs.python311;
-  poetry = (pkgs.poetry.override { python3 = python; });
+  poetry = pkgs.poetry.override {python3 = python;};
 
   overrides = poetry2nix.defaultPoetryOverrides.extend (
-    self: super:
-      let
-        pythonBuildDepNameValuePair = deps: pname: {
-          name = pname;
-          value = super.${pname}.overridePythonAttrs (old: {
-            buildInputs = old.buildInputs ++ deps;
-          });
-        };
+    self: super: let
+      pythonBuildDepNameValuePair = deps: pname: {
+        name = pname;
+        value = super.${pname}.overridePythonAttrs (old: {
+          buildInputs = old.buildInputs ++ deps;
+        });
+      };
 
-        addPythonBuildDeps = deps: pnames:
-          lib.listToAttrs
-            (map
-              (pythonBuildDepNameValuePair deps)
-              pnames);
-      in
+      addPythonBuildDeps = deps: pnames:
+        lib.listToAttrs
+        (map
+          (pythonBuildDepNameValuePair deps)
+          pnames);
+    in
       {
         bcrypt = super.bcrypt.overridePythonAttrs (old: rec {
           pname = "bcrypt";
@@ -52,18 +50,18 @@ let
         });
 
         mimesis-factory = super.mimesis-factory.overridePythonAttrs (old: {
-          buildInputs = old.buildInputs ++ [ self.poetry-core ];
+          buildInputs = old.buildInputs ++ [self.poetry-core];
           patchPhase = ''
             substituteInPlace pyproject.toml --replace poetry.masonry poetry.core.masonry
           '';
         });
-
-      } //
-      (addPythonBuildDeps [ self.setuptools-scm self.setuptools self.greenlet ] [
+      }
+      // (addPythonBuildDeps [self.setuptools-scm self.setuptools self.greenlet] [
         "pdbpp"
-      ]) //
-      (addPythonBuildDeps
-        [ self.setuptools ]
+      ])
+      // (
+        addPythonBuildDeps
+        [self.setuptools]
         [
           "konch"
           "flask-resty"
@@ -73,64 +71,72 @@ let
           "gspread-formatting"
           "webtest"
           "mimesis"
+          "better-exceptions"
         ]
-      ) //
-      (addPythonBuildDeps
-        [ self.flit-core ] [
-        "itsdangerous"
-        "marshmallow"
-        "flask-sqlalchemy"
-        "marshmallow-sqlalchemy"
-        "flask-marshmallow"
-        "jinja2"
-      ]
-      ) //
-      (addPythonBuildDeps
-        [ self.poetry-core ] [
-        "iso8601"
-      ]) //
-      (addPythonBuildDeps
-        [ self.poetry-core self.greenlet ] [
-        "alembic"
-        "pytest-factoryboy"
-        "sqlalchemy"
-        "sqlalchemy-utils"
-        "zope-sqlalchemy"
-      ]) //
-      (addPythonBuildDeps
-        [ self.hatchling ] [
-        "dnspython"
-      ]) //
-      (addPythonBuildDeps
-        [ self.hatchling self.babel ] [
-        "wtforms"
-      ]) //
-      (addPythonBuildDeps
-        [ self.pdm-pep517 self.pdm-backend ] [
-        "typer"
-      ])
+      )
+      // (
+        addPythonBuildDeps
+        [self.flit-core] [
+          "itsdangerous"
+          "marshmallow"
+          "flask-sqlalchemy"
+          "marshmallow-sqlalchemy"
+          "flask-marshmallow"
+          "jinja2"
+        ]
+      )
+      // (addPythonBuildDeps
+        [self.poetry-core] [
+          "iso8601"
+        ])
+      // (addPythonBuildDeps
+        [self.poetry-core self.greenlet] [
+          "alembic"
+          "pytest-factoryboy"
+          "sqlalchemy"
+          "sqlalchemy-utils"
+          "zope-sqlalchemy"
+        ])
+      // (addPythonBuildDeps
+        [self.hatchling] [
+          "dnspython"
+        ])
+      // (addPythonBuildDeps
+        [self.hatchling self.babel] [
+          "wtforms"
+        ])
+      // (addPythonBuildDeps
+        [self.pdm-pep517 self.pdm-backend] [
+          "typer"
+        ])
   );
 
   mkPoetryApplication = args:
-    poetry2nix.mkPoetryApplication (args // {
-      inherit overrides;
-      inherit python;
-    });
+    poetry2nix.mkPoetryApplication (args
+      // {
+        inherit overrides;
+        inherit python;
+      });
 
-  inherit (poetry2nix.mkPoetryPackages {
-    projectDir = ../.;
-    inherit python;
-    inherit overrides;
-  }) poetryPackages pyProject;
+  inherit
+    (poetry2nix.mkPoetryPackages {
+      projectDir = ../.;
+      inherit python;
+      inherit overrides;
+    })
+    poetryPackages
+    pyProject
+    ;
 
   poetryPackagesByName =
     lib.listToAttrs
-      (map
-        (p: { name = p.pname or "none"; value = p; })
-        poetryPackages);
-
-in
-rec {
+    (map
+      (p: {
+        name = p.pname or "none";
+        value = p;
+      })
+      poetryPackages);
+in rec {
   inherit mkPoetryApplication pkgs poetryPackagesByName pyProject python;
   inherit (pkgs) glibcLocales;
   inherit (poetryPackagesByName) alembic deform babel gunicorn ipython;
@@ -142,8 +148,9 @@ rec {
   ];
 
   pythonDevTest = python.buildEnv.override {
-    extraLibs = poetryPackages ++
-      debugLibsAndTools;
+    extraLibs =
+      poetryPackages
+      ++ debugLibsAndTools;
     ignoreCollisions = true;
   };
 
@@ -152,7 +159,6 @@ rec {
 
   # Code style and security tools
   linters = with python.pkgs; let
-
     # Pylint needs to import the modules of our dependencies
     # but we don't want to override its own PYTHONPATH.
     setSysPath = ''
@@ -160,16 +166,16 @@ rec {
       sys.path.append("${pythonDev}/${pythonDev.sitePackages}")
     '';
 
-    pylintWrapper = with python.pkgs; pkgs.writeScriptBin "pylint" ''
-      ${pylint}/bin/pylint --init-hook='${setSysPath}' "$@"
-    '';
+    pylintWrapper = with python.pkgs;
+      pkgs.writeScriptBin "pylint" ''
+        ${pylint}/bin/pylint --init-hook='${setSysPath}' "$@"
+      '';
 
-    isortWrapper = with python.pkgs; pkgs.writeScriptBin "isort" ''
-      ${isort}/bin/isort --virtual-env=${pythonDev} "$@"
-    '';
-
-  in
-  [
+    isortWrapper = with python.pkgs;
+      pkgs.writeScriptBin "isort" ''
+        ${isort}/bin/isort --virtual-env=${pythonDev} "$@"
+      '';
+  in [
     # bandit
     #isortWrapper
     pkgs.nixpkgs-fmt
@@ -178,36 +184,35 @@ rec {
     pkgs.nodejs
   ];
 
-  frontendTools =
-    [
-      pkgs.elmPackages.elm
-      pkgs.elmPackages.elm-test
-      pkgs.elmPackages.elm-format
-      pkgs.elmPackages.elm-optimize-level-2
-      pkgs.elmPackages.elm-review
-    ];
+  frontendTools = [
+    pkgs.elmPackages.elm
+    pkgs.elmPackages.elm-test
+    pkgs.elmPackages.elm-format
+    pkgs.elmPackages.elm-optimize-level-2
+    pkgs.elmPackages.elm-review
+  ];
 
   # Various tools for log files, deps management, running scripts and so on
-  shellTools =
-    let
-      console = pkgs.writeScriptBin "console" ''
-        export PYTHONPATH=$PYTHONPATH:${pythonDev}/${pythonDev.sitePackages}
-        ${ipython}/bin/ipython -i consoleenv.py "$@"
-      '';
-    in
-    [
-      console
-      pkgs.postgresql_16
-      poetryPackagesByName.pdbpp
-      poetry
-      poetryPackagesByName.gunicorn
-    ];
+  shellTools = let
+    console = pkgs.writeScriptBin "console" ''
+      export PYTHONPATH=$PYTHONPATH:${pythonDev}/${pythonDev.sitePackages}
+      ${ipython}/bin/ipython -i consoleenv.py "$@"
+    '';
+  in [
+    console
+    pkgs.postgresql_16
+    poetryPackagesByName.pdbpp
+    poetry
+    poetryPackagesByName.gunicorn
+    poetryPackagesByName.eliot-tree
+  ];
 
   # Needed for a development nix shell
   shellInputs =
-    linters ++
-    shellTools ++
-    frontendTools ++ [
+    linters
+    ++ shellTools
+    ++ frontendTools
+    ++ [
       pythonTest
     ];
 
