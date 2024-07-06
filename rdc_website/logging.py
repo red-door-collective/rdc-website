@@ -119,8 +119,6 @@ def init_logging(output_stream=sys.stdout):
     root_logger.addHandler(EliotHandler())
     root_logger.setLevel(logging.DEBUG)
     logging.getLogger("flask").setLevel(logging.INFO)
-    # logging.getLogger("werkzeug").disabled = True
-    # logging.getLogger("werkzeug").setLevel(logging.INFO)
     logging.getLogger("passlib.registry").setLevel(logging.INFO)
     logging.getLogger("passlib.utils.compat").setLevel(logging.INFO)
     logging.getLogger("parso").setLevel(logging.WARN)
