@@ -1,4 +1,3 @@
-import logging
 import os
 from pathlib import Path
 from rdc_website.database import session
@@ -11,7 +10,6 @@ from rdc_website.request import RdcWebsiteRequest
 from rdc_website.detainer_warrants.models import DetainerWarrant
 
 ROOT_DIR = Path(__file__).absolute().parent.parent
-logg = logging.getLogger(__name__)
 
 
 @fixture
@@ -28,7 +26,7 @@ def get_db_uri():
 
 def get_test_settings(db_uri):
     settings = {}
-    with open('./tests/config.json') as f:
+    with open("./tests/config.json") as f:
         settings = json.load(f)
     settings["SQLALCHEMY_DATABASE_URI"] = db_uri
     return settings

@@ -25,10 +25,9 @@ import itertools
 import csv
 import io
 
-import logging
 import traceback
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 DOCKET_ID = "Docket #"
 FILE_DATE = "File_date"

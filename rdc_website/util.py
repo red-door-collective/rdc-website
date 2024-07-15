@@ -2,10 +2,10 @@ from sqlalchemy.sql import ClauseElement
 from datetime import datetime
 import re
 import uuid
-import logging
 import flask
 
 EFILE_DATE_REGEX = re.compile(r"EFILED\s*(\d+/\d+/\d+)\s*")
+
 
 # Generate a new request ID, optionally including an original request ID
 def generate_request_id(original_id=""):
@@ -34,21 +34,13 @@ def request_id():
     return new_uuid
 
 
-class RequestIdFilter(logging.Filter):
-    # This is a logging filter that makes the request ID available for use in
-    # the logging format. Note that we're checking if we're in a request
-    # context, as we may want to log things before Flask is fully loaded.
-    def filter(self, record):
-        record.request_id = request_id() if flask.has_request_context() else ""
-        return True
-
-
 def file_date_guess(text):
     efile_date_match = EFILE_DATE_REGEX.search(text)
     if efile_date_match:
         return datetime.strptime(efile_date_match.group(1), "%m/%d/%y").date()
     else:
         return None
+
 
 def get_or_create(session, model, defaults=None, **kwargs):
     instance = session.query(model).filter_by(**kwargs).one_or_none()
@@ -60,7 +52,9 @@ def get_or_create(session, model, defaults=None, **kwargs):
         try:
             session.add(instance)
             session.commit()
-        except Exception:  # The actual exception depends on the specific database so we catch all exceptions. This is similar to the official documentation: https://docs.sqlalchemy.org/en/latest/orm/session_transaction.html
+        except (
+            Exception
+        ):  # The actual exception depends on the specific database so we catch all exceptions. This is similar to the official documentation: https://docs.sqlalchemy.org/en/latest/orm/session_transaction.html
             session.rollback()
             instance = session.query(model).filter_by(**kwargs).one()
             return instance, False

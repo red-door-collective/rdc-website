@@ -15,7 +15,11 @@
     };
   };
 
-  outputs = inputs @ {flake-parts, ...}:
+  outputs = inputs @ {
+    flake-parts,
+    self,
+    ...
+  }:
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
         inputs.devenv.flakeModule
@@ -86,7 +90,7 @@
           env = {
             PYTHONPATH = ".";
             ENV = "development";
-            VERSION = "dev";
+            VERSION = self.rev or self.dirtyRev or "dirty";
             ROLLBAR_CLIENT_TOKEN = "test";
             RDC_WEBSITE_CONFIG = "../config.json";
             FLASK_RUN_PORT = "5001";
@@ -103,10 +107,10 @@
               echo "Tested with VSCode, Pycharm."
             '';
             run_dev.exec = ''
-              flask run --no-debug | tee run_dev.log.json | eliot-tree -l0
+              flask run --no-debug | tee run_dev.log.json
             '';
             debug_dev.exec = ''
-              flask run --debug | tee run_dev.log.json | eliot-tree -l0
+              flask run --debug | tee run_dev.log.json
             '';
             debug_ui.exec = ''
               cd pages && npm start

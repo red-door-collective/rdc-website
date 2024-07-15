@@ -34,7 +34,7 @@
             "args": [
                 "import-from-caselink",
                 "2024-05-01",
-                "2024-05-10"
+                "2024-05-30"
             ],
             "jinja": false,
             "autoStartBrowser": false

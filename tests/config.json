@@ -46,5 +46,10 @@
         "key": "XSRF-TOKEN"
     },
     "WTF_CSRF_CHECK_DEFAULT": false,
-    "WTF_CSRF_TIME_LIMIT": null
+    "WTF_CSRF_TIME_LIMIT": null,
+    "WTF_CSRF_ENABLED": false,
+    "SECURITY_EMAIL_VALIDATOR_ARGS": {
+        "check_deliverability": false
+    },
+    "SECURITY_PASSWORD_HASH": "plaintext"
 }

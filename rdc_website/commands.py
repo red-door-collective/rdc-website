@@ -23,12 +23,11 @@ from rdc_website.detainer_warrants.models import (
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import uuid
-import logging
 from datetime import date, datetime, timedelta
 from io import StringIO
 from .util import get_or_create
+from loguru import logger
 
-logger = logging.getLogger(__name__)
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
