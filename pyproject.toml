@@ -53,7 +53,6 @@ prometheus-flask-exporter = "^0.23.1"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
 pdbpp = "^0.10.3"
-python-language-server = "^0.36.2"
 mimesis-factory = "^1.2.0"
 doit = "^0.36.0"
 

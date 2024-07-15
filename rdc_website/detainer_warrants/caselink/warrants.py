@@ -61,13 +61,17 @@ def docket_id_code_item(index):
     return "P_102_{}".format(index)
 
 
-def import_from_caselink(start_date, end_date, record=False):
+def import_from_caselink(
+    start_date, end_date, record=False, with_pleading_documents=True
+):
     try:
         caselink_log = []
         pages = search_between_dates(start_date, end_date, log=caselink_log)
         results_response = pages["search_page"].search()
         if record:
             caselink_log.append(log_response("search", results_response))
+        if 'self.location="/gsapdfs/' in results_response.text:
+            results_response = Navigation.from_response(results_response).follow_url()
         matches = extract_search_response_data(results_response.text)
         cell_names, cell_values = split_cell_names_and_values(matches)
         cases = build_cases_from_parsed_matches(cell_values)
@@ -85,14 +89,15 @@ def import_from_caselink(start_date, end_date, record=False):
 
         csv_imports.from_rows(cases)
 
-        for i, case in enumerate(cases):
-            docket_id = case["Docket #"]
-            import_pleading_documents(
-                docket_id_code_item(i),
-                docket_id,
-                pages,
-                log=caselink_log if i == 0 else None,
-            )
+        if with_pleading_documents:
+            for i, case in enumerate(cases):
+                docket_id = case["Docket #"]
+                import_pleading_documents(
+                    docket_id_code_item(i),
+                    docket_id,
+                    pages,
+                    log=caselink_log if i == 0 else None,
+                )
 
         if record:
             record_imports_in_dev(caselink_log)
