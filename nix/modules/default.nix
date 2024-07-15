@@ -11,7 +11,11 @@ with builtins; let
 
   configInput =
     pkgs.writeText configFilename
-    (toJSON cfg.extraConfig);
+    (toJSON (cfg.staticConfig // cfg.extraConfig));
+
+  environmentVariables =
+    lib.concatStringsSep " "
+    (lib.mapAttrsToList (name: value: "${name}=${toString value}") cfg.environmentVariables);
 
   serveApp = pkgs.rdc-website-serve-app.override {
     appConfigFile = "/run/rdc-website/${configFilename}";
@@ -26,6 +30,15 @@ with builtins; let
 
   rdcWebsiteShowConfig = pkgs.writeScriptBin "rdc-website-show-config" ''
     cat `${rdcWebsiteConfig}/bin/rdc-website-config`
+  '';
+
+  rdcWebsiteConsole = pkgs.writeScriptBin "rdc-website-console" ''
+    ${serveApp}/bin/console
+  '';
+
+  rdcShowEnvVars = pkgs.writeScriptBin "rdc-show-env-vars" ''
+    pid=$(systemctl show --property MainPID --value rdc-website.service)
+    strings "/proc/$pid/environ"
   '';
 in {
   options.services.red-door-collective.rdc-website = with lib; {
@@ -64,6 +77,43 @@ in {
       description = "Address for gunicorn app server";
     };
 
+    environmentVariables = mkOption {
+      type = types.attrs;
+      default = {
+        VERSION = cfg.version;
+        ROLLBAR_CLIENT_TOKEN = "dev";
+        FLASK_RUN_PORT = cfg.flaskPort;
+        PROMETHEUS_MULTIPROC_DIR = cfg.metricsDirectory;
+        METRICS_PORT = cfg.metricsPort;
+      };
+      description = "Override the default environment variables";
+    };
+
+    metricsPort = mkOption {
+      type = types.int;
+      default = 9200;
+      description = "Port for metrics collection";
+    };
+
+    version = mkOption {
+      type = types.str;
+      default = "dev";
+      description = "Git revision";
+    };
+
+    flaskPort = mkOption {
+      type = types.int;
+      default = 5001;
+      description = "Port for flask app";
+    };
+
+    metricsDirectory = mkOption {
+      internal = true;
+      type = types.str;
+      default = "/run/rdc-website";
+      description = "Where to store metrics for the prometheus-client";
+    };
+
     configFile = mkOption {
       internal = true;
       type = with types; nullOr path;
@@ -95,6 +145,45 @@ in {
       };
     };
 
+    staticConfig = mkOption {
+      internal = true;
+      type = types.attrs;
+      default = {
+        DATA_DIR = "./data";
+        DEBUG = cfg.debug;
+        ENV = "production";
+        FLASK_APP = "rdc_website.app";
+        FLASK_DEBUG = cfg.debug;
+        MAIL_DEBUG = cfg.debug;
+        MAIL_USE_SSL = false;
+        MAIL_USE_TLS = true;
+        SECURITY_AUTO_LOGIN_AFTER_CONFIRM = false;
+        SECURITY_CHANGEABLE = true;
+        SECURITY_CONFIRMABLE = true;
+        SECURITY_CONFIRM_ERROR_VIEW = "/confirm-error";
+        SECURITY_CSRF_COOKIE = {key = "XSRF-TOKEN";};
+        # SECURITY_CSRF_COOKIE_NAME = "XSRF-TOKEN";
+        SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS = true;
+        SECURITY_CSRF_PROTECT_MECHANISMS = ["session" "basic"];
+        SECURITY_FLASH_MESSAGES = false;
+        SECURITY_POST_CONFIRM_VIEW = "/confirmed";
+        SECURITY_RECOVERABLE = true;
+        SECURITY_REDIRECT_BEHAVIOR = "spa";
+        SECURITY_REDIRECT_HOST = "reddoorcollective.org";
+        SECURITY_RESET_ERROR_VIEW = "/reset-password";
+        SECURITY_RESET_VIEW = "/reset-password";
+        SECURITY_TRACKABLE = true;
+        SECURITY_URL_PREFIX = "/api/v1/accounts";
+        SQLALCHEMY_TRACK_MODIFICATIONS = false;
+        SQLALCHEMY_ENGINE_OPTIONS = {
+          pool_pre_ping = true;
+        };
+        WTF_CSRF_CHECK_DEFAULT = false;
+        WTF_CSRF_TIME_LIMIT = null;
+      };
+      description = "Values in the config file that are not typically overridden";
+    };
+
     extraConfig = mkOption {
       type = types.attrs;
       default = {};
@@ -110,14 +199,9 @@ in {
     environment.systemPackages = [
       rdcWebsiteConfig
       rdcWebsiteShowConfig
+      rdcWebsiteConsole
+      rdcShowEnvVars
     ];
-
-    environment.sessionVariables = {
-      LOG_FILE_PATH = "./capture.log";
-      VERSION = "dev-nix";
-      ROLLBAR_CLIENT_TOKEN = "test-nix";
-      FLASK_RUN_PORT = "5001";
-    };
 
     users.users.rdc_website = {
       isSystemUser = true;
@@ -161,6 +245,7 @@ in {
         X-ConfigFile = configInput;
         X-App = serveApp;
         X-StaticFiles = cfg.staticFiles;
+        Environment = environmentVariables;
 
         DeviceAllow = [
           "/dev/stderr"
@@ -188,6 +273,7 @@ in {
         RestrictNamespaces = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
+        SyslogIdentifier = "rdc-website";
         SystemCallArchitectures = "native";
         SystemCallFilter = [
           # deny the following syscall groups

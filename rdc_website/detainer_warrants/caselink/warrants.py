@@ -1,13 +1,12 @@
 from flask import current_app
 from .navigation import Navigation
 import re
-import logging
 from datetime import datetime
 from .. import csv_imports
 from ..models import db, DetainerWarrant, PleadingDocument
 from .utils import save_all_responses
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 CSV_URL_REGEX = re.compile(r'parent.UserWinOpen\("",\s*"(https:\/\/.+?)",')
 WC_VARS_VALS_REGEX = re.compile(
@@ -97,7 +96,8 @@ def import_from_caselink(start_date, end_date, record=False):
 
         if record:
             record_imports_in_dev(caselink_log)
-    except Exception as e:
+    except Exception:
+        logger.exception("CaseLink import terminated")
         record_imports_in_dev(caselink_log)
 
 

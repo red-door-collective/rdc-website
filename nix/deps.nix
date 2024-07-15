@@ -39,6 +39,10 @@ with builtins; let
           };
         });
 
+        passlib = super.passlib.overridePythonAttrs (old: rec {
+          patches = [./version-patch.diff];
+        });
+
         cryptography = super.cryptography.overridePythonAttrs (old: rec {
           cargoDeps = pkgs.rustPlatform.fetchCargoTarball {
             inherit (old) src;
@@ -204,7 +208,6 @@ in rec {
     poetryPackagesByName.pdbpp
     poetry
     poetryPackagesByName.gunicorn
-    poetryPackagesByName.eliot-tree
   ];
 
   # Needed for a development nix shell

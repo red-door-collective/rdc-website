@@ -1,14 +1,11 @@
-import logging
 import os
 
 from rdc_website.app import create_app
 from tests.db_utils import clear_data
 
-logging.basicConfig(level=logging.INFO)
+from loguru import logger
 
 if __name__ == "__main__":
-
-    logg = logging.getLogger(__name__)
 
     app = create_app()
 
@@ -23,4 +20,4 @@ if __name__ == "__main__":
 
         clear_data(db)
 
-        logg.info("committed")
+        logger.info("committed")

@@ -1,5 +1,5 @@
 import flask
-from flask import g, send_file, jsonify, Flask, request, redirect, current_app
+from flask import g, jsonify, Flask, request, current_app, Response
 from flask_security import hash_password, auth_token_required, send_mail
 from flask_security.confirmable import generate_confirmation_link
 from flask_security.utils import config_value
@@ -23,28 +23,25 @@ import time
 import calendar
 from threading import Thread
 
-from sqlalchemy import and_, or_, func, desc
+from sqlalchemy import and_, func, desc
 from sqlalchemy.sql import text
 from rdc_website import commands, detainer_warrants, admin
 import json
 from datetime import datetime, date, timedelta, timezone
 from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
-from collections import OrderedDict
 from flask_security import current_user
-from flask_apscheduler import APScheduler
-from datadog import initialize, statsd
 import rdc_website.tasks as tasks
 from .time_util import millis, millis_timestamp
 from .util import request_id
-import rdc_website.logging
+
+from loguru import logger
+import logging
 import flask.cli
+import sys
+from prometheus_flask_exporter.multiprocess import GunicornPrometheusMetrics
 
 flask.cli.show_server_banner = lambda *args: None
-
-rdc_website.logging.init_logging()
-
-DATADOG_OPTIONS = {"statsd_host": "127.0.0.1", "statsd_port": 8125}
 
 Attorney = detainer_warrants.models.Attorney
 DetainerWarrant = detainer_warrants.models.DetainerWarrant
@@ -54,12 +51,26 @@ Plaintiff = detainer_warrants.models.Plaintiff
 Judgment = detainer_warrants.models.Judgment
 
 
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        logger_opt = logger.opt(depth=6, exception=record.exc_info)
+        logger_opt.log(record.levelno, record.getMessage())
+
+
 def create_app(testing=False):
     app = Flask(__name__.split(".")[0])
+    logger.add(sys.stdout, level="INFO", colorize=True, serialize=True, backtrace=True)
+    handler = InterceptHandler()
+    handler.setLevel(0)
+    app.logger.addHandler(handler)
     app.config.from_file(os.environ["RDC_WEBSITE_CONFIG"], load=json.load)
-
     if app.config["ENV"] == "production":
-        initialize(**DATADOG_OPTIONS)
+        metrics = GunicornPrometheusMetrics.for_app_factory()
+        metrics.init_app(app)
+
+        metrics.info(
+            "app_info", "Application info", version=os.environ.get("VERSION", "dev")
+        )
 
     CSRFProtect(app)
     register_extensions(app)
