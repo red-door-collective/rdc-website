@@ -1,15 +1,10 @@
 import pytest
 
-from flask import current_app
 from rdc_website.database import db
 import rdc_website.detainer_warrants.caselink.warrants as warrants
-from datetime import datetime, date
+from datetime import date
 from tests.helpers.rdc_test_case import RDCTestCase
 from rdc_website.detainer_warrants.models import DetainerWarrant, Attorney, Plaintiff
-
-
-def date_as_str(d, format):
-    return datetime.strptime(d, format).date()
 
 
 @pytest.mark.smoke
