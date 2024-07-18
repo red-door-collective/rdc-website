@@ -8,13 +8,14 @@ from rdc_website.detainer_warrants.models import DetainerWarrant, Attorney, Plai
 
 
 @pytest.mark.smoke
-class TestWarrants(RDCTestCase):
+@pytest.mark.integration
+class TestScrapeWarrants(RDCTestCase):
 
     def test_historical_search(self):
         start = date(2023, 1, 3)
         end = date(2023, 1, 4)
 
-        TOTAL_WARRANTS = 84
+        TOTAL_WARRANTS = 85
 
         warrants.import_from_caselink(start, end, with_pleading_documents=False)
 
@@ -38,4 +39,15 @@ class TestWarrants(RDCTestCase):
                 DetainerWarrant.status_id == DetainerWarrant.statuses["CLOSED"]
             ).count(),
             83,
+        )
+
+    def test_scrape_defendant(self):
+        docket_id = "23GT57"
+
+        detainer_warrant = warrants.from_docket_id(docket_id)
+
+        self.assertEqual(detainer_warrant.docket_id, docket_id)
+        self.assertIn("OR ALL OCCUPANTS", detainer_warrant.defendants[0].name)
+        self.assertEqual(
+            detainer_warrant.address, "272 BELL ROAD 15-1524 ANTIOCH, TN  37013"
         )

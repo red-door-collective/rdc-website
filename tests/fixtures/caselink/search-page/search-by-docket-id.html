@@ -1,0 +1,47 @@
+<script language=javascript>
+    if (parent.TktAlert) {
+        window.alert = parent.TktAlert
+        window.confirm = parent.TktConfirm
+    }
+</script>
+<!--RECORD.IO: RDLOCAL key="0"-->
+<!--Parent=STDHUB PBname=P_21 Dict=P_21
+Val=23GT57 Old=
+Status=PB,NOLOCK SaveState=1 Confirm=0 Hotkey= -->
+<html>
+<!--RECORD.IO: WTCURRENT key="52832"-->
+<script language=javascript>
+    var StallXEV = 'WAIT';
+    function PostBack() {
+        if (parent.loaded != true)
+            return -1;
+        parent.ShowPI(0);
+        parent.SetProp("P_21", "Epb");
+
+        parent.PutFormVar("P_22", "", 0);
+        parent.PutFormVar("P_23", "", 0);
+        parent.PutFormVar("P_24", "", 0);
+        parent.PutFormVar("P_25", "", 0);
+        parent.PutFormVar("P_26", "", 0);
+        parent.PutFormVar("P_27", "", 0);
+        parent.PutFormVar("P_30", "", 0);
+        parent.PutFormVar("P_31", "", 0);
+        parent.PutFormVar("P_32", "", 0);
+
+        setTimeout(function () {
+            parent.FocusField = "WTKCB_20";
+            parent.FocusFormVar("WTKCB_20")
+        }, 550)
+        StallXEV = 0
+        // OK or Err, release XEV stall AT END!
+    }
+    function XEV() {
+        if (StallXEV == 'WAIT')
+            return setTimeout('XEV()', 350);
+        parent.ClearXEVENT(3, StallXEV, '', 1);
+    }
+</script>
+
+<body onLoad="PostBack();XEV();"></body>
+
+</html>

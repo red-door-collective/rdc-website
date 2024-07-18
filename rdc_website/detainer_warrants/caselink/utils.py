@@ -23,3 +23,7 @@ def save_to_dir(name, data, parent_dir=None):
 
     with open("{}/{}.json".format(parent_dir, name), "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+
+
+def log_response(name, response):
+    return {"name": name, "response": response}
