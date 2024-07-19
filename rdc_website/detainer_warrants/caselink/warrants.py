@@ -75,7 +75,7 @@ def open_case_page(docket_id):
     return case_page
 
 
-def from_docket_id(docket_id, with_pleading_documents=True):
+def from_docket_id(docket_id, with_pleading_documents=False):
     case_page = open_case_page(docket_id)
 
     detainer_warrant = scrape_detainer_warrant_info(case_page, docket_id)
@@ -93,8 +93,6 @@ def parse_defendant_details(html):
     csz = re.search(CSZ_REGEX, html)
     phone = re.search(PHONE_REGEX, html)
 
-    full_name = HumanName(name.group(1))
-
     full_address = None
     if address:
         full_address = address.group(1)
@@ -105,7 +103,7 @@ def parse_defendant_details(html):
 
     phone = phone.group(1) if phone else None
 
-    return {"full_name": full_name, "address": full_address, "phone": phone}
+    return {"full_name": name.group(1), "address": full_address, "phone": phone}
 
 
 def create_defendant(docket_id, full_name):
@@ -148,7 +146,6 @@ def scrape_detainer_warrant_info(case_page, docket_id):
 
     defendant_info_response = case_page.additional_defendant_info(docket_id)
     details = parse_defendant_details(defendant_info_response.text)
-    full_name = details["full_name"]
 
     detainer_warrant = db.session.get(DetainerWarrant, docket_id)
 
@@ -158,43 +155,11 @@ def scrape_detainer_warrant_info(case_page, docket_id):
     if details["address"]:
         detainer_warrant.update(address=details["address"])
 
-    db.session.add(detainer_warrant)
+    defendants = create_defendant(docket_id, details["full_name"])
 
-    existing_defendants = detainer_warrant.defendants
-
-    if existing_defendants:
-        num_defendants_updated = 0
-        for defendant in existing_defendants:
-            if (
-                details["first_name"] in defendant.name
-                or details["last_name"] in defendant.name
-            ):
-                defendant.update(
-                    first_name=full_name.first,
-                    middle_name=full_name.middle,
-                    last_name=full_name.last,
-                    suffix=full_name.suffix,
-                )
-            db.session.add(defendant)
-            num_defendants_updated += 1
-
-        logger.info(
-            "Updated {num_existing_updated} defendants on {docket_id}",
-            num_existing_updated=num_defendants_updated,
-            docket_id=docket_id,
-        )
-
-    else:
-        defendant = Defendant.create(
-            first_name=full_name.first,
-            middle_name=full_name.middle,
-            last_name=full_name.last,
-            suffix=full_name.suffix,
-        )
-        db.session.add(defendant)
-        logger.info("Created a defendant on {docket_id}", docket_id=docket_id)
-
-        detainer_warrant.update(defendants=[{"id": defendant.id}])
+    detainer_warrant.update(
+        defendants=[{"id": defendant.id for defendant in defendants}]
+    )
 
     db.session.commit()
 
