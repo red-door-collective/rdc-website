@@ -35,6 +35,10 @@ jobs:
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - run: nix develop --impure -c ./test-setup.sh /tmp
       - run: nix develop --impure -c pytest -m "smoke or regression"
+        env:
+          CASELINK_USERNAME: ${{ secrets.CASELINK_USERNAME }}
+          CASELINK_PASSWORD: ${{ secrets.CASELINK_PASSWORD }}
+          LOGURU_DIAGNOSE: NO
 
   compute_tags:
     name: Compute Tags

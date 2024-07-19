@@ -59,11 +59,13 @@ class InterceptHandler(logging.Handler):
 
 def create_app(testing=False):
     app = Flask(__name__.split(".")[0])
+    app.config.from_file(os.environ["RDC_WEBSITE_CONFIG"], load=json.load)
+
     logger.add(sys.stdout, level="INFO", colorize=True, serialize=True, backtrace=True)
     handler = InterceptHandler()
     handler.setLevel(0)
     app.logger.addHandler(handler)
-    app.config.from_file(os.environ["RDC_WEBSITE_CONFIG"], load=json.load)
+
     if app.config["ENV"] == "production":
         metrics = GunicornPrometheusMetrics.for_app_factory()
         metrics.init_app(app)
