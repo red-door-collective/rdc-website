@@ -1,17 +1,7 @@
 import unittest
-from unittest import mock
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_testing import TestCase
-from rdc_website.app import create_app, db, DetainerWarrant
-from rdc_website.admin.models import User, user_datastore
-from rdc_website.detainer_warrants.models import Hearing, PleadingDocument, Judgment
-from flask_security import hash_password, auth_token_required
 import rdc_website.detainer_warrants.caselink.warrants as warrants
 from datetime import datetime
-from decimal import Decimal
-import uuid
 from tests.helpers.rdc_test_case import RDCTestCase
 
 

@@ -1,9 +1,6 @@
 import unittest
 from unittest import mock
 
-from flask_testing import TestCase
-from rdc_website.app import create_app
-import rdc_website.detainer_warrants.caselink as caselink
 from rdc_website.detainer_warrants.caselink.navigation import Navigation
 from datetime import datetime, date
 from tests.helpers.rdc_test_case import RDCTestCase
