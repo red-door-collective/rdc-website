@@ -821,6 +821,14 @@ ALTER TABLE ONLY public."user"
 
 
 --
+-- Name: cases cases_document_image_path_fkey; Type: FK CONSTRAINT; Schema: public; Owner: dev-rdc
+--
+
+ALTER TABLE ONLY public.cases
+    ADD CONSTRAINT cases_document_image_path_fkey FOREIGN KEY (document_image_path) REFERENCES public.pleading_documents(image_path);
+
+
+--
 -- Name: cases cases_last_edited_by_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: dev-rdc
 --
 
