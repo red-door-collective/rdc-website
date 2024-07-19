@@ -8,4 +8,4 @@ pg_ctl start -D $tmpdir -o "-k $socketdir -h ''"
 createdb -h $socketdir test_rdc_website
 echo "Loading test database..."
 psql -h $socketdir test_rdc_website -f tests/test_db.sql
-echo "export rdc_website_TEST_DB_URL=\"postgresql+psycopg2:///test_rdc_website?host=$socketdir\""
+echo "export RDC_WEBSITE_TEST_DB_URL=\"postgresql+psycopg2:///test_rdc_website?host=$socketdir\""
