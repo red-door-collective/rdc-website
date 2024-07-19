@@ -351,6 +351,241 @@ class Navigation:
 
         return self._submit_form(self._encode_data(data))
 
+    def search_by_docket_id(self, docket_id):
+        data = self.merge_data(
+            {
+                "APPID": "davlvp",
+                "CODEITEMNM": "P_21",
+                "CURRVAL": docket_id,
+                "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+                "FINDDEFKEY": "CASELINK.MAIN",
+                "GATEWAY": "PB,NOLOCK,1,1",
+                "LINENBR": "0",
+                "NEEDRECORDS": "1",
+                "OPERCODE": "REDDOOR",
+                "PARENT": "STDHUB*update",
+                "PREVVAL": "",
+                "STDID": "52832",
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "POSTBACK",
+                "CHANGED": 1,
+                "CURRPANEL": 1,
+                "HUBFILE": "USER_SETTING",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "3",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": "P_21" + self.SEP,
+                "WCVALS": docket_id + self.SEP,
+            }
+        )
+
+        return self._submit_form(
+            self._encode_data(data),
+            headers={
+                "Host": "caselink.nashville.gov",
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+            },
+        )
+
+    def search_by_docket_id_2(self):
+        data = self.merge_data(
+            {
+                "APPID": "davlvp",
+                "CODEITEMNM": "WTKCB_11",
+                "CURRVAL": "Search",
+                "DEVAPPID": "",
+                "DEVPATH": "/INNOVISION/DEVELOPMENT/LVP.DEV",
+                "FINDDEFKEY": "CASELINK.MAIN",
+                "GATEWAY": "PB,NOLOCK,1,1",
+                "LINENBR": "0",
+                "NEEDRECORDS": "1",
+                "OPERCODE": "REDDOOR",
+                "PARENT": "STDHUB*update",
+                "PREVVAL": "",
+                "STDID": "52832",
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "POSTBACK",
+                "CHANGED": 1,
+                "CURRPANEL": 1,
+                "HUBFILE": "USER_SETTING",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "4",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": self.SEP,
+                "WCVALS": self.SEP,
+            }
+        )
+
+        return self._submit_form(
+            self._encode_data(data),
+            headers={
+                "Host": "caselink.nashville.gov",
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+            },
+        )
+
+    def search_by_docket_id_3(self, docket_id):
+        data = self.merge_data(
+            {
+                "APPID": "pubgs",
+                "CODEITEMNM": "WTKCB_11",
+                "CURRVAL": "Search",
+                "DEVAPPID": "",
+                "DEVPATH": "/INNOVISION/DAVIDSON/PUB.SESSIONS",
+                "FINDDEFKEY": "LVP.SES.INQUIRY",
+                "GATEWAY": "CP*CASELINK.MAIN",
+                "LINENBR": "0",
+                "NEEDRECORDS": "0",
+                "OPERCODE": "REDDOOR",
+                "PARENT": "STDHUB*update",
+                "PREVVAL": "",
+                "STDID": docket_id,
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "_self",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "STDHUB",
+                "CHANGED": 1,
+                "CURRPANEL": 1,
+                "HUBFILE": "USER_SETTING",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "5",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": "",
+                "WCVALS": "",
+            }
+        )
+
+        return self._submit_form(
+            self._encode_data(data),
+            headers={
+                "Host": "caselink.nashville.gov",
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+            },
+        )
+
+    def search_by_docket_id_4(self, docket_id):
+        data = self.merge_data(
+            {
+                "APPID": "pubgs",
+                "CODEITEMNM": "",
+                "CURRPROCESS": "LVP.SES.INQUIRY",
+                "CURRVAL": "1",
+                "DEVAPPID": "",
+                "DEVPATH": "/INNOVISION/DAVIDSON/PUB.SESSIONS",
+                "FINDDEFKEY": "LVP.SES.INQUIRY",
+                "GATEWAY": "FL",
+                "LINENBR": "0",
+                "NEEDRECORDS": "-1",
+                "OPERCODE": "REDDOOR",
+                "PARENT": "STDHUB*update",
+                "PREVVAL": "0",
+                "STDID": docket_id,
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "READREC",
+                "CHANGED": 0,
+                "CURRPANEL": 1,
+                "HUBFILE": "TRANS",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "2",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": "",
+                "WCVALS": "",
+            }
+        )
+
+        return self._submit_form(
+            self._encode_data(data),
+            headers={
+                "Host": "caselink.nashville.gov",
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+            },
+        )
+
+    def additional_defendant_info(self, docket_id):
+        data = self.merge_data(
+            {
+                "APPID": "pubgs",
+                "CODEITEMNM": "WTKCB_15_1",
+                "CURRPROCESS": "LVP.SES.INQUIRY",
+                "CURRVAL": "More Information",
+                "DEVAPPID": "",
+                "DEVPATH": "/INNOVISION/DAVIDSON/PUB.SESSIONS",
+                "FINDDEFKEY": "LVP.SES.INQUIRY",
+                "GATEWAY": "PB,NOLOCK,1,1",
+                "LINENBR": "0",
+                "NEEDRECORDS": "1",
+                "OPERCODE": "REDDOOR",
+                "PARENT": "STDHUB*update",
+                "PREVVAL": "",
+                "STDID": docket_id,
+                "STDURL": "/caselink_4_4.davlvp_blank.html",
+                "TARGET": "postback",
+                "WEBIOHANDLE": self.web_io_handle,
+                "WINDOWNAME": "update",
+                "XEVENT": "POSTBACK",
+                "CHANGED": 0,
+                "CURRPANEL": 2,
+                "HUBFILE": "TRANS",
+                "NPKEYS": "0",
+                "SUBMITCOUNT": "3",
+                "WEBEVENTPATH": "/GSASYS/TKT/TKT.ADMIN/WEB_EVENT",
+                "WCVARS": self.SEP.join(
+                    [
+                        "P_326_1",
+                        "TOTAL_P_326",
+                        "TOTAL_P_327",
+                        "TOTAL_P_328",
+                        "TOTAL_P_329",
+                        "TOTAL_P_330",
+                        "TOTAL_P_331",
+                        "TOTAL_P_332",
+                        "TOTAL_P_333",
+                        "TOTAL_P_334",
+                        "TOTAL_P_335",
+                        "TOTAL_P_336",
+                        "TOTAL_P_337",
+                        "TOTAL_P_326",
+                    ]
+                ),
+                "WCVALS": self.SEP.join(
+                    [
+                        "61.75",
+                        "61.75",
+                        "44.00",
+                        "17.75",
+                        "0.00",
+                        "0.00",
+                        "0.00",
+                        "0.00",
+                        "0.00",
+                        "0.00",
+                        "0.00",
+                        "0.00",
+                        "0.00",
+                        "61.75",
+                    ]
+                ),
+            }
+        )
+
+        return self._submit_form(
+            self._encode_data(data),
+            headers={
+                "Host": "caselink.nashville.gov",
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+            },
+        )
+
     def open_case(self, code_item, docket_id, cell_names):
         data = self.merge_data(
             {

@@ -9,7 +9,7 @@ from rdc_website.database import (
     relationship,
 )
 from datetime import datetime, date, timezone
-from sqlalchemy import func, text, case
+from sqlalchemy import func, text, case, and_
 from flask_security import UserMixin, RoleMixin
 from sqlalchemy.ext.hybrid import hybrid_property
 from nameparser import HumanName
@@ -792,6 +792,15 @@ class Case(db.Model, Timestamped):
             self._defendants = [
                 db.session.query(Defendant).get(d.get("id")) for d in defendants
             ]
+
+    @classmethod
+    def between_dates(cls, start, end, query):
+        return query.filter(
+            and_(
+                func.date(cls.file_date) >= start,
+                func.date(cls.file_date) <= end,
+            )
+        )
 
 
 class UncategorizedCase(Case):

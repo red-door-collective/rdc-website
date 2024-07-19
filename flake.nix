@@ -74,7 +74,7 @@
           inherit (config.packages) rdc-website-serve-app;
         };
 
-        formatter = pkgs.nixpkgs-fmt;
+        formatter = pkgs.alejandra;
 
         packages = {
           default = serveApp;
@@ -87,6 +87,9 @@
 
         devenv.shells.default = {
           name = "rdc-website";
+
+          dotenv.enable = true;
+
           env = {
             PYTHONPATH = ".";
             ENV = "development";

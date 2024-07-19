@@ -182,7 +182,7 @@ in rec {
   in [
     # bandit
     #isortWrapper
-    pkgs.nixpkgs-fmt
+    pkgs.alejandra
     #pylintWrapper
     # pkgs.cypress
     pkgs.nodejs

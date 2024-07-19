@@ -10,110 +10,35 @@ env:
   VERSION: test
 
 jobs:
-  unit_test:
+  unit_tests:
     runs-on: ubuntu-latest
     name: Unit tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v20
       - uses: cachix/cachix-action@v12
         with:
           name: red-door-collective 
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - run: nix develop --impure -c ./test-setup.sh /tmp
-      - run: nix develop --impure -c pytest
+      - run: nix develop --impure -c pytest -m "not smoke or regression"
 
   integration_tests:
     runs-on: ubuntu-latest
     name: Integration tests
-    defaults:
-      run:
-        shell: bash
-        working-directory: pages 
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 14
-        uses: actions/setup-node@v1
+      - uses: cachix/install-nix-action@v20
+      - uses: cachix/cachix-action@v12
         with:
-          node-version: 14
-      # Re-use node_modules between runs until package-lock.json changes.
-      - name: Cache node_modules
-        id: cache-node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/Cypress
-            node_modules
-          key: node_modules-node-v${{ matrix.node }}-${{ hashFiles('package-lock.json') }}
-
-      # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
-      # review/elm.json changes. The Elm compiler saves downloaded Elm packages
-      # to ~/.elm, and elm-tooling saves downloaded tool executables there.
-      - name: Cache ~/.elm
-        uses: actions/cache@v4
-        with:
-          path: ~/.elm
-          key: elm-${{ hashFiles('elm.json', 'elm-tooling.json', 'review/elm.json') }}
-
-      # Install npm packages, unless we restored them from cache.
-      # Since `npm ci` removes the node_modules folder before running it’s
-      # important to skip this step if cache was restored.
-      - name: npm ci
-        # if: steps.cache-node_modules.outputs.cache-hit != 'true'
+          name: red-door-collective 
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+      - run: nix develop --impure -c ./test-setup.sh /tmp
+      - run: nix develop --impure -c pytest -m "smoke or regression"
         env:
-          # If you have a `"postinstall": "elm-tooling install"` script in your
-          # package.json, this turns it into a no-op. We’ll run it in the next
-          # step because of the caching. If elm-tooling.json changes but
-          # package-lock.json does not, the postinstall script needs running
-          # but this step won’t.
-          NO_ELM_TOOLING_INSTALL: 1
-        run: npm ci
-      - name: elm-tooling install
-        run: npx --no-install elm-tooling install
-      - uses: nick-invision/retry@v2
-        name: Build
-        with:
-          max_attempts: 3
-          timeout_minutes: 3
-          retry_on: error
-          command: cd pages && npm install && npm run build
-      - name: Tests
-        run: npm test
-        env:
-          GITHUB_TOKEN: secrets.GITHUB_TOKEN
-      - name: Add elm-review, elm and elm-format to path
-        run: npm bin >> $GITHUB_PATH
-      # - uses: sparksp/elm-review-action@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # - name: elm-format
-        # run: npx --no-install elm-format --validate src/
-      - name: Setup for cypress
-        run: (npm install && npx elm-tooling install)
-      - name: Install Cypress
-        run: npm i cypress
-      - name: Cypress tests
-        uses: cypress-io/github-action@v2
-        with:
-          start: npm start
-          wait-on: "http://localhost:1234"
-          wait-on-timeout: 60
-          working-directory: ./pages
-          install: false
-          record: true
-        env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-
-      - uses: actions/upload-artifact@v1
-        if: failure()
-        with:
-          name: cypress-screenshots
-          path: pages/cypress/screenshots
-      - uses: actions/upload-artifact@v1
-        if: failure()
-        with:
-          name: cypress-videos
-          path: pages/cypress/videos
+          CASELINK_USERNAME: ${{ secrets.CASELINK_USERNAME }}
+          CASELINK_PASSWORD: ${{ secrets.CASELINK_PASSWORD }}
+          LOGURU_DIAGNOSE: NO
 
   compute_tags:
     name: Compute Tags
@@ -137,6 +62,8 @@ jobs:
     name: Commit Assets
     needs:
       - compute_tags
+      - unit_tests
+      - integration_tests
     steps:
       - uses: actions/checkout@v4
       

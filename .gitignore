@@ -58,6 +58,7 @@ log.json
 .envrc# Devenv
 .devenv*
 devenv.local.nix
+.env
 
 # direnv
 .direnv

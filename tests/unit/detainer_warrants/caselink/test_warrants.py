@@ -1,17 +1,7 @@
 import unittest
-from unittest import mock
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_testing import TestCase
-from rdc_website.app import create_app, db, DetainerWarrant
-from rdc_website.admin.models import User, user_datastore
-from rdc_website.detainer_warrants.models import Hearing, PleadingDocument, Judgment
-from flask_security import hash_password, auth_token_required
 import rdc_website.detainer_warrants.caselink.warrants as warrants
 from datetime import datetime
-from decimal import Decimal
-import uuid
 from tests.helpers.rdc_test_case import RDCTestCase
 
 
@@ -122,21 +112,6 @@ class TestWarrants(RDCTestCase):
                     "Defendant": "DEFENDANT 2",
                     "Def. Attorney": "",
                 },
-            ],
-        )
-
-    def test_extract_pleading_document_paths(self):
-        pleading_documents = None
-        with open("tests/fixtures/caselink/case-page/pleading-documents.html") as f:
-            pleading_documents = f.read()
-
-        paths = warrants.extract_pleading_document_paths(pleading_documents)
-
-        self.assertEqual(
-            paths,
-            [
-                "\\Public\\Sessions\\24\\24GT4890\\3370253.pdf",
-                "\\Public\\Sessions\\24/24GT4890\\03370254.pdf",
             ],
         )
 

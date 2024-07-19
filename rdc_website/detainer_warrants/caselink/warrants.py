@@ -3,23 +3,18 @@ from .navigation import Navigation
 import re
 from datetime import datetime
 from .. import csv_imports
-from ..models import db, DetainerWarrant, PleadingDocument
-from .utils import save_all_responses
+from ..models import db, DetainerWarrant, PleadingDocument, Defendant
+from .utils import save_all_responses, log_response
+from ..util import get_or_create
+from sqlalchemy.orm.exc import MultipleResultsFound
 
+from . import pleadings
 from loguru import logger
+from nameparser import HumanName
 
 CSV_URL_REGEX = re.compile(r'parent.UserWinOpen\("",\s*"(https:\/\/.+?)",')
 WC_VARS_VALS_REGEX = re.compile(
     r'parent\.PutFormVar\(\s*"(?P<vars>P_\d+_\d+)"\s*,\s*"(?P<values>\s*.*?)",'
-)
-PLEADING_DOCUMENTS_REGEX = re.compile(
-    r'parent\.PutMvals\(\s*"P_3"\s*,\s*"([ý\\]*\w+\\+\w+\\+\w+\\+\w+\\+\d+\.pdf.+)"'
-)
-PLEADING_DOC_REGEX = re.compile(
-    r'"\s*(\\+Public\\+Sessions\\+24\\+24GT4771\\+3363356\.pdf)\s*"'
-)
-OPEN_CASE_REGEX = re.compile(
-    r'parent\.UserCallProcess\("(?P<process>.+?)",\s*"(?P<docket_id>\d+\w+\d+)",\s*.+?[\'"]+(?P<dev_path>\/.+)[\'"]+,\s*[\'"]self[\'"]'
 )
 PLAINTIFF_ATTORNEY = "Pltf. Attorney"
 COLUMNS = [
@@ -33,6 +28,11 @@ COLUMNS = [
     PLAINTIFF_ATTORNEY,
     "Def. Attorney",
 ]
+DEFENDANT_NAME_REGEX = re.compile(r'"P_211"\s*,\s*"(.*?)"')
+DEFENDANT_ADDRESS_REGEX = re.compile(r'"P_212"\s*,\s*"(.*?)"')
+DEFENDANT_ADDRESS_LINE_2_REGEX = re.compile(r'"P_213"\s*,\s*"(.*?)"')
+CSZ_REGEX = re.compile(r'"P_214"\s*,\s*"(.*?)"')
+PHONE_REGEX = re.compile(r'"P_27"\s*,\s*"(.*?)"')
 
 
 def split_cell_names_and_values(matches):
@@ -61,13 +61,126 @@ def docket_id_code_item(index):
     return "P_102_{}".format(index)
 
 
-def import_from_caselink(start_date, end_date, record=False):
+def open_case_page(docket_id):
+    search_page = Navigation.login()
+    menu_resp = search_page.menu()
+    menu_page = Navigation.from_response(menu_resp)
+    # menu_page_resp = menu_page.follow_url()
+    read_rec_resp = menu_page.read_rec()
+    r1 = menu_page.search_by_docket_id(docket_id)
+    r2 = menu_page.search_by_docket_id_2()
+    r3 = menu_page.search_by_docket_id_3(docket_id)
+    r4 = menu_page.search_by_docket_id_4(docket_id)
+    case_page = Navigation.from_response(r4)
+    return case_page
+
+
+def from_docket_id(docket_id, with_pleading_documents=False):
+    case_page = open_case_page(docket_id)
+
+    detainer_warrant = scrape_detainer_warrant_info(case_page, docket_id)
+
+    if with_pleading_documents:
+        return pleadings.from_case_detail_page(docket_id, case_page)
+
+    return detainer_warrant
+
+
+def parse_defendant_details(html):
+    name = re.search(DEFENDANT_NAME_REGEX, html)
+    address = re.search(DEFENDANT_ADDRESS_REGEX, html)
+    address_line2 = re.search(DEFENDANT_ADDRESS_LINE_2_REGEX, html)
+    csz = re.search(CSZ_REGEX, html)
+    phone = re.search(PHONE_REGEX, html)
+
+    full_address = None
+    if address:
+        full_address = address.group(1)
+        if address_line2 and address_line2.group(1) != "":
+            full_address += " " + address_line2.group(1)
+        if csz and csz.group(1) != "":
+            full_address += " " + csz.group(1)
+
+    phone = phone.group(1) if phone else None
+
+    return {"full_name": name.group(1), "address": full_address, "phone": phone}
+
+
+def create_defendant(docket_id, full_name):
+    name = HumanName(full_name.replace("OR ALL OCCUPANTS", ""))
+
+    exists_on_this_docket = DetainerWarrant.query.filter(
+        DetainerWarrant.docket_id == docket_id,
+        DetainerWarrant._defendants.any(first_name=name.first, last_name=name.last),
+    ).first()
+
+    if bool(exists_on_this_docket):
+        return exists_on_this_docket.defendants
+
+    defendant = None
+    if bool(name.first):
+        try:
+            defendant, _ = get_or_create(
+                db.session,
+                Defendant,
+                first_name=name.first,
+                middle_name=name.middle,
+                last_name=name.last,
+                suffix=name.suffix,
+            )
+        except MultipleResultsFound:
+            defendant = Defendant.query.filter_by(
+                first_name=name.first,
+                middle_name=name.middle,
+                last_name=name.last,
+                suffix=name.suffix,
+            ).first()
+    return [defendant]
+
+
+def scrape_detainer_warrant_info(case_page, docket_id):
+    """
+    Gather case and defendant into from the case page.
+    """
+    # case_page_response = case_page.follow_url()
+
+    defendant_info_response = case_page.additional_defendant_info(docket_id)
+    details = parse_defendant_details(defendant_info_response.text)
+
+    detainer_warrant = db.session.get(DetainerWarrant, docket_id)
+
+    if not detainer_warrant:
+        detainer_warrant = DetainerWarrant.create(docket_id=docket_id)
+
+    if details["address"]:
+        detainer_warrant.update(address=details["address"])
+
+    defendants = create_defendant(docket_id, details["full_name"])
+
+    detainer_warrant.update(
+        defendants=[{"id": defendant.id for defendant in defendants}]
+    )
+
+    db.session.commit()
+
+    return detainer_warrant
+
+
+def import_from_caselink(
+    start_date,
+    end_date,
+    record=False,
+    with_case_details=True,
+    with_pleading_documents=True,
+):
     try:
         caselink_log = []
         pages = search_between_dates(start_date, end_date, log=caselink_log)
         results_response = pages["search_page"].search()
         if record:
             caselink_log.append(log_response("search", results_response))
+        if 'self.location="/gsapdfs/' in results_response.text:
+            results_response = Navigation.from_response(results_response).follow_url()
         matches = extract_search_response_data(results_response.text)
         cell_names, cell_values = split_cell_names_and_values(matches)
         cases = build_cases_from_parsed_matches(cell_values)
@@ -85,14 +198,23 @@ def import_from_caselink(start_date, end_date, record=False):
 
         csv_imports.from_rows(cases)
 
-        for i, case in enumerate(cases):
-            docket_id = case["Docket #"]
-            import_pleading_documents(
-                docket_id_code_item(i),
-                docket_id,
-                pages,
-                log=caselink_log if i == 0 else None,
+        if with_case_details:
+            logger.info(
+                "Scraping {case_count} cases{level_of_detail}",
+                case_count=len(cases),
+                level_of_detail=(
+                    " with pleading documents" if with_pleading_documents else ""
+                ),
             )
+            for i, case in enumerate(cases):
+                docket_id = case["Docket #"]
+                from_search_results(
+                    docket_id_code_item(i),
+                    docket_id,
+                    pages,
+                    with_pleading_documents=with_pleading_documents,
+                    log=caselink_log if i == 0 else None,
+                )
 
         if record:
             record_imports_in_dev(caselink_log)
@@ -101,49 +223,9 @@ def import_from_caselink(start_date, end_date, record=False):
         record_imports_in_dev(caselink_log)
 
 
-def record_imports_in_dev(caselink_log):
-    if current_app.config["ENV"] == "development":
-        save_all_responses(caselink_log)
-
-
-def extract_case_details(open_case_html):
-    return re.search(OPEN_CASE_REGEX, open_case_html)
-
-
-def extract_pleading_document_paths(html):
-    escaped_paths = re.search(PLEADING_DOCUMENTS_REGEX, html).group(1)
-    # return escaped_paths.replace("\\\\", "")
-    trimmed_paths = escaped_paths.strip("ý").split(".pdf")
-
-    paths = [
-        path.strip("ý").replace("\\\\\\\\", "\\") + ".pdf"
-        for path in trimmed_paths
-        if path
-    ]
-
-    return paths
-
-
-def populate_pleadings(docket_id, image_paths):
-    created_count, seen_count = 0, 0
-    for image_path in image_paths:
-        document = PleadingDocument.query.get(image_path)
-        if document:
-            seen_count += 1
-        else:
-            created_count += 1
-            PleadingDocument.create(image_path=image_path, docket_id=docket_id)
-
-    DetainerWarrant.query.get(docket_id).update(
-        _last_pleading_documents_check=datetime.utcnow(),
-        pleading_document_check_mismatched_html=None,
-        pleading_document_check_was_successful=True,
-    )
-
-    db.session.commit()
-
-
-def import_pleading_documents(code_item, docket_id, pages, log=None):
+def from_search_results(
+    code_item, docket_id, pages, with_pleading_documents=True, log=None
+):
     search_results_page = pages["search_page"]
     open_case_response = pages["menu_page"].open_case(
         code_item, docket_id, pages["cell_names"]
@@ -153,27 +235,24 @@ def import_pleading_documents(code_item, docket_id, pages, log=None):
 
     case_page = Navigation.from_response(open_case_response)
     case_page_response = case_page.follow_url()
+    # unsure if necessary. monitor collection
     # case_details = extract_case_details(case_page_response.text)
 
-    open_case_redirect_response = search_results_page.open_case_redirect(docket_id)
-    full_case_page = Navigation.from_response(open_case_redirect_response)
-    full_case_page_response = full_case_page.follow_url()
+    scrape_detainer_warrant_info(case_page)
 
+    open_case_redirect_response = search_results_page.open_case_redirect(docket_id)
     if log is not None:
         log.append(log_response("open_case_redirect", open_case_redirect_response))
 
-    pleading_doc_response = full_case_page.open_pleading_document_redirect(docket_id)
+    full_case_page = Navigation.from_response(open_case_redirect_response)
 
-    if log is not None:
-        log.append(log_response("pleading_doc", pleading_doc_response))
+    if with_pleading_documents:
+        pleadings.from_case_detail_page(docket_id, full_case_page, log=log)
 
-    # pleading_doc_page = Navigation.from_response(pleading_doc_response)
 
-    # pleading_documents = pleading_doc_page.follow_url()
-
-    image_paths = extract_pleading_document_paths(full_case_page_response.text)
-
-    populate_pleadings(docket_id, image_paths)
+def record_imports_in_dev(caselink_log):
+    if current_app.config["ENV"] == "development":
+        save_all_responses(caselink_log)
 
 
 def build_cases_from_parsed_matches(matches):
@@ -192,10 +271,6 @@ def extract_search_response_data(search_results):
 def divide_into_dicts(h, l, n):
     for i in range(0, len(l), n):
         yield {h[(i + ind) % n]: v for ind, v in enumerate(l[i : i + n])}
-
-
-def log_response(name, response):
-    return {"name": name, "response": response}
 
 
 def search_between_dates(start_date, end_date, log=None):

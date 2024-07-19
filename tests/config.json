@@ -5,7 +5,7 @@
     "SECRET_KEY": "secret",
     "SECURITY_PASSWORD_SALT": "secret2",
     "DEBUG": true,
-    "SQLALCHEMY_DATABASE_URI": "postgresql+psycopg2:///test_rdc_website",
+    "SQLALCHEMY_DATABASE_URI": "postgresql+psycopg2:///test_rdc_website?host=/tmp",
     "SQLALCHEMY_TRACK_MODIFICATIONS": false,
     "GOOGLE_ACCOUNT_PATH": "~/.config/gspread/service_account.json",
     "LOG_FILE_PATH": "./capture.log",
