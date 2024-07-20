@@ -33,7 +33,7 @@ with builtins; let
   '';
 
   rdcWebsiteConsole = pkgs.writeScriptBin "rdc-website-console" ''
-    export `source ${rdcShowEnvVars}`
+    export `source ${rdcShowEnvVars}/bin/rdc-show-env-vars`
     ${serveApp}/bin/console
   '';
 
