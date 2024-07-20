@@ -52,9 +52,16 @@
     cd ${src}
     ${dependencyEnv}/bin/flask shell
   '';
+
+  runConmmand = pkgs.writeShellScriptBin "command" ''
+    ${exportConfigEnvVar}
+    ${lib.optionalString (tmpdir != null) "export TMPDIR=${tmpdir}"}
+    cd ${src}
+    ${dependencyEnv}/bin/flask "$@"
+  '';
 in
   pkgs.buildEnv {
     ignoreCollisions = true;
     name = "rdc-website-serve-app";
-    paths = [runGunicorn runMigrate runPython runConsole];
+    paths = [runGunicorn runMigrate runPython runConsole runConmmand];
   }
