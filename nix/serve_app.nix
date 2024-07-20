@@ -63,5 +63,5 @@ in
   pkgs.buildEnv {
     ignoreCollisions = true;
     name = "rdc-website-serve-app";
-    paths = [runGunicorn runMigrate runPython runConsole runConmand];
+    paths = [runGunicorn runMigrate runPython runConsole runCommand];
   }
