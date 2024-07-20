@@ -206,6 +206,7 @@ in {
       rdcWebsiteConfig
       rdcWebsiteShowConfig
       rdcWebsiteConsole
+      rdcWebsiteCommand
       rdcShowEnvVars
     ];
 
