@@ -238,7 +238,7 @@ def from_search_results(
     # unsure if necessary. monitor collection
     # case_details = extract_case_details(case_page_response.text)
 
-    scrape_detainer_warrant_info(case_page)
+    scrape_detainer_warrant_info(case_page, docket_id)
 
     open_case_redirect_response = search_results_page.open_case_redirect(docket_id)
     if log is not None:
