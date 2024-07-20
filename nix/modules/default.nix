@@ -44,7 +44,7 @@ with builtins; let
 
   rdcWebsiteCommand = pkgs.writeScriptBin "rdc-website-command" ''
     export `source ${rdcShowEnvVars}/bin/rdc-show-env-vars`
-    ${serveApp}/bin/command
+    ${serveApp}/bin/command "$@"
   '';
 in {
   options.services.red-door-collective.rdc-website = with lib; {
