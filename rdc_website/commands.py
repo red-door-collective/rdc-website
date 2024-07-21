@@ -28,6 +28,7 @@ from io import StringIO
 from .util import get_or_create
 from loguru import logger
 
+logger.remove()
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(HERE, os.pardir)
@@ -260,14 +261,93 @@ def verify_phones(limit):
 @click.argument("start_date")
 @click.argument("end_date")
 @click.option(
-    "-r", "--record", default=False, help="Record the requests made to caselink"
+    "-r",
+    "--record",
+    is_flag=True,
+    default=False,
+    help="Record the requests made to caselink",
+)
+@click.option(
+    "-d",
+    "--detailed",
+    is_flag=True,
+    default=False,
+    help="Gather additional information on each case page",
+)
+@click.option(
+    "-p",
+    "--pleadings",
+    is_flag=True,
+    default=False,
+    help="Gather pleading documents on each case page",
 )
 @with_appcontext
-def import_from_caselink(start_date, end_date, record):
+def import_from_caselink(start_date, end_date, record, detailed, pleadings):
     """Insert Detainer Warrants"""
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%d")
-    detainer_warrants.caselink.warrants.import_from_caselink(start, end, record=record)
+    with_case_details = True if pleadings else detailed
+
+    detainer_warrants.caselink.warrants.import_from_caselink(
+        start,
+        end,
+        record=record,
+        with_case_details=with_case_details,
+        with_pleading_documents=pleadings,
+    )
+
+
+@click.command()
+@click.argument("docket_id")
+@click.option(
+    "-p",
+    "--pleadings",
+    is_flag=True,
+    default=False,
+    help="Gather pleading documents on each case page",
+)
+@with_appcontext
+def scrape_case_details(docket_id, pleadings):
+    detainer_warrants.caselink.warrants.from_docket_id(
+        docket_id, with_pleading_documents=pleadings
+    )
+
+
+@click.command()
+@click.argument("start_date")
+@click.argument("end_date")
+@click.option(
+    "-d",
+    "--detailed",
+    is_flag=True,
+    default=False,
+    help="Gather additional information on each case page",
+)
+@click.option(
+    "-p",
+    "--pleadings",
+    is_flag=True,
+    default=False,
+    help="Gather pleading documents on each case page",
+)
+@with_appcontext
+def bulk_scrape_caselink_by_week(start_date, end_date, detailed, pleadings):
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+    with_case_details = True if pleadings else detailed
+
+    start_week_number = start.isocalendar().week
+    end_week_number = end.isocalendar().week
+    for week_number in range(start_week_number, end_week_number + 1):
+        week_start = date.fromisocalendar(start.year, week_number, 1)
+        week_end = date.fromisocalendar(start.year, week_number, 7)
+
+        detainer_warrants.caselink.warrants.import_from_caselink(
+            week_start,
+            week_end,
+            with_case_details=with_case_details,
+            with_pleading_documents=pleadings,
+        )
 
 
 @click.command()

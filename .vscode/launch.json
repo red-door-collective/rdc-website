@@ -40,6 +40,40 @@
             "autoStartBrowser": false
         },
         {
+            "name": "Bulk Scrape Cases by Week",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "rdc_website/app.py",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "bulk-scrape-caselink-by-week",
+                "2024-05-01",
+                "2024-05-31",
+                "-d"
+            ],
+            "jinja": false,
+            "autoStartBrowser": false
+        },
+        {
+            "name": "Scrape Case Details",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "rdc_website/app.py",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "scrape-case-details",
+                "24GT5276"
+            ],
+            "jinja": false,
+            "autoStartBrowser": false
+        },
+        {
             "name": "View Pleading Document",
             "type": "debugpy",
             "request": "launch",

@@ -9,8 +9,11 @@ from ..util import get_or_create
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 from . import pleadings
+from .exceptions import BulkScrapeException
 from loguru import logger
 from nameparser import HumanName
+from tenacity import retry, wait_exponential, after_log, stop_after_attempt
+import logging
 
 CSV_URL_REGEX = re.compile(r'parent.UserWinOpen\("",\s*"(https:\/\/.+?)",')
 WC_VARS_VALS_REGEX = re.compile(
@@ -142,8 +145,8 @@ def scrape_detainer_warrant_info(case_page, docket_id):
     """
     Gather case and defendant into from the case page.
     """
-    # case_page_response = case_page.follow_url()
 
+    case_page.follow_url()
     defendant_info_response = case_page.additional_defendant_info(docket_id)
     details = parse_defendant_details(defendant_info_response.text)
 
@@ -166,12 +169,34 @@ def scrape_detainer_warrant_info(case_page, docket_id):
     return detainer_warrant
 
 
+@retry(
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    after=after_log(logger, logging.INFO),
+    stop=stop_after_attempt(3),
+    reraise=True,
+)
+def scrape_single_row(
+    index, case, pages, with_pleading_documents, total_cases=1, log=None
+):
+    docket_id = case["Docket #"]
+    try:
+        from_search_results(
+            docket_id_code_item(index),
+            docket_id,
+            pages,
+            with_pleading_documents=with_pleading_documents,
+            log=log if index == 0 else None,
+        )
+    except Exception:
+        raise BulkScrapeException(docket_id, index, total_cases=total_cases)
+
+
 def import_from_caselink(
     start_date,
     end_date,
     record=False,
-    with_case_details=True,
-    with_pleading_documents=True,
+    with_case_details=False,
+    with_pleading_documents=False,
 ):
     try:
         caselink_log = []
@@ -184,6 +209,19 @@ def import_from_caselink(
         matches = extract_search_response_data(results_response.text)
         cell_names, cell_values = split_cell_names_and_values(matches)
         cases = build_cases_from_parsed_matches(cell_values)
+        total_cases = len(cases)
+
+        level_of_detail = ""
+        if with_pleading_documents:
+            level_of_detail = "with pleading documents"
+        elif with_case_details:
+            level_of_detail = "with case details"
+
+        logger.info(
+            "Scraping {total_cases} cases{level_of_detail}",
+            total_cases=total_cases,
+            level_of_detail=(" " + level_of_detail if level_of_detail else ""),
+        )
 
         wc_vars, wc_values = search_response_data_to_formdata(cell_names, cell_values)
         pages["cell_names"] = cell_names
@@ -199,32 +237,28 @@ def import_from_caselink(
         csv_imports.from_rows(cases)
 
         if with_case_details:
-            logger.info(
-                "Scraping {case_count} cases{level_of_detail}",
-                case_count=len(cases),
-                level_of_detail=(
-                    " with pleading documents" if with_pleading_documents else ""
-                ),
-            )
             for i, case in enumerate(cases):
-                docket_id = case["Docket #"]
-                from_search_results(
-                    docket_id_code_item(i),
-                    docket_id,
+                scrape_single_row(
+                    i,
+                    case,
                     pages,
-                    with_pleading_documents=with_pleading_documents,
-                    log=caselink_log if i == 0 else None,
+                    with_pleading_documents,
+                    total_cases=total_cases,
+                    log=caselink_log,
                 )
 
         if record:
             record_imports_in_dev(caselink_log)
+    except BulkScrapeException as e:
+        logger.exception("Bulk Scrape of CaseLink terminated")
     except Exception:
-        logger.exception("CaseLink import terminated")
+        logger.exception("Bulk Scrape of CaseLink terminated")
+    finally:
         record_imports_in_dev(caselink_log)
 
 
 def from_search_results(
-    code_item, docket_id, pages, with_pleading_documents=True, log=None
+    code_item, docket_id, pages, with_pleading_documents=False, log=None
 ):
     search_results_page = pages["search_page"]
     open_case_response = pages["menu_page"].open_case(
@@ -234,7 +268,7 @@ def from_search_results(
         log.append(log_response("open_case", open_case_response))
 
     case_page = Navigation.from_response(open_case_response)
-    case_page_response = case_page.follow_url()
+    # case_page_response = case_page.follow_url()
     # unsure if necessary. monitor collection
     # case_details = extract_case_details(case_page_response.text)
 
@@ -274,7 +308,7 @@ def divide_into_dicts(h, l, n):
 
 
 def search_between_dates(start_date, end_date, log=None):
-    logger.info(f"Importing caselink warrants between {start_date} and {end_date}")
+    logger.info(f"Scraping caselink warrants between {start_date} and {end_date}")
 
     search_page = Navigation.login(log=log)
     menu_resp = search_page.menu()
