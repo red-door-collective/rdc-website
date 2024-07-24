@@ -306,10 +306,19 @@ def import_from_caselink(start_date, end_date, record, detailed, pleadings):
     default=False,
     help="Gather pleading documents on each case page",
 )
+@click.option(
+    "-w",
+    "--with-extra-fetches",
+    is_flag=True,
+    default=False,
+    help="Do some extra fetches to unstick a case page parse",
+)
 @with_appcontext
-def scrape_case_details(docket_id, pleadings):
+def scrape_case_details(docket_id, pleadings, with_extra_fetches):
     detainer_warrants.caselink.warrants.from_docket_id(
-        docket_id, with_pleading_documents=pleadings
+        docket_id,
+        with_extra_fetches=with_extra_fetches,
+        with_pleading_documents=pleadings,
     )
 
 
@@ -330,24 +339,46 @@ def scrape_case_details(docket_id, pleadings):
     default=False,
     help="Gather pleading documents on each case page",
 )
+@click.option(
+    "-c",
+    "--case-by-case",
+    is_flag=True,
+    default=False,
+    help="Do not search, rather use existing docket ids to visit each case page",
+)
+@click.option(
+    "--pending-only", is_flag=True, default=False, help="Gather only pending documents"
+)
 @with_appcontext
-def bulk_scrape_caselink_by_week(start_date, end_date, detailed, pleadings):
+def bulk_scrape_caselink_by_week(
+    start_date, end_date, detailed, pleadings, case_by_case, pending_only
+):
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%d")
     with_case_details = True if pleadings else detailed
 
     start_week_number = start.isocalendar().week
+    start_week_number = 1 if start_week_number == 52 else start_week_number
     end_week_number = end.isocalendar().week
     for week_number in range(start_week_number, end_week_number + 1):
         week_start = date.fromisocalendar(start.year, week_number, 1)
         week_end = date.fromisocalendar(start.year, week_number, 7)
 
-        detainer_warrants.caselink.warrants.import_from_caselink(
-            week_start,
-            week_end,
-            with_case_details=with_case_details,
-            with_pleading_documents=pleadings,
-        )
+        if case_by_case:
+            detainer_warrants.caselink.warrants.case_by_case(
+                week_start,
+                week_end,
+                pending_only=pending_only,
+                with_pleading_documents=pleadings,
+            )
+        else:
+            detainer_warrants.caselink.warrants.import_from_caselink(
+                week_start,
+                week_end,
+                pending_only=pending_only,
+                with_case_details=with_case_details,
+                with_pleading_documents=pleadings,
+            )
 
 
 @click.command()

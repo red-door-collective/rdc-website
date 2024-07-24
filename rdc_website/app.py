@@ -40,6 +40,10 @@ import logging
 import flask.cli
 import sys
 from prometheus_flask_exporter.multiprocess import GunicornPrometheusMetrics
+from nameparser.config import CONSTANTS
+
+CONSTANTS.titles.remove("marquise", "marquis", "prince", "princess", "sultan", "senior")
+
 
 flask.cli.show_server_banner = lambda *args: None
 

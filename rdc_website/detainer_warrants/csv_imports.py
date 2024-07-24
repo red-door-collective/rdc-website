@@ -44,7 +44,7 @@ def from_csv_row(row):
     warrant = {k: normalize(v) for k, v in row.items()}
     docket_id = warrant["Docket #"]
 
-    if "DETAINER WARRANT" not in warrant["Description"]:
+    if not ("DETAINER WARRANT" in warrant["Description"] and "GT" in docket_id):
         return
 
     dw = db.session.get(DetainerWarrant, docket_id)
