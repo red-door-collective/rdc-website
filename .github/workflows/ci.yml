@@ -63,7 +63,6 @@ jobs:
     needs:
       - compute_tags
       - unit_tests
-      - integration_tests
     steps:
       - uses: actions/checkout@v4
       
