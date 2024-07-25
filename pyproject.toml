@@ -49,6 +49,7 @@ better-exceptions = "^0.3.3"
 loguru = "^0.7.2"
 prometheus-client = "^0.20.0"
 prometheus-flask-exporter = "^0.23.1"
+tenacity = "^8.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"

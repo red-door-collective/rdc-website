@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python Debugger: Attach using Process Id",
+            "type": "debugpy",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        },
+        {
             "name": "[Record] Import From Caselink",
             "type": "debugpy",
             "request": "launch",
@@ -35,6 +41,40 @@
                 "import-from-caselink",
                 "2023-01-03",
                 "2023-01-4"
+            ],
+            "jinja": false,
+            "autoStartBrowser": false
+        },
+        {
+            "name": "Bulk Scrape Cases by Week",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "rdc_website/app.py",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "bulk-scrape-caselink-by-week",
+                "2023-01-01",
+                "2023-01-31"
+            ],
+            "jinja": false,
+            "autoStartBrowser": false
+        },
+        {
+            "name": "Scrape Case Details",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "rdc_website/app.py",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "scrape-case-details",
+                "23GT171",
+                "-w"
             ],
             "jinja": false,
             "autoStartBrowser": false

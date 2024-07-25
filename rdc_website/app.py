@@ -40,6 +40,10 @@ import logging
 import flask.cli
 import sys
 from prometheus_flask_exporter.multiprocess import GunicornPrometheusMetrics
+from nameparser.config import CONSTANTS
+
+CONSTANTS.titles.remove("marquise", "marquis", "prince", "princess", "sultan", "senior")
+
 
 flask.cli.show_server_banner = lambda *args: None
 
@@ -61,18 +65,21 @@ def create_app(testing=False):
     app = Flask(__name__.split(".")[0])
     app.config.from_file(os.environ["RDC_WEBSITE_CONFIG"], load=json.load)
 
-    logger.add(sys.stdout, level="INFO", colorize=True, serialize=True, backtrace=True)
-    handler = InterceptHandler()
-    handler.setLevel(0)
-    app.logger.addHandler(handler)
+    logger_options = {"level": "INFO", "colorize": True, "backtrace": True}
 
     if app.config["ENV"] == "production":
+        logger_options["serialize"] = True
         metrics = GunicornPrometheusMetrics.for_app_factory()
         metrics.init_app(app)
 
         metrics.info(
             "app_info", "Application info", version=os.environ.get("VERSION", "dev")
         )
+
+    logger.add(sys.stdout, **logger_options)
+    handler = InterceptHandler()
+    handler.setLevel(0)
+    app.logger.addHandler(handler)
 
     CSRFProtect(app)
     register_extensions(app)
@@ -653,6 +660,8 @@ def register_shellcontext(app):
 
 def register_commands(app):
     """Register Click commands."""
+    app.cli.add_command(commands.bulk_scrape_caselink_by_week)
+    app.cli.add_command(commands.scrape_case_details)
     app.cli.add_command(commands.import_from_caselink)
     app.cli.add_command(commands.sync)
     app.cli.add_command(commands.sync_judgments)

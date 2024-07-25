@@ -32,13 +32,19 @@ with builtins; let
     cat `${rdcWebsiteConfig}/bin/rdc-website-config`
   '';
 
-  rdcWebsiteConsole = pkgs.writeScriptBin "rdc-website-console" ''
-    ${serveApp}/bin/console
-  '';
-
   rdcShowEnvVars = pkgs.writeScriptBin "rdc-show-env-vars" ''
     pid=$(systemctl show --property MainPID --value rdc-website.service)
     strings "/proc/$pid/environ"
+  '';
+
+  rdcWebsiteConsole = pkgs.writeScriptBin "rdc-website-console" ''
+    export `source ${rdcShowEnvVars}/bin/rdc-show-env-vars`
+    ${serveApp}/bin/console
+  '';
+
+  rdcWebsiteCommand = pkgs.writeScriptBin "rdc-website-command" ''
+    export `source ${rdcShowEnvVars}/bin/rdc-show-env-vars`
+    ${serveApp}/bin/command "$@"
   '';
 in {
   options.services.red-door-collective.rdc-website = with lib; {
@@ -200,6 +206,7 @@ in {
       rdcWebsiteConfig
       rdcWebsiteShowConfig
       rdcWebsiteConsole
+      rdcWebsiteCommand
       rdcShowEnvVars
     ];
 
